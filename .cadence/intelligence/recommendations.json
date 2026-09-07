@@ -2496,6 +2496,60 @@
       "convertedToPhaseId": "296-host-cli-prompt-via-stdin",
       "createdAt": "2026-09-07T21:34:12.327Z",
       "updatedAt": "2026-09-07T22:04:46.599Z"
+    },
+    {
+      "id": "rec-20260907-002",
+      "title": "packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/",
+      "summary": "pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is [\"src/**/*\"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "build",
+        "types"
+      ],
+      "affectedFiles": [
+        "packages/core/tsconfig.json"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-07T22:06:50.588Z",
+      "updatedAt": "2026-09-07T22:06:50.588Z"
+    },
+    {
+      "id": "rec-20260907-003",
+      "title": "The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings",
+      "summary": "A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\\r\\n' rather than '---\\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-07T22:06:51.167Z",
+      "updatedAt": "2026-09-07T22:06:51.167Z"
     }
   ],
   "archived": [

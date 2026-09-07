@@ -2410,6 +2410,20 @@
       "kind": "note",
       "summary": "Measured in consumer project keystone phase 24-01: diffBytes 14762 -> host-cli real verdicts; 70176 -> spawn ENAMETOOLONG, provider mock, ten identical refusals. keystone pins diffCapBytes to 16000 as a workaround.",
       "createdAt": "2026-09-07T21:34:12.327Z"
+    },
+    {
+      "id": "ev-20260907-002",
+      "recommendationId": "rec-20260907-002",
+      "kind": "note",
+      "summary": "Phase 296: stdin made required -> pnpm typecheck passed; direct tsc over the two test files reported TS2741 Property 'stdin' is missing in both.",
+      "createdAt": "2026-09-07T22:06:50.588Z"
+    },
+    {
+      "id": "ev-20260907-003",
+      "recommendationId": "rec-20260907-003",
+      "kind": "note",
+      "summary": "Phase 296: a Python text-mode rewrite of 296-01-DRAFT.md converted LF to CRLF; draft check reported 'missing frontmatter' until the file was normalised back to LF.",
+      "createdAt": "2026-09-07T22:06:51.167Z"
     }
   ]
 }

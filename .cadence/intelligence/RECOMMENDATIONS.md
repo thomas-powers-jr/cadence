@@ -1393,3 +1393,34 @@ Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (e
 - next: cadence milestone propose
 
 buildInvocation puts the entire prompt -- diff included -- into the argv array (host-cli-client.ts:275 codex, :278 claude) and realSpawn ignores stdin (:46). Windows caps a command line at 32,767 chars, so a deep-verify prompt above that throws spawn ENAMETOOLONG and the provider degrades to mock, which returns 'no linked test found' for every AC. The settle looks like it ran and verified nothing. Both binaries already accept the prompt on stdin -- verified 2026-09-07 against the real binaries: codex exec --json --skip-git-repo-check - read a 53,960-byte prompt (input_tokens 65151, no truncation), and claude -p --output-format json with the prompt piped returned is_error false. Moving the prompt to stdin removes the ceiling for both families. This repo is itself exposed: .cadence/config.json sets verifier.provider host-cli with diffCapBytes 262144.
+
+## rec-20260907-002 — packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: build, types
+- files: packages/core/tsconfig.json
+- evidence: Phase 296: stdin made required -> pnpm typecheck passed; direct tsc over the two test files reported TS2741 Property 'stdin' is missing in both.
+- next: cadence milestone propose
+
+pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is ["src/**/*"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.
+
+## rec-20260907-003 — The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: parsers, dx
+- evidence: Phase 296: a Python text-mode rewrite of 296-01-DRAFT.md converted LF to CRLF; draft check reported 'missing frontmatter' until the file was normalised back to LF.
+- next: cadence milestone propose
+
+A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\r\n' rather than '---\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.
