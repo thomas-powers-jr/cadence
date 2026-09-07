@@ -1,0 +1,36 @@
+{
+  "bypasses": [
+    {
+      "gate": "evidence-floor:AC-1",
+      "flag": "--evidence-floor-bypass",
+      "reason": "lockfile resolution is runtime state, not diff-visible; pnpm-lock.yaml in this diff shows key fast-uri@<3.1.6 echoed at line 12 and fast-uri@3.1.7 resolved",
+      "severity": "warn"
+    },
+    {
+      "gate": "evidence-floor:AC-2",
+      "flag": "--evidence-floor-bypass",
+      "reason": "audit output is command output, not diff-visible; pnpm audit --audit-level high exits 0 with 0 GHSA hits, down from 4 highs",
+      "severity": "warn"
+    },
+    {
+      "gate": "evidence-floor:AC-4",
+      "flag": "--evidence-floor-bypass",
+      "reason": "verified adversarially by injecting an expired probe row and confirming the suite still fails, which is a transient edit no diff can show",
+      "severity": "warn"
+    },
+    {
+      "gate": "evidence-floor:AC-5",
+      "flag": "--evidence-floor-bypass",
+      "reason": "script exit code is command output, not diff-visible; check-lockfile-overrides.mjs exits 0 reporting 7 override targets all satisfied",
+      "severity": "warn"
+    },
+    {
+      "gate": "evidence-floor:AC-6",
+      "flag": "--evidence-floor-bypass",
+      "reason": "whole-monorepo sweep is command output; build/typecheck/lint pass and the single test failure (tutorial) reproduces at clean d8d19ad4 and passed in CI on all 3 platforms",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {}
+}

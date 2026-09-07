@@ -2431,6 +2431,20 @@
       "kind": "note",
       "summary": "PR #481 CI: test jobs failed on all 3 platforms with exactly 1 failing test each, tests/docs/security-ci.test.ts:219; none of the PR's 32 host-cli tests failed on any platform. pnpm audit --audit-level high locally: 6 vulnerabilities, 4 high, all fast-uri via @modelcontextprotocol/sdk@1.30.0, all patched >=3.1.6.",
       "createdAt": "2026-09-07T22:26:27.124Z"
+    },
+    {
+      "id": "ev-20260907-005",
+      "recommendationId": "rec-20260907-005",
+      "kind": "note",
+      "summary": "Phase 297: with key fast-uri@3.1.2 stale and fast-uri resolving 3.1.5, check-lockfile-overrides.mjs exited 0 with '7 override target(s), all resolved instances satisfied' while pnpm audit reported 4 unlisted high advisories against that same package.",
+      "createdAt": "2026-09-07T23:03:57.628Z"
+    },
+    {
+      "id": "ev-20260907-006",
+      "recommendationId": "rec-20260907-006",
+      "kind": "note",
+      "summary": "Phase 297 SUMMARY deepVerify: 5 of 6 ACs refused with provider host-cli, every reason citing absent execution evidence rather than a defect. Phase 296 AC-6 refused identically.",
+      "createdAt": "2026-09-07T23:03:58.122Z"
     }
   ]
 }

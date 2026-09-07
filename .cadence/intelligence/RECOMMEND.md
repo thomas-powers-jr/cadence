@@ -2,13 +2,27 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-09-07T21:33:43.525Z
+Generated at: 2026-09-07T23:28:53.103Z
 
 ## Advisory
 
 - cadence spec new
 
 ## Ranked
+
+### rec-20260907-004 — CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job
+
+- score: 73/100 (raw 25.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 25.7 (score 73)
+- next: cadence milestone propose
+
+### rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
+
+- score: 73/100 (raw 25.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 25.7 (score 73)
+- next: cadence milestone propose
 
 ### rec-20260823-001 — doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix
 
@@ -23,6 +37,20 @@ Generated at: 2026-09-07T21:33:43.525Z
 - status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
 - scout: scout-20260823-host-hooks-completeness
+- next: cadence milestone propose
+
+### rec-20260907-002 — packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
+
+- score: 68/100 (raw 22.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
+- next: cadence milestone propose
+
+### rec-20260907-003 — The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings
+
+- score: 68/100 (raw 22.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
 - next: cadence milestone propose
 
 ### rec-20260801-001 — docs/reference/commands.md config edit section lists only 5 fields; EDITABLE_FIELDS has 8
@@ -278,6 +306,13 @@ Generated at: 2026-09-07T21:33:43.525Z
 - status: candidate · ready: needs-decision · priority: medium · decay: fresh
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
 - scout: scout-20260822-clean-base
+- next: cadence milestone propose
+
+### rec-20260907-006 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
+
+- score: 56/100 (raw 14.7)
+- status: candidate · ready: needs-decision · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
 - next: cadence milestone propose
 
 ### rec-20260724-007 — Define and document multi-contributor concurrency semantics for .cadence state
@@ -639,4 +674,4 @@ None.
 
 ## Totals
 
-- total 85 · ranked 83 · parked 2 · needs-attention 0 · excluded 0
+- total 90 · ranked 88 · parked 2 · needs-attention 0 · excluded 0

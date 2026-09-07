@@ -1424,3 +1424,34 @@ A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAF
 - next: cadence milestone propose
 
 Two independent pre-existing blockers make ci-success fail on any PR, both confirmed on PR #481 across ubuntu, macos and windows (exactly one failing test on each, none of them the PR's own). (1) tests/docs/security-ci.test.ts:219 asserts every documented audit exception is non-expired. The single row in docs/security/audit-exceptions.md, GHSA-88fw-hqm2-52qc for hono, has expiry 2026-08-28 and is 10 days past. Its own justification says 'Re-check on the next @modelcontextprotocol/sdk bump' -- that bump has happened (package.json asks ^1.29.0, the tree resolves 1.30.0) and GHSA-88fw-hqm2-52qc no longer appears in pnpm audit at all. The row should be REMOVED as resolved, not date-extended; extending it would defeat the gate. (2) Separately, pnpm audit now reports 6 vulnerabilities (4 high, 2 moderate) that no exception documents, which fails the audit and security-success jobs. All four highs are the same package: fast-uri, GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp, every one patched in >=3.1.6, every one reached via packages/core > @modelcontextprotocol/sdk@1.30.0. A pnpm.overrides pin to fast-uri >=3.1.6 is the likely one-line fix; the repo already uses that mechanism and has a lockfile-override doc test. Note the Security workflow was already failing on main at d8d19ad4, so this is not PR-introduced.
+
+## rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, build
+- files: scripts/check-lockfile-overrides.mjs
+- evidence: Phase 297: with key fast-uri@3.1.2 stale and fast-uri resolving 3.1.5, check-lockfile-overrides.mjs exited 0 with '7 override target(s), all resolved instances satisfied' while pnpm audit reported 4 unlisted high advisories against that same package.
+- next: cadence milestone propose
+
+scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.
+
+## rec-20260907-006 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, gates
+- evidence: Phase 297 SUMMARY deepVerify: 5 of 6 ACs refused with provider host-cli, every reason citing absent execution evidence rather than a defect. Phase 296 AC-6 refused identically.
+- next: cadence milestone propose
+
+The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.
