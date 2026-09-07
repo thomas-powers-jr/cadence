@@ -2424,6 +2424,13 @@
       "kind": "note",
       "summary": "Phase 296: a Python text-mode rewrite of 296-01-DRAFT.md converted LF to CRLF; draft check reported 'missing frontmatter' until the file was normalised back to LF.",
       "createdAt": "2026-09-07T22:06:51.167Z"
+    },
+    {
+      "id": "ev-20260907-004",
+      "recommendationId": "rec-20260907-004",
+      "kind": "note",
+      "summary": "PR #481 CI: test jobs failed on all 3 platforms with exactly 1 failing test each, tests/docs/security-ci.test.ts:219; none of the PR's 32 host-cli tests failed on any platform. pnpm audit --audit-level high locally: 6 vulnerabilities, 4 high, all fast-uri via @modelcontextprotocol/sdk@1.30.0, all patched >=3.1.6.",
+      "createdAt": "2026-09-07T22:26:27.124Z"
     }
   ]
 }

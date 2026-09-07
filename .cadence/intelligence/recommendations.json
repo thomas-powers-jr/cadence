@@ -2520,6 +2520,35 @@
       "decisionIds": [],
       "createdAt": "2026-09-07T22:06:51.167Z",
       "updatedAt": "2026-09-07T22:06:51.167Z"
+    },
+    {
+      "id": "rec-20260907-004",
+      "title": "CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job",
+      "summary": "Two independent pre-existing blockers make ci-success fail on any PR, both confirmed on PR #481 across ubuntu, macos and windows (exactly one failing test on each, none of them the PR's own). (1) tests/docs/security-ci.test.ts:219 asserts every documented audit exception is non-expired. The single row in docs/security/audit-exceptions.md, GHSA-88fw-hqm2-52qc for hono, has expiry 2026-08-28 and is 10 days past. Its own justification says 'Re-check on the next @modelcontextprotocol/sdk bump' -- that bump has happened (package.json asks ^1.29.0, the tree resolves 1.30.0) and GHSA-88fw-hqm2-52qc no longer appears in pnpm audit at all. The row should be REMOVED as resolved, not date-extended; extending it would defeat the gate. (2) Separately, pnpm audit now reports 6 vulnerabilities (4 high, 2 moderate) that no exception documents, which fails the audit and security-success jobs. All four highs are the same package: fast-uri, GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp, every one patched in >=3.1.6, every one reached via packages/core > @modelcontextprotocol/sdk@1.30.0. A pnpm.overrides pin to fast-uri >=3.1.6 is the likely one-line fix; the repo already uses that mechanism and has a lockfile-override doc test. Note the Security workflow was already failing on main at d8d19ad4, so this is not PR-introduced.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "package.json"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-07T22:26:27.124Z",
+      "updatedAt": "2026-09-07T22:26:27.124Z"
     }
   ],
   "archived": [
@@ -9291,11 +9320,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "296-host-cli-prompt-via-stdin",
-      "createdAt": "2026-09-07T21:34:12.327Z",
-      "updatedAt": "2026-09-07T22:09:30.704Z",
       "shippedRef": "PR #481",
       "archivedAt": "2026-09-07T22:09:30.704Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-07T21:34:12.327Z",
+      "updatedAt": "2026-09-07T22:09:30.704Z"
     }
   ]
 }

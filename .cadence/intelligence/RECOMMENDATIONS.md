@@ -1408,3 +1408,19 @@ pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is ["src/*
 - next: cadence milestone propose
 
 A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\r\n' rather than '---\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.
+
+## rec-20260907-004 — CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, ci
+- files: docs/security/audit-exceptions.md, package.json
+- evidence: PR #481 CI: test jobs failed on all 3 platforms with exactly 1 failing test each, tests/docs/security-ci.test.ts:219; none of the PR's 32 host-cli tests failed on any platform. pnpm audit --audit-level high locally: 6 vulnerabilities, 4 high, all fast-uri via @modelcontextprotocol/sdk@1.30.0, all patched >=3.1.6.
+- next: cadence milestone propose
+
+Two independent pre-existing blockers make ci-success fail on any PR, both confirmed on PR #481 across ubuntu, macos and windows (exactly one failing test on each, none of them the PR's own). (1) tests/docs/security-ci.test.ts:219 asserts every documented audit exception is non-expired. The single row in docs/security/audit-exceptions.md, GHSA-88fw-hqm2-52qc for hono, has expiry 2026-08-28 and is 10 days past. Its own justification says 'Re-check on the next @modelcontextprotocol/sdk bump' -- that bump has happened (package.json asks ^1.29.0, the tree resolves 1.30.0) and GHSA-88fw-hqm2-52qc no longer appears in pnpm audit at all. The row should be REMOVED as resolved, not date-extended; extending it would defeat the gate. (2) Separately, pnpm audit now reports 6 vulnerabilities (4 high, 2 moderate) that no exception documents, which fails the audit and security-success jobs. All four highs are the same package: fast-uri, GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp, every one patched in >=3.1.6, every one reached via packages/core > @modelcontextprotocol/sdk@1.30.0. A pnpm.overrides pin to fast-uri >=3.1.6 is the likely one-line fix; the repo already uses that mechanism and has a lockfile-override doc test. Note the Security workflow was already failing on main at d8d19ad4, so this is not PR-introduced.
