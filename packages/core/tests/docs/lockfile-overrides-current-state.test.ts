@@ -24,8 +24,15 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
   it("names the corrected patched-floor targets in package.json's pnpm.overrides (253-01/AC-1)", () => {
     const targets = extractOverrideTargets(packageJson);
 
-    // fast-uri: retargeted to the real patched floor.
-    expect(targets).toContainEqual({ package: 'fast-uri', sourceVersion: '3.1.2', range: '^3.1.5' });
+    // fast-uri: retargeted to the real patched floor -- for real this time.
+    // Phase 253 wrote `^3.1.5` under this same "real patched floor" comment,
+    // but 3.1.5 is still vulnerable: GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc,
+    // GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp are all patched in >=3.1.6.
+    // The old key was doubly broken -- having bumped the tree to 3.1.5, the
+    // pinned key `fast-uri@3.1.2` then matched nothing at all, so it was the
+    // silent-no-op stale key this very file exists to guard against. Phase 297
+    // uses a RANGE key so it cannot rot the same way on the next bump.
+    expect(targets).toContainEqual({ package: 'fast-uri', sourceVersion: '<3.1.6', range: '^3.1.6' });
     // brace-expansion 5.x line: retargeted to the real patched floor.
     expect(targets).toContainEqual({ package: 'brace-expansion', sourceVersion: '5.0.6', range: '^5.0.9' });
     // brace-expansion 2.x line: its own new override, distinct from the 5.x

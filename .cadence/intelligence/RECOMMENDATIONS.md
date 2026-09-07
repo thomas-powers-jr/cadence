@@ -1377,3 +1377,34 @@ docs/packs-design.md §7 Slice 4 (marked 'stretch -- may land after this arc clo
 - next: cadence milestone propose
 
 Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (every managed hook entry the installer writes is present), not just existence (hasManagedCadence finding any single non-stale marker). checkCodexHooks (packages/core/src/doctor/run.ts), which checks .codex/hooks.json, shares the identical hasManagedCadence-based existence-only predicate and was deliberately left unfixed in that phase -- Codex's expected hook shape genuinely differs (different event names, host-codex's apply_patch matcher vs Claude Code's edit-tool/Skill matchers), so phase 295's Claude-Code-specific CLAUDE_CODE_EXPECTED_HOOKS/findMissingManagedHooks design does not directly generalize. A new test (packages/core/tests/doctor/host-checks.test.ts, '295-01/AC-7') pins this as a deliberate, tested deferral: checkCodexHooks still reports ok on a single managed marker. Fixing it would need an analogous host-codex-specific expected-hooks list and its own drift test against host-codex's installer.
+
+## rec-20260907-001 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, build
+- files: scripts/check-lockfile-overrides.mjs
+- evidence: Phase 297: with key fast-uri@3.1.2 stale and fast-uri resolving 3.1.5, check-lockfile-overrides.mjs exited 0 with '7 override target(s), all resolved instances satisfied' while pnpm audit reported 4 unlisted high advisories against that same package.
+- next: cadence milestone propose
+
+scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.
+
+## rec-20260907-002 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, gates
+- evidence: Phase 297 SUMMARY deepVerify: 5 of 6 ACs refused with provider host-cli, every reason citing absent execution evidence rather than a defect. Phase 296 AC-6 refused identically.
+- next: cadence milestone propose
+
+The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.

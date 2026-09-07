@@ -1,0 +1,57 @@
+{
+  "draftId": "297-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "updatedAt": "2026-09-07T22:46:37.972Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T22:46:38.568Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/security/audit-exceptions.md",
+        "packages/core/tests/docs/security-ci.test.ts"
+      ],
+      "updatedAt": "2026-09-07T22:47:48.787Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T22:47:49.404Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/tests/docs/lockfile-overrides-current-state.test.ts",
+        "packages/core/tests/docs/phase260-vitest-v4-upgrade.test.ts",
+        ".changeset/fast-uri-override-and-stale-audit-exception.md"
+      ],
+      "updatedAt": "2026-09-07T22:56:58.323Z"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T22:56:58.963Z"
+    },
+    "T7": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T22:56:59.567Z"
+    }
+  }
+}

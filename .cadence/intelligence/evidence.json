@@ -2403,6 +2403,20 @@
       "kind": "note",
       "summary": "measured 2026-08-23: packages/core/src/doctor/run.ts's checkCodexHooks (.codex/hooks.json) and checkHostHooks (.claude/settings.json, pre-phase-295) both relied solely on hasManagedCadence (packages/core/src/doctor/host-hooks.ts) -- existence of any single non-stale marker, not completeness. Phase 295 fixed checkHostHooks; checkCodexHooks's identical gap is unchanged, confirmed by an empty git diff on that function and a new pinning test (295-01/AC-7) asserting its unaffected ok-on-single-marker behavior.",
       "createdAt": "2026-08-23T20:24:29.144Z"
+    },
+    {
+      "id": "ev-20260907-001",
+      "recommendationId": "rec-20260907-001",
+      "kind": "note",
+      "summary": "Phase 297: with key fast-uri@3.1.2 stale and fast-uri resolving 3.1.5, check-lockfile-overrides.mjs exited 0 with '7 override target(s), all resolved instances satisfied' while pnpm audit reported 4 unlisted high advisories against that same package.",
+      "createdAt": "2026-09-07T23:03:57.628Z"
+    },
+    {
+      "id": "ev-20260907-002",
+      "recommendationId": "rec-20260907-002",
+      "kind": "note",
+      "summary": "Phase 297 SUMMARY deepVerify: 5 of 6 ACs refused with provider host-cli, every reason citing absent execution evidence rather than a defect. Phase 296 AC-6 refused identically.",
+      "createdAt": "2026-09-07T23:03:58.122Z"
     }
   ]
 }
