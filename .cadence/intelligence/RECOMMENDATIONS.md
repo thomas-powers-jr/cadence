@@ -1377,3 +1377,19 @@ docs/packs-design.md §7 Slice 4 (marked 'stretch -- may land after this arc clo
 - next: cadence milestone propose
 
 Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (every managed hook entry the installer writes is present), not just existence (hasManagedCadence finding any single non-stale marker). checkCodexHooks (packages/core/src/doctor/run.ts), which checks .codex/hooks.json, shares the identical hasManagedCadence-based existence-only predicate and was deliberately left unfixed in that phase -- Codex's expected hook shape genuinely differs (different event names, host-codex's apply_patch matcher vs Claude Code's edit-tool/Skill matchers), so phase 295's Claude-Code-specific CLAUDE_CODE_EXPECTED_HOOKS/findMissingManagedHooks design does not directly generalize. A new test (packages/core/tests/doctor/host-checks.test.ts, '295-01/AC-7') pins this as a deliberate, tested deferral: checkCodexHooks still reports ok on a single managed marker. Fixing it would need an analogous host-codex-specific expected-hooks list and its own drift test against host-codex's installer.
+
+## rec-20260907-001 — host-cli passes the whole prompt as an argv element, so any prompt over ~32KB fails with ENAMETOOLONG on Windows and silently falls back to mock
+
+- status: settle-pending
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, host-cli
+- files: packages/core/src/verify/host-cli-client.ts, packages/core/tests/verify/host-cli-client.test.ts
+- evidence: Measured in consumer project keystone phase 24-01: diffBytes 14762 -> host-cli real verdicts; 70176 -> spawn ENAMETOOLONG, provider mock, ten identical refusals. keystone pins diffCapBytes to 16000 as a workaround.
+- next: cadence milestone propose
+
+buildInvocation puts the entire prompt -- diff included -- into the argv array (host-cli-client.ts:275 codex, :278 claude) and realSpawn ignores stdin (:46). Windows caps a command line at 32,767 chars, so a deep-verify prompt above that throws spawn ENAMETOOLONG and the provider degrades to mock, which returns 'no linked test found' for every AC. The settle looks like it ran and verified nothing. Both binaries already accept the prompt on stdin -- verified 2026-09-07 against the real binaries: codex exec --json --skip-git-repo-check - read a 53,960-byte prompt (input_tokens 65151, no truncation), and claude -p --output-format json with the prompt piped returned is_error false. Moving the prompt to stdin removes the ceiling for both families. This repo is itself exposed: .cadence/config.json sets verifier.provider host-cli with diffCapBytes 262144.

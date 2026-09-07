@@ -2,20 +2,27 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-08-22T18:22:58.907Z
+Generated at: 2026-09-07T21:33:43.525Z
 
 ## Advisory
 
-- Finish in-flight CADENCE loop work first — cadence build task <id> --status=<DONE|...>  OR  cadence settle run --ac AC-1=pass.
-- then: cadence milestone propose
+- cadence spec new
 
 ## Ranked
 
-### rec-20260822-004 — settle: silent-swallow catch masks converted-rec advance failures (incl. read-only refusal)
+### rec-20260823-001 — doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix
 
 - score: 68/100 (raw 22.7)
 - status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
+- next: cadence milestone propose
+
+### rec-20260823-006 — checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks
+
+- score: 68/100 (raw 22.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
+- scout: scout-20260823-host-hooks-completeness
 - next: cadence milestone propose
 
 ### rec-20260801-001 — docs/reference/commands.md config edit section lists only 5 fields; EDITABLE_FIELDS has 8
@@ -39,6 +46,13 @@ Generated at: 2026-08-22T18:22:58.907Z
 - status: candidate · ready: ready-for-cadence-spec · priority: low · decay: fresh
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio low +0 · friction 0 +0 ⇒ raw 20.7 (score 65)
 - scout: scout-20260811-0027
+- next: cadence milestone propose
+
+### rec-20260823-003 — Packs Slice 4: commands declaration checked by cadence doctor, never enforced
+
+- score: 65/100 (raw 20.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: low · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio low +0 · friction 0 +0 ⇒ raw 20.7 (score 65)
 - next: cadence milestone propose
 
 ### rec-20260730-001 — phase-replay ignores SUMMARY.coverageMode provenance, re-derives coverage under the live config's mode
@@ -82,14 +96,6 @@ Generated at: 2026-08-22T18:22:58.907Z
 - status: candidate · ready: needs-decision · priority: high · decay: fresh
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 17.7 (score 61)
 - scout: scout-20260818-record-reconciliation
-- next: cadence milestone propose
-
-### rec-20260822-006 — Code-review finding (high): `writeLedger` remains an exported, unguarded store writer; importing it with a …
-
-- score: 61/100 (raw 17.7)
-- status: candidate · ready: needs-decision · priority: high · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 17.7 (score 61)
-- scout: scout-20260822-1814
 - next: cadence milestone propose
 
 ### rec-20260726-005 — coverage.ts's coverageBypassed is false-negative when a --force-only bypass overrides real coverage gaps in assertion mode
@@ -258,6 +264,22 @@ Generated at: 2026-08-22T18:22:58.907Z
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
 - next: cadence milestone propose
 
+### rec-20260822-007 — Findings-to-ledger routing leaves an auto-filed rec unreconciled when a same-settle later round fixes the finding
+
+- score: 56/100 (raw 14.7)
+- status: candidate · ready: needs-decision · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
+- scout: scout-20260822-clean-base
+- next: cadence milestone propose
+
+### rec-20260822-008 — SUMMARY.json's deepVerify only persists the final convergence round, hiding self-contradicting verifier rounds from the audit trail
+
+- score: 56/100 (raw 14.7)
+- status: candidate · ready: needs-decision · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
+- scout: scout-20260822-clean-base
+- next: cadence milestone propose
+
 ### rec-20260724-007 — Define and document multi-contributor concurrency semantics for .cadence state
 
 - score: 55/100 (raw 13.7)
@@ -316,6 +338,13 @@ Generated at: 2026-08-22T18:22:58.907Z
 - next: cadence milestone propose
 
 ### rec-20260822-005 — settle --deep verify (host-cli) gave a false AC refusal on unchanged evidence -- likely incomplete evidence-assembly
+
+- score: 55/100 (raw 13.7)
+- status: candidate · ready: needs-evidence · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-evidence +1 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 13.7 (score 55)
+- next: cadence milestone propose
+
+### rec-20260823-002 — dispatch could refuse/warn when multiple mutating tasks target one shared worktree concurrently
 
 - score: 55/100 (raw 13.7)
 - status: candidate · ready: needs-evidence · priority: medium · decay: fresh
@@ -610,4 +639,4 @@ None.
 
 ## Totals
 
-- total 82 · ranked 79 · parked 2 · needs-attention 0 · excluded 1
+- total 85 · ranked 83 · parked 2 · needs-attention 0 · excluded 0

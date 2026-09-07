@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-22T18:22:58.907Z",
+  "generatedAt": "2026-09-07T21:33:43.525Z",
   "ranked": [
     {
-      "id": "rec-20260822-004",
-      "title": "settle: silent-swallow catch masks converted-rec advance failures (incl. read-only refusal)",
+      "id": "rec-20260823-001",
+      "title": "doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix",
       "raw": 22.7,
       "score": 68,
       "status": "candidate",
@@ -46,6 +46,52 @@
         }
       ],
       "suggestedBackendAction": "cadence milestone propose"
+    },
+    {
+      "id": "rec-20260823-006",
+      "title": "checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks",
+      "raw": 22.7,
+      "score": 68,
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready ready-for-cadence-spec",
+          "value": 10
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "scoutId": "scout-20260823-host-hooks-completeness"
     },
     {
       "id": "rec-20260801-001",
@@ -183,6 +229,51 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "scoutId": "scout-20260811-0027"
+    },
+    {
+      "id": "rec-20260823-003",
+      "title": "Packs Slice 4: commands declaration checked by cadence doctor, never enforced",
+      "raw": 20.7,
+      "score": 65,
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready ready-for-cadence-spec",
+          "value": 10
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio low",
+          "value": 0
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose"
     },
     {
       "id": "rec-20260730-001",
@@ -454,52 +545,6 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "scoutId": "scout-20260818-record-reconciliation"
-    },
-    {
-      "id": "rec-20260822-006",
-      "title": "Code-review finding (high): `writeLedger` remains an exported, unguarded store writer; importing it with a …",
-      "raw": 17.7,
-      "score": 61,
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "high",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready needs-decision",
-          "value": 2
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio high",
-          "value": 5
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "scoutId": "scout-20260822-1814"
     },
     {
       "id": "rec-20260726-005",
@@ -1504,6 +1549,98 @@
       "suggestedBackendAction": "cadence milestone propose"
     },
     {
+      "id": "rec-20260822-007",
+      "title": "Findings-to-ledger routing leaves an auto-filed rec unreconciled when a same-settle later round fixes the finding",
+      "raw": 14.7,
+      "score": 56,
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready needs-decision",
+          "value": 2
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "scoutId": "scout-20260822-clean-base"
+    },
+    {
+      "id": "rec-20260822-008",
+      "title": "SUMMARY.json's deepVerify only persists the final convergence round, hiding self-contradicting verifier rounds from the audit trail",
+      "raw": 14.7,
+      "score": 56,
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready needs-decision",
+          "value": 2
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "scoutId": "scout-20260822-clean-base"
+    },
+    {
       "id": "rec-20260724-007",
       "title": "Define and document multi-contributor concurrency semantics for .cadence state",
       "raw": 13.7,
@@ -1867,6 +2004,51 @@
     {
       "id": "rec-20260822-005",
       "title": "settle --deep verify (host-cli) gave a false AC refusal on unchanged evidence -- likely incomplete evidence-assembly",
+      "raw": 13.7,
+      "score": 55,
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready needs-evidence",
+          "value": 1
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose"
+    },
+    {
+      "id": "rec-20260823-002",
+      "title": "dispatch could refuse/warn when multiple mutating tasks target one shared worktree concurrently",
       "raw": 13.7,
       "score": 55,
       "status": "candidate",
@@ -3609,15 +3791,14 @@
   ],
   "needsAttention": [],
   "advisory": {
-    "kind": "finish-loop",
-    "primary": "Finish in-flight CADENCE loop work first — cadence build task <id> --status=<DONE|...>  OR  cadence settle run --ac AC-1=pass.",
-    "secondary": "cadence milestone propose"
+    "kind": "spec-new",
+    "primary": "cadence spec new"
   },
   "totals": {
-    "total": 82,
-    "ranked": 79,
+    "total": 85,
+    "ranked": 83,
     "parked": 2,
     "needsAttention": 0,
-    "excluded": 1
+    "excluded": 0
   }
 }

@@ -1,0 +1,56 @@
+{
+  "draftId": "296-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/tests/verify/host-cli-client.test.ts"
+      ],
+      "updatedAt": "2026-09-07T21:42:52.119Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/src/verify/host-cli-client.ts"
+      ],
+      "updatedAt": "2026-09-07T21:45:56.901Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T21:45:57.545Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T21:45:58.177Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/reference/config.md",
+        "packages/core/tests/docs/deep-verify-diff.test.ts"
+      ],
+      "updatedAt": "2026-09-07T22:00:41.682Z"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-07T21:52:21.331Z"
+    },
+    "T7": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        ".changeset/host-cli-prompt-via-stdin.md"
+      ],
+      "updatedAt": "2026-09-07T21:52:44.611Z"
+    }
+  }
+}

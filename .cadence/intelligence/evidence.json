@@ -2403,6 +2403,13 @@
       "kind": "note",
       "summary": "measured 2026-08-23: packages/core/src/doctor/run.ts's checkCodexHooks (.codex/hooks.json) and checkHostHooks (.claude/settings.json, pre-phase-295) both relied solely on hasManagedCadence (packages/core/src/doctor/host-hooks.ts) -- existence of any single non-stale marker, not completeness. Phase 295 fixed checkHostHooks; checkCodexHooks's identical gap is unchanged, confirmed by an empty git diff on that function and a new pinning test (295-01/AC-7) asserting its unaffected ok-on-single-marker behavior.",
       "createdAt": "2026-08-23T20:24:29.144Z"
+    },
+    {
+      "id": "ev-20260907-001",
+      "recommendationId": "rec-20260907-001",
+      "kind": "note",
+      "summary": "Measured in consumer project keystone phase 24-01: diffBytes 14762 -> host-cli real verdicts; 70176 -> spawn ENAMETOOLONG, provider mock, ten identical refusals. keystone pins diffCapBytes to 16000 as a workaround.",
+      "createdAt": "2026-09-07T21:34:12.327Z"
     }
   ]
 }

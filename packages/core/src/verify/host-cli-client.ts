@@ -25,6 +25,16 @@ export type HostCliFamily = 'claude' | 'codex';
  * (`child.kill?.(...)`) rather than assuming it exists.
  */
 export interface SpawnedProcessLike {
+  /**
+   * Phase 296 T2 - the prompt is delivered here, not in argv. Deliberately
+   * OPTIONAL for the same reason `kill` is: the two out-of-boundary test
+   * files named above build fake process objects that predate this change
+   * and do not implement a stdin. Requiring it would break their typecheck.
+   * Real spawned processes satisfy it via Node's actual `ChildProcess.stdin`
+   * now that `realSpawn` pipes the channel; the write path guards with
+   * `child.stdin?.` rather than assuming it exists.
+   */
+  stdin?: NodeJS.WritableStream | null;
   stdout: NodeJS.ReadableStream | null;
   stderr: NodeJS.ReadableStream | null;
   on(event: 'error', listener: (err: NodeJS.ErrnoException) => void): unknown;
@@ -36,14 +46,23 @@ export interface SpawnedProcessLike {
 export type SpawnFn = (bin: string, args: string[]) => SpawnedProcessLike;
 
 /**
- * Real spawn implementation. Piped stdio only (`['ignore', 'pipe', 'pipe']`)
+ * Real spawn implementation. Piped stdio only (`['pipe', 'pipe', 'pipe']`)
  * — never `'inherit'`, which is reserved for the interactive `init`/`start`
- * launcher use case elsewhere in this codebase. Stdin is ignored (not piped)
- * so a host CLI that opportunistically reads stdin when it isn't a TTY sees
- * an immediate EOF instead of hanging.
+ * launcher use case elsewhere in this codebase.
+ *
+ * Phase 296 T2 - stdin is now PIPED, reversing the original rationale. It
+ * used to be `'ignore'` so a host CLI that opportunistically reads a non-TTY
+ * stdin saw an immediate EOF instead of hanging. That made the prompt an
+ * argv element, and Windows caps a command line at 32,767 characters: a
+ * deep-verify prompt carrying a real diff threw `spawn ENAMETOOLONG`, the
+ * provider degraded to `mock`, and the settle reported "no linked test
+ * found" for every AC while appearing to have run. The prompt now travels
+ * on stdin, which has no such ceiling. The hang the old comment guarded
+ * against is prevented instead by always calling `end()` after the write
+ * (see `spawnCapture`), which is what delivers the EOF.
  */
 const realSpawn: SpawnFn = (bin, args) =>
-  spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  spawn(bin, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
 /**
  * Phase 178 T1 — one-time-per-process quota-transparency notice. A module-
@@ -252,30 +271,44 @@ function inferFamily(bin: string): HostCliFamily {
  * Builds the headless/non-interactive spawn invocation for a given family.
  *
  * `claude`: empirically verified against the real binary (2026-07-10) —
- * `claude -p "<prompt>" --output-format json [--model <model>]` prints a
+ * `claude -p --output-format json [--model <model>]` prints a
  * single JSON envelope to stdout with a string `result` field holding the
  * model's final text.
  *
  * `codex`: also empirically verified against the real binary (2026-07-10) —
- * `codex exec --json --skip-git-repo-check [-m <model>] "<prompt>"` prints
+ * `codex exec --json --skip-git-repo-check [-m <model>] -` prints
  * JSONL events to stdout; the model's final text is the `text` field of the
  * last `{"type":"item.completed","item":{"type":"agent_message",...}}`
  * event. `--skip-git-repo-check` avoids a hard failure when the verifier
  * runs outside a git repository; it is a no-op inside one. Both flag choices
  * were spiked directly against installed `claude`/`codex` binaries in this
  * session, not guessed from `--help` alone.
+ *
+ * Phase 296 T3 - neither form carries the prompt any more. It is written to
+ * the child's stdin instead (see `spawnCapture`), so argv stays a fixed
+ * handful of flags no matter how large the prompt grows. codex takes the
+ * explicit `-` operand; `codex exec --help` documents it as "If not provided
+ * as an argument (or if `-` is used), instructions are read from stdin".
+ * claude simply omits the positional operand after `-p`. Both were verified
+ * against the real binaries on 2026-09-07, to the same standard as the
+ * 2026-07-10 flag spike above: `codex exec --json --skip-git-repo-check -`
+ * read a 53,960-byte prompt and reported `input_tokens: 65151` with no
+ * truncation, and `claude -p --output-format json` with the prompt piped
+ * returned `"is_error": false`. 53,960 is 1.65x the 32,767-character Windows
+ * command-line ceiling that the old argv form could not clear.
  */
-function buildInvocation(
-  o: { bin: string; family: HostCliFamily; model: string | undefined },
-  prompt: string,
-): string[] {
+function buildInvocation(o: {
+  bin: string;
+  family: HostCliFamily;
+  model: string | undefined;
+}): string[] {
   if (o.family === 'codex') {
     const args = ['exec', '--json', '--skip-git-repo-check'];
     if (o.model) args.push('-m', o.model);
-    args.push(prompt);
+    args.push('-');
     return args;
   }
-  const args = ['-p', prompt, '--output-format', 'json'];
+  const args = ['-p', '--output-format', 'json'];
   if (o.model) args.push('--model', o.model);
   return args;
 }
@@ -313,6 +346,7 @@ function spawnCapture(
   spawnImpl: SpawnFn,
   bin: string,
   args: string[],
+  prompt: string,
   family: HostCliFamily,
   env: NodeJS.ProcessEnv,
   timeoutMs: number,
@@ -416,6 +450,33 @@ function spawnCapture(
       }
       resolve({ stdout, stderr });
     });
+
+    // Phase 296 T4 - deliver the prompt on stdin rather than in argv.
+    //
+    // The `error` listener goes on BEFORE the write. If the child has already
+    // exited, the write raises EPIPE asynchronously on the stream; with no
+    // listener that is an unhandled 'error' event, which terminates the whole
+    // cadence process rather than failing this one call. Routing it through
+    // the same `settled` guard the timeout, abort and close paths use means
+    // whichever fires first wins and the rest tear down cleanly.
+    child.stdin?.on('error', (err: NodeJS.ErrnoException) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(
+        new HostCliError(
+          `host-cli provider: failed to write the prompt to "${bin}" stdin: ${err.message}`,
+          'spawn-error',
+          { cause: err },
+        ),
+      );
+    });
+    // `end()` is not optional. A host CLI reading `-` blocks until EOF, so
+    // leaving the stream open hangs the call until the spawn timeout fires,
+    // which would look like the model hanging rather than a bug here.
+    child.stdin?.write(prompt);
+    child.stdin?.end();
   });
 }
 
@@ -488,7 +549,7 @@ async function callOnce(
   messages: RepairMessage[],
 ): Promise<string> {
   const prompt = flattenMessages(messages);
-  const args = buildInvocation(o, prompt);
+  const args = buildInvocation(o);
   const log = getLogger().child({
     seam: 'verify',
     provider: 'host-cli',
@@ -498,7 +559,16 @@ async function callOnce(
   });
   log.debug('verify request', { bin: o.bin, family: o.family });
 
-  const { stdout } = await spawnCapture(o.spawnImpl, o.bin, args, o.family, o.env, o.timeoutMs, o.signal);
+  const { stdout } = await spawnCapture(
+    o.spawnImpl,
+    o.bin,
+    args,
+    prompt,
+    o.family,
+    o.env,
+    o.timeoutMs,
+    o.signal,
+  );
 
   try {
     const text = o.family === 'codex' ? extractCodexText(stdout, o.bin) : extractClaudeText(stdout, o.bin);

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { hostCliJSON, type SpawnFn, type SpawnedProcessLike } from '../../src/verify/host-cli-client.js';
+import {
+  hostCliJSON,
+  HostCliError,
+  type SpawnFn,
+  type SpawnedProcessLike,
+} from '../../src/verify/host-cli-client.js';
 
 // AC-3 (structural, satisfied by the diff): this test file, and the module it
 // exercises, import nothing from `@thomas-powers-jr/cadence-types`'s host.ts or
@@ -16,6 +21,11 @@ interface FakeCall {
   args: string[];
   /** Phase 178 T3: signals passed to the fake process's `kill()`, in call order. */
   killSignals: NodeJS.Signals[];
+  /** Phase 296 T1: everything the client wrote to the child's stdin, concatenated. */
+  stdin: string;
+  /** Phase 296 T1: whether the client closed stdin. A host CLI reading `-` blocks on
+   *  EOF, so leaving the stream open hangs the call until the spawn timeout fires. */
+  stdinEnded: boolean;
 }
 
 interface FakeResponse {
@@ -26,13 +36,16 @@ interface FakeResponse {
   /** Phase 178 T3: AC-3's "never closes stdout or exits" case — no listener is
    *  ever invoked, simulating the documented hung-subprocess limitation. */
   hang?: boolean;
+  /** Phase 296 T4: AC-4's case, the child exits before the prompt is fully
+   *  written and stdin emits EPIPE. */
+  stdinError?: NodeJS.ErrnoException;
 }
 
 /** Stubs the subprocess transport: records each spawn call and replays scripted responses in order (last one repeats). No real `claude`/`codex` binary is ever invoked. */
 function fakeSpawn(responses: FakeResponse[], calls: FakeCall[]): SpawnFn {
   let i = 0;
   return (bin, args) => {
-    const call: FakeCall = { bin, args, killSignals: [] };
+    const call: FakeCall = { bin, args, killSignals: [], stdin: '', stdinEnded: false };
     calls.push(call);
     const resp = responses[Math.min(i++, responses.length - 1)] ?? {};
 
@@ -41,7 +54,22 @@ function fakeSpawn(responses: FakeResponse[], calls: FakeCall[]): SpawnFn {
     let errorListener: ((err: NodeJS.ErrnoException) => void) | undefined;
     let closeListener: ((code: number | null) => void) | undefined;
 
+    let stdinErrorListener: ((err: NodeJS.ErrnoException) => void) | undefined;
+
     const proc: SpawnedProcessLike = {
+      stdin: {
+        write: (chunk: string | Buffer) => {
+          call.stdin += chunk.toString();
+          return true;
+        },
+        end: () => {
+          call.stdinEnded = true;
+        },
+        on: (event: string, cb: (err: NodeJS.ErrnoException) => void) => {
+          if (event === 'error') stdinErrorListener = cb;
+          return proc.stdin as NodeJS.WritableStream;
+        },
+      } as unknown as NodeJS.WritableStream,
       stdout: {
         on: (event: string, cb: (chunk: Buffer) => void) => {
           if (event === 'data') stdoutListeners.push(cb);
@@ -66,6 +94,10 @@ function fakeSpawn(responses: FakeResponse[], calls: FakeCall[]): SpawnFn {
     };
 
     queueMicrotask(() => {
+      if (resp.stdinError) {
+        stdinErrorListener?.(resp.stdinError);
+        return;
+      }
       if (resp.hang) return; // never fires error/close — the timeout guard must catch this
       if (resp.err) {
         errorListener?.(resp.err);
@@ -102,9 +134,11 @@ describe('hostCliJSON', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]!.bin).toBe('claude');
     expect(calls[0]!.args[0]).toBe('-p');
-    expect(calls[0]!.args[1]).toContain('[SYSTEM]\ns');
-    expect(calls[0]!.args[1]).toContain('[USER]\nu');
-    expect(calls[0]!.args.slice(2)).toEqual(['--output-format', 'json']);
+    // Phase 296: the flattened prompt moved from argv to stdin. Same two
+    // assertions, read off the channel that now carries it.
+    expect(calls[0]!.stdin).toContain('[SYSTEM]\ns');
+    expect(calls[0]!.stdin).toContain('[USER]\nu');
+    expect(calls[0]!.args.slice(1)).toEqual(['--output-format', 'json']);
   });
 
   it('passes --model when a model is configured (claude family)', async () => {
@@ -113,7 +147,7 @@ describe('hostCliJSON', () => {
 
     await hostCliJSON({ ...base, model: 'opus', spawnImpl });
 
-    expect(calls[0]!.args.slice(2)).toEqual(['--output-format', 'json', '--model', 'opus']);
+    expect(calls[0]!.args.slice(1)).toEqual(['--output-format', 'json', '--model', 'opus']);
   });
 
   it('does not pass a --model flag when no model is configured', async () => {
@@ -142,7 +176,78 @@ describe('hostCliJSON', () => {
     expect(calls[0]!.args[0]).toBe('exec');
     expect(calls[0]!.args).toContain('--json');
     expect(calls[0]!.args).toContain('--skip-git-repo-check');
-    expect(calls[0]!.args[calls[0]!.args.length - 1]).toContain('[USER]\nu');
+    // Phase 296: argv now ends with the `-` stdin operand; the prompt itself
+    // is on stdin.
+    expect(calls[0]!.args[calls[0]!.args.length - 1]).toBe('-');
+    expect(calls[0]!.stdin).toContain('[USER]\nu');
+  });
+
+  // Phase 296: the prompt travels on stdin, not argv. Windows caps a command
+  // line at 32,767 characters, so a deep-verify prompt carrying a real diff
+  // used to throw `spawn ENAMETOOLONG`; the provider then degraded to `mock`
+  // and every AC came back "no linked test found" from a settle that looked
+  // like it had run. Both binaries accept the prompt on stdin, verified
+  // against the real binaries on 2026-09-07: `codex exec --json
+  // --skip-git-repo-check -` read a 53,960-byte prompt (input_tokens 65151,
+  // no truncation), and `claude -p --output-format json` with the prompt
+  // piped returned `"is_error": false`.
+
+  it('AC-1/AC-5: a prompt larger than the Windows argv ceiling is absent from argv and arrives whole on stdin', async () => {
+    const calls: FakeCall[] = [];
+    const spawnImpl = fakeSpawn([{ stdout: claudeEnvelope('{"ok":true}') }], calls);
+    // 40,000 chars clears the 32,767 ceiling with room to spare. Generated,
+    // never a literal, so this test file stays small.
+    const huge = 'x'.repeat(40_000);
+
+    const r = await hostCliJSON({ ...base, user: huge, spawnImpl });
+
+    expect(r.ok).toBe(true);
+    // AC-1: no argument carries the prompt, and argv does not grow with it.
+    expect(calls[0]!.args.some((a) => a.includes(huge))).toBe(false);
+    expect(calls[0]!.args.join('').length).toBeLessThan(1_000);
+    // AC-5: the prompt arrived in full, untruncated.
+    expect(calls[0]!.stdin).toContain(huge);
+    expect(calls[0]!.stdin).toContain('[SYSTEM]');
+    expect(calls[0]!.stdinEnded).toBe(true);
+  });
+
+  it('AC-2: claude is invoked as `-p --output-format json` with no positional prompt', async () => {
+    const calls: FakeCall[] = [];
+    const spawnImpl = fakeSpawn([{ stdout: claudeEnvelope('{"ok":true}') }], calls);
+
+    await hostCliJSON({ ...base, spawnImpl });
+
+    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json']);
+  });
+
+  it('AC-2: codex is invoked with a trailing `-` so it reads the prompt from stdin', async () => {
+    const calls: FakeCall[] = [];
+    const jsonl = JSON.stringify({
+      type: 'item.completed',
+      item: { id: 'i', type: 'agent_message', text: '{"ok":true}' },
+    });
+    const spawnImpl = fakeSpawn([{ stdout: jsonl }], calls);
+
+    await hostCliJSON({ ...base, bin: 'codex', model: 'gpt-5', spawnImpl });
+
+    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-m', 'gpt-5', '-']);
+  });
+
+  it('AC-3: stdin is closed, so a CLI that blocks on EOF cannot hang', async () => {
+    const calls: FakeCall[] = [];
+    const spawnImpl = fakeSpawn([{ stdout: claudeEnvelope('{"ok":true}') }], calls);
+
+    await hostCliJSON({ ...base, spawnImpl });
+
+    expect(calls[0]!.stdinEnded).toBe(true);
+  });
+
+  it('AC-4: an EPIPE on stdin rejects as a HostCliError instead of crashing the process', async () => {
+    const calls: FakeCall[] = [];
+    const epipe: NodeJS.ErrnoException = Object.assign(new Error('write EPIPE'), { code: 'EPIPE' });
+    const spawnImpl = fakeSpawn([{ stdinError: epipe }], calls);
+
+    await expect(hostCliJSON({ ...base, spawnImpl })).rejects.toBeInstanceOf(HostCliError);
   });
 
   it('AC-1: reuses the shared repair-retry harness — repairs once then succeeds', async () => {

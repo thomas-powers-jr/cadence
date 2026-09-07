@@ -1,0 +1,13 @@
+---
+"@thomas-powers-jr/cadence-core": patch
+---
+
+Fix: the `host-cli` verifier provider now sends its prompt to the host CLI on **stdin** instead of as a command-line argument, removing an operating-system ceiling on how large a `deep-verify` prompt could be.
+
+`buildInvocation` previously put the whole prompt — the phase diff included — into the `argv` array, and `realSpawn` opened the child with `stdio: ['ignore', 'pipe', 'pipe']` so stdin was deliberately not a path. Windows caps a command line at 32,767 characters. Any prompt above that threw `spawn ENAMETOOLONG`; the provider then degraded to `mock`, which returns `no linked test found` for every AC. The result was the worst possible failure mode: a settle that looked like it had verified the work and had verified nothing. `verifier.diffCapBytes` existed largely to stay under that ceiling, and this repo's own `.cadence/config.json` sets it to the library default `262144`, which was unreachable on Windows.
+
+Both supported binaries already accept the prompt on stdin, verified against the real binaries on 2026-09-07 to the same standard as the original 2026-07-10 flag spike: `codex exec --json --skip-git-repo-check -` read a 53,960-byte prompt and reported `input_tokens: 65151` with no truncation, and `claude -p --output-format json` with the prompt piped returned `"is_error": false`. 53,960 bytes is 1.65× the Windows ceiling. codex takes the explicit `-` operand its own `exec --help` documents; claude simply omits the positional operand after `-p`.
+
+`SpawnedProcessLike` gains an **optional** `stdin` member, following the existing optional-`kill` precedent — two test files outside this change's boundary build fake process objects that do not implement one, and requiring it would break their typecheck (confirmed adversarially: making it required raises `TS2741: Property 'stdin' is missing` in both). `spawnCapture` attaches an `error` listener to the stream *before* writing, routed through the same `settled` guard the timeout, abort and close paths share, so a child that exits early raises a `HostCliError` rather than an unhandled `EPIPE` that would take the whole cadence process down. It then writes the prompt and calls `end()` exactly once — a host CLI reading `-` blocks until EOF, so closing the stream is what prevents the hang the old `'ignore'` stdio was guarding against.
+
+`verifier.diffCapBytes` keeps its `262144` default and is now a genuine context-and-cost budget rather than a workaround for `ENAMETOOLONG`. Operators who lowered it to stay under the command-line limit can raise it again. `docs/reference/config.md` says so, and repeats the standing advice to read `deepVerifyMeta.provider` before trusting any verdict: `mock` means nothing was verified.
