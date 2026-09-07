@@ -203,15 +203,26 @@ describe('audit exceptions doc', () => {
     expect(md).toMatch(/Expiry/i);
   });
 
-  it('documents at least one real, non-expired exception with every column populated (AC-3)', () => {
-    // phase 182's own audit run found genuine high/critical advisories in this
-    // repo's current dependency tree (vitest/vite/hono, all dev-only or
-    // unreachable-transport transitive deps — see the file for the real
-    // justifications); the table intentionally documents them rather than
-    // starting empty, so this asserts the documented rows are well-formed
-    // and currently valid, not that the table is empty.
+  it('every documented exception is real, non-expired, and has every column populated (AC-3)', () => {
+    // Phase 297: this deliberately does NOT require the table to be non-empty.
+    // It used to. That requirement was written in phase 182, when the audit
+    // genuinely did surface high/critical advisories in this tree and the
+    // table documented them rather than starting empty. Treating that snapshot
+    // as an invariant inverts the goal: **zero documented exceptions is the
+    // healthy state**, and a gate that forbids an empty table pressures a
+    // future maintainer to keep a dead row alive, or to push an expiry
+    // forward, purely to stay green. Phase 297 pinned `fast-uri` past its four
+    // advisories and removed the last remaining row (`GHSA-88fw-hqm2-52qc`,
+    // hono) as resolved rather than re-justified -- the same way phase 260
+    // removed the vitest/vite/postcss rows -- which emptied the table
+    // legitimately.
+    //
+    // What is still enforced, and is the part that matters: any row that IS
+    // present must have every column populated and must not be past its
+    // expiry. An unlisted or expired high/critical advisory still fails the
+    // `audit` job via scripts/check-audit-exceptions.mjs, which is the real
+    // gate; this test guards the shape of the doc that gate reads.
     const rows = parseExceptionsTable(md);
-    expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) {
       expect(row.id).toBeTruthy();
       expect(row.package).toBeTruthy();

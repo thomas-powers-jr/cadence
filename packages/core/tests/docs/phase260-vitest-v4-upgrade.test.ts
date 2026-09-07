@@ -80,13 +80,18 @@ describe('vitest 2->4 upgrade — real, current repo state (260-01)', () => {
     expect([...versions][0]).toBe('^4.1.10');
   });
 
-  it('removes the 3 resolved vitest/vite/postcss audit exceptions and their Deferred section, leaving the unrelated hono row intact (260-01/AC-5)', () => {
+  it('removes the 3 resolved vitest/vite/postcss audit exceptions and their Deferred section; the hono row it left intact has since been removed too (260-01/AC-5, hono clause superseded by 297-01/AC-3)', () => {
     const doc = readFileSync(join(ROOT, 'docs/security/audit-exceptions.md'), 'utf8');
     expect(doc).not.toContain('GHSA-5xrq-8626-4rwp');
     expect(doc).not.toContain('GHSA-fx2h-pf6j-xcff');
     expect(doc).not.toContain('GHSA-r28c-9q8g-f849');
     expect(doc).not.toContain('## Deferred: vitest major-version upgrade');
-    // The unrelated hono exception is out of this phase's scope and must survive.
-    expect(doc).toContain('GHSA-88fw-hqm2-52qc');
+    // The hono exception was out of phase 260's scope and survived it. Phase
+    // 297 then retired it as RESOLVED, not re-justified: its own text said
+    // "Re-check on the next `@modelcontextprotocol/sdk` bump", that bump
+    // landed (^1.29.0 now resolving 1.30.0), and GHSA-88fw-hqm2-52qc stopped
+    // appearing in `pnpm audit` entirely. Asserting its absence keeps this
+    // test honest about current state rather than pinning a stale one.
+    expect(doc).not.toContain('GHSA-88fw-hqm2-52qc');
   });
 });

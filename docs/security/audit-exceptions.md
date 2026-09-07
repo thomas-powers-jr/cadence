@@ -57,7 +57,6 @@ completion" only -- never as "no CodeQL findings."
 
 | Advisory ID | Package | Justification | Expiry |
 | --- | --- | --- | --- |
-| GHSA-88fw-hqm2-52qc | hono | CORS middleware reflects Origin with credentials when defaulted to wildcard; transitive of `@modelcontextprotocol/sdk`'s optional HTTP transport. This repo's MCP surface (`cadence mcp serve`) only ever uses the SDK's stdio transport (see CLAUDE.md: "MCP ... exposes the imperative loop only, over stdio") — the HTTP transport classes that pull in `hono` are never imported or instantiated, so this CORS path is unreachable in our usage. Re-check on the next `@modelcontextprotocol/sdk` bump. | 2026-08-28 |
 <!--
 To add a new exception, append a row above this comment, e.g.:
 
