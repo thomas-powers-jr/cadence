@@ -2468,36 +2468,6 @@
       "updatedAt": "2026-08-23T20:24:29.144Z"
     },
     {
-      "id": "rec-20260907-001",
-      "title": "host-cli passes the whole prompt as an argv element, so any prompt over ~32KB fails with ENAMETOOLONG on Windows and silently falls back to mock",
-      "summary": "buildInvocation puts the entire prompt -- diff included -- into the argv array (host-cli-client.ts:275 codex, :278 claude) and realSpawn ignores stdin (:46). Windows caps a command line at 32,767 chars, so a deep-verify prompt above that throws spawn ENAMETOOLONG and the provider degrades to mock, which returns 'no linked test found' for every AC. The settle looks like it ran and verified nothing. Both binaries already accept the prompt on stdin -- verified 2026-09-07 against the real binaries: codex exec --json --skip-git-repo-check - read a 53,960-byte prompt (input_tokens 65151, no truncation), and claude -p --output-format json with the prompt piped returned is_error false. Moving the prompt to stdin removes the ceiling for both families. This repo is itself exposed: .cadence/config.json sets verifier.provider host-cli with diffCapBytes 262144.",
-      "source": "manual",
-      "status": "settle-pending",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "verify",
-        "host-cli"
-      ],
-      "affectedFiles": [
-        "packages/core/src/verify/host-cli-client.ts",
-        "packages/core/tests/verify/host-cli-client.test.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260907-001"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "convertedToPhaseId": "296-host-cli-prompt-via-stdin",
-      "createdAt": "2026-09-07T21:34:12.327Z",
-      "updatedAt": "2026-09-07T22:04:46.599Z"
-    },
-    {
       "id": "rec-20260907-002",
       "title": "packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/",
       "summary": "pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is [\"src/**/*\"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.",
@@ -9293,6 +9263,39 @@
       "archiveReason": "shipped",
       "createdAt": "2026-08-23T18:15:08.470Z",
       "updatedAt": "2026-08-23T20:24:51.898Z"
+    },
+    {
+      "id": "rec-20260907-001",
+      "title": "host-cli passes the whole prompt as an argv element, so any prompt over ~32KB fails with ENAMETOOLONG on Windows and silently falls back to mock",
+      "summary": "buildInvocation puts the entire prompt -- diff included -- into the argv array (host-cli-client.ts:275 codex, :278 claude) and realSpawn ignores stdin (:46). Windows caps a command line at 32,767 chars, so a deep-verify prompt above that throws spawn ENAMETOOLONG and the provider degrades to mock, which returns 'no linked test found' for every AC. The settle looks like it ran and verified nothing. Both binaries already accept the prompt on stdin -- verified 2026-09-07 against the real binaries: codex exec --json --skip-git-repo-check - read a 53,960-byte prompt (input_tokens 65151, no truncation), and claude -p --output-format json with the prompt piped returned is_error false. Moving the prompt to stdin removes the ceiling for both families. This repo is itself exposed: .cadence/config.json sets verifier.provider host-cli with diffCapBytes 262144.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "verify",
+        "host-cli"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/host-cli-client.ts",
+        "packages/core/tests/verify/host-cli-client.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "296-host-cli-prompt-via-stdin",
+      "createdAt": "2026-09-07T21:34:12.327Z",
+      "updatedAt": "2026-09-07T22:09:30.704Z",
+      "shippedRef": "PR #481",
+      "archivedAt": "2026-09-07T22:09:30.704Z",
+      "archiveReason": "shipped"
     }
   ]
 }
