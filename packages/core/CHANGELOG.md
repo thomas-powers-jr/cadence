@@ -1,5 +1,42 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.67.0
+
+### Minor Changes
+
+- d8d19ad: Fix: `cadence doctor`'s `host-hooks` check now verifies that every managed hook entry the Claude Code installer writes is actually present — completeness, not just marker existence. It previously passed as soon as any single non-stale `_managedBy: "cadence"` entry existed anywhere in `.claude/settings.json`, which let a genuinely partial install (missing the `PostToolUse` `Skill`-tool matcher, or the entire `SubagentStart` event) report `ok` indefinitely. That gap was measured live in this repo: `state.skillAudit.invoked` never populated because the `Skill`-tool hook never fired, and `runSkillAuditCheck` would hard-refuse any settle declaring a required skill — with `doctor` reporting everything healthy throughout (see phase 294, `rec-20260823-005`).
+
+  `host-hooks` now reports `error` (escalated from `warning`) when one or more expected managed entries are missing, naming every gap specifically — not just the first. A managed entry that is present but references a stale, pre-rename npm scope is unaffected by this change and still reports `warning`, as before.
+
+  The expected hook set is a single source of truth in `@thomas-powers-jr/cadence-host-toolkit` (`CLAUDE_CODE_EXPECTED_HOOKS`), which `install.ts` now builds its installed shape from directly. `@thomas-powers-jr/cadence-core` cannot import host-adapter packages, so it holds its own independent copy for the doctor check; a dedicated test in `@thomas-powers-jr/cadence-host-claude-code` (which depends on both) pins the two against each other so they cannot silently drift apart.
+
+  `checkCodexHooks` (`.codex/hooks.json`) has the identical existence-only gap and is deliberately left unfixed in this change — Codex's expected hook shape differs genuinely (different event names, `apply_patch` matcher) and is out of scope here; the gap is filed as `rec-20260823-006`, its own follow-up recommendation, rather than silently left unaddressed.
+
+  Closes `rec-20260823-005`.
+
+### Patch Changes
+
+- d1854a3: Security housekeeping: pin `fast-uri` past its four high advisories, and retire the resolved `hono` audit exception. Both were making CI red on every PR to `main` — the `Security` workflow was already failing on `main` at `d8d19ad4`, independent of any change.
+
+  The `pnpm.overrides` entry for `fast-uri` was wrong twice over. `"fast-uri@3.1.2": "^3.1.5"` under-shot the fix by one patch version — `GHSA-5jgf-p345-68v8`, `GHSA-f65p-4m7j-42xc`, `GHSA-fph4-wmhf-6fwf` and `GHSA-jqff-g426-hqxp` are all patched in `>=3.1.6`, so the lockfile sat on the still-vulnerable `3.1.5` — and, having performed that bump, its pinned key `fast-uri@3.1.2` then matched nothing in the tree, making it exactly the silent-no-op stale override key phase 253 wrote `scripts/check-lockfile-overrides.mjs` to catch. It is now the range key `"fast-uri@<3.1.6": "^3.1.6"`, which resolves `fast-uri@3.1.7` and cannot rot the same way on the next bump. `pnpm audit --audit-level high` goes from 4 high advisories to none.
+
+  `docs/security/audit-exceptions.md` documented one exception, `GHSA-88fw-hqm2-52qc` for `hono`, expired `2026-08-28`. Its own justification said "Re-check on the next `@modelcontextprotocol/sdk` bump"; that bump has landed (`^1.29.0` now resolving `1.30.0`) and the advisory no longer appears in `pnpm audit` at all. The row is removed as **resolved**, not re-justified and not date-extended — the same treatment phase 260 gave the vitest/vite/postcss rows. An expiry is the gate; pushing it forward would defeat it.
+
+  That empties the exceptions table, which previously failed a doc test asserting at least one row. **That assertion is retired.** It encoded phase 182's snapshot — when the table genuinely documented live advisories — as though it were an invariant. Zero documented exceptions is the healthy state, and a gate forbidding an empty table pressures a maintainer to keep a dead row alive to stay green. Every per-row check survives: any row present must have all four columns populated and must not be expired, verified adversarially by injecting an expired probe row and confirming the suite still fails. An unlisted or expired high/critical advisory still fails the `audit` job through `scripts/check-audit-exceptions.mjs`, which is the real gate.
+
+  Two current-state doc tests are updated to match, rather than left pinning a state that no longer exists: 253-01/AC-1's fast-uri override target, and 260-01/AC-5's "the hono row must survive" clause.
+
+- e24d593: Fix: the `host-cli` verifier provider now sends its prompt to the host CLI on **stdin** instead of as a command-line argument, removing an operating-system ceiling on how large a `deep-verify` prompt could be.
+
+  `buildInvocation` previously put the whole prompt — the phase diff included — into the `argv` array, and `realSpawn` opened the child with `stdio: ['ignore', 'pipe', 'pipe']` so stdin was deliberately not a path. Windows caps a command line at 32,767 characters. Any prompt above that threw `spawn ENAMETOOLONG`; the provider then degraded to `mock`, which returns `no linked test found` for every AC. The result was the worst possible failure mode: a settle that looked like it had verified the work and had verified nothing. `verifier.diffCapBytes` existed largely to stay under that ceiling, and this repo's own `.cadence/config.json` sets it to the library default `262144`, which was unreachable on Windows.
+
+  Both supported binaries already accept the prompt on stdin, verified against the real binaries on 2026-09-07 to the same standard as the original 2026-07-10 flag spike: `codex exec --json --skip-git-repo-check -` read a 53,960-byte prompt and reported `input_tokens: 65151` with no truncation, and `claude -p --output-format json` with the prompt piped returned `"is_error": false`. 53,960 bytes is 1.65× the Windows ceiling. codex takes the explicit `-` operand its own `exec --help` documents; claude simply omits the positional operand after `-p`.
+
+  `SpawnedProcessLike` gains an **optional** `stdin` member, following the existing optional-`kill` precedent — two test files outside this change's boundary build fake process objects that do not implement one, and requiring it would break their typecheck (confirmed adversarially: making it required raises `TS2741: Property 'stdin' is missing` in both). `spawnCapture` attaches an `error` listener to the stream _before_ writing, routed through the same `settled` guard the timeout, abort and close paths share, so a child that exits early raises a `HostCliError` rather than an unhandled `EPIPE` that would take the whole cadence process down. It then writes the prompt and calls `end()` exactly once — a host CLI reading `-` blocks until EOF, so closing the stream is what prevents the hang the old `'ignore'` stdio was guarding against.
+
+  `verifier.diffCapBytes` keeps its `262144` default and is now a genuine context-and-cost budget rather than a workaround for `ENAMETOOLONG`. Operators who lowered it to stay under the command-line limit can raise it again. `docs/reference/config.md` says so, and repeats the standing advice to read `deepVerifyMeta.provider` before trusting any verdict: `mock` means nothing was verified.
+  - @thomas-powers-jr/cadence-types@1.67.0
+
 ## 1.66.0
 
 ### Minor Changes

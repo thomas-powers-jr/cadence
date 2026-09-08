@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.67.0] - 2026-09-08
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.67.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Fixed
+
+- **The `host-cli` verifier sends its prompt on stdin instead of as an `argv` element, removing an OS ceiling on `deep-verify` prompt size.** `buildInvocation` previously put the whole prompt — the phase diff included — into the `argv` array, and Windows caps a command line at 32,767 characters. Any prompt above that threw `spawn ENAMETOOLONG`, and the provider then degraded to `mock`, which returns `no linked test found` for every AC — a settle that looked verified and had verified nothing. Proven against the real binary: `codex exec --json --skip-git-repo-check -` read a **53,960-byte** prompt (1.65x the ceiling) and reported `input_tokens: 65151` with no truncation. `SpawnedProcessLike` gains an optional `stdin` member, and `spawnCapture` attaches its `error` listener before writing so an early-exiting child raises a `HostCliError` rather than an unhandled `EPIPE`. (Phase `296`.)
+- **`cadence doctor`'s `host-hooks` check verifies completeness, not just marker existence.** It previously passed as soon as any single non-stale `_managedBy: "cadence"` entry existed anywhere in `.claude/settings.json`, letting a genuinely partial install report `ok` indefinitely. It now reports `error` (escalated from `warning`) when expected managed entries are missing, naming every gap. The expected hook set is single-sourced in `@thomas-powers-jr/cadence-host-toolkit` (`CLAUDE_CODE_EXPECTED_HOOKS`). `checkCodexHooks` has the identical gap and is deliberately out of scope, filed as `rec-20260823-006`. Closes `rec-20260823-005`. (Phase `295`.)
+
+### Security
+
+- **Pinned `fast-uri` past its four high advisories and retired the resolved `hono` audit exception.** Both were making CI red on every PR to `main`. The `pnpm.overrides` key `"fast-uri@3.1.2": "^3.1.5"` under-shot the fix by one patch version and its pinned key then matched nothing in the tree — exactly the silent-no-op stale override `scripts/check-lockfile-overrides.mjs` exists to catch. It is now the range key `"fast-uri@<3.1.6": "^3.1.6"`, resolving `fast-uri@3.1.7`. `pnpm audit --audit-level high` goes from 4 high advisories to none. The expired `GHSA-88fw-hqm2-52qc` `hono` row is removed as **resolved**, emptying the exceptions table; the doc assertion requiring at least one row is retired, while every per-row check survives. (Phase `297`.)
+
 ## [1.66.0] - 2026-08-23
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.66.0`. Per-package bumps managed by changesets, lockstep across all five published packages.

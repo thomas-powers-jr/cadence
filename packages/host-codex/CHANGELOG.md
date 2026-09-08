@@ -1,5 +1,16 @@
 # @thomas-powers-jr/cadence-host-codex
 
+## 1.67.0
+
+### Patch Changes
+
+- Updated dependencies [d1854a3]
+- Updated dependencies [e24d593]
+- Updated dependencies [d8d19ad]
+  - @thomas-powers-jr/cadence-core@1.67.0
+  - @thomas-powers-jr/cadence-host-toolkit@1.67.0
+  - @thomas-powers-jr/cadence-types@1.67.0
+
 ## 1.66.0
 
 ### Patch Changes
