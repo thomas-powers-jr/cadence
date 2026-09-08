@@ -1378,7 +1378,54 @@ docs/packs-design.md §7 Slice 4 (marked 'stretch -- may land after this arc clo
 
 Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (every managed hook entry the installer writes is present), not just existence (hasManagedCadence finding any single non-stale marker). checkCodexHooks (packages/core/src/doctor/run.ts), which checks .codex/hooks.json, shares the identical hasManagedCadence-based existence-only predicate and was deliberately left unfixed in that phase -- Codex's expected hook shape genuinely differs (different event names, host-codex's apply_patch matcher vs Claude Code's edit-tool/Skill matchers), so phase 295's Claude-Code-specific CLAUDE_CODE_EXPECTED_HOOKS/findMissingManagedHooks design does not directly generalize. A new test (packages/core/tests/doctor/host-checks.test.ts, '295-01/AC-7') pins this as a deliberate, tested deferral: checkCodexHooks still reports ok on a single managed marker. Fixing it would need an analogous host-codex-specific expected-hooks list and its own drift test against host-codex's installer.
 
-## rec-20260907-001 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
+## rec-20260907-002 — packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: build, types
+- files: packages/core/tsconfig.json
+- evidence: Phase 296: stdin made required -> pnpm typecheck passed; direct tsc over the two test files reported TS2741 Property 'stdin' is missing in both.
+- next: cadence milestone propose
+
+pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is ["src/**/*"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.
+
+## rec-20260907-003 — The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: parsers, dx
+- evidence: Phase 296: a Python text-mode rewrite of 296-01-DRAFT.md converted LF to CRLF; draft check reported 'missing frontmatter' until the file was normalised back to LF.
+- next: cadence milestone propose
+
+A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\r\n' rather than '---\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.
+
+## rec-20260907-004 — CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, ci
+- files: docs/security/audit-exceptions.md, package.json
+- evidence: PR #481 CI: test jobs failed on all 3 platforms with exactly 1 failing test each, tests/docs/security-ci.test.ts:219; none of the PR's 32 host-cli tests failed on any platform. pnpm audit --audit-level high locally: 6 vulnerabilities, 4 high, all fast-uri via @modelcontextprotocol/sdk@1.30.0, all patched >=3.1.6.
+- next: cadence milestone propose
+
+Two independent pre-existing blockers make ci-success fail on any PR, both confirmed on PR #481 across ubuntu, macos and windows (exactly one failing test on each, none of them the PR's own). (1) tests/docs/security-ci.test.ts:219 asserts every documented audit exception is non-expired. The single row in docs/security/audit-exceptions.md, GHSA-88fw-hqm2-52qc for hono, has expiry 2026-08-28 and is 10 days past. Its own justification says 'Re-check on the next @modelcontextprotocol/sdk bump' -- that bump has happened (package.json asks ^1.29.0, the tree resolves 1.30.0) and GHSA-88fw-hqm2-52qc no longer appears in pnpm audit at all. The row should be REMOVED as resolved, not date-extended; extending it would defeat the gate. (2) Separately, pnpm audit now reports 6 vulnerabilities (4 high, 2 moderate) that no exception documents, which fails the audit and security-success jobs. All four highs are the same package: fast-uri, GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp, every one patched in >=3.1.6, every one reached via packages/core > @modelcontextprotocol/sdk@1.30.0. A pnpm.overrides pin to fast-uri >=3.1.6 is the likely one-line fix; the repo already uses that mechanism and has a lockfile-override doc test. Note the Security workflow was already failing on main at d8d19ad4, so this is not PR-introduced.
+
+## rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
 
 - status: candidate
 - ready: ready-for-cadence-spec
@@ -1394,7 +1441,7 @@ Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (e
 
 scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.
 
-## rec-20260907-002 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
+## rec-20260907-006 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
 
 - status: candidate
 - ready: needs-decision

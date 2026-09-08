@@ -30,3 +30,29 @@ describe('deep-verify diff docs (AC-3)', () => {
     expect(md).toContain('deepVerifyMeta');
   });
 });
+
+// AC-7 (Phase 296): the prompt travels on stdin, so diffCapBytes is a
+// context-and-cost budget, not a dodge around an operating-system limit.
+// Operators who lowered the cap to stay under the 32,767-character Windows
+// command-line ceiling need to be told they can raise it again.
+describe('deep-verify prompt delivery docs (Phase 296 AC-7)', () => {
+  const md = doc('docs/reference/config.md');
+
+  it('config.md says the prompt is delivered on stdin', () => {
+    expect(md).toMatch(/prompt is delivered to the host CLI on \*\*stdin\*\*/);
+  });
+
+  it('config.md says the cap bounds context and cost, not an OS limit', () => {
+    expect(md).toContain("not about any operating-system limit");
+  });
+
+  it('config.md records the ENAMETOOLONG failure mode the cap used to hide', () => {
+    expect(md).toContain('ENAMETOOLONG');
+    expect(md).toContain('32,767');
+  });
+
+  it('config.md keeps the standing warning to check deepVerifyMeta.provider', () => {
+    expect(md).toContain('deepVerifyMeta.provider');
+    expect(md).toMatch(/`mock` means nothing was verified/);
+  });
+});
