@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-07T23:28:53.103Z",
+  "generatedAt": "2026-09-15T16:14:42.108Z",
   "ranked": [
     {
       "id": "rec-20260907-004",
@@ -4016,8 +4016,9 @@
   ],
   "needsAttention": [],
   "advisory": {
-    "kind": "spec-new",
-    "primary": "cadence spec new"
+    "kind": "finish-loop",
+    "primary": "Finish in-flight CADENCE loop work first — cadence build task <id> --status=<DONE|...>  OR  cadence settle run --ac AC-1=pass.",
+    "secondary": "cadence milestone propose"
   },
   "totals": {
     "total": 90,

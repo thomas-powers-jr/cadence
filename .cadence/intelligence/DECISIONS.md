@@ -703,6 +703,13 @@ config.packs is already public API and unchanged by this design. Full npm/GitHub
 
 auto is the default profile, so auto x complex is a mainstream cell, not a corner case -- checked directly rather than assumed benign. Every softCap consumer (draft-approve.ts, settle.ts) refuses the whole command without --allow-auto-complex, then runs the FULL gate list once past the cap -- nothing in gates[] is skipped or downgraded by softCap. A pack-contributed gate enforces identically to ALWAYS_FIRE once past the cap. docs/packs-design.md §4c.
 
+### dec-20260915-001 — rec-20260907-004's hono/fast-uri premise is discharged; current audit failure is a fresh js-yaml advisory
+
+- recommendation: rec-20260907-004
+- decided: 2026-09-15T16:20:11.000Z
+
+Phase 297 (PR #482, merged into v1.67.0 2026-09-08) retired the hono audit exception and pinned fast-uri; docs/security/audit-exceptions.md's table is now empty, confirming both parts of the rec's original summary are resolved. The scheduled security.yml run on 2026-09-14 (run 34828882922) still fails the audit job, but the reported advisory is GHSA-2883-xcg3-v3hh (js-yaml, high) -- a distinct advisory, not hono or fast-uri. Verified: js-yaml is CVE-2026-84375, affecting 4.0.0-4.3.1 and 3.0.0-3.15.1, fixed in 4.3.2/3.15.2. Our pnpm.overrides pins js-yaml@4.2.0 -> ^4.3.0, which resolved to 4.3.1 (still vulnerable) per pnpm-lock.yaml and check-lockfile-overrides.mjs (7/7 targets satisfied, i.e. the override itself isn't the bug -- its target range is just now too low). No push to main occurred between the green 2026-09-08 21:39 run and the red 2026-09-14 schedule run, so this is a newly-published advisory against code that hasn't changed, not a regression from a dependency bump. Re-scoping rec-20260907-004 to this js-yaml fix rather than closing it, since the underlying symptom (audit job red) is the same rec and the fix is a one-line override bump plus an audit-exceptions.md note if a temporary exception is preferred over an immediate bump.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

@@ -2,11 +2,12 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-09-07T23:28:53.103Z
+Generated at: 2026-09-15T16:14:42.108Z
 
 ## Advisory
 
-- cadence spec new
+- Finish in-flight CADENCE loop work first — cadence build task <id> --status=<DONE|...>  OR  cadence settle run --ac AC-1=pass.
+- then: cadence milestone propose
 
 ## Ranked
 
