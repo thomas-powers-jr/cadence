@@ -242,8 +242,7 @@ describe('deriveRoutingCandidates — settle-pointer plumbing', () => {
 
 describe('deriveRoutingCandidates — secret redaction', () => {
   it("a finding message quoting a live-looking credential is redacted in title, summary, and evidence.summary — addRecommendation only redacts evidence.summary, so this module can't rely on it", () => {
-    // gitleaks:allow — fake key, redaction fixture
-    const leaked = 'AKIAABCDEFGHIJKLMNOP';
+    const leaked = 'AKIAABCDEFGHIJKLMNOP'; // gitleaks:allow — fake key, redaction fixture
     const result = deriveRoutingCandidates(
       { 'src/leak.ts': [finding({ id: 'id-leak', message: `hardcoded credential: ${leaked}` })] },
       new Set(),
