@@ -3,7 +3,7 @@ import { redactSecrets } from '../../src/security/redact.js';
 
 describe('redactSecrets', () => {
   it('redacts an AWS access key mixed with ordinary text (AC-1)', () => {
-    const input = 'evidence: found key AKIAABCDEFGHIJKLMNOP in the config file';
+    const input = 'evidence: found key AKIAABCDEFGHIJKLMNOP in the config file'; // gitleaks:allow — fake key, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('evidence: found key [REDACTED] in the config file');
   });
@@ -29,7 +29,7 @@ describe('redactSecrets', () => {
 
   it('redacts a JWT-shaped string mixed with ordinary text (AC-1)', () => {
     const jwt =
-      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'; // gitleaks:allow — fake JWT, redaction fixture
     const input = `note found ${jwt} embedded in log`;
     const result = redactSecrets(input);
     expect(result).toBe('note found [REDACTED] embedded in log');
@@ -44,19 +44,19 @@ describe('redactSecrets', () => {
   });
 
   it('redacts a generic key= assignment mixed with ordinary text (AC-1)', () => {
-    const input = 'config had api_key="sk-abc123XYZ456verylong" set explicitly';
+    const input = 'config had api_key="sk-abc123XYZ456verylong" set explicitly'; // gitleaks:allow — fake key, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('config had api_key=[REDACTED] set explicitly');
   });
 
   it('redacts a generic password= assignment without quotes (AC-1)', () => {
-    const input = 'the line password=hunter2xyzLONG was found in .env';
+    const input = 'the line password=hunter2xyzLONG was found in .env'; // gitleaks:allow — fake password, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('the line password=[REDACTED] was found in .env');
   });
 
   it('redacts a generic token= assignment (AC-1)', () => {
-    const input = 'set token: "abcdef0123456789ghij" for the client';
+    const input = 'set token: "abcdef0123456789ghij" for the client'; // gitleaks:allow — fake token, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('set token: [REDACTED] for the client');
   });
@@ -81,25 +81,25 @@ describe('redactSecrets', () => {
   });
 
   it('does not redact a non-secret identifier ending in "Token" (AC-1)', () => {
-    const input = 'response included fooToken=abc123def456 in the payload';
+    const input = 'response included fooToken=abc123def456 in the payload'; // gitleaks:allow — fake token, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe(input);
   });
 
   it('redacts an underscore-prefixed "my_api_key:" assignment (AC-1)', () => {
-    const input = 'my_api_key: abcdef0123456789';
+    const input = 'my_api_key: abcdef0123456789'; // gitleaks:allow — fake key, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('my_api_key: [REDACTED]');
   });
 
   it('redacts a SNAKE_CASE "DB_PASSWORD=" env-var-style assignment (AC-1)', () => {
-    const input = 'DB_PASSWORD=hunter2xyzLONG';
+    const input = 'DB_PASSWORD=hunter2xyzLONG'; // gitleaks:allow — fake password, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('DB_PASSWORD=[REDACTED]');
   });
 
   it('redacts a SNAKE_CASE "AWS_SECRET_KEY=" env-var-style assignment (AC-1)', () => {
-    const input = 'AWS_SECRET_KEY=abcdef0123456789';
+    const input = 'AWS_SECRET_KEY=abcdef0123456789'; // gitleaks:allow — fake key, redaction fixture
     const result = redactSecrets(input);
     expect(result).toBe('AWS_SECRET_KEY=[REDACTED]');
   });
