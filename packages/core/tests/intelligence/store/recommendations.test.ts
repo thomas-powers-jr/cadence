@@ -27,7 +27,7 @@ describe('addRecommendation evidence redaction', () => {
       readiness: 'raw-idea',
       affectedAreas: ['core'],
       affectedFiles: [],
-      evidenceSummary: 'found AKIAABCDEFGHIJKLMNOP hardcoded in config',
+      evidenceSummary: 'found AKIAABCDEFGHIJKLMNOP hardcoded in config', // gitleaks:allow — fake key, redaction fixture
     });
 
     const evidenceLedger = await readEvidenceLedger(active.root);

@@ -6,10 +6,10 @@ import type { Finding } from '@thomas-powers-jr/cadence-types';
 const CRIT: Finding[] = [{ severity: 'critical', message: 'sqli', line: 7 }];
 const LOW: Finding[] = [{ severity: 'low', message: 'nit' }];
 const SECRET_LOW: Finding[] = [
-  { severity: 'low', message: 'hardcoded key AKIAABCDEFGHIJKLMNOP found' },
+  { severity: 'low', message: 'hardcoded key AKIAABCDEFGHIJKLMNOP found' }, // gitleaks:allow — fake key, redaction fixture
 ];
 const SECRET_CRIT: Finding[] = [
-  { severity: 'critical', message: 'leaked secret AKIAABCDEFGHIJKLMNOP in diff', line: 3 },
+  { severity: 'critical', message: 'leaked secret AKIAABCDEFGHIJKLMNOP in diff', line: 3 }, // gitleaks:allow — fake key, redaction fixture
 ];
 
 function ctx(over: {
@@ -243,7 +243,7 @@ describe('runSecurityAuditGate', () => {
     const res = await runSecurityAuditGate(ctx({ findings: SECRET_CRIT, errs }));
     expect(res.outcome).toBe('refuse');
     const stderrOutput = errs.join('');
-    expect(stderrOutput).not.toContain('AKIAABCDEFGHIJKLMNOP');
+    expect(stderrOutput).not.toContain('AKIAABCDEFGHIJKLMNOP'); // gitleaks:allow — fake key, redaction fixture
     expect(stderrOutput).toContain('[REDACTED]');
     expect(errs[0]).toBe('security-audit: 3 critical — leaked secret [REDACTED] in diff\n');
   });

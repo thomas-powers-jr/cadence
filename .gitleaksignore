@@ -1,0 +1,50 @@
+# gitleaks fingerprint suppressions (phase 299, rec-20260915-001).
+#
+# gitleaks-action's weekly schedule trigger (.github/workflows/security.yml,
+# secret-scan job) runs `gitleaks detect` in full-history mode. Every finding
+# below is a test fixture deliberately shaped like a real credential so the
+# redaction code (packages/core/src/security/redact.ts) has something to
+# redact — not a real leak. Same-line `// gitleaks:allow` comments (see the
+# files themselves) suppress these going forward, but a comment added today
+# cannot retroactively suppress the historical commit that first introduced
+# the un-annotated line — that commit's diff permanently lacks the comment,
+# and a full-history scan re-scans every commit, not just HEAD (verified
+# empirically this session: see dec-20260915-003). These fingerprints cover
+# exactly the 22 findings gitleaks-action's schedule run reported on
+# 2026-09-14 (run 34828882922), captured verbatim from that run's job log —
+# do not re-derive line numbers from current file content, which has since
+# moved on from these historical blobs.
+#
+# Format: <commit>:<file>:<rule>:<line>
+
+# commit 8098aee6 — pre-annotation summary-writer/summary-render content
+8098aee6fce88cb793c8c17b55825def1a2d013f:packages/core/tests/parse/summary-writer.test.ts:generic-api-key:310
+8098aee6fce88cb793c8c17b55825def1a2d013f:packages/core/tests/parse/summary-writer.test.ts:aws-access-token:300
+8098aee6fce88cb793c8c17b55825def1a2d013f:packages/core/tests/parse/summary-writer.test.ts:aws-access-token:306
+8098aee6fce88cb793c8c17b55825def1a2d013f:packages/core/tests/cli/summary-render.test.ts:aws-access-token:448
+
+# commit 243132b8 — a later pre-annotation edit of the same lines
+243132b8dbbf11957e874fc9a73f702fa9e057de:packages/core/tests/parse/summary-writer.test.ts:aws-access-token:300
+243132b8dbbf11957e874fc9a73f702fa9e057de:packages/core/tests/parse/summary-writer.test.ts:aws-access-token:306
+243132b8dbbf11957e874fc9a73f702fa9e057de:packages/core/tests/parse/summary-writer.test.ts:generic-api-key:310
+243132b8dbbf11957e874fc9a73f702fa9e057de:packages/core/tests/cli/summary-render.test.ts:aws-access-token:448
+
+# commit 7ddc72a1 (phase 242, #346) — finding-routing.test.ts's original
+# comment-on-the-wrong-line introduction
+7ddc72a119b039cc20ef2270569c8bc61affb3fd:packages/core/tests/intelligence/finding-routing.test.ts:aws-access-token:187
+
+# commit c8b197af (phase 180, #197) — the original redaction-fixture
+# introduction across recommendations/security-audit/redact tests
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/intelligence/store/recommendations.test.ts:aws-access-token:25
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/gates/security-audit.test.ts:aws-access-token:9
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/gates/security-audit.test.ts:aws-access-token:12
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/gates/security-audit.test.ts:aws-access-token:150
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:aws-access-token:6
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:jwt:32
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:47
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:53
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:59
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:84
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:90
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:96
+c8b197afb25e4896f806d8da3c6276f65dd4eaad:packages/core/tests/security/redact.test.ts:generic-api-key:102
