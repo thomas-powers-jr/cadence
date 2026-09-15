@@ -987,6 +987,15 @@
       "status": "active",
       "decidedAt": "2026-09-15T16:20:11.000Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20260915-002",
+      "recommendationId": "rec-20260915-001",
+      "title": "rec-20260915-001's prescribed fix is wrong -- use inline gitleaks:allow comments, not a .gitleaks.toml allowlist",
+      "rationale": "This repo already has precedent for suppressing gitleaks false positives on fake-secret test fixtures: a trailing '// gitleaks:allow -- <reason>' comment on the specific flagged line (gitleaks' native per-line suppression), already present at packages/core/tests/intelligence/store/recommendations.test.ts:150,257. A fix for 2 of the 6 currently-flagged files (packages/core/tests/cli/summary-render.test.ts, packages/core/tests/parse/summary-writer.test.ts) was already written this way and committed (28fa905e, 'fix: allowlist fake credential fixtures for gitleaks (phase 257)', 2026-08-07) but never merged -- it is stranded on the abandoned worktree branch worktree-feat+257-render-findings-markdown (96 commits behind main), left on disk per that session's own handoff note that the worktree was safe to remove but removal was deferred. The fix phase should reapply that commit's diff rather than re-deriving it, then add matching gitleaks:allow comments to the remaining flagged fixtures in redact.test.ts and security-audit.test.ts. Also worth checking during that phase: recommendations.test.ts and finding-routing.test.ts already carry gitleaks:allow annotations yet still appeared in the 2026-09-14 run's 22 findings -- verify whether the annotation is on the wrong line, has a syntax gitleaks no longer honors, or whether these are new, unannotated fixtures added to those files since 28fa905e.",
+      "status": "active",
+      "decidedAt": "2026-09-15T16:32:22.492Z",
+      "supersedes": []
     }
   ]
 }

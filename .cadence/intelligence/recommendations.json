@@ -2636,7 +2636,9 @@
         "ev-20260915-001"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20260915-002"
+      ],
       "createdAt": "2026-09-15T16:19:57.705Z",
       "updatedAt": "2026-09-15T16:19:57.705Z"
     }
