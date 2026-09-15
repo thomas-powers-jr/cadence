@@ -2445,6 +2445,13 @@
       "kind": "note",
       "summary": "Phase 297 SUMMARY deepVerify: 5 of 6 ACs refused with provider host-cli, every reason citing absent execution evidence rather than a defect. Phase 296 AC-6 refused identically.",
       "createdAt": "2026-09-07T23:03:58.122Z"
+    },
+    {
+      "id": "ev-20260915-001",
+      "recommendationId": "rec-20260915-001",
+      "kind": "note",
+      "summary": "gh run view --job=103927250706 --log on run 34828882922: leaks found 22, all in test files; gh run list --workflow=security.yml shows PR runs 34285019829/34285009091 (2026-09-08) also failing",
+      "createdAt": "2026-09-15T16:19:57.705Z"
     }
   ]
 }

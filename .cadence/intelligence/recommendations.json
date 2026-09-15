@@ -2546,7 +2546,9 @@
         "ev-20260907-004"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20260915-001"
+      ],
       "createdAt": "2026-09-07T22:26:27.124Z",
       "updatedAt": "2026-09-07T22:26:27.124Z"
     },
@@ -2603,6 +2605,40 @@
       "decisionIds": [],
       "createdAt": "2026-09-07T23:03:58.122Z",
       "updatedAt": "2026-09-07T23:03:58.122Z"
+    },
+    {
+      "id": "rec-20260915-001",
+      "title": "gitleaks secret-scan false-positives with no allowlist -- 22 test-fixture hits block security-success on every PR/schedule run",
+      "summary": "No .gitleaks.toml exists anywhere in the repo. .github/workflows/security.yml's secret-scan job (gitleaks) flags 22 findings, all deliberate fake-secret-shaped test fixtures in packages/core/tests/security/redact.test.ts, tests/gates/security-audit.test.ts, tests/parse/summary-writer.test.ts, tests/cli/summary-render.test.ts, tests/intelligence/finding-routing.test.ts, tests/intelligence/store/recommendations.test.ts (oldest hit commit 2026-07-14). Confirmed via gh run view --job on run 34828882922 (2026-09-14 schedule) and PR runs on the two open dependabot PRs (2026-09-08) -- this is not schedule-only, it also fails PR runs, and security-success is a required branch-protection check, so it currently blocks every PR merge. Fix: add a .gitleaks.toml allowlist (by fingerprint or path+rule) scoped to these known test fixtures; do not weaken the scan generally.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "ci",
+        "security"
+      ],
+      "affectedFiles": [
+        ".github/workflows/security.yml",
+        "packages/core/tests/security/redact.test.ts",
+        "packages/core/tests/gates/security-audit.test.ts",
+        "packages/core/tests/parse/summary-writer.test.ts",
+        "packages/core/tests/cli/summary-render.test.ts",
+        "packages/core/tests/intelligence/finding-routing.test.ts",
+        "packages/core/tests/intelligence/store/recommendations.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260915-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-15T16:19:57.705Z",
+      "updatedAt": "2026-09-15T16:19:57.705Z"
     }
   ],
   "archived": [
