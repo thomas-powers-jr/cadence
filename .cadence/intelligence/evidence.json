@@ -2459,6 +2459,13 @@
       "kind": "note",
       "summary": "Live repro this session: refused settle on stale main state clobbered .cadence/phases/278-cadence-demo-progressive-disclosure/278-01-SUMMARY.md (AC-1..AC-11 PASS + gate provenance + contentHash + stateAtSettle all replaced with empty/unverified fields); reverted via git checkout before commit",
       "createdAt": "2026-09-15T18:18:02.759Z"
+    },
+    {
+      "id": "ev-20260915-003",
+      "recommendationId": "rec-20260915-002",
+      "kind": "note",
+      "summary": "Sharpening for the fix (per advisor review): the bug is not that a refused settle writes a SUMMARY -- that is deliberate (phase 239/247, writeRefusedSettleSummary is intentional audit-trail behavior for refused attempts). The bug is that the canonical write at settle.ts:913-917 is UNCONDITIONAL: it will overwrite an existing SUMMARY that already recorded real, terminal evidence (AC PASS results, gate provenance, contentHash) with a refused record carrying none. Fix should guard the canonical overwrite -- e.g. refuse to overwrite (or divert to a snapshot-only path) when the existing on-disk SUMMARY.json already has non-empty acResults/gates from a prior successful settle -- not remove the refused-summary feature itself.",
+      "createdAt": "2026-09-15T18:28:43.869Z"
     }
   ]
 }
