@@ -1411,7 +1411,7 @@ A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAF
 
 ## rec-20260907-004 — CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job
 
-- status: candidate
+- status: settle-pending
 - ready: ready-for-cadence-spec
 - priority: high
 - leverage: 5/10
