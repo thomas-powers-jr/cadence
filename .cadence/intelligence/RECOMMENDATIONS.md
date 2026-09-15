@@ -1456,20 +1456,3 @@ scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that
 - next: cadence milestone propose
 
 The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.
-
-## rec-20260915-001 — gitleaks secret-scan false-positives with no allowlist -- 22 test-fixture hits block security-success on every PR/schedule run
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: ci, security
-- files: .github/workflows/security.yml, packages/core/tests/security/redact.test.ts, packages/core/tests/gates/security-audit.test.ts, packages/core/tests/parse/summary-writer.test.ts, packages/core/tests/cli/summary-render.test.ts, packages/core/tests/intelligence/finding-routing.test.ts, packages/core/tests/intelligence/store/recommendations.test.ts
-- decisions: dec-20260915-002 (active)
-- evidence: gh run view --job=103927250706 --log on run 34828882922: leaks found 22, all in test files; gh run list --workflow=security.yml shows PR runs 34285019829/34285009091 (2026-09-08) also failing
-- next: cadence milestone propose
-
-No .gitleaks.toml exists anywhere in the repo. .github/workflows/security.yml's secret-scan job (gitleaks) flags 22 findings, all deliberate fake-secret-shaped test fixtures in packages/core/tests/security/redact.test.ts, tests/gates/security-audit.test.ts, tests/parse/summary-writer.test.ts, tests/cli/summary-render.test.ts, tests/intelligence/finding-routing.test.ts, tests/intelligence/store/recommendations.test.ts (oldest hit commit 2026-07-14). Confirmed via gh run view --job on run 34828882922 (2026-09-14 schedule) and PR runs on the two open dependabot PRs (2026-09-08) -- this is not schedule-only, it also fails PR runs, and security-success is a required branch-protection check, so it currently blocks every PR merge. Fix: add a .gitleaks.toml allowlist (by fingerprint or path+rule) scoped to these known test fixtures; do not weaken the scan generally.
