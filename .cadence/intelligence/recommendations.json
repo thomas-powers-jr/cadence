@@ -2638,7 +2638,8 @@
       ],
       "assumptionIds": [],
       "decisionIds": [
-        "dec-20260915-002"
+        "dec-20260915-002",
+        "dec-20260915-003"
       ],
       "createdAt": "2026-09-15T16:19:57.705Z",
       "updatedAt": "2026-09-15T16:19:57.705Z"
@@ -2665,12 +2666,13 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260915-002"
+        "ev-20260915-002",
+        "ev-20260915-003"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-09-15T18:18:02.759Z",
-      "updatedAt": "2026-09-15T18:18:02.759Z"
+      "updatedAt": "2026-09-15T18:28:43.869Z"
     }
   ],
   "archived": [
