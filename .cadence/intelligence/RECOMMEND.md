@@ -2,7 +2,7 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-09-15T16:14:42.108Z
+Generated at: 2026-09-15T17:36:15.482Z
 
 ## Advisory
 
@@ -11,14 +11,14 @@ Generated at: 2026-09-15T16:14:42.108Z
 
 ## Ranked
 
-### rec-20260907-004 — CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job
+### rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
 
 - score: 73/100 (raw 25.7)
 - status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 25.7 (score 73)
 - next: cadence milestone propose
 
-### rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
+### rec-20260915-001 — gitleaks secret-scan false-positives with no allowlist -- 22 test-fixture hits block security-success on every PR/schedule run
 
 - score: 73/100 (raw 25.7)
 - status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
@@ -675,4 +675,4 @@ None.
 
 ## Totals
 
-- total 90 · ranked 88 · parked 2 · needs-attention 0 · excluded 0
+- total 91 · ranked 88 · parked 2 · needs-attention 0 · excluded 1

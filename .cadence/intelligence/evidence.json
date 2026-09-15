@@ -2452,6 +2452,13 @@
       "kind": "note",
       "summary": "gh run view --job=103927250706 --log on run 34828882922: leaks found 22, all in test files; gh run list --workflow=security.yml shows PR runs 34285019829/34285009091 (2026-09-08) also failing",
       "createdAt": "2026-09-15T16:19:57.705Z"
+    },
+    {
+      "id": "ev-20260915-002",
+      "recommendationId": "rec-20260915-002",
+      "kind": "note",
+      "summary": "Live repro this session: refused settle on stale main state clobbered .cadence/phases/278-cadence-demo-progressive-disclosure/278-01-SUMMARY.md (AC-1..AC-11 PASS + gate provenance + contentHash + stateAtSettle all replaced with empty/unverified fields); reverted via git checkout before commit",
+      "createdAt": "2026-09-15T18:18:02.759Z"
     }
   ]
 }

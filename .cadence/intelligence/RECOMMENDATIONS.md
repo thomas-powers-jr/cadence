@@ -1473,3 +1473,19 @@ The deep-verify gate judges an AC only from the diff plus linked tests. That wor
 - next: cadence milestone propose
 
 No .gitleaks.toml exists anywhere in the repo. .github/workflows/security.yml's secret-scan job (gitleaks) flags 22 findings, all deliberate fake-secret-shaped test fixtures in packages/core/tests/security/redact.test.ts, tests/gates/security-audit.test.ts, tests/parse/summary-writer.test.ts, tests/cli/summary-render.test.ts, tests/intelligence/finding-routing.test.ts, tests/intelligence/store/recommendations.test.ts (oldest hit commit 2026-07-14). Confirmed via gh run view --job on run 34828882922 (2026-09-14 schedule) and PR runs on the two open dependabot PRs (2026-09-08) -- this is not schedule-only, it also fails PR runs, and security-success is a required branch-protection check, so it currently blocks every PR merge. Fix: add a .gitleaks.toml allowlist (by fingerprint or path+rule) scoped to these known test fixtures; do not weaken the scan generally.
+
+## rec-20260915-002 — settle run overwrites the canonical SUMMARY of an already-shipped draft on refusal
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, gates, summary
+- files: packages/core/src/services/settle.ts
+- evidence: Live repro this session: refused settle on stale main state clobbered .cadence/phases/278-cadence-demo-progressive-disclosure/278-01-SUMMARY.md (AC-1..AC-11 PASS + gate provenance + contentHash + stateAtSettle all replaced with empty/unverified fields); reverted via git checkout before commit
+- next: cadence milestone propose
+
+writeRefusedSettleSummary (packages/core/src/services/settle.ts:847-948) writes the refused-attempt record to the SAME canonical path as a successful settle (state.activeDraft-SUMMARY.json/.md, line 913-917), not to a side file. Reproduced live: main's stale state.json still pointed at phase 278 (shipped weeks ago via PR #421); retrying settle run --auto against it hit the draft-read stale-mtime refusal, but not before clobbering the already-shipped 278-01-SUMMARY.json/.md with a degraded refused record (lost AC PASS results, gate provenance, content hash, and stateAtSettle). Recovered only because the working tree was dirty and git checkout -- reverted it; on a clean tree this would have been a permanent, silent loss of a shipped phase's audit trail. The refused-settle snapshot mechanism at line 919-946 (refusedSnapshotArtifactBase) already writes a non-canonical -SUMMARY-snapshot sibling for findings-bearing refusals -- but only conditionally (hasCodeReviewFindings/hasSecurityAuditFindings) and the canonical file is still clobbered unconditionally either way. Fix should write refused attempts to a snapshot-only path (or gate the canonical overwrite behind confirming the draft/AC evidence is not already terminal), never overwrite an existing canonical SUMMARY that recorded real evidence with one that recorded none.
