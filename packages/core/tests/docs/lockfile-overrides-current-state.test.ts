@@ -56,9 +56,15 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // future-drift-resistance reason (a future second ip-address major
     // entering the graph would otherwise silently repeat the collapse).
     expect(targets).toContainEqual({ package: 'ip-address', sourceVersion: '^10.0.0', range: '^10.3.1' });
+    // js-yaml: floor raised past CVE-2026-84375 (GHSA-2883-xcg3-v3hh, high),
+    // which affects 4.0.0-4.3.1 and is fixed in 4.3.2. The source-version key
+    // (js-yaml@4.2.0) is unchanged from phase 253/260 — check-lockfile-overrides.mjs
+    // already reports it satisfied against today's resolved instances, so this
+    // is purely a too-low target floor, not a stale-key problem (298-01/AC-1, AC-4).
+    expect(targets).toContainEqual({ package: 'js-yaml', sourceVersion: '4.2.0', range: '^4.3.2' });
   });
 
-  it('every resolved instance of fast-uri, brace-expansion (both lines), and ip-address satisfies its override target (253-01/AC-2)', () => {
+  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, and js-yaml satisfies its override target (253-01/AC-2, 298-01/AC-4)', () => {
     const overrideTargets = extractOverrideTargets(packageJson);
     const lockfilePackages = parseLockfilePackages(lockfileText);
 
