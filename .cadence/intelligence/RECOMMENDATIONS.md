@@ -1468,6 +1468,7 @@ The deep-verify gate judges an AC only from the diff plus linked tests. That wor
 - decay: fresh
 - areas: ci, security
 - files: .github/workflows/security.yml, packages/core/tests/security/redact.test.ts, packages/core/tests/gates/security-audit.test.ts, packages/core/tests/parse/summary-writer.test.ts, packages/core/tests/cli/summary-render.test.ts, packages/core/tests/intelligence/finding-routing.test.ts, packages/core/tests/intelligence/store/recommendations.test.ts
+- decisions: dec-20260915-002 (active)
 - evidence: gh run view --job=103927250706 --log on run 34828882922: leaks found 22, all in test files; gh run list --workflow=security.yml shows PR runs 34285019829/34285009091 (2026-09-08) also failing
 - next: cadence milestone propose
 
