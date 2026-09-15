@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-15T16:14:42.108Z",
+  "generatedAt": "2026-09-15T17:36:15.482Z",
   "ranked": [
     {
-      "id": "rec-20260907-004",
-      "title": "CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job",
+      "id": "rec-20260907-005",
+      "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
       "raw": 25.7,
       "score": 73,
       "status": "candidate",
@@ -48,8 +48,8 @@
       "suggestedBackendAction": "cadence milestone propose"
     },
     {
-      "id": "rec-20260907-005",
-      "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
+      "id": "rec-20260915-001",
+      "title": "gitleaks secret-scan false-positives with no allowlist -- 22 test-fixture hits block security-success on every PR/schedule run",
       "raw": 25.7,
       "score": 73,
       "status": "candidate",
@@ -4021,10 +4021,10 @@
     "secondary": "cadence milestone propose"
   },
   "totals": {
-    "total": 90,
+    "total": 91,
     "ranked": 88,
     "parked": 2,
     "needsAttention": 0,
-    "excluded": 0
+    "excluded": 1
   }
 }

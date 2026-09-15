@@ -2606,6 +2606,36 @@
       "decisionIds": [],
       "createdAt": "2026-09-07T23:03:58.122Z",
       "updatedAt": "2026-09-07T23:03:58.122Z"
+    },
+    {
+      "id": "rec-20260915-002",
+      "title": "settle run overwrites the canonical SUMMARY of an already-shipped draft on refusal",
+      "summary": "writeRefusedSettleSummary (packages/core/src/services/settle.ts:847-948) writes the refused-attempt record to the SAME canonical path as a successful settle (state.activeDraft-SUMMARY.json/.md, line 913-917), not to a side file. Reproduced live: main's stale state.json still pointed at phase 278 (shipped weeks ago via PR #421); retrying settle run --auto against it hit the draft-read stale-mtime refusal, but not before clobbering the already-shipped 278-01-SUMMARY.json/.md with a degraded refused record (lost AC PASS results, gate provenance, content hash, and stateAtSettle). Recovered only because the working tree was dirty and git checkout -- reverted it; on a clean tree this would have been a permanent, silent loss of a shipped phase's audit trail. The refused-settle snapshot mechanism at line 919-946 (refusedSnapshotArtifactBase) already writes a non-canonical -SUMMARY-snapshot sibling for findings-bearing refusals -- but only conditionally (hasCodeReviewFindings/hasSecurityAuditFindings) and the canonical file is still clobbered unconditionally either way. Fix should write refused attempts to a snapshot-only path (or gate the canonical overwrite behind confirming the draft/AC evidence is not already terminal), never overwrite an existing canonical SUMMARY that recorded real evidence with one that recorded none.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "settle",
+        "gates",
+        "summary"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/settle.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260915-002",
+        "ev-20260915-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-15T18:18:02.759Z",
+      "updatedAt": "2026-09-15T18:28:43.869Z"
     }
   ],
   "archived": [
@@ -9414,7 +9444,8 @@
       ],
       "assumptionIds": [],
       "decisionIds": [
-        "dec-20260915-002"
+        "dec-20260915-002",
+        "dec-20260915-003"
       ],
       "convertedToPhaseId": "299-gitleaks-secret-scan-allowlist",
       "createdAt": "2026-09-15T16:19:57.705Z",

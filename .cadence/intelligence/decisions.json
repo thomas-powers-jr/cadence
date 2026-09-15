@@ -993,9 +993,21 @@
       "recommendationId": "rec-20260915-001",
       "title": "rec-20260915-001's prescribed fix is wrong -- use inline gitleaks:allow comments, not a .gitleaks.toml allowlist",
       "rationale": "This repo already has precedent for suppressing gitleaks false positives on fake-secret test fixtures: a trailing '// gitleaks:allow -- <reason>' comment on the specific flagged line (gitleaks' native per-line suppression), already present at packages/core/tests/intelligence/store/recommendations.test.ts:150,257. A fix for 2 of the 6 currently-flagged files (packages/core/tests/cli/summary-render.test.ts, packages/core/tests/parse/summary-writer.test.ts) was already written this way and committed (28fa905e, 'fix: allowlist fake credential fixtures for gitleaks (phase 257)', 2026-08-07) but never merged -- it is stranded on the abandoned worktree branch worktree-feat+257-render-findings-markdown (96 commits behind main), left on disk per that session's own handoff note that the worktree was safe to remove but removal was deferred. The fix phase should reapply that commit's diff rather than re-deriving it, then add matching gitleaks:allow comments to the remaining flagged fixtures in redact.test.ts and security-audit.test.ts. Also worth checking during that phase: recommendations.test.ts and finding-routing.test.ts already carry gitleaks:allow annotations yet still appeared in the 2026-09-14 run's 22 findings -- verify whether the annotation is on the wrong line, has a syntax gitleaks no longer honors, or whether these are new, unannotated fixtures added to those files since 28fa905e.",
-      "status": "active",
+      "status": "superseded",
       "decidedAt": "2026-09-15T16:32:22.492Z",
-      "supersedes": []
+      "supersedes": [],
+      "supersededBy": "dec-20260915-003"
+    },
+    {
+      "id": "dec-20260915-003",
+      "recommendationId": "rec-20260915-001",
+      "title": "Inline gitleaks:allow comments do not retroactively suppress historical commits -- .gitleaksignore fingerprints are also required",
+      "rationale": "Empirically verified this session (two isolated test repos, gitleaks v8.30.0, standalone binary): a commit that introduces an AWS-key-shaped string WITHOUT a same-line 'gitleaks:allow' comment is still reported by 'gitleaks detect' full-history mode even after a LATER commit edits that same line to add the annotation -- the original commit's diff never contained the comment and remains flagged forever. Confirmed against this repo's live data too: gitleaks-action's schedule trigger (fetch-depth 0, no before/after commit range) does a full-history scan and reported 22 findings on 2026-09-14 (run 34828882922); every fingerprint traces to a historical introducing commit (verified via git log --follow -p and git show <sha>:<path>), not to current HEAD content. Two of the 22 (finding-routing.test.ts, recommendations.test.ts) DO already carry gitleaks:allow annotations on other lines in the same file, which is what led dec-20260915-002 to conclude the inline-comment pattern was sufficient and just needed applying to the remaining files -- but per-file inspection shows those two are a same-line-vs-line-above placement bug (finding-routing.test.ts, comment on line 245 not the match on 246) and a genuinely separate unannotated occurrence in the same file (recommendations.test.ts:30, distinct from the annotated occurrences at 150/257) -- not evidence that annotations retroactively fix history. This decision does not reject dec-20260915-002's inline-comment mechanism (still correct and necessary going forward, and still not a .gitleaks.toml regex/path allowlist) -- it adds that a .gitleaksignore file (gitleaks' native fingerprint-suppression file, listing exact <commit>:<file>:<rule>:<line> fingerprints already captured from the 2026-09-14 run's log) is ALSO required to clear the weekly schedule scan, because the 22 currently-flagged introducing commits already exist in history and cannot be retroactively annotated. The build phase for rec-20260915-001 should: (1) reapply stranded commit 28fa905e's two-file diff, (2) fix the finding-routing.test.ts placement bug and add the missing recommendations.test.ts:30 annotation, (3) add gitleaks:allow to the remaining unannotated redact.test.ts (9 occurrences) and security-audit.test.ts (3 occurrences) lines, (4) add a .gitleaksignore at repo root with fingerprints for every one of the 22 introducing commits so the schedule scan goes green immediately, not just future scans.",
+      "status": "active",
+      "decidedAt": "2026-09-15T18:27:12.261Z",
+      "supersedes": [
+        "dec-20260915-002"
+      ]
     }
   ]
 }
