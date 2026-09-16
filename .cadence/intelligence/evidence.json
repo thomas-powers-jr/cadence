@@ -2480,6 +2480,13 @@
       "kind": "note",
       "summary": "Found during phase 302's independent pre-settle review (fresh-context Opus), 2026-09-16, citing phase271-record-integrity.test.ts's own documented precedent for why filename/count assertions over .changeset break at release time.",
       "createdAt": "2026-09-16T17:14:05.215Z"
+    },
+    {
+      "id": "ev-20260916-003",
+      "recommendationId": "rec-20260916-003",
+      "kind": "note",
+      "summary": "confirmed via grep: packages/core/tests/services/settle.test.ts:3411-3418 and packages/core/tests/docs/check-lockfile-overrides.test.ts:374-385 both assert existsSync on a specific .changeset/*.md filename; phase 303 (rec-20260916-002) fixes these two instances only",
+      "createdAt": "2026-09-16T17:56:57.178Z"
     }
   ]
 }

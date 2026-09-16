@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T16:53:07.085Z",
+  "generatedAt": "2026-09-16T17:51:03.160Z",
   "ranked": [
     {
-      "id": "rec-20260823-001",
-      "title": "doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix",
-      "raw": 22.7,
-      "score": 68,
+      "id": "rec-20260916-002",
+      "title": "Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release",
+      "raw": 25.7,
+      "score": 73,
       "status": "candidate",
       "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
+      "priority": "high",
       "decayState": "fresh",
       "terms": [
         {
@@ -37,8 +37,8 @@
           "value": 4
         },
         {
-          "label": "prio medium",
-          "value": 2
+          "label": "prio high",
+          "value": 5
         },
         {
           "label": "friction 0",
@@ -141,6 +141,51 @@
     {
       "id": "rec-20260907-003",
       "title": "The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings",
+      "raw": 22.7,
+      "score": 68,
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready ready-for-cadence-spec",
+          "value": 10
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose"
+    },
+    {
+      "id": "rec-20260916-001",
+      "title": "profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix",
       "raw": 22.7,
       "score": 68,
       "status": "candidate",
@@ -3930,8 +3975,8 @@
     "primary": "cadence spec new"
   },
   "totals": {
-    "total": 88,
-    "ranked": 86,
+    "total": 89,
+    "ranked": 87,
     "parked": 2,
     "needsAttention": 0,
     "excluded": 0

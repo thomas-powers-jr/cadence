@@ -2930,6 +2930,20 @@ table stays raw, and regression-test that a non-additive manifest shape is
 rejected at parse time — completing Packs Slice 3 per `docs/packs-design.md`
 §4b/§7 and rec-20260822-011.
 
+### Phase 303 — Changeset-existence coverage tests survive release consumption (rec-20260916-002) *(in progress)*
+
+**Objective.** Phase 300's and phase 301's coverage-token tests each satisfied
+their meta-AC (under `coverageMode: assertion` + `coverageScheme:
+phase-qualified`) with a bare `existsSync('.changeset/<name>.md')` assertion —
+a release's `changeset version` step deletes consumed changeset files, so the
+very next release would have permanently redded both tests. Extracts a shared,
+pure `changesetEvidencePresent` helper (`packages/core/tests/support/
+changeset-evidence.ts`) that passes when either the changeset file still names
+the package, or — post-consumption — `packages/core/CHANGELOG.md` contains a
+discriminator string pinned per fix and verified (by live grep during
+drafting) to have zero pre-existing hits, so the fallback stays meaningful
+rather than hollow.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

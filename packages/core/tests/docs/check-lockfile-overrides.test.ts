@@ -1,7 +1,6 @@
-import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { changesetEvidencePresent } from '../support/changeset-evidence.js';
 
 // Red-first (phase 253, task T1). `scripts/check-lockfile-overrides.mjs` does
 // not exist yet — its real detector logic is task T2's job, dispatched
@@ -371,7 +370,7 @@ describe('check-lockfile-overrides pure logic (253-01, AC-3)', () => {
     });
   });
 
-  it('301-01/AC-3: this fix carries a changeset — full suite/typecheck are verified by the settle pipeline itself, not re-asserted here', async () => {
+  it('301-01/AC-3: this fix carries a changeset — full suite/typecheck are verified by the settle pipeline itself, not re-asserted here', () => {
     const changesetPath = join(
       process.cwd(),
       '..',
@@ -379,8 +378,14 @@ describe('check-lockfile-overrides pure logic (253-01, AC-3)', () => {
       '.changeset',
       'check-lockfile-overrides-unresolved-target.md',
     );
-    expect(existsSync(changesetPath)).toBe(true);
-    const contents = await readFile(changesetPath, 'utf8');
-    expect(contents).toContain('@thomas-powers-jr/cadence-core');
+    const changelogPath = join(process.cwd(), 'CHANGELOG.md');
+    expect(
+      changesetEvidencePresent({
+        changesetPath,
+        changesetPackage: '@thomas-powers-jr/cadence-core',
+        changelogPath,
+        discriminator: 'unresolved-target',
+      }),
+    ).toBe(true);
   });
 });
