@@ -2522,34 +2522,6 @@
       "updatedAt": "2026-09-07T22:06:51.167Z"
     },
     {
-      "id": "rec-20260907-005",
-      "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
-      "summary": "scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "security",
-        "build"
-      ],
-      "affectedFiles": [
-        "scripts/check-lockfile-overrides.mjs"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260907-005"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-07T23:03:57.628Z",
-      "updatedAt": "2026-09-07T23:03:57.628Z"
-    },
-    {
       "id": "rec-20260907-006",
       "title": "deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses",
       "summary": "The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.",
@@ -9455,10 +9427,42 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "300-settle-clobber-refused-summary",
-      "createdAt": "2026-09-15T18:18:02.759Z",
-      "updatedAt": "2026-09-16T14:52:34.564Z",
       "shippedRef": "phase 300 (300-settle-clobber-refused-summary), this commit",
       "archivedAt": "2026-09-16T14:52:34.564Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-15T18:18:02.759Z",
+      "updatedAt": "2026-09-16T14:52:34.564Z"
+    },
+    {
+      "id": "rec-20260907-005",
+      "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
+      "summary": "scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "build"
+      ],
+      "affectedFiles": [
+        "scripts/check-lockfile-overrides.mjs"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "301-check-lockfile-overrides-flag-override-targets-with-zero-resolved-instances",
+      "createdAt": "2026-09-07T23:03:57.628Z",
+      "updatedAt": "2026-09-16T16:27:46.983Z",
+      "shippedRef": "phase 301 (301-check-lockfile-overrides-flag-override-targets-with-zero-resolved-instances), this commit",
+      "archivedAt": "2026-09-16T16:27:46.983Z",
       "archiveReason": "shipped"
     }
   ]

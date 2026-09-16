@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
 // Red-first (phase 253, task T1). `scripts/check-lockfile-overrides.mjs` does
@@ -293,5 +296,91 @@ describe('check-lockfile-overrides pure logic (253-01, AC-3)', () => {
       expect(result.ok).toBe(true);
       expect(result.failures).toEqual([]);
     });
+
+    it('flags an override target whose package matches zero resolved instances as unresolved-target (301-01/AC-1, 301-01/AC-2)', () => {
+      // rec-20260907-005's vacuous-pass gap: a declared override target for a
+      // package that no longer (or never did) resolve anywhere in the
+      // lockfile is never visited by the instance-driven loop above, so it
+      // silently passes. `totally-missing-pkg` has no entry at all in
+      // `lockfilePackages` — either dead weight left over from a removed
+      // dependency, or a typo in the override key.
+      const overrideTargets = [
+        { package: 'brace-expansion', sourceVersion: '5.0.6', range: '^5.0.7' },
+        { package: 'totally-missing-pkg', sourceVersion: '1.0.0', range: '^2.0.0' },
+      ];
+      const lockfilePackages = [{ package: 'brace-expansion', version: '5.0.7' }];
+
+      const result = script.checkOverrideCoverage(overrideTargets, lockfilePackages);
+
+      expect(result.ok).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          package: 'totally-missing-pkg',
+          range: '^2.0.0',
+          sourceVersion: '1.0.0',
+          resolvedVersion: null,
+          instance: null,
+          reason: 'unresolved-target',
+        }),
+      );
+      // The satisfied brace-expansion target must not also be reported.
+      expect(result.failures).toHaveLength(1);
+    });
+
+    it('does not flag a package with multiple override targets as long as one of them is matched (301-01/AC-2)', () => {
+      // Scope note (see the JSDoc above checkOverrideCoverage): the
+      // "matched at least once" check is package-name-keyed, not
+      // per-target. Today's real committed config has exactly this shape —
+      // brace-expansion@5.0.6 and brace-expansion@^2.0.0 as separate
+      // targets for the same package, where only the 5.x line currently
+      // resolves. The 2.x-line target must NOT be reported as
+      // unresolved-target merely because its own sibling target's package
+      // name did match something.
+      const overrideTargets = [
+        { package: 'brace-expansion', sourceVersion: '5.0.6', range: '^5.0.7' },
+        { package: 'brace-expansion', sourceVersion: '^2.0.0', range: '^2.1.4' },
+      ];
+      const lockfilePackages = [{ package: 'brace-expansion', version: '5.0.7' }];
+
+      const result = script.checkOverrideCoverage(overrideTargets, lockfilePackages);
+
+      expect(result.ok).toBe(true);
+      expect(result.failures).toEqual([]);
+    });
+  });
+
+  describe('describeFailure', () => {
+    it("renders an unresolved-target failure by naming the actual package.json override key, not just the package (301-01/AC-2)", () => {
+      const failure = {
+        package: 'totally-missing-pkg',
+        range: '^2.0.0',
+        sourceVersion: '1.0.0',
+        resolvedVersion: null,
+        instance: null,
+        reason: 'unresolved-target',
+      };
+
+      const message = script.describeFailure(failure);
+
+      // Must name the literal package.json key ("pkg@sourceVersion"), not
+      // "pkg@range" — a maintainer greeping package.json for the failure
+      // message needs to find the actual key that's there.
+      expect(message).toContain('"totally-missing-pkg@1.0.0"');
+      expect(message).toContain('^2.0.0');
+      expect(message).toMatch(/delete/i);
+    });
+  });
+
+  it('301-01/AC-3: this fix carries a changeset — full suite/typecheck are verified by the settle pipeline itself, not re-asserted here', async () => {
+    const changesetPath = join(
+      process.cwd(),
+      '..',
+      '..',
+      '.changeset',
+      'check-lockfile-overrides-unresolved-target.md',
+    );
+    expect(existsSync(changesetPath)).toBe(true);
+    const contents = await readFile(changesetPath, 'utf8');
+    expect(contents).toContain('@thomas-powers-jr/cadence-core');
   });
 });

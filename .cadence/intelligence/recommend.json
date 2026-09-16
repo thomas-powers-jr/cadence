@@ -1,55 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-15T17:36:15.482Z",
+  "generatedAt": "2026-09-16T15:42:21.786Z",
   "ranked": [
     {
       "id": "rec-20260907-005",
       "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
-      "raw": 25.7,
-      "score": 73,
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready ready-for-cadence-spec",
-          "value": 10
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio high",
-          "value": 5
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose"
-    },
-    {
-      "id": "rec-20260915-001",
-      "title": "gitleaks secret-scan false-positives with no allowlist -- 22 test-fixture hits block security-success on every PR/schedule run",
       "raw": 25.7,
       "score": 73,
       "status": "candidate",
@@ -4016,15 +3971,14 @@
   ],
   "needsAttention": [],
   "advisory": {
-    "kind": "finish-loop",
-    "primary": "Finish in-flight CADENCE loop work first — cadence build task <id> --status=<DONE|...>  OR  cadence settle run --ac AC-1=pass.",
-    "secondary": "cadence milestone propose"
+    "kind": "spec-new",
+    "primary": "cadence spec new"
   },
   "totals": {
-    "total": 91,
-    "ranked": 88,
+    "total": 89,
+    "ranked": 87,
     "parked": 2,
     "needsAttention": 0,
-    "excluded": 1
+    "excluded": 0
   }
 }
