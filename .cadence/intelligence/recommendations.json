@@ -2520,34 +2520,6 @@
       "updatedAt": "2026-09-07T23:03:58.122Z"
     },
     {
-      "id": "rec-20260916-001",
-      "title": "profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix",
-      "summary": "Phase 302 made assessGateReachability's profile-blocked VERDICT pack-aware (routes through effectiveGateSet), but profileRemediationHint (doctor/run.ts) still hardcodes each gate's reachable profile x tier cells from raw DELTAS only -- security-audit's remediation text always says strict x complex is the only reachable cell. A pack that adds security-audit at e.g. standard x complex makes that cell also reachable, but doctor still tells the operator to switch to strict when standard now also works. Same axis phase 302 already touches (not scope creep), but making the remediation text dynamically pack-aware requires enumerating all 9 profile x tier cells per gate through effectiveGateSet rather than a hardcoded two-branch hint -- a real sub-feature, not a one-line fix, so phase 302 filed rather than absorbed it (dec-20260820-003 file-only precedent). Gap is latent like the verdict gap was: no real pack today declares gates[].",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "doctor",
-        "packs"
-      ],
-      "affectedFiles": [
-        "packages/core/src/doctor/run.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260916-001"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-16T17:13:52.485Z",
-      "updatedAt": "2026-09-16T17:13:52.485Z"
-    },
-    {
       "id": "rec-20260916-003",
       "title": "Meta-AC coverage tokens satisfied via changeset-existence assertions break every release",
       "summary": "The house pattern for satisfying an assertion-mode, phase-qualified coverage token on a 'meta' AC (one with no natural code-behavior test, e.g. 'this fix carries a changeset') is a test that does existsSync('.changeset/<name>.md'). changeset version deletes consumed changeset files during every release, so any test written this way permanently reds the next time a release runs. Phase 303 patches the two known instances (phases 300, 301) but does not fix the underlying convention -- a future phase using the same pattern will reintroduce the bug. Needs a documented, release-durable convention for meta-AC coverage evidence (e.g. checking CHANGELOG.md/package.json as a fallback, or a coverage-mode carve-out for changeset-only ACs) so authors stop reaching for a filename that a release step will delete.",
@@ -9552,10 +9524,42 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "303-changeset-existence-coverage-tests-survive-release-consumption",
-      "createdAt": "2026-09-16T17:14:05.215Z",
-      "updatedAt": "2026-09-16T18:46:25.794Z",
       "shippedRef": "phase 303 (303-changeset-existence-coverage-tests-survive-release-consumption), this commit",
       "archivedAt": "2026-09-16T18:46:25.794Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-16T17:14:05.215Z",
+      "updatedAt": "2026-09-16T18:46:25.794Z"
+    },
+    {
+      "id": "rec-20260916-001",
+      "title": "profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix",
+      "summary": "Phase 302 made assessGateReachability's profile-blocked VERDICT pack-aware (routes through effectiveGateSet), but profileRemediationHint (doctor/run.ts) still hardcodes each gate's reachable profile x tier cells from raw DELTAS only -- security-audit's remediation text always says strict x complex is the only reachable cell. A pack that adds security-audit at e.g. standard x complex makes that cell also reachable, but doctor still tells the operator to switch to strict when standard now also works. Same axis phase 302 already touches (not scope creep), but making the remediation text dynamically pack-aware requires enumerating all 9 profile x tier cells per gate through effectiveGateSet rather than a hardcoded two-branch hint -- a real sub-feature, not a one-line fix, so phase 302 filed rather than absorbed it (dec-20260820-003 file-only precedent). Gap is latent like the verdict gap was: no real pack today declares gates[].",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "doctor",
+        "packs"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260916-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "304-profileremediationhint-enumerates-reachable-profile-x-tier-cells-via-effectivegateset-packs-aware",
+      "createdAt": "2026-09-16T17:13:52.485Z",
+      "updatedAt": "2026-09-16T20:34:30.281Z",
+      "shippedRef": "phase 304 (304-profileremediationhint-enumerates-reachable-profile-x-tier-cells-via-effectivegateset-packs-aware), this commit",
+      "archivedAt": "2026-09-16T20:34:30.281Z",
       "archiveReason": "shipped"
     }
   ]

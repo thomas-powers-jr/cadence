@@ -578,7 +578,7 @@ describe('checkConductionReachability (phase 251)', () => {
     expect(check.detail).toContain('security-audit: blocked by provider');
   });
 
-  it('251-01/AC-2: the detail names each gate\'s own blocked axis or axes separately, not one generic sentence', () => {
+  it('251-01/AC-2, 304-01/AC-1, 304-01/AC-2: the detail names each gate\'s own blocked axis or axes separately, not one generic sentence, and (with no resolvedPacks) the profile-axis remediation follows the fixed strict-then-standard-then-auto ordering and single-vs-multi-cell templates', () => {
     const config = { ...defaultConfig, profile: 'auto' as const };
 
     const check = checkConductionReachability(config, {});
@@ -598,13 +598,13 @@ describe('checkConductionReachability (phase 251)', () => {
     // report these two gates separately"). Assert the two gates' clauses
     // are textually distinct on the substance that differs between them.
     const remediation = check.remediation ?? '';
-    expect(remediation).toContain("'standard' (tier: complex) or 'strict' (tier: standard or complex)");
+    expect(remediation).toContain("'strict' (tier: standard or complex) or 'standard' (tier: complex)");
     expect(remediation).toContain("security-audit's only reachable profile×tier cell");
     // And that neither gate's clause borrowed the other's hint text.
     const codeReviewClause = remediation.slice(0, remediation.indexOf('security-audit:'));
     const securityAuditClause = remediation.slice(remediation.indexOf('security-audit:'));
     expect(codeReviewClause).not.toContain("security-audit's only reachable profile×tier cell");
-    expect(securityAuditClause).not.toContain("'standard' (tier: complex) or 'strict' (tier: standard or complex)");
+    expect(securityAuditClause).not.toContain("'strict' (tier: standard or complex) or 'standard' (tier: complex)");
   });
 
   it('302-01/AC-1: a pack-added gate at a (profile, tier) cell absent from raw DELTAS is reported reachable, not profile-blocked', () => {
@@ -654,6 +654,55 @@ describe('checkConductionReachability (phase 251)', () => {
     const check = checkConductionReachability(config, {});
 
     expect(check.detail).toContain('security-audit: blocked by profile');
+  });
+
+  it('304-01/AC-3: a pack-added cell for a still-profile-blocked gate appears in the remediation text', () => {
+    // Profile 'auto' has no security-audit cell anywhere in raw DELTAS, so
+    // security-audit stays profile-blocked here regardless of packs (unlike
+    // the 302-01/AC-1 test above, whose 'standard' profile pack-added cell
+    // makes the gate reachable outright). This isolates the assertion to
+    // profileRemediationHint's TEXT, not assessGateReachability's VERDICT
+    // (already pack-aware since phase 302) — rec-20260916-001's actual gap.
+    const config = {
+      ...defaultConfig,
+      profile: 'auto' as const,
+      securityAudit: { provider: 'host-cli' as const },
+    };
+    const resolvedPacks = [
+      {
+        id: 'cadence/test-pack',
+        source: 'local' as const,
+        manifest: {
+          id: 'cadence/test-pack',
+          version: '1.0.0',
+          gates: [
+            {
+              profile: 'standard' as const,
+              tier: 'complex' as const,
+              add: ['security-audit' as const],
+            },
+          ],
+        },
+      },
+    ];
+
+    const check = checkConductionReachability(config, {}, resolvedPacks);
+
+    // Premise: still blocked under the current ('auto') profile — this fix
+    // only changes the remediation TEXT, never the VERDICT.
+    expect(check.detail).toContain('security-audit: blocked by profile');
+
+    const remediation = check.remediation ?? '';
+    // Post-fix, security-audit now has TWO reachable cells (strict×complex
+    // from raw DELTAS, standard×complex from the pack), so it switches from
+    // the single-cell template to the multi-cell template — both cells must
+    // appear in that new phrasing. Pre-fix, neither assertion passes: today's
+    // hardcoded profileRemediationHint never receives resolvedPacks at all,
+    // so security-audit always renders via the old single-cell template
+    // ("to 'strict' at tier: complex — ...only reachable...", never
+    // "'strict' (tier: complex)"), regardless of what packs are resolved.
+    expect(remediation).toContain("'strict' (tier: complex)");
+    expect(remediation).toContain("'standard' (tier: complex)");
   });
 });
 

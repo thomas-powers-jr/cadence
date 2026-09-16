@@ -16,6 +16,7 @@ import {
   type CadenceState,
   type CadenceConfig,
   type Gate,
+  type Profile,
   type Tier,
   type RecommendationLedger,
   type RecommendationStatus,
@@ -1680,6 +1681,12 @@ export async function checkRoadmapCurrency(root: string): Promise<DoctorCheck> {
  *  ("reachable at any tier"), never a single tier. */
 const ALL_TIERS: Tier[] = ['quick-fix', 'standard', 'complex'];
 
+/** All three `Profile` values, in the fixed order `profileRemediationHint`
+ *  groups reachable cells by (phase 304, AC-1) — `reachableProfileTierGroups`
+ *  iterates this order, never `Object.keys`/declaration order, so the
+ *  remediation text's cell ordering is deterministic and test-stable. */
+const ALL_PROFILES: Profile[] = ['strict', 'standard', 'auto'];
+
 /** The gate ↔ seam pairing this check evaluates. `Gate` (kebab-case, the
  *  profile-axis string space, `gates/engine.js`/`profile.ts`) and
  *  `VerifierSeam` (camelCase, the provider-axis string space,
@@ -1734,19 +1741,70 @@ function assessGateReachability(
   return { gate, seam, blockedAxes };
 }
 
-/** `code-review`'s reachable profile×tier cells (`{strict×standard,
- *  strict×complex, standard×complex}`) differ from `security-audit`'s
- *  (`{strict×complex}` only) — the profile-axis remediation must name each
- *  gate's own cells, never a shared generic hint. */
-function profileRemediationHint(gate: Gate): string {
-  return gate === 'code-review'
-    ? "override profile: in a DRAFT's frontmatter to 'standard' (tier: complex) or 'strict' (tier: standard or complex) to include code-review in the gate set"
-    : "override profile: to 'strict' at tier: complex — security-audit's only reachable profile×tier cell";
+/**
+ * Enumerates `gate`'s reachable `(profile, tier)` cells across all 3
+ * profiles × 3 tiers (phase 304, AC-1), packs-aware via `effectiveGateSet` —
+ * the same chokepoint `assessGateReachability`'s VERDICT routes through
+ * since phase 302, so a pack-added cell shows up here too. Each combination
+ * is probed with `profile` passed via the `draft` argument
+ * (`{ profile, tier }`), never substituted into `config`: `effectiveProfile`
+ * does `if (draft?.profile) return draft.profile` (a truthy check), so only
+ * the `draft`-argument form actually varies the result across all 9 calls.
+ * Results are grouped by profile in `ALL_PROFILES` order, tiers within a
+ * profile in `ALL_TIERS` order — a profile with zero reachable tiers is
+ * omitted entirely, never emitted as an empty group.
+ */
+function reachableProfileTierGroups(
+  gate: Gate,
+  config: CadenceConfig,
+  resolvedPacks: ResolvedPack[],
+): Array<{ profile: Profile; tiers: Tier[] }> {
+  const groups: Array<{ profile: Profile; tiers: Tier[] }> = [];
+  for (const profile of ALL_PROFILES) {
+    const tiers = ALL_TIERS.filter((tier) =>
+      effectiveGateSet({ tier }, config, { profile, tier }, resolvedPacks).gates.includes(gate),
+    );
+    if (tiers.length > 0) groups.push({ profile, tiers });
+  }
+  return groups;
+}
+
+/**
+ * `gate`'s reachable profile×tier cells differ from each other and can
+ * change per-repo once packs are in play (a pack's `gates[].add` can add a
+ * cell absent from raw `DELTAS`) — so this text is generated dynamically
+ * from `reachableProfileTierGroups`, never a hardcoded literal cell list
+ * that would go stale the moment a pack changes the reachable set. Exactly
+ * one reachable cell total renders the single-cell sentence; two or more
+ * render the multi-cell sentence naming every group (phase 304, AC-1).
+ */
+function profileRemediationHint(
+  gate: Gate,
+  config: CadenceConfig,
+  resolvedPacks: ResolvedPack[],
+): string {
+  const groups = reachableProfileTierGroups(gate, config, resolvedPacks);
+  const totalCells = groups.reduce((sum, group) => sum + group.tiers.length, 0);
+
+  if (totalCells === 1) {
+    const onlyGroup = groups[0]!;
+    const onlyTier = onlyGroup.tiers[0]!;
+    return `override profile: to '${onlyGroup.profile}' at tier: ${onlyTier} — ${gate}'s only reachable profile×tier cell`;
+  }
+
+  const clauses = groups.map((group) => `'${group.profile}' (tier: ${group.tiers.join(' or ')})`);
+  return `override profile: in a DRAFT's frontmatter to ${clauses.join(' or ')} to include ${gate} in the gate set`;
 }
 
 /** Remediation clause for one blocked axis on one gate. */
-function axisRemediation(gate: Gate, seam: VerifierSeam, axis: ConductionAxis): string {
-  if (axis === 'profile') return profileRemediationHint(gate);
+function axisRemediation(
+  gate: Gate,
+  seam: VerifierSeam,
+  axis: ConductionAxis,
+  config: CadenceConfig,
+  resolvedPacks: ResolvedPack[],
+): string {
+  if (axis === 'profile') return profileRemediationHint(gate, config, resolvedPacks);
   if (axis === 'provider') {
     return `reconfigure ${seam}.provider off 'mock' (e.g. \`cadence activate\`)`;
   }
@@ -1822,7 +1880,7 @@ export function checkConductionReachability(
   const remediation = blocked
     .map(
       ({ gate, seam, blockedAxes }) =>
-        `${gate}: ${blockedAxes.map((axis) => axisRemediation(gate, seam, axis)).join('; ')}`,
+        `${gate}: ${blockedAxes.map((axis) => axisRemediation(gate, seam, axis, config, resolvedPacks)).join('; ')}`,
     )
     .join(' | ');
 
