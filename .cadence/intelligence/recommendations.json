@@ -2522,38 +2522,6 @@
       "updatedAt": "2026-09-07T22:06:51.167Z"
     },
     {
-      "id": "rec-20260907-004",
-      "title": "CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job",
-      "summary": "Two independent pre-existing blockers make ci-success fail on any PR, both confirmed on PR #481 across ubuntu, macos and windows (exactly one failing test on each, none of them the PR's own). (1) tests/docs/security-ci.test.ts:219 asserts every documented audit exception is non-expired. The single row in docs/security/audit-exceptions.md, GHSA-88fw-hqm2-52qc for hono, has expiry 2026-08-28 and is 10 days past. Its own justification says 'Re-check on the next @modelcontextprotocol/sdk bump' -- that bump has happened (package.json asks ^1.29.0, the tree resolves 1.30.0) and GHSA-88fw-hqm2-52qc no longer appears in pnpm audit at all. The row should be REMOVED as resolved, not date-extended; extending it would defeat the gate. (2) Separately, pnpm audit now reports 6 vulnerabilities (4 high, 2 moderate) that no exception documents, which fails the audit and security-success jobs. All four highs are the same package: fast-uri, GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp, every one patched in >=3.1.6, every one reached via packages/core > @modelcontextprotocol/sdk@1.30.0. A pnpm.overrides pin to fast-uri >=3.1.6 is the likely one-line fix; the repo already uses that mechanism and has a lockfile-override doc test. Note the Security workflow was already failing on main at d8d19ad4, so this is not PR-introduced.",
-      "source": "manual",
-      "status": "settle-pending",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "security",
-        "ci"
-      ],
-      "affectedFiles": [
-        "docs/security/audit-exceptions.md",
-        "package.json"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260907-004"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20260915-001"
-      ],
-      "convertedToPhaseId": "298-js-yaml-cve-2026-84375-override-bump",
-      "createdAt": "2026-09-07T22:26:27.124Z",
-      "updatedAt": "2026-09-15T16:43:40.403Z"
-    },
-    {
       "id": "rec-20260907-005",
       "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
       "summary": "scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.",
@@ -9448,10 +9416,45 @@
         "dec-20260915-003"
       ],
       "convertedToPhaseId": "299-gitleaks-secret-scan-allowlist",
-      "createdAt": "2026-09-15T16:19:57.705Z",
-      "updatedAt": "2026-09-15T19:42:17.968Z",
       "shippedRef": "phase 299-gitleaks-secret-scan-allowlist",
       "archivedAt": "2026-09-15T19:42:17.968Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-15T16:19:57.705Z",
+      "updatedAt": "2026-09-15T19:42:17.968Z"
+    },
+    {
+      "id": "rec-20260907-004",
+      "title": "CI is red on every PR: the hono audit exception expired 2026-08-28 and is now stale, while four undocumented fast-uri highs fail the audit job",
+      "summary": "Two independent pre-existing blockers make ci-success fail on any PR, both confirmed on PR #481 across ubuntu, macos and windows (exactly one failing test on each, none of them the PR's own). (1) tests/docs/security-ci.test.ts:219 asserts every documented audit exception is non-expired. The single row in docs/security/audit-exceptions.md, GHSA-88fw-hqm2-52qc for hono, has expiry 2026-08-28 and is 10 days past. Its own justification says 'Re-check on the next @modelcontextprotocol/sdk bump' -- that bump has happened (package.json asks ^1.29.0, the tree resolves 1.30.0) and GHSA-88fw-hqm2-52qc no longer appears in pnpm audit at all. The row should be REMOVED as resolved, not date-extended; extending it would defeat the gate. (2) Separately, pnpm audit now reports 6 vulnerabilities (4 high, 2 moderate) that no exception documents, which fails the audit and security-success jobs. All four highs are the same package: fast-uri, GHSA-5jgf-p345-68v8, GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp, every one patched in >=3.1.6, every one reached via packages/core > @modelcontextprotocol/sdk@1.30.0. A pnpm.overrides pin to fast-uri >=3.1.6 is the likely one-line fix; the repo already uses that mechanism and has a lockfile-override doc test. Note the Security workflow was already failing on main at d8d19ad4, so this is not PR-introduced.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "package.json"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20260915-001"
+      ],
+      "convertedToPhaseId": "298-js-yaml-cve-2026-84375-override-bump",
+      "createdAt": "2026-09-07T22:26:27.124Z",
+      "updatedAt": "2026-09-16T13:21:29.734Z",
+      "shippedRef": "PR #487 (phase 298, js-yaml override bump); hono/fast-uri parts already resolved by PR #482 (phase 297) per dec-20260915-001",
+      "archivedAt": "2026-09-16T13:21:29.734Z",
       "archiveReason": "shipped"
     }
   ]
