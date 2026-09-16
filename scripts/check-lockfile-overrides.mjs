@@ -180,15 +180,41 @@ function satisfiesRange(version, range) {
  * a target's major but doesn't satisfy that target's range is an
  * 'unsatisfied' failure.
  *
+ * A declared override target whose package name matches none of
+ * `lockfilePackages` is never visited by the loop above at all (there is no
+ * instance to iterate), so it earns its own pass: any target package name
+ * with zero matching instances is reported as `'unresolved-target'` — the
+ * key is either dead weight left over from a removed/renamed dependency, or
+ * a typo silently doing nothing.
+ *
+ * Scope: this "matched at least once" check is keyed on the target's
+ * *package name*, not on each individual target — a package with multiple
+ * override targets (different `sourceVersion`s) is exempt from
+ * `unresolved-target` as long as ANY one of its targets' major lines
+ * resolves somewhere in the lockfile, even if a different sibling target for
+ * that same package matches nothing. Today's real committed config has such
+ * a pair (`brace-expansion@5.0.6` and `brace-expansion@^2.0.0`); only the
+ * first currently resolves, and the second is deliberately still not flagged
+ * by this check for that reason — tightening this to per-target granularity
+ * would report it and break CI (`lockfile-overrides-current-state.test.ts`
+ * asserts `failures: []` against the real committed state). Per-target
+ * granularity, if ever wanted, needs its own opt-in suppression mechanism
+ * first (see `docs/security/audit-exceptions.md`'s pattern).
+ *
  * Returns `{ ok, failures }` where each failure is
- * `{ package, range, resolvedVersion, instance, reason }`.
+ * `{ package, range, resolvedVersion, instance, reason }`, plus
+ * `sourceVersion` on `'unresolved-target'` failures (the override key's
+ * literal source-version half, so a message can name the actual
+ * `package.json` key rather than just the package name).
  */
 export function checkOverrideCoverage(overrideTargets, lockfilePackages) {
   const failures = [];
+  const matchedTargetPackages = new Set();
 
   for (const instance of lockfilePackages) {
     const targetsForPackage = overrideTargets.filter((target) => target.package === instance.package);
     if (targetsForPackage.length === 0) continue; // not governed by any override — out of scope
+    matchedTargetPackages.add(instance.package);
 
     const instanceMajor = majorOf(instance.version);
     const matchingTarget = targetsForPackage.find((target) => majorOf(rangeFloor(target.range)) === instanceMajor);
@@ -216,14 +242,39 @@ export function checkOverrideCoverage(overrideTargets, lockfilePackages) {
     }
   }
 
+  for (const target of overrideTargets) {
+    if (matchedTargetPackages.has(target.package)) continue;
+    failures.push({
+      package: target.package,
+      range: target.range,
+      sourceVersion: target.sourceVersion,
+      resolvedVersion: null,
+      instance: null,
+      reason: 'unresolved-target',
+    });
+  }
+
   return { ok: failures.length === 0, failures };
 }
 
-function describeFailure(failure) {
+/**
+ * Renders a single `checkOverrideCoverage` failure into an actionable
+ * message. Exported (alongside the other pure decision logic) so its
+ * per-reason branches — in particular the `'unresolved-target'` case
+ * (301-01/AC-2) — are directly unit-testable without going through `main()`.
+ */
+export function describeFailure(failure) {
   if (failure.reason === 'unguarded-line') {
     return (
       `${failure.instance} resolves in pnpm-lock.yaml but no pnpm.overrides target covers its major-version line ` +
       `(package.json has an override for ${failure.package}, but not for this resolved major)`
+    );
+  }
+  if (failure.reason === 'unresolved-target') {
+    return (
+      `pnpm.overrides declares "${failure.package}@${failure.sourceVersion}": "${failure.range}", but no instance ` +
+      `of ${failure.package} resolves anywhere in pnpm-lock.yaml — this key is either dead weight left over from a ` +
+      'removed/renamed dependency, or a typo silently doing nothing; delete the key or fix the package name'
     );
   }
   return (

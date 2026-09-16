@@ -2,23 +2,15 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-09-15T17:36:15.482Z
+Generated at: 2026-09-16T15:42:21.786Z
 
 ## Advisory
 
-- Finish in-flight CADENCE loop work first — cadence build task <id> --status=<DONE|...>  OR  cadence settle run --ac AC-1=pass.
-- then: cadence milestone propose
+- cadence spec new
 
 ## Ranked
 
 ### rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
-
-- score: 73/100 (raw 25.7)
-- status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 25.7 (score 73)
-- next: cadence milestone propose
-
-### rec-20260915-001 — gitleaks secret-scan false-positives with no allowlist -- 22 test-fixture hits block security-success on every PR/schedule run
 
 - score: 73/100 (raw 25.7)
 - status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
@@ -675,4 +667,4 @@ None.
 
 ## Totals
 
-- total 91 · ranked 88 · parked 2 · needs-attention 0 · excluded 1
+- total 89 · ranked 87 · parked 2 · needs-attention 0 · excluded 0
