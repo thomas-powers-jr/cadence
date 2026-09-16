@@ -995,8 +995,8 @@
       "rationale": "This repo already has precedent for suppressing gitleaks false positives on fake-secret test fixtures: a trailing '// gitleaks:allow -- <reason>' comment on the specific flagged line (gitleaks' native per-line suppression), already present at packages/core/tests/intelligence/store/recommendations.test.ts:150,257. A fix for 2 of the 6 currently-flagged files (packages/core/tests/cli/summary-render.test.ts, packages/core/tests/parse/summary-writer.test.ts) was already written this way and committed (28fa905e, 'fix: allowlist fake credential fixtures for gitleaks (phase 257)', 2026-08-07) but never merged -- it is stranded on the abandoned worktree branch worktree-feat+257-render-findings-markdown (96 commits behind main), left on disk per that session's own handoff note that the worktree was safe to remove but removal was deferred. The fix phase should reapply that commit's diff rather than re-deriving it, then add matching gitleaks:allow comments to the remaining flagged fixtures in redact.test.ts and security-audit.test.ts. Also worth checking during that phase: recommendations.test.ts and finding-routing.test.ts already carry gitleaks:allow annotations yet still appeared in the 2026-09-14 run's 22 findings -- verify whether the annotation is on the wrong line, has a syntax gitleaks no longer honors, or whether these are new, unannotated fixtures added to those files since 28fa905e.",
       "status": "superseded",
       "decidedAt": "2026-09-15T16:32:22.492Z",
-      "supersedes": [],
-      "supersededBy": "dec-20260915-003"
+      "supersededBy": "dec-20260915-003",
+      "supersedes": []
     },
     {
       "id": "dec-20260915-003",
@@ -1008,6 +1008,15 @@
       "supersedes": [
         "dec-20260915-002"
       ]
+    },
+    {
+      "id": "dec-20260916-001",
+      "recommendationId": "rec-20260823-001",
+      "title": "Correction to dec-20260822-020: doctor's reachability scan is pack-aware since phase 302, not the deferred exception",
+      "rationale": "dec-20260822-020's rationale said doctor's reachability scan and config-explain's matrix builder correctly keep calling raw gatesFor since they answer a whole-matrix question. That held for config-explain only through phase 292 (Slice 3 gave its current-tier row a pack-aware follow-up) and for doctor/run.ts only until phase 302, which routed assessGateReachability's profile axis through effectiveGateSet(config, resolvedPacks) instead of raw gatesFor -- closing the exception Slice 3's own DRAFT boundary had deferred, not reopening it. The decision's core chokepoint architecture (resolvePacks for resolution, effectiveGateSet for application, gatesFor unchanged/pure) is unaffected and remains active; only the doctor-reachability-stays-raw clause is now stale. docs/packs-design.md section 4b carries the full As-built note.",
+      "status": "active",
+      "decidedAt": "2026-09-16T17:13:38.982Z",
+      "supersedes": []
     }
   ]
 }

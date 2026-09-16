@@ -111,6 +111,18 @@ describe('docs/reference/commands.md drift guard', () => {
     expect(manualRow[1]).toContain('conduction-reachability');
   });
 
+  it('302-01/AC-3: the conduction-reachability row and packs-design.md §4b both describe the profile axis as pack-aware (effectiveGateSet), not raw gatesFor', () => {
+    const commandsMd = readFileSync(join(REPO_ROOT, 'docs/reference/commands.md'), 'utf8');
+    const section = commandSection(commandsMd, 'doctor');
+    const row = section.match(/\|\s*`conduction-reachability`\s*\|([^|]*)\|[^|]*\|/);
+    if (!row) throw new Error('commands.md: conduction-reachability row not found');
+    expect(row[1]).toContain('effectiveGateSet');
+    expect(row[1]).not.toMatch(/\*\*profile\*\* \(the gate is absent from `gatesFor\(tier, profile\)/);
+
+    const packsDesignMd = readFileSync(join(REPO_ROOT, 'docs/packs-design.md'), 'utf8');
+    expect(packsDesignMd).toMatch(/As built \(phase 302, `rec-20260823-001`\)/);
+  });
+
   it('259-01/AC-5: doctor section documents the roadmap-currency check in the v1 check set table', () => {
     const md = readFileSync(join(REPO_ROOT, 'docs/reference/commands.md'), 'utf8');
     const section = commandSection(md, 'doctor');
