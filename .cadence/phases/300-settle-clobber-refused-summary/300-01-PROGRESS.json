@@ -1,0 +1,47 @@
+{
+  "draftId": "300-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Added 3 failing regression tests (300-01/AC-1,AC-2,AC-3) proving writeRefusedSettleSummary clobbers a terminal canonical SUMMARY on refusal. Independent review found AC-3 assertion too loose (didn't assert the diverted snapshot path, only the word 'canonical'); fixed directly in main thread (injected fixed now(), asserted stderr contains the deterministic snapshot base path). Re-verified in main thread: 3/3 new tests fail for the expected reasons, 48/48 pre-existing tests in the file still pass, typecheck clean.",
+      "touchedFiles": [
+        "packages/core/tests/services/settle.test.ts"
+      ],
+      "updatedAt": "2026-09-16T14:03:36.598Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Guarded writeRefusedSettleSummary's canonical write: before the unconditional atomicWriteJSON/atomicWriteText, best-effort read+parse the existing on-disk SUMMARY.json (never throws); if acResults.length > 0 (the discriminator, deliberately NOT including gates, which is non-empty on every refused write too), divert to refusedSnapshotArtifactBase(activeDraft, refusedSummary.completedAt) -- writing both .json/.md siblings unconditionally -- and emit an io.err notice naming both 'canonical' and the diverted path; otherwise unchanged. Independent review: APPROVED, confirmed the guard predicate is acResults-only (the crux of the phase), one non-blocking observation (diverted-branch write isn't try/caught, judged acceptable/arguably correct as-is). Re-verified in main thread: 51/51 tests in settle.test.ts pass, full package suite passes (exit 0), typecheck clean.",
+      "touchedFiles": [
+        "packages/core/src/services/settle.ts"
+      ],
+      "updatedAt": "2026-09-16T14:19:00.061Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Added 2 regression tests (300-01/AC-4) proving no behavior change for the non-terminal cases: (a) no canonical SUMMARY exists yet -- unconditional canonical write unchanged; (b) existing canonical has acResults:[] with non-empty gates (a prior refused record) -- second refusal still overwrites canonically, proving gates alone never triggers the guard. Independent review: APPROVED, confirmed test (b) genuinely falsifies incorrect diversion via content/timestamp comparison, not a weak exitCode-only check. Re-verified in main thread: 53/53 tests pass, typecheck clean.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T14:24:24.173Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Ran full pnpm --filter @thomas-powers-jr/cadence-core test (exit 0) and typecheck (clean) myself in the main thread. Added .changeset/settle-clobber-refused-summary-guard.md (patch, cadence-core) describing the bugfix.",
+      "touchedFiles": [
+        ".changeset/settle-clobber-refused-summary-guard.md"
+      ],
+      "updatedAt": "2026-09-16T14:28:44.074Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    }
+  }
+}

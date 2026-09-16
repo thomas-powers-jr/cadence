@@ -1439,20 +1439,3 @@ scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that
 - next: cadence milestone propose
 
 The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.
-
-## rec-20260915-002 — settle run overwrites the canonical SUMMARY of an already-shipped draft on refusal
-
-- status: candidate
-- ready: needs-decision
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: settle, gates, summary
-- files: packages/core/src/services/settle.ts
-- evidence: Live repro this session: refused settle on stale main state clobbered .cadence/phases/278-cadence-demo-progressive-disclosure/278-01-SUMMARY.md (AC-1..AC-11 PASS + gate provenance + contentHash + stateAtSettle all replaced with empty/unverified fields); reverted via git checkout before commit
-- evidence: Sharpening for the fix (per advisor review): the bug is not that a refused settle writes a SUMMARY -- that is deliberate (phase 239/247, writeRefusedSettleSummary is intentional audit-trail behavior for refused attempts). The bug is that the canonical write at settle.ts:913-917 is UNCONDITIONAL: it will overwrite an existing SUMMARY that already recorded real, terminal evidence (AC PASS results, gate provenance, contentHash) with a refused record carrying none. Fix should guard the canonical overwrite -- e.g. refuse to overwrite (or divert to a snapshot-only path) when the existing on-disk SUMMARY.json already has non-empty acResults/gates from a prior successful settle -- not remove the refused-summary feature itself.
-- next: cadence milestone propose
-
-writeRefusedSettleSummary (packages/core/src/services/settle.ts:847-948) writes the refused-attempt record to the SAME canonical path as a successful settle (state.activeDraft-SUMMARY.json/.md, line 913-917), not to a side file. Reproduced live: main's stale state.json still pointed at phase 278 (shipped weeks ago via PR #421); retrying settle run --auto against it hit the draft-read stale-mtime refusal, but not before clobbering the already-shipped 278-01-SUMMARY.json/.md with a degraded refused record (lost AC PASS results, gate provenance, content hash, and stateAtSettle). Recovered only because the working tree was dirty and git checkout -- reverted it; on a clean tree this would have been a permanent, silent loss of a shipped phase's audit trail. The refused-settle snapshot mechanism at line 919-946 (refusedSnapshotArtifactBase) already writes a non-canonical -SUMMARY-snapshot sibling for findings-bearing refusals -- but only conditionally (hasCodeReviewFindings/hasSecurityAuditFindings) and the canonical file is still clobbered unconditionally either way. Fix should write refused attempts to a snapshot-only path (or gate the canonical overwrite behind confirming the draft/AC evidence is not already terminal), never overwrite an existing canonical SUMMARY that recorded real evidence with one that recorded none.
