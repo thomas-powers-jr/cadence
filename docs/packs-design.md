@@ -153,6 +153,22 @@ purpose. `config-explain` needed a follow-up (§7 Slice 3, shipped phase
 `cadence config explain` would describe gates that don't match runtime
 reality — but the matrix table stays raw.
 
+**As built (phase 302, `rec-20260823-001`):** `assessGateReachability`'s
+"matrix-wide question independent of any single phase's active packs"
+framing above described what that caller *did*, not a decision that it must
+stay that way — Slice 3 left it alone only because its own DRAFT boundary
+forbade touching `doctor/run.ts`, not because pack-awareness was wrong for
+it. A pack whose `gates[].add` contributes a gate at a (profile, tier) cell
+absent from raw `DELTAS` made `assessGateReachability` report that gate as
+profile-blocked even after `effectiveGateSet` genuinely started firing it —
+a false negative in the doctor's own honesty tooling. Phase 302 routes the
+check's profile axis through `effectiveGateSet({ tier }, config, null,
+resolvedPacks)` (the same chokepoint, not a new pack-matching helper) instead
+of raw `gatesFor`, mirroring `config-explain`'s own current-tier precedent
+above. `gatesFor` itself is unchanged — this amendment does not reopen §4b's
+locked invariants (`gatesFor` pure/pack-free; application through the single
+`effectiveGateSet` chokepoint), it closes the one deferred exception to them.
+
 The actual "what applies to my phase" chokepoint already exists:
 `effectiveGateSet(state, config, draft)` (`engine.ts:233`), which resolves
 tier and profile and then calls `gatesFor`. Every command-boundary and hook

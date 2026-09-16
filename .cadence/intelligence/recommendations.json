@@ -2354,34 +2354,6 @@
       "updatedAt": "2026-08-22T20:17:28.781Z"
     },
     {
-      "id": "rec-20260823-001",
-      "title": "doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix",
-      "summary": "assessGateReachability (doctor/run.ts:1632) scans only raw gatesFor(tier,profile) across all tiers to decide a gate is 'blocked by profile' -- deliberately pack-unaware per docs/packs-design.md §4b, since it answers a matrix-wide question independent of any phase's active packs. But phase 292 (Packs Slice 3) confirmed the divergence is concretely reachable, not theoretical: security-audit is absent from all three standard cells and all three auto cells in DELTAS; code-review is absent from all three auto cells. Both are ordinary Gate members a pack can add via gates[].add. A pack declaring e.g. {profile:'standard', tier:'complex', add:['security-audit']} makes doctor report that gate as blocked-by-profile even though effectiveGateSet (engine.ts) now genuinely fires it once that pack is enabled -- a false negative in the doctor's own honesty tooling. Fixing this is out of Slice 3's scope per its DRAFT Boundaries (doctor/run.ts must not change); filed per the dec-20260820-003 file-only precedent for exactly this kind of out-of-scope-but-real gap.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "doctor",
-        "packs"
-      ],
-      "affectedFiles": [
-        "packages/core/src/doctor/run.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260823-001"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-08-23T04:41:09.641Z",
-      "updatedAt": "2026-08-23T04:41:09.641Z"
-    },
-    {
       "id": "rec-20260823-002",
       "title": "dispatch could refuse/warn when multiple mutating tasks target one shared worktree concurrently",
       "summary": "Phase 292's wave-1 dispatch ran 4 mutating subagents (T1/T3/T4/T5) concurrently in ONE shared git worktree, against the dispatch plan's own recommendedIsolation:'worktree' guidance for tasks that mutate files. One task's entire diff (T4, a new test file) was silently lost mid-run -- confirmed via git diff showing zero change -- despite the implementer subagent reporting success with real (apparently genuine, pre-loss) test output. A second task (T3) independently observed its own edits vanish and reappear mid-task, consistent with the same root cause. Damage was caught only because the orchestrator independently re-verified every task's diff on disk rather than trusting subagent reports (per this repo's standing verification-before-completion discipline) -- a session that skipped that step would have silently shipped a phase missing one task's work while believing it complete. Root cause is presumed to be concurrent uncoordinated writes/git-adjacent operations across multiple Task-tool agents sharing one working directory, though the exact mechanism (a git operation from one agent clobbering another's uncommitted edit, a tool-layer race, or something else) was not root-caused -- only worked around by re-running the lost task solo. Candidate fixes: (1) cadence dispatch plan could set recommendedIsolation:'worktree' as a harder signal an orchestrator must not ignore for concurrent waves, or (2) an orchestrator-side guard/lint that refuses to knowingly dispatch >1 concurrent mutating agent into a single shared worktree without per-task isolation. This phase's own remediation was process-level (redo T4 solo, verify-on-disk before trusting reports) -- no code change was made for this finding.",
@@ -2546,6 +2518,63 @@
       "decisionIds": [],
       "createdAt": "2026-09-07T23:03:58.122Z",
       "updatedAt": "2026-09-07T23:03:58.122Z"
+    },
+    {
+      "id": "rec-20260916-001",
+      "title": "profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix",
+      "summary": "Phase 302 made assessGateReachability's profile-blocked VERDICT pack-aware (routes through effectiveGateSet), but profileRemediationHint (doctor/run.ts) still hardcodes each gate's reachable profile x tier cells from raw DELTAS only -- security-audit's remediation text always says strict x complex is the only reachable cell. A pack that adds security-audit at e.g. standard x complex makes that cell also reachable, but doctor still tells the operator to switch to strict when standard now also works. Same axis phase 302 already touches (not scope creep), but making the remediation text dynamically pack-aware requires enumerating all 9 profile x tier cells per gate through effectiveGateSet rather than a hardcoded two-branch hint -- a real sub-feature, not a one-line fix, so phase 302 filed rather than absorbed it (dec-20260820-003 file-only precedent). Gap is latent like the verdict gap was: no real pack today declares gates[].",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "doctor",
+        "packs"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260916-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-16T17:13:52.485Z",
+      "updatedAt": "2026-09-16T17:13:52.485Z"
+    },
+    {
+      "id": "rec-20260916-002",
+      "title": "Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release",
+      "summary": "Phases 300 (settle.test.ts, 300-01/AC-5) and 301 (check-lockfile-overrides.test.ts, 301-01/AC-3) each added a test asserting existsSync() on a SPECIFIC named .changeset/*.md file, to satisfy this repo's assertion-mode phase-qualified coverage gate for a changeset-existence AC. changeset:version (the release-consuming step) DELETES consumed changeset files -- confirmed via git log --diff-filter=D -- .changeset showing every past chore(release) commit does this. The next release cut that consumes either changeset will delete the file these tests hardcode, turning that test red, and since ci-success is required with enforce_admins on, the release PR cannot merge until someone deletes the stale test mid-release. This is the exact failure mode packages/core/tests/docs/phase271-record-integrity.test.ts:110-116 already documents and deliberately avoids (a prior count-based assertion broke this way twice, in phase 272 and the v1.56.0 cut) -- these two new tests are strictly more fragile than the pattern that was already learned from. A third instance of this same pattern was caught and avoided during phase 302's own settle (found by independent review before it was added) by dropping the changeset-existence AC entirely rather than testing it. Fix: delete or rewrite phases 300 and 301's changeset-existence tests before the next release consumes either file -- ideally before the release PR is cut, not discovered by a red CI on it.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "build"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/services/settle.test.ts",
+        "packages/core/tests/docs/check-lockfile-overrides.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260916-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-16T17:14:05.215Z",
+      "updatedAt": "2026-09-16T17:14:05.215Z"
     }
   ],
   "archived": [
@@ -9459,10 +9488,44 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "301-check-lockfile-overrides-flag-override-targets-with-zero-resolved-instances",
-      "createdAt": "2026-09-07T23:03:57.628Z",
-      "updatedAt": "2026-09-16T16:27:46.983Z",
       "shippedRef": "phase 301 (301-check-lockfile-overrides-flag-override-targets-with-zero-resolved-instances), this commit",
       "archivedAt": "2026-09-16T16:27:46.983Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-07T23:03:57.628Z",
+      "updatedAt": "2026-09-16T16:27:46.983Z"
+    },
+    {
+      "id": "rec-20260823-001",
+      "title": "doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix",
+      "summary": "assessGateReachability (doctor/run.ts:1632) scans only raw gatesFor(tier,profile) across all tiers to decide a gate is 'blocked by profile' -- deliberately pack-unaware per docs/packs-design.md §4b, since it answers a matrix-wide question independent of any phase's active packs. But phase 292 (Packs Slice 3) confirmed the divergence is concretely reachable, not theoretical: security-audit is absent from all three standard cells and all three auto cells in DELTAS; code-review is absent from all three auto cells. Both are ordinary Gate members a pack can add via gates[].add. A pack declaring e.g. {profile:'standard', tier:'complex', add:['security-audit']} makes doctor report that gate as blocked-by-profile even though effectiveGateSet (engine.ts) now genuinely fires it once that pack is enabled -- a false negative in the doctor's own honesty tooling. Fixing this is out of Slice 3's scope per its DRAFT Boundaries (doctor/run.ts must not change); filed per the dec-20260820-003 file-only precedent for exactly this kind of out-of-scope-but-real gap.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "doctor",
+        "packs"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260823-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20260916-001"
+      ],
+      "convertedToPhaseId": "302-doctor-conduction-reachability-thread-resolved-packs-into-the-profile-axis-check",
+      "createdAt": "2026-08-23T04:41:09.641Z",
+      "updatedAt": "2026-09-16T17:18:40.157Z",
+      "shippedRef": "phase 302 (302-doctor-conduction-reachability-thread-resolved-packs-into-the-profile-axis-check), this commit",
+      "archivedAt": "2026-09-16T17:18:40.157Z",
       "archiveReason": "shipped"
     }
   ]
