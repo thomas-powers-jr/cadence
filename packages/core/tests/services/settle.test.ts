@@ -3026,3 +3026,394 @@ describe('settleService threads task provenance (execution/isolation/modelClass)
     expect(t1?.modelClass).toBe('complex');
   });
 });
+
+describe('settleService guards a refused settle against clobbering a pre-existing canonical SUMMARY (phase 300, T1)', () => {
+  it('300-01/AC-1: a refused settle leaves an on-disk canonical SUMMARY.json/.md byte-identical to its pre-settled state', async () => {
+    root = await mktemp();
+    await setupBuildRepo({
+      root,
+      phase: '300-01-refused-clobber-guard',
+      id: '300-01',
+      tier: 'standard',
+      config: {
+        ...defaultConfig,
+        verification: {
+          ...defaultConfig.verification,
+          testCommand: 'node -e "process.exit(1)"',
+        },
+      },
+    });
+
+    const phaseDir = join(root, '.cadence/phases/300-01-refused-clobber-guard');
+
+    // Seed a complete, schema-valid SUMMARY from a prior successful settle
+    const seedSummary: Summary = {
+      schemaVersion: 2,
+      draftId: '300-01',
+      completedAt: '2026-09-15T10:00:00.000Z',
+      acResults: [{ id: 'AC-1', pass: true }],
+      gates: [
+        {
+          gate: 'coherence-check',
+          status: 'ran',
+        },
+        {
+          gate: 'build-test-must-pass',
+          status: 'ran',
+        },
+      ],
+      taskResults: [{ id: 'T1', status: 'DONE', notes: '' }],
+      decisions: [],
+      deferred: [],
+      skillAudit: { required: [], invoked: [] },
+      contentHash: {
+        algorithm: 'sha256' as const,
+        value: 'aabbccdd' + '00'.repeat(28), // 64 hex chars
+      },
+      stateAtSettle: {
+        loopPositionBeforeSettle: 'IDLE' as const,
+        revision: 1,
+        sessionSubagentSpawns: 0,
+      },
+      assurance: {
+        verifierRollup: [],
+        evidenceTally: {
+          'ai-verified': 0,
+          executed: 0,
+          assertion: 1,
+          mention: 0,
+          unverified: 0,
+        },
+        overall: 'weak' as const,
+      },
+    };
+    const seedJsonStr = JSON.stringify(seedSummary, null, 2);
+    const seedMdStr = '# Summary\n\nPrior settle record.';
+
+    await writeFile(join(phaseDir, '300-01-SUMMARY.json'), seedJsonStr, 'utf8');
+    await writeFile(join(phaseDir, '300-01-SUMMARY.md'), seedMdStr, 'utf8');
+
+    const { io, err } = captureIO();
+    const res = await settleService(root, {}, io);
+
+    // Refused settle at build-test-must-pass
+    expect(res.exitCode).toBe(1);
+    expect(err.join('')).toContain('build-test-must-pass:');
+
+    // AC-1: canonical files unchanged (exact string equality)
+    const actualJsonStr = await readFile(join(phaseDir, '300-01-SUMMARY.json'), 'utf8');
+    const actualMdStr = await readFile(join(phaseDir, '300-01-SUMMARY.md'), 'utf8');
+    expect(actualJsonStr).toBe(seedJsonStr);
+    expect(actualMdStr).toBe(seedMdStr);
+  });
+
+  it('300-01/AC-2: a refused settle diverts to a snapshot sibling file at the guarded path', async () => {
+    root = await mktemp();
+    await setupBuildRepo({
+      root,
+      phase: '300-01-refused-clobber-guard',
+      id: '300-01',
+      tier: 'standard',
+      config: {
+        ...defaultConfig,
+        verification: {
+          ...defaultConfig.verification,
+          testCommand: 'node -e "process.exit(1)"',
+        },
+      },
+    });
+
+    const phaseDir = join(root, '.cadence/phases/300-01-refused-clobber-guard');
+
+    // Seed canonical SUMMARY with evidence of prior real settle
+    const seedSummary: Summary = {
+      schemaVersion: 2,
+      draftId: '300-01',
+      completedAt: '2026-09-15T10:00:00.000Z',
+      acResults: [{ id: 'AC-1', pass: true }],
+      gates: [{ gate: 'coherence-check', status: 'ran' }],
+      taskResults: [{ id: 'T1', status: 'DONE', notes: '' }],
+      decisions: [],
+      deferred: [],
+      skillAudit: { required: [], invoked: [] },
+      contentHash: {
+        algorithm: 'sha256' as const,
+        value: 'aabbccdd' + '00'.repeat(28),
+      },
+      stateAtSettle: {
+        loopPositionBeforeSettle: 'IDLE' as const,
+        revision: 1,
+        sessionSubagentSpawns: 0,
+      },
+      assurance: {
+        verifierRollup: [],
+        evidenceTally: {
+          'ai-verified': 0,
+          executed: 0,
+          assertion: 1,
+          mention: 0,
+          unverified: 0,
+        },
+        overall: 'weak' as const,
+      },
+    };
+
+    await writeFile(join(phaseDir, '300-01-SUMMARY.json'), JSON.stringify(seedSummary, null, 2), 'utf8');
+
+    const fixedNow = '2026-09-16T12:34:56.789Z';
+    const { io } = captureIO();
+    const res = await settleService(root, { now: () => fixedNow }, io);
+
+    expect(res.exitCode).toBe(1);
+
+    // AC-2: snapshot sibling exists at the diverted path
+    const snapshotBase = refusedSnapshotArtifactBase('300-01', fixedNow);
+    const snapshotJsonPath = join(phaseDir, `${snapshotBase}.json`);
+    const snapshotMdPath = join(phaseDir, `${snapshotBase}.md`);
+
+    expect(existsSync(snapshotJsonPath)).toBe(true);
+    expect(existsSync(snapshotMdPath)).toBe(true);
+
+    // The snapshot contains the refused settle's record
+    const siblingSummary = JSON.parse(await readFile(snapshotJsonPath, 'utf8')) as Summary;
+    expect(siblingSummary.draftId).toBe('300-01');
+    expect(siblingSummary.completedAt).toBe(fixedNow);
+    expect(siblingSummary.gates).toBeDefined();
+    expect(siblingSummary.gates!.length).toBeGreaterThan(0);
+  });
+
+  it('300-01/AC-3: stderr contains a notice about the canonical-write guard/diversion', async () => {
+    root = await mktemp();
+    await setupBuildRepo({
+      root,
+      phase: '300-01-refused-clobber-guard',
+      id: '300-01',
+      tier: 'standard',
+      config: {
+        ...defaultConfig,
+        verification: {
+          ...defaultConfig.verification,
+          testCommand: 'node -e "process.exit(1)"',
+        },
+      },
+    });
+
+    const phaseDir = join(root, '.cadence/phases/300-01-refused-clobber-guard');
+
+    // Seed canonical SUMMARY with evidence of prior real settle
+    const seedSummary: Summary = {
+      schemaVersion: 2,
+      draftId: '300-01',
+      completedAt: '2026-09-15T10:00:00.000Z',
+      acResults: [{ id: 'AC-1', pass: true }],
+      gates: [{ gate: 'coherence-check', status: 'ran' }],
+      taskResults: [{ id: 'T1', status: 'DONE', notes: '' }],
+      decisions: [],
+      deferred: [],
+      skillAudit: { required: [], invoked: [] },
+      contentHash: {
+        algorithm: 'sha256' as const,
+        value: 'aabbccdd' + '00'.repeat(28),
+      },
+      stateAtSettle: {
+        loopPositionBeforeSettle: 'IDLE' as const,
+        revision: 1,
+        sessionSubagentSpawns: 0,
+      },
+      assurance: {
+        verifierRollup: [],
+        evidenceTally: {
+          'ai-verified': 0,
+          executed: 0,
+          assertion: 1,
+          mention: 0,
+          unverified: 0,
+        },
+        overall: 'weak' as const,
+      },
+    };
+
+    await writeFile(join(phaseDir, '300-01-SUMMARY.json'), JSON.stringify(seedSummary, null, 2), 'utf8');
+
+    const fixedNow = '2026-09-16T12:34:56.789Z';
+    const { io, err } = captureIO();
+    const res = await settleService(root, { now: () => fixedNow }, io);
+
+    expect(res.exitCode).toBe(1);
+
+    // AC-3: stderr names both the guard and the diverted snapshot path (not
+    // just the word "canonical" — a notice with no path would satisfy a
+    // looser assertion but not the DRAFT's actual AC-3 contract).
+    const snapshotBase = refusedSnapshotArtifactBase('300-01', fixedNow);
+    const stderrText = err.join('');
+    expect(stderrText).toMatch(/canonical/i);
+    expect(stderrText).toContain(snapshotBase);
+  });
+
+  it('300-01/AC-4: when no canonical SUMMARY exists yet for the draft, a refused settle writes the canonical SUMMARY normally (non-terminal, no guard)', async () => {
+    root = await mktemp();
+    await setupBuildRepo({
+      root,
+      phase: '300-04-no-prior-summary',
+      id: '300-04',
+      tier: 'standard',
+      config: {
+        ...defaultConfig,
+        verification: {
+          ...defaultConfig.verification,
+          testCommand: 'node -e "process.exit(1)"',
+        },
+      },
+    });
+
+    const phaseDir = join(root, '.cadence/phases/300-04-no-prior-summary');
+
+    // Deliberately do NOT pre-seed any SUMMARY file.
+    // When settleService runs a refused settle, it should write the canonical SUMMARY.
+
+    const { io, err } = captureIO();
+    const res = await settleService(root, {}, io);
+
+    // Refused settle at build-test-must-pass
+    expect(res.exitCode).toBe(1);
+    expect(err.join('')).toContain('build-test-must-pass:');
+
+    // AC-4: canonical SUMMARY.json/.md exist and contain the refused record
+    const summaryPath = join(phaseDir, '300-04-SUMMARY.json');
+    const summaryMdPath = join(phaseDir, '300-04-SUMMARY.md');
+
+    expect(existsSync(summaryPath)).toBe(true);
+    expect(existsSync(summaryMdPath)).toBe(true);
+
+    const summaryRaw = await readFile(summaryPath, 'utf8');
+    const summary = JSON.parse(summaryRaw) as {
+      acResults: unknown[];
+      gates: { gate: string; status: string; reason?: string }[];
+      taskResults: { id: string; status: string }[];
+    };
+
+    // The refused SUMMARY has the expected shape: empty AC results, gates with refusal
+    expect(summary.acResults).toEqual([]);
+    expect(summary.gates.length).toBeGreaterThan(0);
+    const lastGate = summary.gates[summary.gates.length - 1];
+    expect(lastGate?.status).toBe('refused');
+    expect(lastGate?.gate).toBe('build-test-must-pass');
+    expect(typeof lastGate?.reason).toBe('string');
+
+    // .md sibling was also written
+    const mdRaw = await readFile(summaryMdPath, 'utf8');
+    expect(mdRaw.length).toBeGreaterThan(0);
+  });
+
+  it('300-01/AC-4: when an existing canonical SUMMARY itself has acResults: [] (prior refused record), a second refused settle overwrites it canonically (gates alone does not trigger guard)', async () => {
+    root = await mktemp();
+    await setupBuildRepo({
+      root,
+      phase: '300-05-prior-refusal-recheck',
+      id: '300-05',
+      tier: 'standard',
+      config: {
+        ...defaultConfig,
+        verification: {
+          ...defaultConfig.verification,
+          testCommand: 'node -e "process.exit(1)"',
+        },
+      },
+    });
+
+    const phaseDir = join(root, '.cadence/phases/300-05-prior-refusal-recheck');
+
+    // Pre-seed a SUMMARY with acResults: [] (a prior refused record) and non-empty gates.
+    // This tests that gates being non-empty does NOT by itself trigger the guard.
+    const priorRefusedSummary: Summary = {
+      schemaVersion: 2,
+      draftId: '300-05',
+      completedAt: '2026-09-15T10:00:00.000Z',
+      acResults: [], // Empty: this is a PRIOR refused record
+      gates: [
+        {
+          gate: 'coherence-check',
+          status: 'ran',
+        },
+        {
+          gate: 'build-test-must-pass',
+          status: 'refused',
+          reason: 'prior refusal',
+        },
+      ],
+      taskResults: [{ id: 'T1', status: 'DONE', notes: '' }],
+      decisions: [],
+      deferred: [],
+      skillAudit: { required: [], invoked: [] },
+      contentHash: {
+        algorithm: 'sha256' as const,
+        value: 'prior' + 'ff'.repeat(30), // 64 hex chars
+      },
+      stateAtSettle: {
+        loopPositionBeforeSettle: 'BUILD' as const,
+        revision: 1,
+        sessionSubagentSpawns: 0,
+      },
+      assurance: {
+        verifierRollup: [],
+        evidenceTally: {
+          'ai-verified': 0,
+          executed: 0,
+          assertion: 0,
+          mention: 0,
+          unverified: 0,
+        },
+        overall: 'unverified' as const,
+      },
+    };
+
+    const priorJsonStr = JSON.stringify(priorRefusedSummary, null, 2);
+    const priorMdStr = '# Summary\n\nPrior refused settle record.';
+
+    await writeFile(join(phaseDir, '300-05-SUMMARY.json'), priorJsonStr, 'utf8');
+    await writeFile(join(phaseDir, '300-05-SUMMARY.md'), priorMdStr, 'utf8');
+
+    // Use a fixed now() so we can verify the new completedAt differs from the prior
+    const fixedNow = '2026-09-16T15:20:30.456Z';
+    const { io, err } = captureIO();
+    const res = await settleService(root, { now: () => fixedNow }, io);
+
+    // Second refused settle at build-test-must-pass
+    expect(res.exitCode).toBe(1);
+    expect(err.join('')).toContain('build-test-must-pass:');
+
+    // AC-4: canonical SUMMARY.json/.md were OVERWRITTEN (not diverted), proving
+    // that acResults: [] alone (without acResults: [... truthy ...]) does not trigger the guard.
+    const actualJsonStr = await readFile(join(phaseDir, '300-05-SUMMARY.json'), 'utf8');
+    const actualMdStr = await readFile(join(phaseDir, '300-05-SUMMARY.md'), 'utf8');
+
+    // The new SUMMARY should differ from the prior one (especially completedAt).
+    expect(actualJsonStr).not.toBe(priorJsonStr);
+
+    // Parse and verify the new SUMMARY has the current refusal time
+    const newSummary = JSON.parse(actualJsonStr) as Summary;
+    expect(newSummary.completedAt).toBe(fixedNow);
+    expect(newSummary.draftId).toBe('300-05');
+    expect(newSummary.acResults).toEqual([]);
+
+    // The new gates array should reflect this refusal attempt (not the prior one)
+    expect(newSummary.gates).toBeDefined();
+    expect(newSummary.gates!.length).toBeGreaterThan(0);
+    const lastGate = newSummary.gates![newSummary.gates!.length - 1];
+    expect(lastGate?.gate).toBe('build-test-must-pass');
+    expect(lastGate?.status).toBe('refused');
+
+    // The .md file was also overwritten (different content, not the prior record)
+    expect(actualMdStr).not.toBe(priorMdStr);
+    expect(actualMdStr.length).toBeGreaterThan(0);
+  });
+
+  it('300-01/AC-5: this fix carries a changeset (T4) — full suite/typecheck are verified by the settle pipeline itself, not re-asserted here', async () => {
+    const changesetPath = join(
+      process.cwd(), '..', '..', '.changeset', 'settle-clobber-refused-summary-guard.md',
+    );
+    expect(existsSync(changesetPath)).toBe(true);
+    const contents = await readFile(changesetPath, 'utf8');
+    expect(contents).toContain('@thomas-powers-jr/cadence-core');
+  });
+});
