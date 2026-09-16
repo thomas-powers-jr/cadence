@@ -317,11 +317,25 @@ below — and leaves `loopPosition`/`activeDraft` untouched so the exact same
   construction) is invisible to it by construction, so include the wider
   `-SUMMARY-snapshot.*` glob (not just `-SUMMARY.*`) when staging a
   settle commit that produced one — see the single-commit convention
-  below. Best-effort: a sibling-write failure is reported on stderr but
-  never changes the canonical write or settle's exit code. The exported
-  `refusedSnapshotArtifactBase` (`packages/core/src/services/settle.ts`)
-  is the one place this naming scheme is defined — reuse it rather than
-  reconstructing the pattern.
+  below. Best-effort: a sibling-write failure in this findings-gated path
+  is reported on stderr but never changes the canonical write or settle's
+  exit code. The exported `refusedSnapshotArtifactBase`
+  (`packages/core/src/services/settle.ts`) is the one place this naming
+  scheme is defined — reuse it rather than reconstructing the pattern.
+- Phase 300: a refused settle's canonical write is guarded against
+  clobbering a prior *successful* settle's terminal record. Before writing,
+  `writeRefusedSettleSummary` best-effort reads whatever is already at the
+  canonical `<id>-SUMMARY.json` path; if its `acResults` array is non-empty
+  (the only reliable signal of a prior successful settle — a prior
+  *refused* record always has an empty `acResults`, even though its
+  `gates` array is non-empty too), the canonical file is **not**
+  overwritten. Instead the refused attempt is diverted to the same
+  snapshot-sibling mechanism above, written unconditionally in this case
+  (not gated on findings — it is the only place this refused record gets
+  persisted at all), and a stderr notice names both the guard and the
+  diverted path. When there is nothing terminal to protect (no canonical
+  file yet, or an existing one that is itself a prior refused record), the
+  canonical write proceeds exactly as described above, unchanged.
 - Phase 248: a code-review or security-audit verifier **throw** — the call
   itself never returned (revoked key, network blip), as opposed to a
   findings-based bypass of a *completed* review — bypassed via `--force` or

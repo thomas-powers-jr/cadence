@@ -913,6 +913,53 @@ async function writeRefusedSettleSummary(
   const refusedSummaryBase = join(
     cwd, '.cadence/phases', activePhase, `${state.activeDraft}-SUMMARY`,
   );
+
+  // Phase 300 (T2, AC-1/AC-2/AC-3): guard the canonical write against
+  // clobbering a prior SUCCESSFUL settle's on-disk record. Best-effort
+  // read+parse of whatever is already at the canonical path — absent file
+  // or malformed JSON means "nothing terminal to protect," matching this
+  // repo's "best-effort introspection never throws" convention (mirrors the
+  // codeReviewSidecar read above). The discriminator is `acResults.length >
+  // 0` ALONE: `gates` is non-empty on every refused write too (the refusing
+  // gate's own result is merged into `acc.gates` before the refusal
+  // short-circuits, per the phase-247 comment above), while `acResults` is
+  // hardcoded to `[]` on every refused write (see this function's own
+  // `refusedSummary.acResults: []` above) — so a real prior settle's
+  // non-empty `acResults` is the only reliable signal that the canonical
+  // file already holds terminal evidence worth protecting.
+  let priorCanonicalHasTerminalAcResults = false;
+  try {
+    const priorRaw = JSON.parse(await readFile(`${refusedSummaryBase}.json`, 'utf8')) as {
+      acResults?: unknown;
+    };
+    priorCanonicalHasTerminalAcResults =
+      Array.isArray(priorRaw.acResults) && priorRaw.acResults.length > 0;
+  } catch {
+    priorCanonicalHasTerminalAcResults = false;
+  }
+
+  if (priorCanonicalHasTerminalAcResults) {
+    // Divert: never touch the canonical path. Reuse `refusedSummary.
+    // completedAt` for the snapshot slug rather than calling `now()` again —
+    // a second call could drift from the in-file timestamp (same reasoning
+    // documented for the findings-triggered sibling below). This is the
+    // ONLY place the refused record gets persisted in this branch, so both
+    // the JSON and MD siblings are written unconditionally, not gated on
+    // codeReview/securityAudit findings.
+    const guardedSnapshotBase = join(
+      cwd, '.cadence/phases', activePhase,
+      refusedSnapshotArtifactBase(state.activeDraft!, refusedSummary.completedAt),
+    );
+    await atomicWriteJSON(`${guardedSnapshotBase}.json`, refusedSummary);
+    await atomicWriteText(`${guardedSnapshotBase}.md`, renderSummaryMd(refusedSummary));
+    io.err(
+      `note: refused settle guarded the canonical SUMMARY — a prior successful `
+      + `settle's terminal record is already at ${refusedSummaryBase}.json and was `
+      + `not overwritten; this refused attempt was diverted to ${guardedSnapshotBase}\n`,
+    );
+    return { exitCode: 1 };
+  }
+
   await atomicWriteJSON(`${refusedSummaryBase}.json`, refusedSummary);
   await atomicWriteText(`${refusedSummaryBase}.md`, renderSummaryMd(refusedSummary));
 
