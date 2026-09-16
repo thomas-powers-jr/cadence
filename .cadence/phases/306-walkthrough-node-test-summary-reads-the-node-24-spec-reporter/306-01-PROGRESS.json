@@ -1,0 +1,31 @@
+{
+  "draftId": "306-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/src/cli/commands/tutorial.ts",
+        "packages/core/src/demo/run.ts",
+        "packages/core/tests/cli/demo.test.ts",
+        "packages/core/tests/cli/tutorial.test.ts",
+        ".changeset/walkthrough-node24-test-summary.md",
+        "packages/core/src/demo/node-test-summary.ts",
+        "packages/core/tests/demo/node-test-summary.test.ts"
+      ],
+      "updatedAt": "2026-09-16T23:35:07.993Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T23:35:08.416Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T23:35:08.844Z"
+    }
+  }
+}

@@ -12,6 +12,7 @@ import { draftApproveService } from '../../services/draft-approve.js';
 import { settleService } from '../../services/settle.js';
 import { recordTaskOutcome } from '../../build/record.js';
 import { processIO, type CommandIO, type CommandResult } from '../../services/io.js';
+import { summarizeNodeTestOutput } from '../../demo/node-test-summary.js';
 import {
   DEMO_PHASE,
   DEMO_NUM,
@@ -107,12 +108,7 @@ function showTestRun(root: string, io: CommandIO): void {
   } catch (e) {
     out = (e as { stdout?: string }).stdout ?? '';
   }
-  const counts = out
-    .split(/\r?\n/)
-    .filter((l) => /^# (tests|pass|fail)\b/.test(l.trim()))
-    .map((l) => l.trim().replace(/^#\s*/, ''))
-    .join('  ·  ');
-  line(io, `  ${counts || '(no test files found)'}`);
+  line(io, `  ${summarizeNodeTestOutput(out)}`);
 }
 
 /** Scaffold a minimal `.cadence/` in `root` with the standard-profile +
