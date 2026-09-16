@@ -1424,18 +1424,17 @@ The deep-verify gate judges an AC only from the diff plus linked tests. That wor
 
 Phase 302 made assessGateReachability's profile-blocked VERDICT pack-aware (routes through effectiveGateSet), but profileRemediationHint (doctor/run.ts) still hardcodes each gate's reachable profile x tier cells from raw DELTAS only -- security-audit's remediation text always says strict x complex is the only reachable cell. A pack that adds security-audit at e.g. standard x complex makes that cell also reachable, but doctor still tells the operator to switch to strict when standard now also works. Same axis phase 302 already touches (not scope creep), but making the remediation text dynamically pack-aware requires enumerating all 9 profile x tier cells per gate through effectiveGateSet rather than a hardcoded two-branch hint -- a real sub-feature, not a one-line fix, so phase 302 filed rather than absorbed it (dec-20260820-003 file-only precedent). Gap is latent like the verdict gap was: no real pack today declares gates[].
 
-## rec-20260916-002 — Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release
+## rec-20260916-003 — Meta-AC coverage tokens satisfied via changeset-existence assertions break every release
 
 - status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
+- ready: needs-decision
+- priority: medium
 - leverage: 5/10
 - risk: 5/10
 - confidence: 70%
 - decay: fresh
-- areas: docs, build
-- files: packages/core/tests/services/settle.test.ts, packages/core/tests/docs/check-lockfile-overrides.test.ts
-- evidence: Found during phase 302's independent pre-settle review (fresh-context Opus), 2026-09-16, citing phase271-record-integrity.test.ts's own documented precedent for why filename/count assertions over .changeset break at release time.
+- areas: packages/core/src/verify, docs/reference/config.md
+- evidence: confirmed via grep: packages/core/tests/services/settle.test.ts:3411-3418 and packages/core/tests/docs/check-lockfile-overrides.test.ts:374-385 both assert existsSync on a specific .changeset/*.md filename; phase 303 (rec-20260916-002) fixes these two instances only
 - next: cadence milestone propose
 
-Phases 300 (settle.test.ts, 300-01/AC-5) and 301 (check-lockfile-overrides.test.ts, 301-01/AC-3) each added a test asserting existsSync() on a SPECIFIC named .changeset/*.md file, to satisfy this repo's assertion-mode phase-qualified coverage gate for a changeset-existence AC. changeset:version (the release-consuming step) DELETES consumed changeset files -- confirmed via git log --diff-filter=D -- .changeset showing every past chore(release) commit does this. The next release cut that consumes either changeset will delete the file these tests hardcode, turning that test red, and since ci-success is required with enforce_admins on, the release PR cannot merge until someone deletes the stale test mid-release. This is the exact failure mode packages/core/tests/docs/phase271-record-integrity.test.ts:110-116 already documents and deliberately avoids (a prior count-based assertion broke this way twice, in phase 272 and the v1.56.0 cut) -- these two new tests are strictly more fragile than the pattern that was already learned from. A third instance of this same pattern was caught and avoided during phase 302's own settle (found by independent review before it was added) by dropping the changeset-existence AC entirely rather than testing it. Fix: delete or rewrite phases 300 and 301's changeset-existence tests before the next release consumes either file -- ideally before the release PR is cut, not discovered by a red CI on it.
+The house pattern for satisfying an assertion-mode, phase-qualified coverage token on a 'meta' AC (one with no natural code-behavior test, e.g. 'this fix carries a changeset') is a test that does existsSync('.changeset/<name>.md'). changeset version deletes consumed changeset files during every release, so any test written this way permanently reds the next time a release runs. Phase 303 patches the two known instances (phases 300, 301) but does not fix the underlying convention -- a future phase using the same pattern will reintroduce the bug. Needs a documented, release-durable convention for meta-AC coverage evidence (e.g. checking CHANGELOG.md/package.json as a fallback, or a coverage-mode carve-out for changeset-only ACs) so authors stop reaching for a filename that a release step will delete.

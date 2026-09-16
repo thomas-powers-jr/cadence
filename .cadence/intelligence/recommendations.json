@@ -2548,33 +2548,30 @@
       "updatedAt": "2026-09-16T17:13:52.485Z"
     },
     {
-      "id": "rec-20260916-002",
-      "title": "Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release",
-      "summary": "Phases 300 (settle.test.ts, 300-01/AC-5) and 301 (check-lockfile-overrides.test.ts, 301-01/AC-3) each added a test asserting existsSync() on a SPECIFIC named .changeset/*.md file, to satisfy this repo's assertion-mode phase-qualified coverage gate for a changeset-existence AC. changeset:version (the release-consuming step) DELETES consumed changeset files -- confirmed via git log --diff-filter=D -- .changeset showing every past chore(release) commit does this. The next release cut that consumes either changeset will delete the file these tests hardcode, turning that test red, and since ci-success is required with enforce_admins on, the release PR cannot merge until someone deletes the stale test mid-release. This is the exact failure mode packages/core/tests/docs/phase271-record-integrity.test.ts:110-116 already documents and deliberately avoids (a prior count-based assertion broke this way twice, in phase 272 and the v1.56.0 cut) -- these two new tests are strictly more fragile than the pattern that was already learned from. A third instance of this same pattern was caught and avoided during phase 302's own settle (found by independent review before it was added) by dropping the changeset-existence AC entirely rather than testing it. Fix: delete or rewrite phases 300 and 301's changeset-existence tests before the next release consumes either file -- ideally before the release PR is cut, not discovered by a red CI on it.",
+      "id": "rec-20260916-003",
+      "title": "Meta-AC coverage tokens satisfied via changeset-existence assertions break every release",
+      "summary": "The house pattern for satisfying an assertion-mode, phase-qualified coverage token on a 'meta' AC (one with no natural code-behavior test, e.g. 'this fix carries a changeset') is a test that does existsSync('.changeset/<name>.md'). changeset version deletes consumed changeset files during every release, so any test written this way permanently reds the next time a release runs. Phase 303 patches the two known instances (phases 300, 301) but does not fix the underlying convention -- a future phase using the same pattern will reintroduce the bug. Needs a documented, release-durable convention for meta-AC coverage evidence (e.g. checking CHANGELOG.md/package.json as a fallback, or a coverage-mode carve-out for changeset-only ACs) so authors stop reaching for a filename that a release step will delete.",
       "source": "manual",
       "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
+      "readiness": "needs-decision",
+      "priority": "medium",
       "leverageScore": 5,
       "riskScore": 5,
       "confidence": 0.7,
       "decayState": "fresh",
       "affectedAreas": [
-        "docs",
-        "build"
+        "packages/core/src/verify",
+        "docs/reference/config.md"
       ],
-      "affectedFiles": [
-        "packages/core/tests/services/settle.test.ts",
-        "packages/core/tests/docs/check-lockfile-overrides.test.ts"
-      ],
+      "affectedFiles": [],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260916-002"
+        "ev-20260916-003"
       ],
       "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-09-16T17:14:05.215Z",
-      "updatedAt": "2026-09-16T17:14:05.215Z"
+      "createdAt": "2026-09-16T17:56:57.178Z",
+      "updatedAt": "2026-09-16T17:56:57.178Z"
     }
   ],
   "archived": [
@@ -9522,10 +9519,43 @@
         "dec-20260916-001"
       ],
       "convertedToPhaseId": "302-doctor-conduction-reachability-thread-resolved-packs-into-the-profile-axis-check",
-      "createdAt": "2026-08-23T04:41:09.641Z",
-      "updatedAt": "2026-09-16T17:18:40.157Z",
       "shippedRef": "phase 302 (302-doctor-conduction-reachability-thread-resolved-packs-into-the-profile-axis-check), this commit",
       "archivedAt": "2026-09-16T17:18:40.157Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-08-23T04:41:09.641Z",
+      "updatedAt": "2026-09-16T17:18:40.157Z"
+    },
+    {
+      "id": "rec-20260916-002",
+      "title": "Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release",
+      "summary": "Phases 300 (settle.test.ts, 300-01/AC-5) and 301 (check-lockfile-overrides.test.ts, 301-01/AC-3) each added a test asserting existsSync() on a SPECIFIC named .changeset/*.md file, to satisfy this repo's assertion-mode phase-qualified coverage gate for a changeset-existence AC. changeset:version (the release-consuming step) DELETES consumed changeset files -- confirmed via git log --diff-filter=D -- .changeset showing every past chore(release) commit does this. The next release cut that consumes either changeset will delete the file these tests hardcode, turning that test red, and since ci-success is required with enforce_admins on, the release PR cannot merge until someone deletes the stale test mid-release. This is the exact failure mode packages/core/tests/docs/phase271-record-integrity.test.ts:110-116 already documents and deliberately avoids (a prior count-based assertion broke this way twice, in phase 272 and the v1.56.0 cut) -- these two new tests are strictly more fragile than the pattern that was already learned from. A third instance of this same pattern was caught and avoided during phase 302's own settle (found by independent review before it was added) by dropping the changeset-existence AC entirely rather than testing it. Fix: delete or rewrite phases 300 and 301's changeset-existence tests before the next release consumes either file -- ideally before the release PR is cut, not discovered by a red CI on it.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "build"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/services/settle.test.ts",
+        "packages/core/tests/docs/check-lockfile-overrides.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260916-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "303-changeset-existence-coverage-tests-survive-release-consumption",
+      "createdAt": "2026-09-16T17:14:05.215Z",
+      "updatedAt": "2026-09-16T18:46:25.794Z",
+      "shippedRef": "phase 303 (303-changeset-existence-coverage-tests-survive-release-consumption), this commit",
+      "archivedAt": "2026-09-16T18:46:25.794Z",
       "archiveReason": "shipped"
     }
   ]
