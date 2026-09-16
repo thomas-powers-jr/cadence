@@ -606,6 +606,55 @@ describe('checkConductionReachability (phase 251)', () => {
     expect(codeReviewClause).not.toContain("security-audit's only reachable profile×tier cell");
     expect(securityAuditClause).not.toContain("'standard' (tier: complex) or 'strict' (tier: standard or complex)");
   });
+
+  it('302-01/AC-1: a pack-added gate at a (profile, tier) cell absent from raw DELTAS is reported reachable, not profile-blocked', () => {
+    // DELTAS.standard.{quick-fix,standard,complex} contains no
+    // 'security-audit' entry at all (packages/core/src/gates/engine.ts) —
+    // under profile 'standard' with no packs, security-audit is
+    // profile-blocked at every tier (see the AC-2 test below). A pack
+    // adding it at standard×complex via gates[].add is exactly
+    // rec-20260823-001's constructible false-negative case.
+    const config = {
+      ...defaultConfig,
+      profile: 'standard' as const,
+      securityAudit: { provider: 'host-cli' as const },
+    };
+    const resolvedPacks = [
+      {
+        id: 'cadence/test-pack',
+        source: 'local' as const,
+        manifest: {
+          id: 'cadence/test-pack',
+          version: '1.0.0',
+          gates: [
+            {
+              profile: 'standard' as const,
+              tier: 'complex' as const,
+              add: ['security-audit' as const],
+            },
+          ],
+        },
+      },
+    ];
+
+    // provider 'host-cli' with no CLAUDECODE session set clears the
+    // provider/session axes too, isolating this assertion to the profile
+    // axis the fix actually changes.
+    const check = checkConductionReachability(config, {}, resolvedPacks);
+
+    expect(check.detail).toContain('security-audit: reachable');
+  });
+
+  it('302-01/AC-2: with no resolvedPacks argument, profile-blocked verdicts are unchanged from before this phase', () => {
+    // Same profile as the AC-1 test above, but with no pack contributing
+    // security-audit anywhere — must still report profile-blocked, exactly
+    // as it did before resolvedPacks threading existed.
+    const config = { ...defaultConfig, profile: 'standard' as const };
+
+    const check = checkConductionReachability(config, {});
+
+    expect(check.detail).toContain('security-audit: blocked by profile');
+  });
 });
 
 /**

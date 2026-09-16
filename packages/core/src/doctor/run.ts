@@ -30,7 +30,7 @@ import {
   seamProvider,
   type VerifierSeam,
 } from '../activate/assess.js';
-import { gatesFor, effectiveProfile } from '../gates/engine.js';
+import { effectiveGateSet } from '../gates/engine.js';
 import { resolvePacks, type ResolvedPack } from '../packs/resolve.js';
 import { gatherOccupancy } from '../phases/occupancy.js';
 import { detectPhaseCollision, phaseNumber, type Occupancy } from '../phases/collision.js';
@@ -1332,10 +1332,12 @@ export async function checkCoverageModeLanguageSupport(root: string): Promise<Do
  *
  * So an unresolved enabled pack is now a real, consequential failure, and
  * `error` is the honest rung: doctor must not report a repo as healthy over
- * a condition that will refuse its next settle. (Gate *computation* —
- * `gatesFor`/`effectiveGateSet` — still reads no pack; that is slice 3. The
- * escalation is justified by skill-audit enforcement plus the settle-time
- * refusal, not by gate deltas.)
+ * a condition that will refuse its next settle. (As of slice 2, when this
+ * escalation shipped, gate *computation* — `gatesFor`/`effectiveGateSet` —
+ * still read no pack; that came in slice 3, and this doctor check's own
+ * reachability scan followed in phase 302. This escalation was justified by
+ * skill-audit enforcement plus the settle-time refusal, not by gate deltas,
+ * and remains true regardless.)
  *
  * The `catch` degrades to `pass()` rather than `dec-20260810-005`'s
  * `indeterminate` rung **deliberately**, sharing the same justification as
@@ -1700,23 +1702,31 @@ interface GateReachability {
 
 /**
  * Per-gate axis evaluation (phase 251, AC-2). `profile` is blocked when the
- * gate is absent from `gatesFor(tier, profile).gates` at every `Tier` — the
- * profile axis quantifies over all three tiers, not a single tier×profile
- * cell. `provider` is blocked when the gate's own seam is configured to
- * `'mock'`. `session` is blocked only when the gate's own provider is
- * `'host-cli'` **and** `isClaudeCodeSession(env)` — the self-invocation
- * guard this axis mirrors only sits inside `host-cli-client.ts`'s spawn
- * path, which an `anthropic`/`local`/`mock`-configured gate never reaches.
+ * gate is absent from `effectiveGateSet({ tier }, config, null,
+ * resolvedPacks).gates` at every `Tier` — the profile axis quantifies over
+ * all three tiers, not a single tier×profile cell. Routed through
+ * `effectiveGateSet` (not raw `gatesFor`) since phase 302: a pack whose
+ * `gates[].add` contributes the gate at a (profile, tier) cell absent from
+ * raw `DELTAS` makes it genuinely reachable once that pack is enabled, and
+ * this axis must reflect that — `gatesFor` itself is untouched and stays
+ * pure/pack-free (`docs/packs-design.md` §4b). `provider` is blocked when
+ * the gate's own seam is configured to `'mock'`. `session` is blocked only
+ * when the gate's own provider is `'host-cli'` **and**
+ * `isClaudeCodeSession(env)` — the self-invocation guard this axis mirrors
+ * only sits inside `host-cli-client.ts`'s spawn path, which an
+ * `anthropic`/`local`/`mock`-configured gate never reaches.
  */
 function assessGateReachability(
   gate: Gate,
   seam: VerifierSeam,
   config: CadenceConfig,
   env: NodeJS.ProcessEnv,
-  profile: ReturnType<typeof effectiveProfile>,
+  resolvedPacks: ResolvedPack[],
 ): GateReachability {
   const blockedAxes: ConductionAxis[] = [];
-  const reachableAtSomeTier = ALL_TIERS.some((tier) => gatesFor(tier, profile).gates.includes(gate));
+  const reachableAtSomeTier = ALL_TIERS.some((tier) =>
+    effectiveGateSet({ tier }, config, null, resolvedPacks).gates.includes(gate),
+  );
   if (!reachableAtSomeTier) blockedAxes.push('profile');
   const provider = seamProvider(config, seam);
   if (provider === 'mock') blockedAxes.push('provider');
@@ -1754,33 +1764,43 @@ function axisRemediation(gate: Gate, seam: VerifierSeam, axis: ConductionAxis): 
  * two gates' reachable profile×tier cells are asymmetric (SPEC Context,
  * Blocker 1). Pure and injectable (`config`, `env`) so it is testable
  * without a real terminal, provider, or mutated `process.env` (AC-3); the
- * only two live inputs are `.cadence/config.json` and `NodeJS.ProcessEnv`
- * — no tier, no active-DRAFT input (the check evaluates
- * `effectiveProfile(config, null)`, the project default, not any specific
- * in-flight DRAFT's override — see SPEC Context). `severity: 'warning'`
- * and `fixId: null` always: none of the three axes has a safe auto-repair,
- * each remediation is an operator decision (a profile override, a
- * different execution context, or a provider reconfiguration).
+ * only two live required inputs are `.cadence/config.json` and
+ * `NodeJS.ProcessEnv` — no tier, no active-DRAFT input (the check evaluates
+ * the project-default profile via `effectiveGateSet({ tier }, config, null,
+ * resolvedPacks)`, never a specific in-flight DRAFT's override — see SPEC
+ * Context). `resolvedPacks` (phase 302) defaults to `[]`, so a caller that
+ * omits it gets exactly the pre-302 raw-`gatesFor`-equivalent behavior —
+ * `effectiveGateSet` with no packs degrades to `gatesFor`'s own output.
+ * `severity: 'warning'` and `fixId: null` always: none of the three axes has
+ * a safe auto-repair, each remediation is an operator decision (a profile
+ * override, a different execution context, or a provider reconfiguration).
  *
  * Phase 267 (267-01, T3): investigated, deliberately left unchanged. This
  * check answers "CAN this repo's config produce a real finding at all,"
- * purely from `config`/`env` — it takes no `Summary`, `GateProvenance`, or
- * `AssuranceRecord` input and never reads a settle's gate-provenance
- * `status` (confirmed: no reference to `Summary`/`assurance`/
- * `GateProvenance` anywhere under `src/doctor/`). Mock-abstention (T2)
- * relabels a *recorded* clean pass on a *past* settle; it does not change
- * what the current config is capable of producing on the *next* one, so a
- * settle with only abstained mock review gates still reports exactly what
- * it reported before this phase: `code-review`/`security-audit` blocked by
- * `provider` under a mock-configured seam.
+ * purely from `config`/`env`/`resolvedPacks` — it takes no `Summary`,
+ * `GateProvenance`, or `AssuranceRecord` input and never reads a settle's
+ * gate-provenance `status` (confirmed: no reference to `Summary`/
+ * `assurance`/`GateProvenance` anywhere under `src/doctor/`). Mock-abstention
+ * (T2) relabels a *recorded* clean pass on a *past* settle; it does not
+ * change what the current config is capable of producing on the *next* one,
+ * so a settle with only abstained mock review gates still reports exactly
+ * what it reported before this phase: `code-review`/`security-audit`
+ * blocked by `provider` under a mock-configured seam.
+ *
+ * Phase 302 (`rec-20260823-001`): the profile axis is now pack-aware,
+ * routed through `effectiveGateSet` — the single chokepoint pack gate
+ * deltas apply through (`docs/packs-design.md` §4b/I-4,
+ * `dec-20260822-020`) — instead of calling raw `gatesFor` directly. `gatesFor`
+ * itself is unchanged; this closes the gap Slice 3 (phase 292) deliberately
+ * deferred because its own DRAFT boundary forbade touching `doctor/run.ts`.
  */
 export function checkConductionReachability(
   config: CadenceConfig,
   env: NodeJS.ProcessEnv = process.env,
+  resolvedPacks: ResolvedPack[] = [],
 ): DoctorCheck {
-  const profile = effectiveProfile(config, null);
   const results = CONDUCTION_GATES.map(({ gate, seam }) =>
-    assessGateReachability(gate, seam, config, env, profile),
+    assessGateReachability(gate, seam, config, env, resolvedPacks),
   );
 
   const detail =
@@ -2586,7 +2606,8 @@ export async function runDoctor(
   ];
   try {
     const config = await loadConfig(root);
-    checks.push(checkConductionReachability(config));
+    const resolvedPacks = await resolvePacks(root, config);
+    checks.push(checkConductionReachability(config, process.env, resolvedPacks));
   } catch {
     // Best-effort, mirrors checkVerificationReadiness/checkCoverageModeLanguageSupport:
     // a config-load failure here means .cadence/config.json is missing or invalid,

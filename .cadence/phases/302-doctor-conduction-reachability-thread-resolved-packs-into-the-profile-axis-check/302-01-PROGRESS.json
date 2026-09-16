@@ -1,0 +1,46 @@
+{
+  "draftId": "302-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Added synthetic-pack regression test in run.test.ts (302-01/AC-1) demonstrating security-audit reported profile-blocked despite a pack contributing it at standard x complex; confirmed red (typecheck doesn't cover tests/, so red surfaced as a runtime assertion failure) against pre-fix checkConductionReachability, which ignored the extra resolvedPacks argument.",
+      "touchedFiles": [
+        ".claude/scheduled_tasks.lock",
+        "docs/packs-design.md",
+        "docs/reference/commands.md",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/tests/docs/cli-reference.test.ts",
+        "packages/core/tests/doctor/run.test.ts",
+        ".agents/skills/source-command-cadence-progress/SKILL.md",
+        ".agents/skills/source-command-cadence-resume/SKILL.md",
+        ".changeset/doctor-conduction-reachability-pack-aware.md",
+        "docs/handoffs/HANDOFF-demo-progressive-disclosure.md",
+        "docs/handoffs/cadence-audit-20260724-handoff.md",
+        "docs/tutorial-rebuild-brief.md"
+      ],
+      "updatedAt": "2026-09-16T17:04:59.298Z",
+      "execution": "inline"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Routed assessGateReachability's profile axis through effectiveGateSet(config, resolvedPacks) instead of raw gatesFor; threaded resolvedPacks through checkConductionReachability (default []) and runDoctor (resolvePacks call added inside existing try/catch). gatesFor itself untouched. 55/55 (then 66/66 incl. doc test) pass.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T17:04:59.823Z",
+      "execution": "inline"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Updated docs/reference/commands.md's conduction-reachability row and docs/packs-design.md section 4b (As-built note) to describe the pack-aware profile axis; added 302-01/AC-3 doc-content test in cli-reference.test.ts.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T17:05:00.358Z",
+      "execution": "inline"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Added .changeset/doctor-conduction-reachability-pack-aware.md (patch, cadence-core) plus 302-01/AC-4 existence test.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T17:05:00.875Z",
+      "execution": "inline"
+    }
+  }
+}

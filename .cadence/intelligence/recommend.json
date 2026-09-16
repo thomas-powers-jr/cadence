@@ -1,52 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T15:42:21.786Z",
+  "generatedAt": "2026-09-16T16:53:07.085Z",
   "ranked": [
-    {
-      "id": "rec-20260907-005",
-      "title": "check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch",
-      "raw": 25.7,
-      "score": 73,
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready ready-for-cadence-spec",
-          "value": 10
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio high",
-          "value": 5
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose"
-    },
     {
       "id": "rec-20260823-001",
       "title": "doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix",
@@ -3975,8 +3930,8 @@
     "primary": "cadence spec new"
   },
   "totals": {
-    "total": 89,
-    "ranked": 87,
+    "total": 88,
+    "ranked": 86,
     "parked": 2,
     "needsAttention": 0,
     "excluded": 0
