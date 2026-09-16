@@ -1409,22 +1409,6 @@ pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is ["src/*
 
 A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\r\n' rather than '---\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.
 
-## rec-20260907-005 — check-lockfile-overrides passes vacuously when an override key matches zero resolved instances, which is exactly the stale-key case it exists to catch
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: security, build
-- files: scripts/check-lockfile-overrides.mjs
-- evidence: Phase 297: with key fast-uri@3.1.2 stale and fast-uri resolving 3.1.5, check-lockfile-overrides.mjs exited 0 with '7 override target(s), all resolved instances satisfied' while pnpm audit reported 4 unlisted high advisories against that same package.
-- next: cadence milestone propose
-
-scripts/check-lockfile-overrides.mjs guards against a pnpm.overrides target that no longer covers every resolved instance of its package. But when an override KEY matches no resolved instance at all, there are zero instances to check, so the check passes vacuously and reports the target as satisfied. That is precisely the silent-no-op stale key phase 253 built it to catch. Demonstrated in phase 297: the key 'fast-uri@3.1.2' had itself bumped the tree to 3.1.5, after which nothing resolved to 3.1.2 and the key matched nothing; the script still exited 0 reporting all targets satisfied, while the tree sat one patch version below the advisories' patched floor of >=3.1.6 and the audit job failed on four unlisted highs. Suggested fix: report an error (or at minimum a warning) for any override key that matches zero resolved instances, since a key matching nothing is either already-resolved dead weight to delete or a typo silently doing nothing.
-
 ## rec-20260907-006 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
 
 - status: candidate
