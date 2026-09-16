@@ -1408,22 +1408,6 @@ A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAF
 
 The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.
 
-## rec-20260916-001 — profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: doctor, packs
-- files: packages/core/src/doctor/run.ts
-- evidence: Found during phase 302's independent pre-settle review (fresh-context Opus), 2026-09-16: profileRemediationHint/axisRemediation still branch on hardcoded DELTAS-derived cells, not resolvedPacks.
-- next: cadence milestone propose
-
-Phase 302 made assessGateReachability's profile-blocked VERDICT pack-aware (routes through effectiveGateSet), but profileRemediationHint (doctor/run.ts) still hardcodes each gate's reachable profile x tier cells from raw DELTAS only -- security-audit's remediation text always says strict x complex is the only reachable cell. A pack that adds security-audit at e.g. standard x complex makes that cell also reachable, but doctor still tells the operator to switch to strict when standard now also works. Same axis phase 302 already touches (not scope creep), but making the remediation text dynamically pack-aware requires enumerating all 9 profile x tier cells per gate through effectiveGateSet rather than a hardcoded two-branch hint -- a real sub-feature, not a one-line fix, so phase 302 filed rather than absorbed it (dec-20260820-003 file-only precedent). Gap is latent like the verdict gap was: no real pack today declares gates[].
-
 ## rec-20260916-003 — Meta-AC coverage tokens satisfied via changeset-existence assertions break every release
 
 - status: candidate
