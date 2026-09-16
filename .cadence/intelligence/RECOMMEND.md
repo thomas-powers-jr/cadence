@@ -2,7 +2,7 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-09-16T16:53:07.085Z
+Generated at: 2026-09-16T17:51:03.160Z
 
 ## Advisory
 
@@ -10,11 +10,11 @@ Generated at: 2026-09-16T16:53:07.085Z
 
 ## Ranked
 
-### rec-20260823-001 — doctor's assessGateReachability false-negatives on pack-added gates absent from a profile's raw matrix
+### rec-20260916-002 — Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release
 
-- score: 68/100 (raw 22.7)
-- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
+- score: 73/100 (raw 25.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 25.7 (score 73)
 - next: cadence milestone propose
 
 ### rec-20260823-006 — checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks
@@ -33,6 +33,13 @@ Generated at: 2026-09-16T16:53:07.085Z
 - next: cadence milestone propose
 
 ### rec-20260907-003 — The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings
+
+- score: 68/100 (raw 22.7)
+- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
+- next: cadence milestone propose
+
+### rec-20260916-001 — profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix
 
 - score: 68/100 (raw 22.7)
 - status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
@@ -660,4 +667,4 @@ None.
 
 ## Totals
 
-- total 88 · ranked 86 · parked 2 · needs-attention 0 · excluded 0
+- total 89 · ranked 87 · parked 2 · needs-attention 0 · excluded 0

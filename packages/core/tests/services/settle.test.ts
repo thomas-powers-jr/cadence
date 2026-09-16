@@ -16,6 +16,7 @@ import {
 } from '@thomas-powers-jr/cadence-types';
 import { tempRepo, runGit } from '@thomas-powers-jr/cadence-testkit';
 import type { CommandIO } from '../../src/services/io.js';
+import { changesetEvidencePresent } from '../support/changeset-evidence.js';
 import { computeSummaryContentHash, canonicalStringify } from '../../src/services/summary-hash.js';
 import { GATE_ORDER } from '../../src/gates/registry.js';
 import { buildCadenceMcpServer } from '../../src/mcp/server.js';
@@ -3408,12 +3409,18 @@ describe('settleService guards a refused settle against clobbering a pre-existin
     expect(actualMdStr.length).toBeGreaterThan(0);
   });
 
-  it('300-01/AC-5: this fix carries a changeset (T4) — full suite/typecheck are verified by the settle pipeline itself, not re-asserted here', async () => {
+  it('300-01/AC-5: this fix carries a changeset (T4) — full suite/typecheck are verified by the settle pipeline itself, not re-asserted here', () => {
     const changesetPath = join(
       process.cwd(), '..', '..', '.changeset', 'settle-clobber-refused-summary-guard.md',
     );
-    expect(existsSync(changesetPath)).toBe(true);
-    const contents = await readFile(changesetPath, 'utf8');
-    expect(contents).toContain('@thomas-powers-jr/cadence-core');
+    const changelogPath = join(process.cwd(), 'CHANGELOG.md');
+    expect(
+      changesetEvidencePresent({
+        changesetPath,
+        changesetPackage: '@thomas-powers-jr/cadence-core',
+        changelogPath,
+        discriminator: "already-shipped draft's canonical",
+      }),
+    ).toBe(true);
   });
 });

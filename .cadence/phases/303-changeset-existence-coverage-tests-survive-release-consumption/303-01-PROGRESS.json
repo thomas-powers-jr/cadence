@@ -1,0 +1,44 @@
+{
+  "draftId": "303-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/tests/support/changeset-evidence.test.ts"
+      ],
+      "updatedAt": "2026-09-16T18:08:20.810Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Implemented changesetEvidencePresent + wired both real tests. Literal deleted-file-only manual check couldn't fully pass (CHANGELOG.md has no discriminator pre-release); verified equivalently via changeset-body grep + T1's isolated fallback coverage instead. See DRAFT As-built note. Independently re-verified: full pnpm turbo run lint typecheck test is green (453/454 files, 1 pre-existing skip; 4470/4485 tests, 15 pre-existing skips).",
+      "touchedFiles": [
+        "packages/core/tests/docs/check-lockfile-overrides.test.ts",
+        "packages/core/tests/services/settle.test.ts",
+        "packages/core/tests/support/changeset-evidence.ts"
+      ],
+      "updatedAt": "2026-09-16T18:35:25.781Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "pnpm turbo run lint typecheck test: 24/24 tasks successful. All packages' test suites green (see T2 notes for exact core-package tallies). No new failures.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T18:35:39.352Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "As-built amendment. Added phase 303's own entry to .cadence/ROADMAP.md (matching phase 292's in-progress format) and .cadence/MILESTONES.md, bringing both files' max documented phase to 303 and closing roadmap-currency drift from 11 back to 0. Re-ran tests/docs/phase271-record-integrity.test.ts (3/3 pass) and the full pnpm turbo run lint typecheck test (24/24 tasks green). Scoped to phase 303's own entry only, per Boundaries -- phases 293-302 backfill remains tracked by rec-20260815-004/rec-20260811-005.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T18:35:47.657Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    }
+  }
+}

@@ -1118,6 +1118,11 @@ changeset (example/test-only change, no published-package surface).*
   `gates[].add` deltas into `effectiveGateSet()`'s output at every real call
   site, reflect enabled packs in `cadence config explain`'s current-tier row, and
   reject non-additive manifest shapes at parse time (rec-20260822-011).
+- **Phase 303** — Fixed two coverage-token tests (phases 300, 301) that hard-
+  asserted a specific `.changeset/*.md` file exists, which a release's
+  `changeset version` step would have permanently broken; extracted a shared
+  helper that falls back to a pinned, verified CHANGELOG.md discriminator
+  after consumption (rec-20260916-002).
 
 
 
