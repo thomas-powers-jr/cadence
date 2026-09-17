@@ -116,13 +116,16 @@ export async function handleSessionStart(_ctx: HookContext, state: CadenceState)
 
 export async function handleUserPrompt(
   _ctx: HookContext,
-  state: CadenceState,
+  _state: CadenceState,
   config: CadenceConfig,
   backend: SimpleStateBackend,
 ): Promise<HookResult> {
   if (config.telemetry.tokenUtilization) {
-    state.session.tokenUtilization = Math.min(1, state.session.tokenUtilization + 0.01);
-    await backend.commit(state);
+    // Revision-exempt telemetry write (phase 305 / issue #500): this hook also
+    // fires inside a host-cli verifier's `claude -p` child, so a `commit()`
+    // here advanced `revision` mid-settle and `settle run --deep` could never
+    // commit. The in-memory `state` is deliberately left untouched.
+    await backend.bumpSessionCounter('tokenUtilization', 0.01);
   }
   return { ok: true };
 }

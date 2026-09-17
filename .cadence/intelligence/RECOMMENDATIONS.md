@@ -1422,3 +1422,19 @@ The deep-verify gate judges an AC only from the diff plus linked tests. That wor
 - next: cadence milestone propose
 
 The house pattern for satisfying an assertion-mode, phase-qualified coverage token on a 'meta' AC (one with no natural code-behavior test, e.g. 'this fix carries a changeset') is a test that does existsSync('.changeset/<name>.md'). changeset version deletes consumed changeset files during every release, so any test written this way permanently reds the next time a release runs. Phase 303 patches the two known instances (phases 300, 301) but does not fix the underlying convention -- a future phase using the same pattern will reintroduce the bug. Needs a documented, release-durable convention for meta-AC coverage evidence (e.g. checking CHANGELOG.md/package.json as a fallback, or a coverage-mode carve-out for changeset-only ACs) so authors stop reaching for a filename that a release step will delete.
+
+## rec-20260916-004 — host-cli verifier children still fire every CADENCE hook; only the user-prompt telemetry write was made revision-exempt
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, verify, state
+- files: packages/core/src/hooks/dispatcher.ts, packages/core/src/hooks/handlers.ts, packages/core/src/verify/host-cli-client.ts
+- evidence: GitHub issue #500 isolation experiment: only UserPromptSubmit wrote during a deep-verify run; the other committing handlers are reachable but not exercised by a verdict-only prompt
+- next: cadence milestone propose
+
+Phase 305 fixed issue #500 by moving handleUserPrompt's tokenUtilization bump onto the revision-exempt bumpSessionCounter path. Other hook handlers still commit through the compare-and-swap path: handlePostToolEdit (edit with files while a task is active), handleSubagentResult (SubagentStop), and handleSkillInvoke (first-time Skill use). A host-cli verifier child (claude -p / codex exec spawned by settle, spec approve, or code-review) that edits, spawns a subagent, or invokes a skill would still advance state.json's revision mid-command and refuse the parent's commit. Candidate hardening: the host-cli transport sets CADENCE_HOST_CLI_CHILD=1 on its spawned child and HookDispatcher treats verifier children as observers that do not write loop state. Two things must be settled first. (1) Unverified premise: that Claude Code and Codex pass inherited environment variables through to hook subprocesses (dec-20260822-012 covers dispatched subagents, not hooks); verify with a sentinel variable and one real spawn before building. (2) A blanket hook no-op would also silently disable handlePreToolEdit's boundaryEnforcement=block refusal for anything running under the marker, so any no-op must be write-scoped and loud, not a silent early return.

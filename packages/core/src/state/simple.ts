@@ -107,9 +107,15 @@ export class SimpleStateBackend implements StateBackend {
    * issue #234, so the residual risk is accepted as deliberately, vastly
    * narrower than the bug being fixed — a trade-off made on purpose for a
    * telemetry field nothing structural depends on, not an accidental side
-   * effect of skipping `commit()`'s guard.
+   * effect of skipping `commit()`'s guard. Since phase 305 the same window
+   * also opens once per `UserPromptSubmit` (the `tokenUtilization` bump), so
+   * it is reached far more often than per subagent spawn; each occurrence is
+   * still a single read→write round trip.
    */
-  async bumpSessionCounter(field: 'subagentSpawns', amount: number): Promise<void> {
+  async bumpSessionCounter(
+    field: 'subagentSpawns' | 'tokenUtilization',
+    amount: number,
+  ): Promise<void> {
     const dir = await this.resolveStateDir();
     const statePath = join(dir, 'state.json');
     if (!existsSync(statePath)) {
@@ -117,7 +123,10 @@ export class SimpleStateBackend implements StateBackend {
       return;
     }
     const onDisk = await this.readState();
-    onDisk.session[field] = Math.max(0, onDisk.session[field] + amount);
+    const bumped = Math.max(0, onDisk.session[field] + amount);
+    // `tokenUtilization` is a 0..1 ratio in the schema; `subagentSpawns` is an
+    // unbounded count (phase 305).
+    onDisk.session[field] = field === 'tokenUtilization' ? Math.min(1, bumped) : bumped;
     await this.writeState(onDisk);
     await atomicWriteText(join(dir, 'STATE.md'), renderStateMd(onDisk));
   }
