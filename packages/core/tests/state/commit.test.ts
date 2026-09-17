@@ -274,6 +274,30 @@ describe('SimpleStateBackend.bumpSessionCounter (Phase 194 / issue #234)', () =>
     active = null;
   });
 
+  it('305-01/AC-2: clamps tokenUtilization at 1 without a schema error, while subagentSpawns keeps its 0 floor and no ceiling', async () => {
+    active = await tempRepo({ initialized: true });
+    const backend = new SimpleStateBackend(active.root);
+    const seeded = await backend.readState();
+    seeded.session.tokenUtilization = 0.995;
+    await backend.commit(seeded);
+    const revisionAfterSeed = (await backend.readState()).revision;
+
+    await expect(backend.bumpSessionCounter('tokenUtilization', 0.01)).resolves.toBeUndefined();
+    expect((await backend.readState()).session.tokenUtilization).toBe(1);
+    await expect(backend.bumpSessionCounter('tokenUtilization', 0.01)).resolves.toBeUndefined();
+    const clamped = await backend.readState();
+    expect(clamped.session.tokenUtilization).toBe(1);
+    expect(clamped.revision).toBe(revisionAfterSeed);
+
+    await backend.bumpSessionCounter('subagentSpawns', 5);
+    expect((await backend.readState()).session.subagentSpawns).toBe(5);
+    await backend.bumpSessionCounter('subagentSpawns', -9);
+    expect((await backend.readState()).session.subagentSpawns).toBe(0);
+
+    await active.cleanup();
+    active = null;
+  });
+
   it('is a silent no-op when state.json does not exist yet', async () => {
     active = await tempRepo({ initialized: false });
     const backend = new SimpleStateBackend(active.root);

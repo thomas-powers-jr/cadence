@@ -19,9 +19,12 @@ export interface StateBackend {
   commit(state: CadenceState, opts?: { force?: boolean }): Promise<void>;
   /**
    * Telemetry-exempt write path (Phase 194 / issue #234). For purely
-   * informational `session` counters — currently just
-   * `session.subagentSpawns` — that must never be able to trip the
-   * optimistic-concurrency guard `commit()` enforces via `revision`.
+   * informational `session` counters — `session.subagentSpawns` and (phase
+   * 305 / issue #500) `session.tokenUtilization`, clamped to its 0..1 range —
+   * that must never be able to trip the optimistic-concurrency guard
+   * `commit()` enforces via `revision`. The `UserPromptSubmit` hook fires
+   * inside a host-cli verifier's own `claude -p` child, so a revision-bumping
+   * telemetry write there invalidated `settle run --deep`'s snapshot.
    *
    * Re-reads `state.json` fresh from disk (ignores any caller-supplied
    * in-memory snapshot), applies `amount` to the named field, and writes
@@ -34,7 +37,7 @@ export interface StateBackend {
    * `state.json` does not exist yet — there is no session to attach
    * telemetry to before first init.
    */
-  bumpSessionCounter(field: 'subagentSpawns', amount: number): Promise<void>;
+  bumpSessionCounter(field: 'subagentSpawns' | 'tokenUtilization', amount: number): Promise<void>;
   archive(milestone: string): Promise<void>;
   beforeBranchSwitch?(from: string, to: string): Promise<void>;
   afterBranchSwitch?(branch: string): Promise<void>;

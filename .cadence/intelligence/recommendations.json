@@ -2544,6 +2544,37 @@
       "decisionIds": [],
       "createdAt": "2026-09-16T17:56:57.178Z",
       "updatedAt": "2026-09-16T17:56:57.178Z"
+    },
+    {
+      "id": "rec-20260916-004",
+      "title": "host-cli verifier children still fire every CADENCE hook; only the user-prompt telemetry write was made revision-exempt",
+      "summary": "Phase 305 fixed issue #500 by moving handleUserPrompt's tokenUtilization bump onto the revision-exempt bumpSessionCounter path. Other hook handlers still commit through the compare-and-swap path: handlePostToolEdit (edit with files while a task is active), handleSubagentResult (SubagentStop), and handleSkillInvoke (first-time Skill use). A host-cli verifier child (claude -p / codex exec spawned by settle, spec approve, or code-review) that edits, spawns a subagent, or invokes a skill would still advance state.json's revision mid-command and refuse the parent's commit. Candidate hardening: the host-cli transport sets CADENCE_HOST_CLI_CHILD=1 on its spawned child and HookDispatcher treats verifier children as observers that do not write loop state. Two things must be settled first. (1) Unverified premise: that Claude Code and Codex pass inherited environment variables through to hook subprocesses (dec-20260822-012 covers dispatched subagents, not hooks); verify with a sentinel variable and one real spawn before building. (2) A blanket hook no-op would also silently disable handlePreToolEdit's boundaryEnforcement=block refusal for anything running under the marker, so any no-op must be write-scoped and loud, not a silent early return.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "hooks",
+        "verify",
+        "state"
+      ],
+      "affectedFiles": [
+        "packages/core/src/hooks/dispatcher.ts",
+        "packages/core/src/hooks/handlers.ts",
+        "packages/core/src/verify/host-cli-client.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260916-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-16T23:15:18.372Z",
+      "updatedAt": "2026-09-16T23:15:18.372Z"
     }
   ],
   "archived": [
@@ -9556,10 +9587,44 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "304-profileremediationhint-enumerates-reachable-profile-x-tier-cells-via-effectivegateset-packs-aware",
-      "createdAt": "2026-09-16T17:13:52.485Z",
-      "updatedAt": "2026-09-16T20:34:30.281Z",
       "shippedRef": "phase 304 (304-profileremediationhint-enumerates-reachable-profile-x-tier-cells-via-effectivegateset-packs-aware), this commit",
       "archivedAt": "2026-09-16T20:34:30.281Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-16T17:13:52.485Z",
+      "updatedAt": "2026-09-16T20:34:30.281Z"
+    },
+    {
+      "id": "rec-20260916-005",
+      "title": "cadence tutorial claims 'the test ran for real' on Node 24 when node --test found zero test files",
+      "summary": "On Node v24.20.0 (Windows 11), the tutorial's node --test step prints '(no test files found)' both before and after it writes sum.test.mjs, yet the final beat still prints 'The test ran for real, AC-1 is backed, and the loop closed.' So the onboarding surface reports verification that did not happen, on a Node major that package.json's engines (>=22) admits. packages/core/tests/cli/tutorial.test.ts AC-4 catches it (expects 'tests 0' then 'pass 1') and fails identically on unmodified main at f5c998aa; CI stays green only because it runs Node 22. Likely cause: Node 24 changed no-argument node --test discovery (default glob patterns and/or cwd handling for .mjs files in the tutorial's ephemeral dir). Fix candidates: pass the test file explicitly to node --test, and make the tutorial's final 'ran for real' line conditional on the parsed pass count. Also consider adding a Node 24 leg to CI since engines admits it.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "tutorial",
+        "cli",
+        "ci"
+      ],
+      "affectedFiles": [
+        "packages/core/src/cli/commands/tutorial.ts",
+        "packages/core/tests/cli/tutorial.test.ts",
+        ".github/workflows/ci.yml"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260916-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-16T23:26:34.462Z",
+      "updatedAt": "2026-09-17T00:06:21.266Z",
+      "shippedRef": "PR #502 / phase 306. Premise corrected: on Node 24 the tutorial's tests did run and settle genuinely enforced them; only the echoed node --test summary was misparsed (spec reporter, not TAP) and fell back to a false '(no test files found)'. A Node 24 CI leg was not added.",
+      "archivedAt": "2026-09-17T00:06:21.266Z",
       "archiveReason": "shipped"
     }
   ]

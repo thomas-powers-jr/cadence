@@ -1,0 +1,24 @@
+{
+  "draftId": "305-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/src/hooks/handlers.ts",
+        "packages/core/src/state/backend.ts",
+        "packages/core/src/state/simple.ts",
+        "packages/core/tests/state/commit.test.ts",
+        ".changeset/user-prompt-telemetry-revision-exempt.md",
+        "packages/core/tests/hooks/handlers-user-prompt.test.ts"
+      ],
+      "updatedAt": "2026-09-16T23:18:10.085Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T23:18:10.509Z"
+    }
+  }
+}
