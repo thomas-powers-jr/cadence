@@ -1422,19 +1422,3 @@ The house pattern for satisfying an assertion-mode, phase-qualified coverage tok
 - next: cadence milestone propose
 
 Phase 305 fixed issue #500 by moving handleUserPrompt's tokenUtilization bump onto the revision-exempt bumpSessionCounter path. Other hook handlers still commit through the compare-and-swap path: handlePostToolEdit (edit with files while a task is active), handleSubagentResult (SubagentStop), and handleSkillInvoke (first-time Skill use). A host-cli verifier child (claude -p / codex exec spawned by settle, spec approve, or code-review) that edits, spawns a subagent, or invokes a skill would still advance state.json's revision mid-command and refuse the parent's commit. Candidate hardening: the host-cli transport sets CADENCE_HOST_CLI_CHILD=1 on its spawned child and HookDispatcher treats verifier children as observers that do not write loop state. Two things must be settled first. (1) Unverified premise: that Claude Code and Codex pass inherited environment variables through to hook subprocesses (dec-20260822-012 covers dispatched subagents, not hooks); verify with a sentinel variable and one real spawn before building. (2) A blanket hook no-op would also silently disable handlePreToolEdit's boundaryEnforcement=block refusal for anything running under the marker, so any no-op must be write-scoped and loud, not a silent early return.
-
-## rec-20260917-001 — cadence resume replays a stale handoff once state.json.session.lastHandoff exists on disk
-
-- status: candidate
-- ready: needs-decision
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: handoff, resume
-- files: packages/core/src/handoff/locate.ts, packages/core/src/handoff/candidates.ts
-- evidence: state.json session.lastHandoff=SESSION-2026-09-16-phase304-profile-remediation-hint-landed.md (older, generated_at 2026-09-16T20:49:25Z) while SESSION-2026-09-17-v1.67.1-released.md (generated_at 2026-09-17T01:51:20Z, already merged via PR #507) sat in the same .cadence/handoff/ dir undiscovered by resume --list
-- next: cadence milestone propose
-
-locateFreshestHandoff() (packages/core/src/handoff/locate.ts) returns the file named by state.json's session.lastHandoff immediately if it still exists on disk, without ever comparing generated_at against newer SESSION-*.md docs in .cadence/handoff/. If a later session writes a fresher handoff without also updating that pointer (e.g. the writing session ends before its own next state write, or state.json.session.lastHandoff is only ever rewritten by a specific code path that a given handoff-writing flow doesn't hit), cadence resume / resume --list silently serves the stale doc forever -- discovered 2026-09-17 when resume --list surfaced SESSION-2026-09-16-phase304-...md while a strictly newer, already-upstream SESSION-2026-09-17-v1.67.1-released.md sat undiscovered in the same directory.

@@ -311,7 +311,7 @@ describe('gatherHandoffCandidates (AC-4, AC-5, real git worktree fixtures)', () 
     expect(result[0]?.source).toBe('local');
   });
 
-  it('case 7: local lastHandoff pointer is honored over merely-freshest-on-disk', async () => {
+  it('309-01/AC-5, case 7: local lastHandoff pointer is superseded when a strictly newer local doc exists', async () => {
     const root = await realpath(await mkdtemp(join(parent, 'pointer-')));
     await initRepo(root);
     await writeHandoffDoc(root, 'SESSION-2026-07-01-older.md', '2026-07-01T08:00:00.000Z');
@@ -320,8 +320,21 @@ describe('gatherHandoffCandidates (AC-4, AC-5, real git worktree fixtures)', () 
 
     const result = await gatherHandoffCandidates(root);
     expect(result).toHaveLength(1);
-    expect(result[0]?.fileName).toBe('SESSION-2026-07-01-older.md');
-    expect(result[0]?.generatedAt).toBe('2026-07-01T08:00:00.000Z');
+    expect(result[0]?.fileName).toBe('SESSION-2026-07-02-newer.md');
+    expect(result[0]?.generatedAt).toBe('2026-07-02T08:00:00.000Z');
+  });
+
+  it('case 7b: local lastHandoff pointer is still honored when it names the freshest doc (no regression)', async () => {
+    const root = await realpath(await mkdtemp(join(parent, 'pointer-fresh-')));
+    await initRepo(root);
+    await writeHandoffDoc(root, 'SESSION-2026-07-01-older.md', '2026-07-01T08:00:00.000Z');
+    await writeHandoffDoc(root, 'SESSION-2026-07-02-newer.md', '2026-07-02T08:00:00.000Z');
+    await writeState(root, { lastHandoff: 'SESSION-2026-07-02-newer.md' });
+
+    const result = await gatherHandoffCandidates(root);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.fileName).toBe('SESSION-2026-07-02-newer.md');
+    expect(result[0]?.generatedAt).toBe('2026-07-02T08:00:00.000Z');
   });
 
   it('case 8a: freshest-first ranking — sibling newer than local', async () => {

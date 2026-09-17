@@ -154,4 +154,32 @@ describe('ResumeResultZ — additive candidate fields (AC-3 backward compatibili
     const parsed = ResumeResultZ.safeParse({ found: false, candidates: [candidate] });
     expect(parsed.success).toBe(true);
   });
+
+  it('309-01/AC-4: accepts a found:true value with supersededHandoffPointer', () => {
+    const parsed = ResumeResultZ.safeParse({
+      found: true,
+      handoffPath: '.cadence/handoff/SESSION-2026-07-03.md',
+      generatedAt: '2026-07-03T00:00:00.000Z',
+      doc: 'doc',
+      context: null,
+      drift: null,
+      mode: 'full',
+      supersededHandoffPointer: 'SESSION-2026-07-01-local.md',
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('309-01/AC-4: a pre-existing found:true value with no supersededHandoffPointer key still parses (additive backward compatibility)', () => {
+    const preExistingShape = {
+      found: true,
+      handoffPath: '.cadence/handoff/SESSION-2026-06-05.md',
+      generatedAt: '2026-06-05T00:00:00.000Z',
+      doc: '## Next action\n**Action:** go',
+      context: null,
+      drift: null,
+      mode: 'brief',
+    };
+    const parsed = ResumeResultZ.safeParse(preExistingShape);
+    expect(parsed.success).toBe(true);
+  });
 });

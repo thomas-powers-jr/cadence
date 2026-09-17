@@ -2545,35 +2545,6 @@
       "decisionIds": [],
       "createdAt": "2026-09-16T23:15:18.372Z",
       "updatedAt": "2026-09-16T23:15:18.372Z"
-    },
-    {
-      "id": "rec-20260917-001",
-      "title": "cadence resume replays a stale handoff once state.json.session.lastHandoff exists on disk",
-      "summary": "locateFreshestHandoff() (packages/core/src/handoff/locate.ts) returns the file named by state.json's session.lastHandoff immediately if it still exists on disk, without ever comparing generated_at against newer SESSION-*.md docs in .cadence/handoff/. If a later session writes a fresher handoff without also updating that pointer (e.g. the writing session ends before its own next state write, or state.json.session.lastHandoff is only ever rewritten by a specific code path that a given handoff-writing flow doesn't hit), cadence resume / resume --list silently serves the stale doc forever -- discovered 2026-09-17 when resume --list surfaced SESSION-2026-09-16-phase304-...md while a strictly newer, already-upstream SESSION-2026-09-17-v1.67.1-released.md sat undiscovered in the same directory.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "handoff",
-        "resume"
-      ],
-      "affectedFiles": [
-        "packages/core/src/handoff/locate.ts",
-        "packages/core/src/handoff/candidates.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260917-001"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-17T13:45:59.595Z",
-      "updatedAt": "2026-09-17T13:45:59.595Z"
     }
   ],
   "archived": [
@@ -9653,11 +9624,44 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "308-codex-hooks-completeness-check",
-      "scoutId": "scout-20260823-host-hooks-completeness",
-      "createdAt": "2026-08-23T20:24:29.144Z",
-      "updatedAt": "2026-09-17T15:31:47.834Z",
       "shippedRef": "phase 308, PR TBD",
+      "scoutId": "scout-20260823-host-hooks-completeness",
       "archivedAt": "2026-09-17T15:31:47.834Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-08-23T20:24:29.144Z",
+      "updatedAt": "2026-09-17T15:31:47.834Z"
+    },
+    {
+      "id": "rec-20260917-001",
+      "title": "cadence resume replays a stale handoff once state.json.session.lastHandoff exists on disk",
+      "summary": "locateFreshestHandoff() (packages/core/src/handoff/locate.ts) returns the file named by state.json's session.lastHandoff immediately if it still exists on disk, without ever comparing generated_at against newer SESSION-*.md docs in .cadence/handoff/. If a later session writes a fresher handoff without also updating that pointer (e.g. the writing session ends before its own next state write, or state.json.session.lastHandoff is only ever rewritten by a specific code path that a given handoff-writing flow doesn't hit), cadence resume / resume --list silently serves the stale doc forever -- discovered 2026-09-17 when resume --list surfaced SESSION-2026-09-16-phase304-...md while a strictly newer, already-upstream SESSION-2026-09-17-v1.67.1-released.md sat undiscovered in the same directory.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "handoff",
+        "resume"
+      ],
+      "affectedFiles": [
+        "packages/core/src/handoff/locate.ts",
+        "packages/core/src/handoff/candidates.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "309-resume-handoff-pointer-staleness",
+      "createdAt": "2026-09-17T13:45:59.595Z",
+      "updatedAt": "2026-09-17T17:19:20.181Z",
+      "shippedRef": "phase 309, PR TBD",
+      "archivedAt": "2026-09-17T17:19:20.181Z",
       "archiveReason": "shipped"
     }
   ]

@@ -1,0 +1,56 @@
+{
+  "draftId": "309-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Independently re-verified: 10/10 locate.test.ts pass post-T2 (2/3 new tests red pre-fix as expected; 309-01/AC-2's tie-break test cannot be red pre-fix by construction -- the old unconditional early-return returns the pointer regardless of any comparison, so no fixture with an existing pointer file can discriminate old vs new code on the tie case. Reviewer confirmed it's still load-bearing against future regressions. AC-11 and 273-01/AC-2 re-fixtured in place, tokens preserved.",
+      "touchedFiles": [
+        "packages/core/src/cli/commands/resume.ts",
+        "packages/core/src/handoff/locate.ts",
+        "packages/core/src/handoff/run-resume.ts",
+        "packages/core/src/services/resume.ts",
+        "packages/core/tests/cli/resume.test.ts",
+        "packages/core/tests/handoff/candidates.test.ts",
+        "packages/core/tests/handoff/locate.test.ts",
+        "packages/core/tests/handoff/run-resume.test.ts",
+        "packages/core/tests/services/resume.test.ts",
+        "packages/types/src/handoff.ts",
+        "packages/types/tests/handoff.test.ts",
+        ".changeset/resume-handoff-pointer-staleness.md"
+      ],
+      "updatedAt": "2026-09-17T16:39:30.766Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Independently re-verified: 10/10 locate.test.ts green, typecheck clean, diff matches reported design exactly (pointer unioned into candidacy regardless of regex/key parseability, tie-break favors pointer, supersededPointer set only when a different candidate wins). Independent reviewer re-derived correctness from first principles, zero findings.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T16:39:31.316Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Independently re-verified: types + core (run-resume/services/cli resume test files) all green, both typechecks clean. resolveSiblingCandidate() confirmed untouched (Boundary honored). Notice wording confirmed clearly distinct from the dangling-pointer notice. Independent reviewer: READY, zero Critical/Important findings.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T16:39:31.880Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Independently re-verified: 17/17 candidates.test.ts green (16 pre-existing + case 7 refixtured/renamed + new case 7b). Cases 1-6, 8a/8b, branch-conflation, and throw-regression tests confirmed untouched. Independent reviewer: READY, zero findings.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T16:39:32.436Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "Changeset added, patch-level for cadence-core + cadence-types, pnpm changeset status recognizes it. Independent reviewer caught one Important wording defect (claimed 'stderr notice', code actually writes stdout via io.out/process.stdout.write) -- corrected in place before settle.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T16:39:33.014Z"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "Full pnpm turbo run lint typecheck test build: 24/24 tasks green (run twice, once by me, once independently by the whole-branch reviewer with --force/non-cached). Whole-branch review: READY TO MERGE, zero Critical findings. One Important finding (docs/reference/commands.md's resume Behavior section described the pre-fix unconditional-pointer-wins algorithm) fixed in this same commit.",
+      "touchedFiles": [
+        "docs/reference/commands.md"
+      ],
+      "updatedAt": "2026-09-17T16:54:31.095Z"
+    }
+  }
+}

@@ -1727,14 +1727,22 @@ Replay the freshest .cadence/handoff/ SESSION doc + live context (read-only)
 
 **Behavior** — read-only; mutates nothing, including when a pick resolves to a
 sibling worktree (a test asserts `state.json` is byte-unchanged across a
-`resume`). Locates the freshest SESSION doc for the *local* worktree —
-preferring the `state.session.lastHandoff` pointer when its file exists,
-otherwise globbing `.cadence/handoff/SESSION-*.md` ranked by frontmatter
-`generated_at` — and emits it verbatim alongside a freshly recomputed live
-`cadence context handoff` packet (authoritative if the machine facts have
-drifted since the doc was written). If the doc's recorded loop position
-differs from live state, it prints a one-line drift note (e.g. `⚠ handoff
-written at BUILD; live state now IDLE`).
+`resume`). Locates the freshest SESSION doc for the *local* worktree by
+ranking every `.cadence/handoff/SESSION-*.md` doc — including the
+`state.session.lastHandoff` pointer's file, when it exists, even if its name
+doesn't match that glob — by frontmatter `generated_at`, then filename date,
+then mtime, breaking an exact tie in the pointer's favor; and emits the
+winner verbatim alongside a freshly recomputed live `cadence context handoff`
+packet (authoritative if the machine facts have drifted since the doc was
+written). If the doc's recorded loop position differs from live state, it
+prints a one-line drift note (e.g. `⚠ handoff written at BUILD; live state
+now IDLE`). Two more divergence notices can fire before the doc: if the
+pointer names a file that no longer exists, `⚠ state.json's lastHandoff
+pointer ("...") does not exist — served ... instead, which may not be the
+most recent session.`; if the pointer names a file that still exists but a
+strictly fresher doc won the ranking, `⚠ state.json's lastHandoff pointer
+("...") is stale — a newer handoff exists and ... was served instead.` —
+both are informational only, never a refusal.
 
 Output mode defaults to drift-decides: `full` (whole doc + live context) when
 drift is detected, else `brief` (key sections only, no context recompute).

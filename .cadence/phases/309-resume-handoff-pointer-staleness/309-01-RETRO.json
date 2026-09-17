@@ -1,0 +1,18 @@
+{
+  "bypasses": [
+    {
+      "gate": "test-coverage",
+      "flag": "--allow-missing-coverage",
+      "reason": "test-coverage gate bypassed via --allow-missing-coverage",
+      "severity": "warn"
+    },
+    {
+      "gate": "evidence-floor:AC-6",
+      "flag": "--evidence-floor-bypass",
+      "reason": "process/pipeline claim (pnpm turbo run lint typecheck test build exits 0) with no single unit test that can assert it structurally; independently run green 3 times this session (main thread x2, whole-branch reviewer x1, non-cached)",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {}
+}

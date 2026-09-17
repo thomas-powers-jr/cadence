@@ -90,6 +90,11 @@ export function registerResumeCommand(program: Command): void {
               `⚠ state.json's lastHandoff pointer ("${res.danglingHandoffPointer}") does not exist — served ${res.handoffPath} instead, which may not be the most recent session.\n\n`,
             );
           }
+          if (res.supersededHandoffPointer) {
+            process.stdout.write(
+              `⚠ state.json's lastHandoff pointer ("${res.supersededHandoffPointer}") is stale — a newer handoff exists and ${res.handoffPath} was served instead.\n\n`,
+            );
+          }
           if (res.remote) {
             if (res.remote.checked && (res.remote.behind ?? 0) > 0) {
               process.stdout.write(
