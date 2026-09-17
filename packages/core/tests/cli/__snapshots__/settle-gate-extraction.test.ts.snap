@@ -16,6 +16,7 @@ exports[`Phase 39.1 AC-7: bit-identical gate refusal transcripts > deep-verify g
 
 build-test-must-pass: no test command configured — build-test-must-pass cannot verify your tests ran; this settle will NOT confirm the suite passes. Set verification.testCommand in .cadence/config.json to enable real enforcement.
 deep-verify: AC-1 failed — no linked test found (provider: mock)
+deep-verify: the verifier was given 0 bytes of diff across 1 declared file(s).
 settle run --deep refused: the independent verifier rejected one or more ACs. Pass --force to settle anyway, or address the gaps.
 "
 `;

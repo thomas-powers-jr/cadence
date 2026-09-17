@@ -1,0 +1,43 @@
+{
+  "draftId": "307-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/concepts.md",
+        "docs/reference/config.md",
+        "packages/core/src/gates/deep-verify.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/src/git/diff.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/cli/__snapshots__/settle-gate-extraction.test.ts.snap",
+        "packages/core/tests/gates/deep-verify.test.ts",
+        "packages/core/tests/git/diff.test.ts",
+        ".changeset/settle-diff-phase-range.md",
+        "packages/core/src/services/settle-diff.ts",
+        "packages/core/tests/docs/deep-verify-diff-basis-docs.test.ts",
+        "packages/core/tests/services/settle-diff.test.ts"
+      ],
+      "updatedAt": "2026-09-16T23:48:50.369Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T23:48:50.853Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-16T23:48:51.334Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T00:13:13.489Z"
+    }
+  }
+}

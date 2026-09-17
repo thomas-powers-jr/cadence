@@ -125,6 +125,18 @@ export const runDeepVerifyGate: GateImpl = async (ctx): Promise<GateResult> => {
           `deep-verify: ${id} failed — ${deepVerify[id]!.reason} (provider: ${result.provider})\n`,
         );
       }
+      // Phase 307 (issue #501): name what the verifier actually saw, so an
+      // empty or wrong-basis diff reads as a diff problem, not as N genuine
+      // AC failures.
+      const givenBytes = metaBase.truncated ? Buffer.byteLength(cap.diff, 'utf8') : metaBase.diffBytes;
+      ctx.io.err(
+        `deep-verify: the verifier was given ${givenBytes} bytes of diff across ` +
+          `${metaBase.filesCount} declared file(s)` +
+          (metaBase.truncated
+            ? ` (truncated from ${metaBase.diffBytes} bytes by verifier.diffCapBytes)`
+            : '') +
+          '.\n',
+      );
       const reason =
         'settle run --deep refused: the independent verifier rejected one or more ACs. ' +
         'Pass --force to settle anyway, or address the gaps.';

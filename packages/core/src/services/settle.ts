@@ -76,7 +76,7 @@ import {
 } from '../gates/types.js';
 import type { PerTaskVerifyRecord } from '../build/record.js';
 import { createDefaultPrompter } from '../verify/prompter.js';
-import { collectGitDiff } from '../git/diff.js';
+import { createSettleDiffProvider } from './settle-diff.js';
 import { selectNotifier } from '../notify/factory.js';
 import { collectAnomalies } from '../notify/collect.js';
 import { emitLoopViolation } from '../notify/loop-violation.js';
@@ -623,7 +623,6 @@ function buildSettleContext(
   let deepVerifierMemo: ReturnType<typeof selectVerifier> | undefined;
   let codeReviewVerifierMemo: ReturnType<typeof selectCodeReviewVerifier> | undefined;
   let securityAuditVerifierMemo: ReturnType<typeof selectSecurityAuditVerifier> | undefined;
-  let diffMemo: string | undefined;
   const codeReviewSidecarPath = join(
     cwd, '.cadence/phases', activePhase, `${state.activeDraft}-CODE-REVIEW.json`,
   );
@@ -702,12 +701,12 @@ function buildSettleContext(
       }
       return draftMtimeMemo;
     },
-    diff: () => {
-      if (diffMemo === undefined) {
-        diffMemo = collectDiffForCodeReview(cwd, touchedFiles);
-      }
-      return diffMemo;
-    },
+    diff: createSettleDiffProvider(
+      cwd,
+      touchedFiles,
+      cadenceConfig?.phaseGuard?.integrationRef ?? 'main',
+      (s) => io.err(s),
+    ),
     verifiers: {
       deep: {
         verify: (input) => {
@@ -1919,12 +1918,4 @@ export async function settleService(
     }
     return { exitCode: 1 };
   }
-}
-
-/**
- * `git diff --no-color HEAD -- <files>` via execSync. Returns empty
- * string on any error (non-git workdir, no diff, exec failure).
- */
-function collectDiffForCodeReview(cwd: string, files: string[]): string {
-  return collectGitDiff(cwd, files);
 }
