@@ -1,5 +1,52 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.67.1
+
+### Patch Changes
+
+- bd17d88: Fix: `scripts/check-lockfile-overrides.mjs` no longer passes vacuously on a `pnpm.overrides` key whose package name matches zero resolved instances in `pnpm-lock.yaml`.
+
+  `checkOverrideCoverage`'s core loop only checks a declared override target once some lockfile instance's package name matches it, so a target for a package that no longer resolves anywhere in the tree — dead weight left over from a removed/renamed dependency, or a typo in the key — was never visited and the detector reported `ok: true` regardless. It now separately tracks which declared targets were matched by at least one resolved instance and reports any unmatched target as a new `unresolved-target` failure, without changing the existing `unsatisfied` / `unguarded-line` cases (`rec-20260907-005`).
+
+  This gap is distinct from, and was not the actual cause of, the phase-297 fast-uri incident the recommendation cited as motivating evidence — that incident was a too-low override range floor, correctly reported as satisfied by this detector and caught instead by `pnpm audit` (see `.cadence/phases/301-check-lockfile-overrides-flag-override-targets-with-zero-resolved-instances/301-01-DRAFT.md`'s Objective for the full premise correction). The vacuous-pass gap fixed here is real and independently reproduced.
+
+- fc24627: Fix: `cadence doctor`'s `conduction-reachability` check's profile axis now routes through `effectiveGateSet` (the pack-aware chokepoint) instead of raw `gatesFor`, so a pack that adds `code-review`/`security-audit` via `gates[].add` at a (profile, tier) cell absent from the raw tier×profile matrix is correctly reported reachable once that pack is enabled.
+
+  Previously, `assessGateReachability`'s profile axis checked only `gatesFor(tier, profile).gates` across all tiers, never consulting `config.packs` — a false negative in the doctor's own honesty tooling, since `effectiveGateSet` (the real gate-computation chokepoint, pack-aware since phase 292) could report the gate reachable while doctor still said otherwise (`rec-20260823-001`). `gatesFor` itself is unchanged and stays pure/pack-free; only the doctor check's caller now threads `resolvedPacks` through, mirroring the precedent `config-explain`'s current-tier row already set in phase 292. The gap was latent, not live: this repo's only real pack manifest (`.cadence/packs/cadence/core-skills/pack.json`) declares no `gates[]`, so `cadence doctor`'s own output is unchanged today.
+
+  `docs/reference/commands.md`'s `conduction-reachability` row and `docs/packs-design.md` §4b are updated to describe the pack-aware profile axis.
+
+- f5c998a: Fix: `cadence doctor`'s `conduction-reachability` check's profile-axis remediation text is now pack-aware, matching the VERDICT phase 302 already made pack-aware.
+
+  `profileRemediationHint` (`packages/core/src/doctor/run.ts`) previously returned one of two hardcoded strings naming `code-review`/`security-audit`'s reachable `(profile, tier)` cells from raw `DELTAS` only. A pack that adds a gate at a cell absent from raw `DELTAS` made `assessGateReachability`'s reachability VERDICT correctly report the gate reachable (phase 302), but if the gate was still blocked under the operator's _current_ profile, the remediation text never mentioned the pack-added cell as a place to switch to — the hint stayed matrix-blind even after the verdict itself became pack-aware (`rec-20260916-001`).
+
+  `profileRemediationHint` now enumerates a gate's reachable cells dynamically via `effectiveGateSet` across all 3 profiles × 3 tiers (the same pack-aware chokepoint the verdict already uses), grouped by profile in a fixed `['strict', 'standard', 'auto']` order with tiers in `['quick-fix', 'standard', 'complex']` order, rendering a single-cell or multi-cell sentence depending on how many cells are reachable. `gatesFor`, `DELTAS`, and `assessGateReachability` itself are unchanged. As with phase 302, this repo's only real pack manifest declares no `gates[]`, so `cadence doctor`'s own output is unchanged today — the gap was latent, not live.
+
+- 60c8580: Security fix: raise the `js-yaml` `pnpm.overrides` floor past `CVE-2026-84375` (`GHSA-2883-xcg3-v3hh`, high), which was making the `Security` workflow's `audit` job red on every PR and scheduled run to `main`.
+
+  The advisory affects `js-yaml` `4.0.0`-`4.3.1` and is fixed in `4.3.2`. The existing override, `"js-yaml@4.2.0": "^4.3.0"`, resolved the tree to `4.3.1` — inside the vulnerable range by one patch version. The source-version key is unchanged (`scripts/check-lockfile-overrides.mjs` already reports it satisfied against today's resolved instances, so this was a too-low target floor, not a stale-key problem); the target range is now `^4.3.2`. `pnpm audit --audit-level high` goes from one high advisory to none.
+
+  `packages/core/tests/docs/lockfile-overrides-current-state.test.ts` is updated to assert the new floor against the real, committed `package.json` and `pnpm-lock.yaml`.
+
+- 566259b: Fix: `cadence settle run` no longer clobbers an already-shipped draft's canonical `SUMMARY.json`/`.md` when a later settle attempt against stale state hits a refusal.
+
+  `writeRefusedSettleSummary` previously wrote every refused settle attempt's record to the same canonical path as a successful settle, unconditionally — so retrying `settle run` against a draft that had already settled successfully (e.g. stale local `state.json` still pointing at a long-shipped phase) would silently overwrite the canonical record's AC PASS results, gate provenance, `contentHash`, and `stateAtSettle` with an empty, degraded refused record. Reproduced live: this happened to `278-01-SUMMARY.md`, recovered only because the working tree was dirty at the time.
+
+  The canonical write is now guarded: before writing, `writeRefusedSettleSummary` best-effort reads the existing on-disk canonical `SUMMARY.json` and checks whether its `acResults` array is non-empty (the only reliable signal of a prior successful settle — a prior _refused_ record always has an empty `acResults`, even though its `gates` array is non-empty too). When the guard fires, the refused attempt is diverted to the existing snapshot-sibling mechanism instead (both `.json` and `.md`, written unconditionally in this case), and a stderr notice names both the guard and the diverted path. When there's nothing terminal to protect (no prior canonical file, or an existing one that is itself a prior refused record), behavior is unchanged — the canonical write still proceeds normally.
+
+- b43e288: Fix: `cadence settle run --deep` no longer rejects every acceptance criterion of a phase whose tasks were committed as they landed (#501).
+
+  Settle's shared review diff (read by `deep-verify`, `code-review` and `security-audit`) was `git diff HEAD` over the declared files, i.e. uncommitted changes only, so committed task work was invisible and the verifier correctly rejected ACs against a diff with no implementation in it. The diff is now taken against the merge-base with `origin/<phaseGuard.integrationRef>` (or the local ref), which includes committed phase work plus uncommitted changes to tracked files (never-added files are still excluded). Settle prints a stderr notice when no merge-base resolves (it then falls back to the old `HEAD` diff), when the merge-base is `HEAD` itself (settling directly on the integration ref), when the merge-base diff is empty, or when the diff command fails. A `deep-verify` refusal now also prints the diff byte count and declared file count the verifier was given. The persisted refusal reason is unchanged.
+
+- eca3a30: Fix: `cadence settle run --deep` no longer fails with `state.json changed since you read it` in a project that has CADENCE's Claude Code hooks installed (#500).
+
+  The `host-cli` deep-verify provider spawns `claude -p` in the project directory. That child session fires the project's `UserPromptSubmit` hook, whose `session.tokenUtilization` telemetry bump went through the compare-and-swap `commit()` path and advanced `state.json`'s `revision` while settle was still running, so settle's own final commit refused with `StateConflictError` on every attempt. The bump now uses the same revision-exempt write path that `session.subagentSpawns` moved to for #234, clamped to the field's `0..1` range. The optimistic-concurrency guard itself is unchanged: a real concurrent structural writer is still refused.
+
+- 239e804: Fix: `cadence demo` and `cadence tutorial` no longer print `(no test files found)` on Node 24 for a `node --test` run that found and ran the test.
+
+  Both walkthroughs echo a one-line count summary of the sandbox's real `node --test` run, but only recognised TAP count lines (`# tests 1`). Node 24 prints its spec reporter even when stdout is piped (`ℹ tests 1`), so the summary fell through to a fallback that wrongly claimed no test files existed. Enforcement was never affected: settle's `build-test-must-pass` gate runs the same command and judges its exit code. Both walkthroughs now share one parser that reads both formats (including color-coded output when `FORCE_COLOR` is set), and when no count line is recognised it says the summary could not be read instead of guessing.
+  - @thomas-powers-jr/cadence-types@1.67.1
+
 ## 1.67.0
 
 ### Minor Changes

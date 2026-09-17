@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.67.1] - 2026-09-16
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.67.1`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Fixed
+
+- **`cadence settle run --deep` can commit in a project with CADENCE's Claude Code hooks installed.** The `host-cli` verifier spawns `claude -p` in the project, which fires the project's `UserPromptSubmit` hook; its `session.tokenUtilization` telemetry bump went through the compare-and-swap `commit()` and advanced `state.json`'s `revision` mid-settle, so settle's own final commit refused with `StateConflictError` on every attempt. The bump now uses the revision-exempt write path `subagentSpawns` moved to for #234, clamped to `0..1`. The concurrency guard is unchanged. The remaining committing hooks inside a verifier child are filed as `rec-20260916-004`. (Phase `305`, #500.)
+- **`deep-verify`, `code-review` and `security-audit` see a phase's committed work.** Settle's shared review diff was `git diff HEAD` (uncommitted only), so a phase whose tasks were committed as they landed had every AC rejected against an implementation-free diff. It is now the declared files diffed against their merge-base with `origin/<phaseGuard.integrationRef>` (or the local ref). Settle prints a stderr notice when no base resolves (HEAD fallback), the base is HEAD itself, the diff is empty, or `git diff` fails, and a `deep-verify` refusal prints the diff byte count the verifier was given. Build-time per-task diffs are unchanged. (Phase `307`, #501.)
+- **`cadence settle run` no longer clobbers an already-shipped draft's canonical `SUMMARY.json`/`.md` with a later refused attempt.** A refused settle against stale state is diverted to a snapshot sibling, with a stderr notice, when the canonical record already has AC results. (Phase `300`.)
+- **`cadence demo` and `cadence tutorial` read the `node --test` summary on Node 24.** Node 24 uses the spec reporter when piped (`ℹ tests 1`); the walkthroughs only recognised TAP and printed a false `(no test files found)` (enforcement was never affected). One shared parser now reads both formats, including `FORCE_COLOR` output, and reports an unreadable summary honestly. Corrects the premise of `rec-20260916-005`. (Phase `306`.)
+- **`cadence doctor`'s `conduction-reachability` check is pack-aware on the profile axis** — both the reachability verdict (phase `302`, `rec-20260823-001`) and its remediation text, which now enumerates reachable `(profile, tier)` cells through `effectiveGateSet` in a fixed order (phase `304`, `rec-20260916-001`). Latent today: no enabled pack declares `gates[]`.
+- **`scripts/check-lockfile-overrides.mjs` flags an override target that matches zero resolved instances** as `unresolved-target` instead of passing vacuously. (Phase `301`, `rec-20260907-005`.)
+
+### Security
+
+- **Raised the `js-yaml` `pnpm.overrides` floor to `^4.3.2`**, past `CVE-2026-84375` (`GHSA-2883-xcg3-v3hh`, high), which kept the `Security` workflow's `audit` job red. (Phase `298`.)
+
+### Internal
+
+- Eliminated gitleaks secret-scan false positives via a documented `.gitleaksignore` plus fixture tests (phase `299`), and made the changeset-existence coverage tests survive release consumption of `.changeset/*.md` files (phase `303`). Test/CI-only; no changesets.
+
 ## [1.67.0] - 2026-09-08
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.67.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
