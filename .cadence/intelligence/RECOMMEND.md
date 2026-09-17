@@ -2,7 +2,7 @@
 
 > Generated from `.cadence/intelligence/recommend.json`.
 
-Generated at: 2026-09-16T17:51:03.160Z
+Generated at: 2026-09-17T21:45:58.828Z
 
 ## Advisory
 
@@ -10,36 +10,7 @@ Generated at: 2026-09-16T17:51:03.160Z
 
 ## Ranked
 
-### rec-20260916-002 — Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release
-
-- score: 73/100 (raw 25.7)
-- status: candidate · ready: ready-for-cadence-spec · priority: high · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio high +5 · friction 0 +0 ⇒ raw 25.7 (score 73)
-- next: cadence milestone propose
-
-### rec-20260823-006 — checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks
-
-- score: 68/100 (raw 22.7)
-- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
-- scout: scout-20260823-host-hooks-completeness
-- next: cadence milestone propose
-
 ### rec-20260907-002 — packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
-
-- score: 68/100 (raw 22.7)
-- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
-- next: cadence milestone propose
-
-### rec-20260907-003 — The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings
-
-- score: 68/100 (raw 22.7)
-- status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
-- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready ready-for-cadence-spec +10 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 22.7 (score 68)
-- next: cadence milestone propose
-
-### rec-20260916-001 — profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix
 
 - score: 68/100 (raw 22.7)
 - status: candidate · ready: ready-for-cadence-spec · priority: medium · decay: fresh
@@ -308,6 +279,13 @@ Generated at: 2026-09-16T17:51:03.160Z
 - why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
 - next: cadence milestone propose
 
+### rec-20260916-003 — Meta-AC coverage tokens satisfied via changeset-existence assertions break every release
+
+- score: 56/100 (raw 14.7)
+- status: candidate · ready: needs-decision · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-decision +2 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 14.7 (score 56)
+- next: cadence milestone propose
+
 ### rec-20260724-007 — Define and document multi-contributor concurrency semantics for .cadence state
 
 - score: 55/100 (raw 13.7)
@@ -373,6 +351,13 @@ Generated at: 2026-09-16T17:51:03.160Z
 - next: cadence milestone propose
 
 ### rec-20260823-002 — dispatch could refuse/warn when multiple mutating tasks target one shared worktree concurrently
+
+- score: 55/100 (raw 13.7)
+- status: candidate · ready: needs-evidence · priority: medium · decay: fresh
+- why: lev 5 +5 · conf 0.70 +4.2 · risk 5 -2.5 · status candidate +0 · ready needs-evidence +1 · decay fresh +4 · prio medium +2 · friction 0 +0 ⇒ raw 13.7 (score 55)
+- next: cadence milestone propose
+
+### rec-20260916-004 — host-cli verifier children still fire every CADENCE hook; only the user-prompt telemetry write was made revision-exempt
 
 - score: 55/100 (raw 13.7)
 - status: candidate · ready: needs-evidence · priority: medium · decay: fresh
@@ -667,4 +652,4 @@ None.
 
 ## Totals
 
-- total 89 · ranked 87 · parked 2 · needs-attention 0 · excluded 0
+- total 87 · ranked 85 · parked 2 · needs-attention 0 · excluded 0

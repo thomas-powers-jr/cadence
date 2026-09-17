@@ -2519,6 +2519,71 @@
       "decisionIds": [],
       "createdAt": "2026-09-16T23:15:18.372Z",
       "updatedAt": "2026-09-16T23:15:18.372Z"
+    },
+    {
+      "id": "rec-20260917-003",
+      "title": "Packs Slice 6: PackManifestZ has no slot for a distributed-but-not-required skill, so a pack cannot ship an optional skill",
+      "summary": "D-BH of the expansion-arc-1 handoff asks whether a pack can declare a skill it distributes without requiring it on every phase. It cannot. PackManifestZ (packages/types/src/pack.ts) is .strict() with exactly six keys: id, version, integrity, skillAudit.required, gates, commands. dec-20260822-023 locks the payload allowlist to skillAudit.required + gates[].add + declared commands, and dec-20260822-022 locks packs to declaring skills by name only (never shipping skill bodies). So the only way to name a skill in a manifest is skillAudit.required, which is non-conditional (dec/phase 294 D-AW) and therefore refuses any phase that did not invoke it. commands[] is for slash commands, and skills are not commands. A pack that wants to distribute an optional skill (the systematic-debugging case) has no expressible form: it must either require it on every phase or reference it only from prose documentation. This is a mechanism gap to design deliberately, not to build inline during an expansion phase.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packs",
+        "skills"
+      ],
+      "affectedFiles": [
+        "packages/types/src/pack.ts",
+        ".cadence/packs/cadence/core-skills/pack.json",
+        "docs/packs-design.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-17T22:13:26.710Z",
+      "updatedAt": "2026-09-17T22:13:26.710Z"
+    },
+    {
+      "id": "rec-20260917-004",
+      "title": "Three settle bypass flags leave no durable trace in SUMMARY; the bypass trail is split across gateBypasses[] and gates[].skipReason with no single field to read",
+      "summary": "settle's 13 bypass flags record in three different ways, and three record nowhere. (1) Five reach SUMMARY.gateBypasses[]: --force, --allow-missing-coverage, --allow-verifier-failure, --allow-auto-complex (all via anomalyToGateBypass, services/settle.ts:187-221) and --allow-unresolvable-pack (direct push, settle.ts:1210). (2) Four reach SUMMARY.gates[] as status=skipped with skipReason 'bypassed via <flag>': --allow-failing-build, --allow-boundary-scan-failure (gates/registry.ts:285/288) and --allow-code-review-failure, --allow-security-audit-failure (registry.ts:300-310, reviewVerifierFailure path). (3) Three are recorded NOWHERE: --allow-skill-audit-miss, --allow-stale-draft, --allow-open-tasks. --allow-phase-collision is out of settle scope (draft-new/spec). The split itself is the core problem: a reader auditing whether a settle was bypassed must know to check two unrelated fields, which is why gap (3) stayed invisible. Per-flag detail for (3): --allow-skill-audit-miss cannot use the skipReason pattern at all, because skill-audit is deliberately NOT a Gate enum member and is dispatched outside the registry (see the header comment in checks/skill-audit.ts), so it produces no gates[] entry; it needs a direct gateBypasses push exactly like pack-resolution got at settle.ts:1201-1213. It is doubly unrecorded: anomalyToGateBypass has no skill-audit-miss case, AND emitSkillAuditMiss writes straight to notifier.notify() so the event never joins the anomalies array that gateBypassesFromAnomalies consumes. --allow-stale-draft (gates/draft-read.ts:16) and --allow-open-tasks (gates/structural-verifier.ts:20) both return {outcome:'pass'} with no flags, so the gate records as an ordinary pass, indistinguishable from one that genuinely passed; --allow-open-tasks additionally emits no stderr line at all, unlike every other bypass. Mitigating fact, stated so this is not overread: a SUMMARY's taskResults still shows non-terminal task statuses, so the open-task CONDITION remains inferable even though the BYPASS is not recorded. Scope note: these three emit severity warn, and an all-warn gateBypasses array never triggers the assurance cap (assurance-record.ts:262), so this is an audit-trail gap, not cap-evasion. Supersedes rec-20260917-002 (rejected), which overstated the gap as 8 flags.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "settle",
+        "audit-trail"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/gates/draft-read.ts",
+        "packages/core/src/gates/structural-verifier.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-17T22:21:58.607Z",
+      "updatedAt": "2026-09-17T22:21:58.607Z",
+      "scoutId": "scout-20260917-expansion-1"
     }
   ],
   "archived": [
@@ -9662,11 +9727,46 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "310-draft-frontmatter-crlf-rejection",
-      "createdAt": "2026-09-07T22:06:51.167Z",
-      "updatedAt": "2026-09-17T19:02:53.719Z",
       "shippedRef": "phase 310, PR TBD",
       "archivedAt": "2026-09-17T19:02:53.719Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-07T22:06:51.167Z",
+      "updatedAt": "2026-09-17T19:02:53.719Z"
+    },
+    {
+      "id": "rec-20260917-002",
+      "title": "SUMMARY.gateBypasses records only 5 of settle's 13 bypass flags; --allow-skill-audit-miss and 7 others leave no durable trace",
+      "summary": "settle exposes 13 bypass flags but only 5 can ever produce a SUMMARY.gateBypasses entry. anomalyToGateBypass (services/settle.ts:187-221) maps 4 anomaly types (--allow-missing-coverage, --force, --allow-verifier-failure, --allow-auto-complex) and returns null for everything else; two direct pushes add --allow-unresolvable-pack (settle.ts:1210) and --evidence-floor-bypass (settle.ts:1374). The other 8 flags (--allow-stale-draft, --allow-open-tasks, --allow-failing-build, --allow-code-review-failure, --allow-security-audit-failure, --allow-skill-audit-miss, --allow-boundary-scan-failure, --allow-phase-collision) print a loud stderr line but write nothing to the durable artifact. For skill-audit there are two independent causes: no case in anomalyToGateBypass, AND emitSkillAuditMiss sends the event straight to notifier.notify() so it never joins the anomalies array that gateBypassesFromAnomalies consumes. Consequence is scoped: these bypasses emit severity warn, and an all-warn gateBypasses array never triggers the assurance cap (assurance-record.ts:262), so this is an audit-trail gap, not a cap-evasion. stderr is ephemeral; SUMMARY.json is what survives, and a later reader of the artifact cannot tell the gate was bypassed. The pack-resolution direct push at settle.ts:1201-1213 documents this exact pattern as the fix shape.",
+      "source": "manual",
+      "status": "rejected",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "settle",
+        "audit-trail"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/notify/skill-audit.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-002",
+        "ev-20260917-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20260917-expansion-1",
+      "archivedAt": "2026-09-17T22:21:31.689Z",
+      "archiveReason": "rejected",
+      "createdAt": "2026-09-17T22:13:13.753Z",
+      "updatedAt": "2026-09-17T22:21:31.689Z"
     }
   ]
 }

@@ -2508,6 +2508,34 @@
       "kind": "note",
       "summary": "state.json session.lastHandoff=SESSION-2026-09-16-phase304-profile-remediation-hint-landed.md (older, generated_at 2026-09-16T20:49:25Z) while SESSION-2026-09-17-v1.67.1-released.md (generated_at 2026-09-17T01:51:20Z, already merged via PR #507) sat in the same .cadence/handoff/ dir undiscovered by resume --list",
       "createdAt": "2026-09-17T13:45:59.595Z"
+    },
+    {
+      "id": "ev-20260917-002",
+      "recommendationId": "rec-20260917-002",
+      "kind": "note",
+      "summary": "grep of every flag: construction in packages/core/src (non-test) yields exactly 6 flags vs 13 --allow-*/--force options registered in cli/commands/settle.ts:37-100. Corpus scan of 322 SUMMARY.json records: only 4 distinct flags ever recorded (--evidence-floor-bypass 19, --allow-auto-complex 7, --allow-missing-coverage 6, --force 3); 18 of 322 records carry any entry. Measured 2026-09-17 @ main a9743257 (v1.67.2).",
+      "createdAt": "2026-09-17T22:13:13.753Z"
+    },
+    {
+      "id": "ev-20260917-003",
+      "recommendationId": "rec-20260917-003",
+      "kind": "note",
+      "summary": "PackManifestZ read in full at packages/types/src/pack.ts: .strict() object with id, version, integrity, skillAudit{required}.strict().optional, gates, commands. decision list --filter-text skill returns dec-20260822-023 (payload allowlist = skillAudit.required + gates[].add + declared commands) and dec-20260822-022 (skills declared by name only). Live manifest .cadence/packs/cadence/core-skills/pack.json declares commands only. Measured 2026-09-17 @ main a9743257.",
+      "createdAt": "2026-09-17T22:13:26.710Z"
+    },
+    {
+      "id": "ev-20260917-004",
+      "recommendationId": "rec-20260917-002",
+      "kind": "note",
+      "summary": "SUPERSEDED / rescoped. Filed 2026-09-17 on a grep for \"flag: '\" (string literals only), which missed gates/registry.ts:285/288/307 where the bypass flag is computed into a variable and recorded via gates[].skipReason instead of gateBypasses[]. Corpus re-scan confirms --allow-failing-build (4) and --allow-boundary-scan-failure (1) DO appear in the durable artifact via gates[].skipReason. The '7 others leave no durable trace' claim is false. Corrected scope filed as rec-20260917-004: only three flags are genuinely unrecorded.",
+      "createdAt": "2026-09-17T22:21:27.400Z"
+    },
+    {
+      "id": "ev-20260917-005",
+      "recommendationId": "rec-20260917-004",
+      "kind": "note",
+      "summary": "13 --allow-*/--force options registered in cli/commands/settle.ts:37-100. Corpus scan of 322 SUMMARY.json records: 18 carry a gateBypasses entry, with only 4 distinct flags ever recorded (--evidence-floor-bypass 19, --allow-auto-complex 7, --allow-missing-coverage 6, --force 3). Independent corpus scan of gates[].skipReason matching 'bypassed via': --allow-missing-coverage 6, --allow-failing-build 4, --allow-boundary-scan-failure 1 — proving path (2) is real and durable. Zero corpus occurrences of the three path-(3) flags in either field. Measured 2026-09-17 @ main a9743257 (v1.67.2).",
+      "createdAt": "2026-09-17T22:21:58.607Z"
     }
   ]
 }

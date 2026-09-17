@@ -1,191 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-16T17:51:03.160Z",
+  "generatedAt": "2026-09-17T21:45:58.828Z",
   "ranked": [
-    {
-      "id": "rec-20260916-002",
-      "title": "Changeset-existence-by-filename tests (phases 300, 301) will go red the moment their changesets are consumed by a release",
-      "raw": 25.7,
-      "score": 73,
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready ready-for-cadence-spec",
-          "value": 10
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio high",
-          "value": 5
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose"
-    },
-    {
-      "id": "rec-20260823-006",
-      "title": "checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks",
-      "raw": 22.7,
-      "score": 68,
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready ready-for-cadence-spec",
-          "value": 10
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio medium",
-          "value": 2
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "scoutId": "scout-20260823-host-hooks-completeness"
-    },
     {
       "id": "rec-20260907-002",
       "title": "packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/",
-      "raw": 22.7,
-      "score": 68,
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready ready-for-cadence-spec",
-          "value": 10
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio medium",
-          "value": 2
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose"
-    },
-    {
-      "id": "rec-20260907-003",
-      "title": "The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings",
-      "raw": 22.7,
-      "score": 68,
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "decayState": "fresh",
-      "terms": [
-        {
-          "label": "lev 5",
-          "value": 5
-        },
-        {
-          "label": "conf 0.70",
-          "value": 4.2
-        },
-        {
-          "label": "risk 5",
-          "value": -2.5
-        },
-        {
-          "label": "status candidate",
-          "value": 0
-        },
-        {
-          "label": "ready ready-for-cadence-spec",
-          "value": 10
-        },
-        {
-          "label": "decay fresh",
-          "value": 4
-        },
-        {
-          "label": "prio medium",
-          "value": 2
-        },
-        {
-          "label": "friction 0",
-          "value": 0
-        }
-      ],
-      "suggestedBackendAction": "cadence milestone propose"
-    },
-    {
-      "id": "rec-20260916-001",
-      "title": "profileRemediationHint stays matrix-blind after phase 302's pack-aware profile-axis fix",
       "raw": 22.7,
       "score": 68,
       "status": "candidate",
@@ -1821,6 +1640,51 @@
       "suggestedBackendAction": "cadence milestone propose"
     },
     {
+      "id": "rec-20260916-003",
+      "title": "Meta-AC coverage tokens satisfied via changeset-existence assertions break every release",
+      "raw": 14.7,
+      "score": 56,
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready needs-decision",
+          "value": 2
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose"
+    },
+    {
       "id": "rec-20260724-007",
       "title": "Define and document multi-contributor concurrency semantics for .cadence state",
       "raw": 13.7,
@@ -2229,6 +2093,51 @@
     {
       "id": "rec-20260823-002",
       "title": "dispatch could refuse/warn when multiple mutating tasks target one shared worktree concurrently",
+      "raw": 13.7,
+      "score": 55,
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "decayState": "fresh",
+      "terms": [
+        {
+          "label": "lev 5",
+          "value": 5
+        },
+        {
+          "label": "conf 0.70",
+          "value": 4.2
+        },
+        {
+          "label": "risk 5",
+          "value": -2.5
+        },
+        {
+          "label": "status candidate",
+          "value": 0
+        },
+        {
+          "label": "ready needs-evidence",
+          "value": 1
+        },
+        {
+          "label": "decay fresh",
+          "value": 4
+        },
+        {
+          "label": "prio medium",
+          "value": 2
+        },
+        {
+          "label": "friction 0",
+          "value": 0
+        }
+      ],
+      "suggestedBackendAction": "cadence milestone propose"
+    },
+    {
+      "id": "rec-20260916-004",
+      "title": "host-cli verifier children still fire every CADENCE hook; only the user-prompt telemetry write was made revision-exempt",
       "raw": 13.7,
       "score": 55,
       "status": "candidate",
@@ -3975,8 +3884,8 @@
     "primary": "cadence spec new"
   },
   "totals": {
-    "total": 89,
-    "ranked": 87,
+    "total": 87,
+    "ranked": 85,
     "parked": 2,
     "needsAttention": 0,
     "excluded": 0
