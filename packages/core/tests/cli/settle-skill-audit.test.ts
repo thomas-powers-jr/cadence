@@ -348,4 +348,82 @@ describe('cadence settle run — enabled-but-unresolvable pack (Phase 291, Slice
     expect(r.code).toBe(0);
     expect(r.stderr).not.toMatch(/could not be resolved/);
   });
+
+  // -------------------------------------------------------------------------
+  // Phase 311 (311-01, T2). End-to-end proof that the bypass reaches the
+  // DURABLE artifact, not just stderr and the notifier. Before this phase a
+  // reader of SUMMARY.json could not distinguish a settle that bypassed a
+  // missing required skill from one where every skill was invoked.
+  // -------------------------------------------------------------------------
+
+  it('311-01/AC-1: --allow-skill-audit-miss records the bypass in SUMMARY.gateBypasses with gate, flag, reason and severity', async () => {
+    active = await tempRepo({ initialized: true });
+    await arrange(active.root);
+    await patchConfig(active.root, (c) => (c.skillAudit = { required: ['tdd', 'phase-build'] }));
+    await seedInvoked(active.root, ['tdd']);
+    const r = await run([...SETTLE, '--allow-skill-audit-miss'], active.root);
+    expect(r.code).toBe(0);
+    const summary = JSON.parse(await readFile(summaryPath(active.root), 'utf8'));
+    // AC-1 says "exactly one entry" — assert the count, not just presence, so a
+    // future double-push (e.g. if the check were ever dispatched twice) fails here.
+    const entries = (summary.gateBypasses ?? []).filter(
+      (b: { gate: string }) => b.gate === 'skill-audit',
+    );
+    expect(entries).toHaveLength(1);
+    const bypass = entries[0];
+    expect(bypass.flag).toBe('--allow-skill-audit-miss');
+    expect(bypass.severity).toBe('warn');
+    // Names the skill that was actually missing, and not the one invoked.
+    expect(bypass.reason).toContain('phase-build');
+    expect(bypass.reason).not.toContain('tdd');
+  });
+
+  it('311-01/AC-2: the durable record supplements the stderr notice rather than replacing it', async () => {
+    active = await tempRepo({ initialized: true });
+    await arrange(active.root);
+    await patchConfig(active.root, (c) => (c.skillAudit = { required: ['tdd'] }));
+    await seedInvoked(active.root, []);
+    const r = await run([...SETTLE, '--allow-skill-audit-miss'], active.root);
+    expect(r.code).toBe(0);
+    // The pre-existing loud line is still there ...
+    expect(r.stderr).toMatch(/--allow-skill-audit-miss set; proceeding past 1 missing skill\(s\)/);
+    // ... AND the entry is now in the artifact too.
+    const summary = JSON.parse(await readFile(summaryPath(active.root), 'utf8'));
+    expect(
+      (summary.gateBypasses ?? []).some((b: { gate: string }) => b.gate === 'skill-audit'),
+    ).toBe(true);
+  });
+
+  it('311-01/AC-3: a run where every required skill was invoked records no skill-audit bypass, even with the flag passed', async () => {
+    active = await tempRepo({ initialized: true });
+    await arrange(active.root);
+    await patchConfig(active.root, (c) => (c.skillAudit = { required: ['tdd'] }));
+    await seedInvoked(active.root, ['tdd']);
+    const r = await run([...SETTLE, '--allow-skill-audit-miss'], active.root);
+    expect(r.code).toBe(0);
+    const summary = JSON.parse(await readFile(summaryPath(active.root), 'utf8'));
+    expect(
+      (summary.gateBypasses ?? []).some((b: { gate: string }) => b.gate === 'skill-audit'),
+    ).toBe(false);
+  });
+
+  // Regression guard, NOT an endorsement: the telemetry-off path stays absent
+  // from gateBypasses because recording '--allow-skill-audit-miss' there would
+  // name a flag the operator never passed. That this path leaves no durable
+  // trace at all is a known residual, tracked on rec-20260917-004.
+  it('311-01/AC-5: the unenforceable telemetry-off path records no skill-audit bypass', async () => {
+    active = await tempRepo({ initialized: true });
+    await arrange(active.root);
+    await patchConfig(active.root, (c) => {
+      c.skillAudit = { required: ['tdd'] };
+      c.telemetry = { tokenUtilization: true, skillInvocations: false, remoteOptIn: false };
+    });
+    await seedInvoked(active.root, []);
+    const r = await run([...SETTLE, '--allow-skill-audit-miss'], active.root);
+    expect(r.code).toBe(0);
+    const summary = JSON.parse(await readFile(summaryPath(active.root), 'utf8'));
+    expect(
+      (summary.gateBypasses ?? []).some((b: { gate: string }) => b.gate === 'skill-audit'),
+    ).toBe(false);
+  });
 });

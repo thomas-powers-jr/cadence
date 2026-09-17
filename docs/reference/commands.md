@@ -849,7 +849,7 @@ Generate SUMMARY.md + JSON and return to IDLE
 | `--allow-failing-build` | Do not refuse on a non-zero `verification.testCommand` exit; settle anyway (Phase 39.2) |
 | `--allow-code-review-failure` | Do not refuse on HIGH-severity code-review findings; record them in SUMMARY and emit anomalies anyway (Phase 24.3) |
 | `--allow-security-audit-failure` | Do not refuse on CRITICAL security-audit findings; record them in SUMMARY and settle anyway (Phase 25.2) |
-| `--allow-skill-audit-miss` | Do not refuse when required skills were not invoked; emit a warn anomaly (`bypassed:true`) and settle anyway (Phase 34.1) |
+| `--allow-skill-audit-miss` | Do not refuse when required skills were not invoked; emit a warn anomaly (`bypassed:true`), record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 34.1; recorded since Phase 311) |
 | `--allow-unresolvable-pack` | Do not refuse when an enabled pack fails to resolve; record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 291) |
 | `-h, --help` | Display help for command |
 

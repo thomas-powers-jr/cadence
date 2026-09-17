@@ -158,6 +158,76 @@ describe('runSkillAuditCheck', () => {
     expect(res.outcome).toBe('pass');
     expect([...res.effectiveRequired].sort()).toEqual(['a', 'b']);
   });
+
+  // ---------------------------------------------------------------------
+  // Phase 311 (311-01): the bypass has to survive into the durable artifact.
+  // `runSkillAuditCheck` is the only place that knows a bypass fired, and
+  // until now it told nobody but stderr. These assert the marker it hands
+  // settle; settle's own push is covered in tests/services/.
+  // ---------------------------------------------------------------------
+
+  // 311-01/AC-1: a bypassed shortfall reports the marker plus a reason that
+  // names the missing skill(s), so settle can record it without re-deriving.
+  it('311-01/AC-1: a bypassed shortfall reports bypassed:true and a reason naming the missing skills', async () => {
+    const emits: EmitArg[] = [];
+    const errs: string[] = [];
+    const res = await runSkillAuditCheck(
+      ctx({ configRequired: ['tdd', 'phase-build'], invoked: ['tdd'], allowSkillAuditMiss: true, emits, errs }),
+    );
+    expect(res.outcome).toBe('pass');
+    expect(res.bypassed).toBe(true);
+    expect(res.reason).toContain('phase-build');
+    // Only the genuinely missing skill is named — an invoked one never is.
+    expect(res.reason).not.toContain('tdd,');
+  });
+
+  // 311-01/AC-2: the pre-existing loud stderr notice is untouched. The durable
+  // record supplements it; it never replaces it.
+  it('311-01/AC-2: the bypass still emits its stderr notice alongside the marker', async () => {
+    const errs: string[] = [];
+    const res = await runSkillAuditCheck(
+      ctx({ configRequired: ['tdd'], invoked: [], allowSkillAuditMiss: true, errs }),
+    );
+    expect(res.bypassed).toBe(true);
+    expect(errs.join('')).toContain('--allow-skill-audit-miss set; proceeding past 1 missing skill(s)');
+  });
+
+  // 311-01/AC-3: a clean pass records nothing. A flag set on a phase that
+  // invoked everything bypassed nothing, so there is nothing to report.
+  it('311-01/AC-3: a clean pass leaves the bypass marker unset even when the flag is passed', async () => {
+    const res = await runSkillAuditCheck(
+      ctx({ configRequired: ['tdd'], invoked: ['tdd'], allowSkillAuditMiss: true }),
+    );
+    expect(res.outcome).toBe('pass');
+    expect(res.bypassed).toBeUndefined();
+    expect(res.reason).toBeUndefined();
+  });
+
+  // 311-01/AC-4: the refusal path is untouched and records no bypass — nothing
+  // was bypassed, settle never reaches the push, and a marker here would make
+  // a refused settle look like a bypassed one.
+  it('311-01/AC-4: a refused shortfall leaves the bypass marker unset', async () => {
+    const res = await runSkillAuditCheck(ctx({ configRequired: ['tdd'], invoked: [] }));
+    expect(res.outcome).toBe('refuse');
+    expect(res.bypassed).toBeUndefined();
+    expect(res.reason).toBeUndefined();
+  });
+
+  // 311-01/AC-5: telemetry off makes the requirement unenforceable. That is a
+  // config state, not an operator bypass, so the marker stays unset —
+  // recording '--allow-skill-audit-miss' here would name a flag nobody passed.
+  // This path is still absent from the durable artifact; that residual is
+  // tracked on rec-20260917-004 and is NOT endorsed by this assertion.
+  it('311-01/AC-5: the unenforceable telemetry-off path leaves the bypass marker unset', async () => {
+    const emits: EmitArg[] = [];
+    const res = await runSkillAuditCheck(
+      ctx({ configRequired: ['tdd'], invoked: [], skillInvocations: false, allowSkillAuditMiss: true, emits }),
+    );
+    expect(res.outcome).toBe('pass');
+    expect(res.bypassed).toBeUndefined();
+    expect(res.reason).toBeUndefined();
+    expect(emits[0]).toMatchObject({ unenforceable: true });
+  });
 });
 
 describe('runSkillAuditCheck · resolved packs contribute required skills (phase 291 T1)', () => {

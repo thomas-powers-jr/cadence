@@ -2552,13 +2552,13 @@
       "updatedAt": "2026-09-17T22:13:26.710Z"
     },
     {
-      "id": "rec-20260917-004",
-      "title": "Three settle bypass flags leave no durable trace in SUMMARY; the bypass trail is split across gateBypasses[] and gates[].skipReason with no single field to read",
-      "summary": "settle's 13 bypass flags record in three different ways, and three record nowhere. (1) Five reach SUMMARY.gateBypasses[]: --force, --allow-missing-coverage, --allow-verifier-failure, --allow-auto-complex (all via anomalyToGateBypass, services/settle.ts:187-221) and --allow-unresolvable-pack (direct push, settle.ts:1210). (2) Four reach SUMMARY.gates[] as status=skipped with skipReason 'bypassed via <flag>': --allow-failing-build, --allow-boundary-scan-failure (gates/registry.ts:285/288) and --allow-code-review-failure, --allow-security-audit-failure (registry.ts:300-310, reviewVerifierFailure path). (3) Three are recorded NOWHERE: --allow-skill-audit-miss, --allow-stale-draft, --allow-open-tasks. --allow-phase-collision is out of settle scope (draft-new/spec). The split itself is the core problem: a reader auditing whether a settle was bypassed must know to check two unrelated fields, which is why gap (3) stayed invisible. Per-flag detail for (3): --allow-skill-audit-miss cannot use the skipReason pattern at all, because skill-audit is deliberately NOT a Gate enum member and is dispatched outside the registry (see the header comment in checks/skill-audit.ts), so it produces no gates[] entry; it needs a direct gateBypasses push exactly like pack-resolution got at settle.ts:1201-1213. It is doubly unrecorded: anomalyToGateBypass has no skill-audit-miss case, AND emitSkillAuditMiss writes straight to notifier.notify() so the event never joins the anomalies array that gateBypassesFromAnomalies consumes. --allow-stale-draft (gates/draft-read.ts:16) and --allow-open-tasks (gates/structural-verifier.ts:20) both return {outcome:'pass'} with no flags, so the gate records as an ordinary pass, indistinguishable from one that genuinely passed; --allow-open-tasks additionally emits no stderr line at all, unlike every other bypass. Mitigating fact, stated so this is not overread: a SUMMARY's taskResults still shows non-terminal task statuses, so the open-task CONDITION remains inferable even though the BYPASS is not recorded. Scope note: these three emit severity warn, and an all-warn gateBypasses array never triggers the assurance cap (assurance-record.ts:262), so this is an audit-trail gap, not cap-evasion. Supersedes rec-20260917-002 (rejected), which overstated the gap as 8 flags.",
+      "id": "rec-20260917-005",
+      "title": "Bypass audit-trail residuals after phase 311: --allow-stale-draft and --allow-open-tasks still record nowhere, and the split gateBypasses[]/gates[].skipReason trail is undecided",
+      "summary": "Phase 311 closed only the --allow-skill-audit-miss third of rec-20260917-004. This rec carries the remainder forward as a live item so it does not retire with that rec when phase 311 settles. Remaining: (1) --allow-stale-draft (gates/draft-read.ts:16) returns {outcome:'pass'} with no flags on bypass, so the gate records as an ordinary pass, indistinguishable from one that genuinely passed. (2) --allow-open-tasks (gates/structural-verifier.ts:20) does the same AND emits no stderr line at all — the only fully silent bypass in the codebase. Mitigating fact, so this is not overread: a SUMMARY's taskResults still shows non-terminal statuses, so the condition stays inferable even though the bypass is not recorded. (3) The skill-audit unenforceable path (telemetry.skillInvocations false) remains absent from the durable artifact; phase 311 deliberately did NOT record a bypass there because naming --allow-skill-audit-miss would cite a flag the operator never passed, so that path needs its own representation rather than reuse of the bypass record. (4) The design question underneath all of it: the bypass trail is split across SUMMARY.gateBypasses[] and SUMMARY.gates[].skipReason with no single field to read, which is why these gaps stayed invisible. Deciding whether to unify them, and how, is the real work — the per-flag pushes are the symptom.",
       "source": "manual",
       "status": "candidate",
       "readiness": "needs-decision",
-      "priority": "high",
+      "priority": "medium",
       "leverageScore": 5,
       "riskScore": 5,
       "confidence": 0.7,
@@ -2569,21 +2569,21 @@
         "audit-trail"
       ],
       "affectedFiles": [
-        "packages/core/src/services/settle.ts",
-        "packages/core/src/checks/skill-audit.ts",
-        "packages/core/src/gates/registry.ts",
         "packages/core/src/gates/draft-read.ts",
-        "packages/core/src/gates/structural-verifier.ts"
+        "packages/core/src/gates/structural-verifier.ts",
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/services/settle.ts"
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260917-005"
+        "ev-20260917-007",
+        "ev-20260917-009"
       ],
       "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-09-17T22:21:58.607Z",
-      "updatedAt": "2026-09-17T22:21:58.607Z",
-      "scoutId": "scout-20260917-expansion-1"
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-17T23:00:23.602Z",
+      "updatedAt": "2026-09-17T23:01:31.528Z"
     }
   ],
   "archived": [
@@ -9767,6 +9767,46 @@
       "archiveReason": "rejected",
       "createdAt": "2026-09-17T22:13:13.753Z",
       "updatedAt": "2026-09-17T22:21:31.689Z"
+    },
+    {
+      "id": "rec-20260917-004",
+      "title": "Three settle bypass flags leave no durable trace in SUMMARY; the bypass trail is split across gateBypasses[] and gates[].skipReason with no single field to read",
+      "summary": "settle's 13 bypass flags record in three different ways, and three record nowhere. (1) Five reach SUMMARY.gateBypasses[]: --force, --allow-missing-coverage, --allow-verifier-failure, --allow-auto-complex (all via anomalyToGateBypass, services/settle.ts:187-221) and --allow-unresolvable-pack (direct push, settle.ts:1210). (2) Four reach SUMMARY.gates[] as status=skipped with skipReason 'bypassed via <flag>': --allow-failing-build, --allow-boundary-scan-failure (gates/registry.ts:285/288) and --allow-code-review-failure, --allow-security-audit-failure (registry.ts:300-310, reviewVerifierFailure path). (3) Three are recorded NOWHERE: --allow-skill-audit-miss, --allow-stale-draft, --allow-open-tasks. --allow-phase-collision is out of settle scope (draft-new/spec). The split itself is the core problem: a reader auditing whether a settle was bypassed must know to check two unrelated fields, which is why gap (3) stayed invisible. Per-flag detail for (3): --allow-skill-audit-miss cannot use the skipReason pattern at all, because skill-audit is deliberately NOT a Gate enum member and is dispatched outside the registry (see the header comment in checks/skill-audit.ts), so it produces no gates[] entry; it needs a direct gateBypasses push exactly like pack-resolution got at settle.ts:1201-1213. It is doubly unrecorded: anomalyToGateBypass has no skill-audit-miss case, AND emitSkillAuditMiss writes straight to notifier.notify() so the event never joins the anomalies array that gateBypassesFromAnomalies consumes. --allow-stale-draft (gates/draft-read.ts:16) and --allow-open-tasks (gates/structural-verifier.ts:20) both return {outcome:'pass'} with no flags, so the gate records as an ordinary pass, indistinguishable from one that genuinely passed; --allow-open-tasks additionally emits no stderr line at all, unlike every other bypass. Mitigating fact, stated so this is not overread: a SUMMARY's taskResults still shows non-terminal task statuses, so the open-task CONDITION remains inferable even though the BYPASS is not recorded. Scope note: these three emit severity warn, and an all-warn gateBypasses array never triggers the assurance cap (assurance-record.ts:262), so this is an audit-trail gap, not cap-evasion. Supersedes rec-20260917-002 (rejected), which overstated the gap as 8 flags.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "settle",
+        "audit-trail"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/gates/draft-read.ts",
+        "packages/core/src/gates/structural-verifier.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-005",
+        "ev-20260917-006",
+        "ev-20260917-008"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "311-skill-audit-bypass-recorded-in-gatebypasses",
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-17T22:21:58.607Z",
+      "updatedAt": "2026-09-17T23:05:52.071Z",
+      "shippedRef": "phase 311 (311-01) — PARTIAL: closes only the --allow-skill-audit-miss third. --allow-stale-draft, --allow-open-tasks, the skill-audit unenforceable/null-config paths, and the split gateBypasses[]/gates[].skipReason design question all remain OPEN on rec-20260917-005.",
+      "archivedAt": "2026-09-17T23:05:52.071Z",
+      "archiveReason": "shipped"
     }
   ]
 }

@@ -1,0 +1,39 @@
+{
+  "draftId": "311-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "SkillAuditResult gains bypassed?:true + reason?:string, set only on the bypassed-shortfall branch; mirrors PackResolutionResult. Confirmed the branch gates on allowSkillAuditMiss alone (no --force disjunction). 5 new unit tests; the two asserting bypassed===true failed before the change.",
+      "touchedFiles": [
+        "docs/cli.md",
+        "docs/reference/commands.md",
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/cli/commands/settle.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/checks/skill-audit.test.ts",
+        "packages/core/tests/cli/settle-skill-audit.test.ts",
+        ".changeset/skill-audit-bypass-gatebypasses.md",
+        "docs/handoffs/HANDOFF-expansion-arc-1.md"
+      ],
+      "updatedAt": "2026-09-17T23:04:12.761Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "settle.ts pushes {gate:'skill-audit', flag:'--allow-skill-audit-miss', reason, severity:'warn'} after runSkillAuditCheck, beside the pack-resolution push. No schema change. 4 e2e tests drive the real CLI and read the real SUMMARY.json; AC-1 asserts exactly one entry.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T23:04:13.210Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "docs/cli.md + docs/reference/commands.md rows updated, plus the registered --allow-skill-audit-miss option description (independent review caught that --help would otherwise understate the docs). Patch changeset added. Residuals appended to rec-20260917-004 and carried forward as live rec-20260917-005.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T23:04:13.682Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "pnpm turbo run lint typecheck test build: 24/24 tasks successful, exit 0, 2m6s. Core 457 test files passed / 1 skipped. Diff confined to the DRAFT's declared files (as amended). Two independent Opus reviews: zero Critical.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T23:04:14.136Z"
+    }
+  }
+}

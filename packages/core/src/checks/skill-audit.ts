@@ -27,6 +27,31 @@ export interface SkillAuditResult {
    *  `pass` and `refuse` paths; settle records it on
    *  `state.skillAudit.provenance` (T2). */
   readonly requiredWithProvenance: { skill: string; source: SkillRequirementSource }[];
+  /**
+   * Phase 311 (311-01, T1): present (and always `true`) only when a real
+   * shortfall was turned into a pass by `--allow-skill-audit-miss`. Absent on
+   * every other path — a clean pass (nothing was bypassed even if the flag was
+   * passed), a refusal (nothing was bypassed), and the unenforceable
+   * `telemetry.skillInvocations === false` path (a config state, not an
+   * operator bypass; recording the flag there would name one nobody passed).
+   *
+   * Mirrors `PackResolutionResult.bypassed` deliberately. skill-audit cannot
+   * use the registry's `gates[].skipReason` convention that records
+   * `--allow-failing-build` and friends, because it is not a `Gate` enum member
+   * and is dispatched outside the Phase 44.1 registry, so it produces no
+   * `gates[]` entry at all. A direct `SUMMARY.gateBypasses` push by settle is
+   * the only route, and this marker is what tells settle to make it. Before
+   * this, the bypass reached stderr and the notifier and nothing else — the
+   * durable artifact could not distinguish a bypassed settle from a clean one.
+   */
+  readonly bypassed?: true;
+  /**
+   * `required skill(s) not invoked: <missing, joined>`. Present iff
+   * {@link SkillAuditResult.bypassed} is. Returned rather than only printed so
+   * settle can record the bypass without re-deriving the message — the same
+   * reason `PackResolutionResult` returns its own.
+   */
+  readonly reason?: string;
 }
 
 /**
@@ -82,6 +107,9 @@ export const runSkillAuditCheck = async (
   }
 
   const effectiveRequired = [...new Set(requiredWithProvenance.map((e) => e.skill))];
+  // Phase 311 (311-01, T1): set ONLY on the bypassed-shortfall branch below, so
+  // the final `pass` return can hand settle the one fact it cannot re-derive.
+  let bypassReason: string | undefined;
   if (effectiveRequired.length > 0 && config) {
     const invoked = ctx.state.skillAudit.invoked;
     if (!config.telemetry.skillInvocations) {
@@ -113,8 +141,20 @@ export const runSkillAuditCheck = async (
         ctx.io.err(
           `skill-audit: --allow-skill-audit-miss set; proceeding past ${missing.length} missing skill(s).\n`,
         );
+        // Recorded here and nowhere else: this is the only branch where a real
+        // shortfall became a pass. The stderr line above is kept exactly as it
+        // was — the durable record supplements the loud notice, never replaces
+        // it.
+        bypassReason = `required skill(s) not invoked: ${missing.join(', ')}`;
       }
     }
   }
-  return { outcome: 'pass', effectiveRequired, requiredWithProvenance };
+  return {
+    outcome: 'pass',
+    effectiveRequired,
+    requiredWithProvenance,
+    // Conditional spread, not `bypassed: undefined` — `exactOptionalPropertyTypes`
+    // rejects explicitly assigning undefined to an optional field.
+    ...(bypassReason !== undefined ? { bypassed: true as const, reason: bypassReason } : {}),
+  };
 };

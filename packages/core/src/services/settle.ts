@@ -1219,6 +1219,29 @@ async function runAnomalyAndSkillAuditChecks(
     }
     state.skillAudit.required = res.effectiveRequired;
     state.skillAudit.provenance = res.requiredWithProvenance;
+    if (res.bypassed === true) {
+      // Phase 311 (311-01, T2): recorded the same way `pack-resolution` is
+      // directly above — a `GateBypass` push, NOT via `anomalyToGateBypass`.
+      // Two independent reasons the anomaly-derived path cannot carry this:
+      // `anomalyToGateBypass` has no `skill-audit-miss` case, and
+      // `emitSkillAuditMiss` writes straight to the notifier, so the event
+      // never joins the `anomalies` array `gateBypassesFromAnomalies` reads.
+      // skill-audit also cannot use the registry's `gates[].skipReason`
+      // convention (which records --allow-failing-build and friends) because
+      // it is deliberately not a `Gate` enum member and runs outside the
+      // Phase 44.1 registry, so it produces no `gates[]` entry at all.
+      // `gate` is a loose `z.string()` on `GateBypassZ`, which is why the
+      // non-`Gate`-enum name is recordable at all. No stderr line is emitted
+      // here: `runSkillAuditCheck` already printed its own, and this push
+      // happens after the generic bypass-echo loop — exactly as
+      // `pack-resolution` documents.
+      gateBypasses.push({
+        gate: 'skill-audit',
+        flag: '--allow-skill-audit-miss',
+        reason: res.reason ?? 'required skill(s) not invoked',
+        severity: 'warn',
+      });
+    }
   }
 
   return { ok: true, anomalies, gateBypasses };
