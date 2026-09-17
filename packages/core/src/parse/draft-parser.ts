@@ -117,7 +117,13 @@ function parseSkillList(v: string): string[] {
     .filter((s) => s.length > 0);
 }
 
-export function parseDraftMd(raw: string): Draft {
+export function parseDraftMd(rawInput: string): Draft {
+  // Phase 310: normalize once, up front, so every \n-based regex below (and
+  // in parseFrontmatter/extractSection/parseTasks/etc.) sees LF uniformly —
+  // a DRAFT.md rewritten in text mode on Windows otherwise fails with a
+  // misleading "missing frontmatter" error, or leaves stray \r characters
+  // embedded in multi-line field values (rec-20260907-003).
+  const raw = rawInput.replace(/\r\n/g, '\n');
   const fm = parseFrontmatter(raw);
   const body = stripFrontmatter(raw);
   const titleMatch = /^#\s+\S+\s+—\s+(.+)$/m.exec(body);

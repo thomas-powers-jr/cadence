@@ -116,6 +116,91 @@ describe('parseDraftMd', () => {
     );
     expect(() => parseDraftMd(bad)).toThrow();
   });
+
+  // Phase 310 (rec-20260907-003) — a DRAFT.md rewritten in text mode on
+  // Windows (Python's default open(..,'w'), PowerShell redirection, some
+  // editors) comes out CRLF-terminated; it must parse the same as LF.
+  it('310-01/AC-1: a CRLF-terminated DRAFT.md parses identically to its LF equivalent, with no stray \\r in any field', () => {
+    const crlf = SAMPLE.replace(/\n/g, '\r\n');
+    const lfResult = parseDraftMd(SAMPLE);
+    const crlfResult = parseDraftMd(crlf);
+    expect(crlfResult).toEqual(lfResult);
+
+    const strings: string[] = [
+      crlfResult.title,
+      crlfResult.objective,
+      ...crlfResult.acceptanceCriteria.flatMap((ac) => [ac.name, ac.given, ac.when, ac.then]),
+      ...crlfResult.tasks.flatMap((t) => [t.name, t.action, t.verify, ...t.files]),
+      ...crlfResult.boundaries,
+    ];
+    for (const s of strings) expect(s).not.toContain('\r');
+  });
+
+  // 310-01/AC-1, continued — SAMPLE alone doesn't discriminate: every parsed
+  // field is single-line and .trim() silently eats a trailing \r, so a
+  // narrower regex-only fix (patch FRONTMATTER_RE, leave the rest untouched)
+  // would also pass the assertions above. A multi-line Objective/AC/task
+  // value is what actually leaves an *interior* \r behind under that
+  // narrower fix — this is the case that justifies normalizing once at
+  // parseDraftMd's entry point instead.
+  it('310-01/AC-1: a CRLF draft with multi-line field values parses identically to its LF equivalent, with no stray \\r', () => {
+    const multilineDraft = `---
+phase: 01-foundation
+id: 01-01
+tier: standard
+status: PENDING
+---
+
+# 01-01 — Demo
+
+## Objective
+
+Make the widget glow.
+It must also handle the wrapped case.
+
+## Acceptance Criteria
+
+### AC-1: Glows
+Given a precondition that spans
+more than one line of prose
+When an action happens
+across two lines too
+Then the outcome is observed
+on its own wrapped second line
+
+## Tasks
+
+### T1: Add glow flag
+- files: \`src/widget.ts\`
+- action: add the boolean glow prop,
+  wired through the render loop
+- verify: vitest passes
+- done: AC-1
+
+## Boundaries
+
+- Do not change \`src/legacy.ts\`
+`;
+    const crlfMultiline = multilineDraft.replace(/\n/g, '\r\n');
+    const lfResult = parseDraftMd(multilineDraft);
+    const crlfResult = parseDraftMd(crlfMultiline);
+    expect(crlfResult).toEqual(lfResult);
+
+    const strings: string[] = [
+      crlfResult.objective,
+      ...crlfResult.acceptanceCriteria.flatMap((ac) => [ac.given, ac.when, ac.then]),
+      ...crlfResult.tasks.flatMap((t) => [t.action]),
+    ];
+    for (const s of strings) expect(s).not.toContain('\r');
+  });
+
+  it('310-01/AC-2: a genuinely missing frontmatter delimiter still throws, LF or CRLF', () => {
+    const noClosingDelimiter = SAMPLE.replace(/^status: PENDING\n---\n/m, 'status: PENDING\n');
+    expect(() => parseDraftMd(noClosingDelimiter)).toThrow(/missing frontmatter/);
+    expect(() => parseDraftMd(noClosingDelimiter.replace(/\n/g, '\r\n'))).toThrow(
+      /missing frontmatter/,
+    );
+  });
 });
 
 // Phase 157 (AC-3, AC-4) — rec-20260704-002: mirrors spec-parser.test.ts's
