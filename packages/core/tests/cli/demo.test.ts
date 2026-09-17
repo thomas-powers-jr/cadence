@@ -156,7 +156,7 @@ describe('cadence demo', () => {
   // own stdin isn't a TTY, so without forcing `isTTY` here this test would
   // pass even if `defaultSteps` regressed to tutorial's TTY-auto-pause
   // default; forcing it makes the "no pauses" half of AC-3 load-bearing.
-  it('278-01/AC-3: default run is fully non-interactive, closes the loop, and removes its temp sandbox', async () => {
+  it('278-01/AC-3, 306-01/AC-3: default run is fully non-interactive, closes the loop, and removes its temp sandbox', async () => {
     const sandboxesBefore = await sandboxCount();
     const cwdCadenceBefore = existsSync(join(process.cwd(), '.cadence'));
     const originalIsTTY = process.stdin.isTTY;
@@ -195,6 +195,10 @@ describe('cadence demo', () => {
     expect(out.indexOf('SETTLE REFUSED')).toBeLessThan(out.indexOf('the loop closed'));
     // The real `node --test` execution is echoed.
     expect(out).toContain('$ node --test');
+    // 306-01/AC-3: a real count summary on this Node version (TAP on 22, spec on 24).
+    expect(out).toMatch(/pass [1-9]\d*\b/);
+    expect(out).not.toContain('no test files found');
+    expect(out).not.toMatch(/could not read a test summary/);
 
     const data = res.data as {
       loopPosition?: string;

@@ -157,7 +157,7 @@ describe('cadence tutorial', () => {
   // isolation, and the offline (no API key) path. Consolidated into a single
   // run: each `runTutorial` spawns several real `node --test` subprocesses, so
   // running it once keeps CI load (and the parallel-load flake budget) down.
-  it('AC-4: full run refuses visibly, then settles — and is offline + ephemeral', async () => {
+  it('AC-4, 306-01/AC-3: full run refuses visibly, then settles — and is offline + ephemeral', async () => {
     expect(process.env.ANTHROPIC_API_KEY).toBeUndefined(); // AC-5: offline path
     const sandboxesBefore = await sandboxCount();
     const cwdCadenceBefore = existsSync(join(process.cwd(), '.cadence'));
@@ -179,6 +179,9 @@ describe('cadence tutorial', () => {
     expect(out).toContain('$ node --test');
     expect(out).toMatch(/tests 0\b/); // before the fix: nothing backs AC-1
     expect(out).toMatch(/pass 1\b/); // after the fix: the real test passes
+    // 306-01/AC-3: the summary is read on Node 22 (TAP) and Node 24 (spec reporter) alike.
+    expect(out).not.toContain('no test files found');
+    expect(out).not.toMatch(/could not read a test summary/);
     // AC-2: the close happened — IDLE + SUMMARY.
     const data = res.data as {
       loopPosition?: string;
