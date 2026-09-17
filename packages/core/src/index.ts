@@ -6,3 +6,5 @@
 // can pin it against host-toolkit's independent copy of the same list —
 // core still never imports host-adapter code in the other direction.
 export { CLAUDE_CODE_EXPECTED_HOOKS } from './doctor/host-hooks.js';
+// Phase 308: same pattern, for `packages/host-codex`'s analogous drift test.
+export { CODEX_EXPECTED_HOOKS } from './doctor/host-hooks.js';

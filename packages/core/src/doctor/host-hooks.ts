@@ -59,17 +59,16 @@ export function hasStaleScopeManagedHook(value: unknown): boolean {
  * AND current — i.e. {@link hasManagedCadenceMarker} is true and
  * {@link hasStaleScopeManagedHook} is false anywhere in the document.
  *
- * Existence-only, deliberately: still shared by `checkCodexHooks` and the
- * `config explain` gather, both of which stay existence-based after phase
- * 295. `checkHostHooks` (Claude Code) no longer relies on this alone —
- * phase 295 found this repo's own `.claude/settings.json` missing 2 of 7
- * managed entries while this predicate reported `true` throughout, so
- * `checkHostHooks` now additionally runs {@link findMissingManagedHooks}
- * first. That divergence (one check now verifies completeness, two still
- * verify only existence) is intentional and recorded, not an oversight —
- * `checkCodexHooks`'s identical gap is deferred (`.codex/hooks.json`'s
- * shape and `host-codex`'s expected set differ genuinely) and filed as its
- * own recommendation rather than fixed here.
+ * Existence-only, deliberately, for the one remaining caller that still
+ * uses it alone: the `config explain` gather. `checkHostHooks` (Claude Code,
+ * phase 295) and `checkCodexHooks` (Codex, phase 308) no longer rely on this
+ * alone — phase 295 found this repo's own `.claude/settings.json` missing 2
+ * of 7 managed entries while this predicate reported `true` throughout, so
+ * both checks now additionally run {@link findMissingManagedHooks} first
+ * (against `CLAUDE_CODE_EXPECTED_HOOKS` / `CODEX_EXPECTED_HOOKS`
+ * respectively). That divergence (two checks verify completeness, `config
+ * explain` still verifies only existence) is intentional and recorded, not
+ * an oversight.
  *
  * Phase 250 (AC-5): a managed marker alone is no longer sufficient — an
  * entry installed before the npm-scope rename still carries
@@ -114,6 +113,24 @@ export const CLAUDE_CODE_EXPECTED_HOOKS: readonly ExpectedManagedHook[] = [
   { event: 'Stop', matcher: null },
   { event: 'SubagentStop', matcher: null },
   { event: 'SubagentStart', matcher: null },
+];
+
+/**
+ * Core's own independent copy of `@thomas-powers-jr/cadence-host-toolkit`'s
+ * `CODEX_EXPECTED_HOOKS` (phase 308). Core cannot import host-toolkit or any
+ * host-adapter package — this list is deliberately duplicated, not imported,
+ * and pinned against the host-toolkit original by a drift test in
+ * `packages/host-codex` (which depends on both). If a future hook event is
+ * added to the Codex installer without updating this list (or vice versa),
+ * that test fails instead of the two silently disagreeing forever.
+ */
+export const CODEX_EXPECTED_HOOKS: readonly ExpectedManagedHook[] = [
+  { event: 'SessionStart', matcher: null },
+  { event: 'UserPromptSubmit', matcher: null },
+  { event: 'PreToolUse', matcher: '^apply_patch$' },
+  { event: 'PostToolUse', matcher: '^apply_patch$' },
+  { event: 'Stop', matcher: null },
+  { event: 'SubagentStop', matcher: null },
 ];
 
 /**

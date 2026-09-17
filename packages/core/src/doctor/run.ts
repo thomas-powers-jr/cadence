@@ -56,7 +56,12 @@ import {
   type DoctorEnv,
   type DoctorReport,
 } from './model.js';
-import { hasManagedCadence, hasStaleScopeManagedHook, findMissingManagedHooks } from './host-hooks.js';
+import {
+  hasManagedCadence,
+  hasStaleScopeManagedHook,
+  findMissingManagedHooks,
+  CODEX_EXPECTED_HOOKS,
+} from './host-hooks.js';
 
 function checkNode(env: DoctorEnv): DoctorCheck {
   const r = checkNodeMajor(env.nodeVersion);
@@ -495,6 +500,23 @@ async function checkCodexHooks(root: string): Promise<DoctorCheck> {
   }
   try {
     const parsed = JSON.parse(await readFile(hooksPath, 'utf8'));
+    // Phase 308: completeness before existence, mirroring phase 295's
+    // checkHostHooks fix. A single non-stale marker used to be sufficient
+    // (hasManagedCadence below); that let a `.codex/hooks.json` missing 5 of
+    // 6 managed entries still report `ok`.
+    const missing = findMissingManagedHooks(parsed, CODEX_EXPECTED_HOOKS);
+    if (missing.length > 0) {
+      const named = missing
+        .map((m) => (m.matcher === null ? m.event : `${m.event} (matcher: ${m.matcher})`))
+        .join(', ');
+      return fail(
+        'codex-hooks',
+        'error',
+        `${missing.length} managed hook ${missing.length === 1 ? 'entry is' : 'entries are'} missing from .codex/hooks.json: ${named}.`,
+        'Run `cadence doctor --fix --wire-host` to reinstall the Codex lifecycle hooks.',
+        'codex-host-install',
+      );
+    }
     if (hasManagedCadence(parsed)) {
       return pass('codex-hooks', 'CADENCE-managed Codex hook entries are present.');
     }

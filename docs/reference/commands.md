@@ -1053,7 +1053,7 @@ v1 check set:
 | `git-hooks` | *(git repos)* `core.hooksPath` resolves to `.githooks` (the pre-push gate) | warning |
 | `host-hooks` | *(if `.claude/settings.json`)* every managed hook entry the installer writes is present — completeness, not just marker existence (phase 295); a stale-scope managed entry (present, outdated npm scope) is still `warning` | error / warning |
 | `host-commands` | *(if `.claude/commands/`)* every managed `cadence-*.md` run-line is portable (no machine-absolute path) | warning |
-| `codex-hooks` | *(if Codex readiness artifacts exist)* `.codex/hooks.json` contains CADENCE-managed hook entries | warning |
+| `codex-hooks` | *(if Codex readiness artifacts exist)* every managed hook entry the installer writes is present — completeness, not just marker existence (phase 308); a stale-scope managed entry (present, outdated npm scope) is still `warning` | error / warning |
 | `codex-prompts` | *(if Codex readiness artifacts exist)* `$CODEX_HOME/prompts/cadence-*.md` contains CADENCE-managed prompt commands | warning |
 | `codex-agents-md` | *(if Codex readiness artifacts exist)* `AGENTS.md` contains the managed CADENCE instruction block | warning |
 | `codex-cadence-command` | *(if Codex readiness artifacts exist)* `cadence` is available on `PATH` for Codex prompt commands | warning |

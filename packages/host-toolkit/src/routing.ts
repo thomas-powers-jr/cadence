@@ -43,6 +43,29 @@ export const CLAUDE_CODE_EXPECTED_HOOKS: readonly ExpectedManagedHook[] = [
   { event: 'SubagentStart', matcher: null },
 ];
 
+/**
+ * Canonical list of every managed hook entry Codex's `install.ts` (in
+ * `packages/host-codex`) writes into `.codex/hooks.json` (phase 308).
+ * Single source of truth, mirroring {@link CLAUDE_CODE_EXPECTED_HOOKS}'s
+ * phase-295 pattern: `install.ts` builds its `desired` map from this list,
+ * and `cadence doctor`'s `checkCodexHooks` (core, which cannot import this
+ * package) holds its own independent copy, pinned against this one by a
+ * drift test in `packages/host-codex` (which depends on both). Codex has
+ * one edit tool (`apply_patch`, unlike Claude Code's four) and no
+ * Skill-tool or `SubagentStart` mapping — the matcher is the anchored
+ * literal `'^apply_patch$'`, deliberately not derived from this module's
+ * own `EDIT_TOOL_MATCHER` (a different, Claude-Code-shaped constant) or
+ * from `packages/host-codex`'s same-named one.
+ */
+export const CODEX_EXPECTED_HOOKS: readonly ExpectedManagedHook[] = [
+  { event: 'SessionStart', matcher: null },
+  { event: 'UserPromptSubmit', matcher: null },
+  { event: 'PreToolUse', matcher: '^apply_patch$' },
+  { event: 'PostToolUse', matcher: '^apply_patch$' },
+  { event: 'Stop', matcher: null },
+  { event: 'SubagentStop', matcher: null },
+];
+
 const EVENT_TABLE: Record<string, AbstractEvent> = {
   SessionStart: 'session-start',
   UserPromptSubmit: 'user-prompt',
