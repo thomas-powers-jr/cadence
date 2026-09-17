@@ -227,8 +227,14 @@ export interface SettleContext {
   /** Memoized DRAFT.md mtime in ms (Phase 39.2, for the draft-read gate);
    *  `null` when there is no DRAFT or the stat fails. */
   draftMtimeMs(): Promise<number | null>;
-  /** Memoized `git diff --no-color HEAD -- <touchedFiles>` (Phase 39.4);
-   *  empty string on any error. Shared by code-review + security-audit gates. */
+  /** Memoized `git diff --no-color <merge-base> -- <touchedFiles>` (Phase 39.4;
+   *  merge-base basis since phase 307 / issue #501), where the merge-base is
+   *  with `origin/<phaseGuard.integrationRef>` or the local ref, so committed
+   *  phase work is included (tracked files only; never-added files are not).
+   *  Falls back to the `HEAD` diff when no base
+   *  resolves, with a stderr notice (see `services/settle-diff.ts`); empty
+   *  outside a git work tree. Shared by deep-verify, code-review and
+   *  security-audit. */
   diff(): string;
   readonly verifiers: VerifierPorts;
   readonly emit: EmitPort;

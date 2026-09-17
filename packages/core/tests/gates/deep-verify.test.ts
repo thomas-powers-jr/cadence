@@ -67,6 +67,36 @@ describe('runDeepVerifyGate', () => {
     );
   });
 
+  it('307-01/AC-4: a refusal reports the diff byte count and declared file count the verifier was given', async () => {
+    const errs: string[] = [];
+    const res = await runDeepVerifyGate(
+      ctx({
+        errs,
+        diff: 'x'.repeat(43),
+        verify: async () => ({ verdicts: { 'AC-1': { pass: false, reason: 'nope' } }, provider: 'mock' }),
+      }),
+    );
+    expect(res.outcome).toBe('refuse');
+    expect(errs.join('')).toMatch(/deep-verify: the verifier was given 43 bytes of diff across \d+ declared file\(s\)\./);
+
+    const truncatedErrs: string[] = [];
+    await runDeepVerifyGate(
+      ctx({
+        errs: truncatedErrs,
+        diff: 'y'.repeat(5000),
+        diffCapBytes: 1000,
+        verify: async () => ({ verdicts: { 'AC-1': { pass: false, reason: 'nope' } }, provider: 'mock' }),
+      }),
+    );
+    expect(truncatedErrs.join('')).toMatch(/truncated from 5000 bytes by verifier\.diffCapBytes/);
+    expect(truncatedErrs.join('')).not.toMatch(/was given 5000 bytes/);
+    // The persisted refusal reason is unchanged.
+    expect(res.reason).toBe(
+      'settle run --deep refused: the independent verifier rejected one or more ACs. ' +
+        'Pass --force to settle anyway, or address the gaps.',
+    );
+  });
+
   // AC-2: failing verdict but --force → pass (still records deepVerify)
   it('passes a failing verdict under --force', async () => {
     const res = await runDeepVerifyGate(
