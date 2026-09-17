@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.67.2] - 2026-09-17
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.67.2`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Fixed
+
+- **`parseDraftMd` no longer rejects a CRLF-terminated `DRAFT.md` with a misleading "missing frontmatter" error.** A `DRAFT.md` rewritten in text mode on Windows (PowerShell redirection, Python's `open(..,'w')`, some editors) comes out `\r\n`-terminated; the frontmatter delimiter regex only ever matched bare `\n`. It now normalizes `\r\n` to `\n` once at `parseDraftMd`'s entry point, before any section/frontmatter regex runs, so a CRLF draft parses field-for-field identically to its LF equivalent (no stray `\r` left in any string field), while a genuinely malformed frontmatter delimiter still throws the same error as before. Closes `rec-20260907-003`. (Phase `310`, #512.)
+- **`cadence resume` no longer silently serves a stale handoff when `state.json`'s `lastHandoff` pointer names a file that still exists but is no longer the freshest session doc.** `locateFreshestHandoff` previously short-circuited on any existing pointer without comparing it against other `SESSION-*.md` docs in the handoff directory. It now ranks the pointer alongside every doc by `generated_at` → filename date → mtime, and prints a loud notice when a fresher doc supersedes it. Closes `rec-20260917-001`. (Phase `309`, #511.)
+- **`cadence doctor`'s `codex-hooks` check verifies completeness, not just marker existence.** It previously passed on any single `_managedBy: "cadence"` marker anywhere in `.codex/hooks.json`, letting a partial install report `ok` indefinitely. It now reports `error` when any of the six expected managed hook entries are missing, naming every gap — mirroring the `host-hooks` check's phase-295 shape. The expected-hook list is single-sourced in `@thomas-powers-jr/cadence-host-toolkit` (`CODEX_EXPECTED_HOOKS`). Closes `rec-20260823-006`. (Phase `308`, #510.)
+
 ## [1.67.1] - 2026-09-16
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.67.1`. Per-package bumps managed by changesets, lockstep across all five published packages.
