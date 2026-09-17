@@ -1,0 +1,24 @@
+{
+  "draftId": "310-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Normalize CRLF->LF once at parseDraftMd entry point. Independent review (fresh-context Agent, opus) found one gap (AC-1 test didn't discriminate a narrower regex-only fix); strengthened with a multi-line CRLF fixture, confirmed anti-vacuous by probing the narrower variant (fails) and the real fix (passes). Full pnpm turbo lint/typecheck/test/build green (24/24).",
+      "touchedFiles": [
+        ".claude/scheduled_tasks.lock",
+        "packages/core/src/parse/draft-parser.ts",
+        "packages/core/tests/parse/draft-parser.test.ts",
+        ".agents/skills/source-command-cadence-progress/SKILL.md",
+        ".agents/skills/source-command-cadence-resume/SKILL.md",
+        ".changeset/draft-frontmatter-crlf-rejection.md",
+        "docs/handoffs/HANDOFF-demo-progressive-disclosure.md",
+        "docs/handoffs/cadence-audit-20260724-handoff.md",
+        "docs/tutorial-rebuild-brief.md"
+      ],
+      "updatedAt": "2026-09-17T19:01:02.754Z",
+      "execution": "inline",
+      "isolation": "none",
+      "modelClass": "standard"
+    }
+  }
+}

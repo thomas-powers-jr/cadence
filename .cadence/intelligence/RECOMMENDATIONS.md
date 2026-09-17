@@ -1362,21 +1362,6 @@ docs/packs-design.md §7 Slice 4 (marked 'stretch -- may land after this arc clo
 
 pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is ["src/**/*"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.
 
-## rec-20260907-003 — The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: parsers, dx
-- evidence: Phase 296: a Python text-mode rewrite of 296-01-DRAFT.md converted LF to CRLF; draft check reported 'missing frontmatter' until the file was normalised back to LF.
-- next: cadence milestone propose
-
-A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\r\n' rather than '---\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.
-
 ## rec-20260907-006 — deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses
 
 - status: candidate

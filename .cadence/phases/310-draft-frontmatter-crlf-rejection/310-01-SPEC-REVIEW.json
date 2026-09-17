@@ -1,0 +1,22 @@
+{
+  "specId": "310-01",
+  "converged": false,
+  "attempts": 0,
+  "maxAttempts": 3,
+  "history": [
+    {
+      "at": "2026-09-17T18:33:59.215Z",
+      "pass": false,
+      "findingsCount": 0,
+      "provider": "mock",
+      "providerSelection": "configured",
+      "verdict": "abstained",
+      "mockAbstained": true
+    }
+  ],
+  "pass": false,
+  "provider": "mock",
+  "providerSelection": "configured",
+  "findings": 0,
+  "at": "2026-09-17T18:33:59.215Z"
+}

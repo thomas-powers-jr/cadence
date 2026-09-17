@@ -2438,32 +2438,6 @@
       "updatedAt": "2026-09-07T22:06:50.588Z"
     },
     {
-      "id": "rec-20260907-003",
-      "title": "The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings",
-      "summary": "A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\\r\\n' rather than '---\\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "parsers",
-        "dx"
-      ],
-      "affectedFiles": [],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260907-003"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-07T22:06:51.167Z",
-      "updatedAt": "2026-09-07T22:06:51.167Z"
-    },
-    {
       "id": "rec-20260907-006",
       "title": "deep-verify cannot accept command output as evidence, so dependency, security and config phases settle almost entirely on evidence-floor bypasses",
       "summary": "The deep-verify gate judges an AC only from the diff plus linked tests. That works for a code phase, where the claim and the evidence are both in the diff. It structurally cannot work for a phase whose acceptance criteria are about runtime state -- a lockfile resolution, an audit exit code, a gate script's output, a whole-suite sweep. Phase 297 refused 5 of 6 ACs for exactly this reason, each refusal individually correct: 'No referenced test or execution proves scripts/check-lockfile-overrides.mjs exits zero', 'No build, typecheck, lint, or full-test results are supplied'. Phase 296 hit the same wall on its AC-6. The operator's only recourse is --evidence-floor-bypass, which means the highest-integrity gate in the tool is routinely bypassed on precisely the phases where a mistake is most costly. Worth considering: a way for a task to attach captured command output (stdout, stderr, exit code) as first-class evidence the verifier reads alongside the diff, so 'I ran this and it exited zero' becomes checkable rather than bypassable.",
@@ -9658,10 +9632,40 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "309-resume-handoff-pointer-staleness",
-      "createdAt": "2026-09-17T13:45:59.595Z",
-      "updatedAt": "2026-09-17T17:19:20.181Z",
       "shippedRef": "phase 309, PR TBD",
       "archivedAt": "2026-09-17T17:19:20.181Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-17T13:45:59.595Z",
+      "updatedAt": "2026-09-17T17:19:20.181Z"
+    },
+    {
+      "id": "rec-20260907-003",
+      "title": "The DRAFT frontmatter parser rejects CRLF, failing with 'missing frontmatter' and no hint about line endings",
+      "summary": "A DRAFT.md written with CRLF line endings fails 'cadence draft check' with 'DRAFT.md missing frontmatter'. The file has correct frontmatter; the delimiter is just '---\\r\\n' rather than '---\\n'. On Windows this is easy to hit -- any tool that rewrites a draft in text mode (Python's default open(..,'w'), PowerShell redirection, some editors) produces CRLF. The error names the wrong cause and gives the operator nothing to act on. Either accept CRLF in the delimiter match or say 'frontmatter delimiter not found; the file uses CRLF line endings'.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260907-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "310-draft-frontmatter-crlf-rejection",
+      "createdAt": "2026-09-07T22:06:51.167Z",
+      "updatedAt": "2026-09-17T19:02:53.719Z",
+      "shippedRef": "phase 310, PR TBD",
+      "archivedAt": "2026-09-17T19:02:53.719Z",
       "archiveReason": "shipped"
     }
   ]

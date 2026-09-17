@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "draftId": "310-01",
+  "completedAt": "2026-09-17T19:03:02.126Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Normalize CRLF->LF once at parseDraftMd entry point. Independent review (fresh-context Agent, opus) found one gap (AC-1 test didn't discriminate a narrower regex-only fix); strengthened with a multi-line CRLF fixture, confirmed anti-vacuous by probing the narrower variant (fails) and the real fix (passes). Full pnpm turbo lint/typecheck/test/build green (24/24).",
+      "execution": "inline",
+      "isolation": "none",
+      "modelClass": "standard"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [],
+    "provenance": []
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 5,
+    "sessionSubagentSpawns": 1
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 2,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "a14de75c8a212db39996f70dce6dd936ce5dacd737f7d82041385c64f08548d4"
+  }
+}
