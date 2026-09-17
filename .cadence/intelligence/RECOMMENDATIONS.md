@@ -1407,3 +1407,35 @@ The house pattern for satisfying an assertion-mode, phase-qualified coverage tok
 - next: cadence milestone propose
 
 Phase 305 fixed issue #500 by moving handleUserPrompt's tokenUtilization bump onto the revision-exempt bumpSessionCounter path. Other hook handlers still commit through the compare-and-swap path: handlePostToolEdit (edit with files while a task is active), handleSubagentResult (SubagentStop), and handleSkillInvoke (first-time Skill use). A host-cli verifier child (claude -p / codex exec spawned by settle, spec approve, or code-review) that edits, spawns a subagent, or invokes a skill would still advance state.json's revision mid-command and refuse the parent's commit. Candidate hardening: the host-cli transport sets CADENCE_HOST_CLI_CHILD=1 on its spawned child and HookDispatcher treats verifier children as observers that do not write loop state. Two things must be settled first. (1) Unverified premise: that Claude Code and Codex pass inherited environment variables through to hook subprocesses (dec-20260822-012 covers dispatched subagents, not hooks); verify with a sentinel variable and one real spawn before building. (2) A blanket hook no-op would also silently disable handlePreToolEdit's boundaryEnforcement=block refusal for anything running under the marker, so any no-op must be write-scoped and loud, not a silent early return.
+
+## rec-20260917-003 — Packs Slice 6: PackManifestZ has no slot for a distributed-but-not-required skill, so a pack cannot ship an optional skill
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packs, skills
+- files: packages/types/src/pack.ts, .cadence/packs/cadence/core-skills/pack.json, docs/packs-design.md
+- evidence: PackManifestZ read in full at packages/types/src/pack.ts: .strict() object with id, version, integrity, skillAudit{required}.strict().optional, gates, commands. decision list --filter-text skill returns dec-20260822-023 (payload allowlist = skillAudit.required + gates[].add + declared commands) and dec-20260822-022 (skills declared by name only). Live manifest .cadence/packs/cadence/core-skills/pack.json declares commands only. Measured 2026-09-17 @ main a9743257.
+- next: cadence milestone propose
+
+D-BH of the expansion-arc-1 handoff asks whether a pack can declare a skill it distributes without requiring it on every phase. It cannot. PackManifestZ (packages/types/src/pack.ts) is .strict() with exactly six keys: id, version, integrity, skillAudit.required, gates, commands. dec-20260822-023 locks the payload allowlist to skillAudit.required + gates[].add + declared commands, and dec-20260822-022 locks packs to declaring skills by name only (never shipping skill bodies). So the only way to name a skill in a manifest is skillAudit.required, which is non-conditional (dec/phase 294 D-AW) and therefore refuses any phase that did not invoke it. commands[] is for slash commands, and skills are not commands. A pack that wants to distribute an optional skill (the systematic-debugging case) has no expressible form: it must either require it on every phase or reference it only from prose documentation. This is a mechanism gap to design deliberately, not to build inline during an expansion phase.
+
+## rec-20260917-004 — Three settle bypass flags leave no durable trace in SUMMARY; the bypass trail is split across gateBypasses[] and gates[].skipReason with no single field to read
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, settle, audit-trail
+- files: packages/core/src/services/settle.ts, packages/core/src/checks/skill-audit.ts, packages/core/src/gates/registry.ts, packages/core/src/gates/draft-read.ts, packages/core/src/gates/structural-verifier.ts
+- evidence: 13 --allow-*/--force options registered in cli/commands/settle.ts:37-100. Corpus scan of 322 SUMMARY.json records: 18 carry a gateBypasses entry, with only 4 distinct flags ever recorded (--evidence-floor-bypass 19, --allow-auto-complex 7, --allow-missing-coverage 6, --force 3). Independent corpus scan of gates[].skipReason matching 'bypassed via': --allow-missing-coverage 6, --allow-failing-build 4, --allow-boundary-scan-failure 1 — proving path (2) is real and durable. Zero corpus occurrences of the three path-(3) flags in either field. Measured 2026-09-17 @ main a9743257 (v1.67.2).
+- next: cadence milestone propose
+
+settle's 13 bypass flags record in three different ways, and three record nowhere. (1) Five reach SUMMARY.gateBypasses[]: --force, --allow-missing-coverage, --allow-verifier-failure, --allow-auto-complex (all via anomalyToGateBypass, services/settle.ts:187-221) and --allow-unresolvable-pack (direct push, settle.ts:1210). (2) Four reach SUMMARY.gates[] as status=skipped with skipReason 'bypassed via <flag>': --allow-failing-build, --allow-boundary-scan-failure (gates/registry.ts:285/288) and --allow-code-review-failure, --allow-security-audit-failure (registry.ts:300-310, reviewVerifierFailure path). (3) Three are recorded NOWHERE: --allow-skill-audit-miss, --allow-stale-draft, --allow-open-tasks. --allow-phase-collision is out of settle scope (draft-new/spec). The split itself is the core problem: a reader auditing whether a settle was bypassed must know to check two unrelated fields, which is why gap (3) stayed invisible. Per-flag detail for (3): --allow-skill-audit-miss cannot use the skipReason pattern at all, because skill-audit is deliberately NOT a Gate enum member and is dispatched outside the registry (see the header comment in checks/skill-audit.ts), so it produces no gates[] entry; it needs a direct gateBypasses push exactly like pack-resolution got at settle.ts:1201-1213. It is doubly unrecorded: anomalyToGateBypass has no skill-audit-miss case, AND emitSkillAuditMiss writes straight to notifier.notify() so the event never joins the anomalies array that gateBypassesFromAnomalies consumes. --allow-stale-draft (gates/draft-read.ts:16) and --allow-open-tasks (gates/structural-verifier.ts:20) both return {outcome:'pass'} with no flags, so the gate records as an ordinary pass, indistinguishable from one that genuinely passed; --allow-open-tasks additionally emits no stderr line at all, unlike every other bypass. Mitigating fact, stated so this is not overread: a SUMMARY's taskResults still shows non-terminal task statuses, so the open-task CONDITION remains inferable even though the BYPASS is not recorded. Scope note: these three emit severity warn, and an all-warn gateBypasses array never triggers the assurance cap (assurance-record.ts:262), so this is an audit-trail gap, not cap-evasion. Supersedes rec-20260917-002 (rejected), which overstated the gap as 8 flags.
