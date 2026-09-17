@@ -86,7 +86,7 @@ export function registerSettleCommand(program: Command): void {
     )
     .option(
       '--allow-skill-audit-miss',
-      'do not refuse when required skills were not invoked; emit a warn anomaly (bypassed:true) and settle anyway (Phase 34.1)',
+      'do not refuse when required skills were not invoked; emit a warn anomaly (bypassed:true), record the bypass in SUMMARY.gateBypasses and settle anyway (Phase 34.1; recorded since Phase 311)',
     )
     .option(
       '--allow-boundary-scan-failure',

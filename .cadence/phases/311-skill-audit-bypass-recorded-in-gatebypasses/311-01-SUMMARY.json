@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 2,
+  "draftId": "311-01",
+  "completedAt": "2026-09-17T23:05:15.851Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "SkillAuditResult gains bypassed?:true + reason?:string, set only on the bypassed-shortfall branch; mirrors PackResolutionResult. Confirmed the branch gates on allowSkillAuditMiss alone (no --force disjunction). 5 new unit tests; the two asserting bypassed===true failed before the change."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "settle.ts pushes {gate:'skill-audit', flag:'--allow-skill-audit-miss', reason, severity:'warn'} after runSkillAuditCheck, beside the pack-resolution push. No schema change. 4 e2e tests drive the real CLI and read the real SUMMARY.json; AC-1 asserts exactly one entry."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "docs/cli.md + docs/reference/commands.md rows updated, plus the registered --allow-skill-audit-miss option description (independent review caught that --help would otherwise understate the docs). Patch changeset added. Residuals appended to rec-20260917-004 and carried forward as live rec-20260917-005."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "pnpm turbo run lint typecheck test build: 24/24 tasks successful, exit 0, 2m6s. Core 457 test files passed / 1 skipped. Diff confined to the DRAFT's declared files (as amended). Two independent Opus reviews: zero Critical."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [
+      "phase-build",
+      "release-cut",
+      "handoff"
+    ],
+    "provenance": []
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 40,
+    "sessionSubagentSpawns": 5
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 5,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "67d9077787ce9016c3b6b46b15cd6e98b9f4c628a06b74ff6fdb819d73dc2a45"
+  }
+}

@@ -2536,6 +2536,34 @@
       "kind": "note",
       "summary": "13 --allow-*/--force options registered in cli/commands/settle.ts:37-100. Corpus scan of 322 SUMMARY.json records: 18 carry a gateBypasses entry, with only 4 distinct flags ever recorded (--evidence-floor-bypass 19, --allow-auto-complex 7, --allow-missing-coverage 6, --force 3). Independent corpus scan of gates[].skipReason matching 'bypassed via': --allow-missing-coverage 6, --allow-failing-build 4, --allow-boundary-scan-failure 1 — proving path (2) is real and durable. Zero corpus occurrences of the three path-(3) flags in either field. Measured 2026-09-17 @ main a9743257 (v1.67.2).",
       "createdAt": "2026-09-17T22:21:58.607Z"
+    },
+    {
+      "id": "ev-20260917-006",
+      "recommendationId": "rec-20260917-004",
+      "kind": "note",
+      "summary": "RESIDUAL after phase 311. Phase 311 closes only the --allow-skill-audit-miss half: runSkillAuditCheck now reports the bypass and settle pushes a {gate:'skill-audit', flag:'--allow-skill-audit-miss', reason, severity:'warn'} entry. Three gaps remain open and are NOT closed by that phase: (1) --allow-stale-draft and (2) --allow-open-tasks still return {outcome:'pass'} with no flags, so each records as an ordinary gate pass, and --allow-open-tasks still emits no stderr line at all; (3) the skill-audit unenforceable path (telemetry.skillInvocations false) remains absent from the durable artifact — phase 311 deliberately does NOT record a bypass there, because naming '--allow-skill-audit-miss' would cite a flag the operator never passed, so that path needs its own representation rather than reuse of the bypass record. The split-trail design question (gateBypasses[] vs gates[].skipReason, with no single field to read) is likewise untouched.",
+      "createdAt": "2026-09-17T22:48:16.728Z"
+    },
+    {
+      "id": "ev-20260917-007",
+      "recommendationId": "rec-20260917-005",
+      "kind": "note",
+      "summary": "Successor to rec-20260917-004, which phase 311 converts and will retire on settle via runAdvanceConvertedToSettlePendingForPhase (intelligence/store/recommendations.ts:634-636, exact-matches status=converted && convertedToPhaseId). Verified 2026-09-17 that rec-20260917-004 was the ONLY open ledger item naming these residuals, so without this rec they would survive only as an evidence note on a shipped record. Corpus basis unchanged from rec-20260917-004: 322 SUMMARY.json records, zero occurrences of these flags in either gateBypasses[] or gates[].skipReason.",
+      "createdAt": "2026-09-17T23:00:23.602Z"
+    },
+    {
+      "id": "ev-20260917-008",
+      "recommendationId": "rec-20260917-004",
+      "kind": "note",
+      "summary": "POINTER: the residuals listed in ev-20260917-006 are carried forward as rec-20260917-005, filed 2026-09-17 before phase 311 settles. When this rec is promoted to shipped, only the --allow-skill-audit-miss third was closed; --allow-stale-draft, --allow-open-tasks, the skill-audit unenforceable path, and the split gateBypasses[]/gates[].skipReason design question all remain OPEN on rec-20260917-005. Do not read a shipped status here as closing them.",
+      "createdAt": "2026-09-17T23:00:30.684Z"
+    },
+    {
+      "id": "ev-20260917-009",
+      "recommendationId": "rec-20260917-005",
+      "kind": "note",
+      "summary": "COMPLETENESS: a fourth unrecorded skill-audit path, missed in the original residual list. When config is null (loadConfig failed), checks/skill-audit.ts:113 skips enforcement wholesale — the effective required set is still computed so SUMMARY stays truthful, but nothing records that enforcement did not run. Same shape as the telemetry-off path and correct to leave out of gateBypasses for the same reason (no operator flag was passed), but it belongs in whatever representation the unenforceable/skipped paths eventually get. Identified by independent review of phase 311, 2026-09-17.",
+      "createdAt": "2026-09-17T23:01:31.528Z"
     }
   ]
 }

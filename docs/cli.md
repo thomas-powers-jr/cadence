@@ -265,7 +265,7 @@ gate when the active profile would normally enforce it.
 | `--allow-verifier-failure` | `deep-verify` transport errors | Record failure but don't refuse |
 | `--allow-code-review-failure` | `code-review` HIGH-severity findings | Record findings but settle anyway |
 | `--allow-security-audit-failure` | `security-audit` CRITICAL findings | Record findings but settle anyway |
-| `--allow-skill-audit-miss` | `skill-audit` | Required skills were not invoked; emit a warn anomaly and settle anyway |
+| `--allow-skill-audit-miss` | `skill-audit` | Required skills were not invoked; emit a warn anomaly, record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 34.1; recorded since Phase 311) |
 | `--allow-unresolvable-pack` | `pack-resolution` | An enabled pack failed to resolve; record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 291) |
 | `--no-interactive` | `interactive-verdict` | Opt out of the interactive gate (profile-level bypass) |
 | `--allow-auto-complex` | `auto × complex` soft cap | Override the soft cap |
