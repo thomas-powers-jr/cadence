@@ -11,7 +11,7 @@ import {
   CONDUCTION_DRIFT_STREAK_WARN_THRESHOLD,
 } from '../../src/doctor/run.js';
 import { pass, fail, rollup, type DoctorCheck } from '../../src/doctor/model.js';
-import { writeCompleteManagedSettings } from './host-hooks-fixture.js';
+import { writeCompleteManagedSettings, writeCompleteManagedCodexHooks } from './host-hooks-fixture.js';
 import { severityMark } from '../../src/cli/commands/doctor.js';
 import { settleService } from '../../src/services/settle.js';
 import type { CommandIO } from '../../src/services/io.js';
@@ -387,16 +387,6 @@ describe('runDoctor — host-hooks/codex-hooks stale-scope message honesty (phas
     );
   }
 
-  async function writeCodexHooksFile(root: string, command: string): Promise<void> {
-    await mkdir(join(root, '.codex'), { recursive: true });
-    await writeFile(
-      join(root, '.codex', 'hooks.json'),
-      JSON.stringify({
-        hooks: { Stop: [{ _managedBy: 'cadence', hooks: [{ type: 'command', command }] }] },
-      }),
-    );
-  }
-
   // Phase 295: a complete managed set (not a lone Stop entry) with one entry
   // stale, so the new completeness check (which runs first) doesn't mask
   // the staleness message this test actually exercises.
@@ -445,9 +435,15 @@ describe('runDoctor — host-hooks/codex-hooks stale-scope message honesty (phas
     expect(findCheck(report.checks, 'host-hooks')?.severity).toBe('ok');
   });
 
+  // Phase 308: a complete managed set (not a lone Stop entry) with one entry
+  // stale, so the completeness check (which runs first) doesn't mask the
+  // staleness message this test actually exercises — mirrors how the
+  // host-hooks version of this test (above) already handles it.
   it('250-01/AC-5: codex-hooks: a stale-scope managed entry is flagged stale/needs-reinstall, not "not found", and remediation names --fix --wire-host', async () => {
     active = await tempRepo({ initialized: true, projectName: 'doc-codex-hooks-stale' });
-    await writeCodexHooksFile(active.root, STALE_CODEX_COMMAND);
+    await writeCompleteManagedCodexHooks(active.root, [
+      { event: 'Stop', matcher: null, command: STALE_CODEX_COMMAND },
+    ]);
 
     const report = await runDoctor(active.root, HEALTHY_ENV);
     const check = findCheck(report.checks, 'codex-hooks');
@@ -460,7 +456,10 @@ describe('runDoctor — host-hooks/codex-hooks stale-scope message honesty (phas
     expect(check?.remediation).toMatch(/cadence doctor --fix --wire-host/);
   });
 
-  it('250-01/AC-5: codex-hooks: a genuinely absent managed entry still reports "not found", distinct from the stale-scope message', async () => {
+  // Phase 308: a fully-empty hooks object is the most extreme incomplete
+  // install (0 of 6 expected entries) — now `error`, naming every missing
+  // entry, mirroring host-hooks' phase-295 equivalent above.
+  it('250-01/AC-5: codex-hooks: a genuinely absent managed entry reports error naming what is missing, distinct from the stale-scope message', async () => {
     active = await tempRepo({ initialized: true, projectName: 'doc-codex-hooks-absent' });
     await mkdir(join(active.root, '.codex'), { recursive: true });
     await writeFile(join(active.root, '.codex', 'hooks.json'), JSON.stringify({ hooks: {} }));
@@ -468,9 +467,9 @@ describe('runDoctor — host-hooks/codex-hooks stale-scope message honesty (phas
     const report = await runDoctor(active.root, HEALTHY_ENV);
     const check = findCheck(report.checks, 'codex-hooks');
 
-    expect(check?.severity).toBe('warning');
+    expect(check?.severity).toBe('error');
     expect(check?.fixId).toBe('codex-host-install');
-    expect(check?.detail).toMatch(/No CADENCE-managed/);
+    expect(check?.detail).toMatch(/SessionStart/);
     expect(check?.detail).not.toMatch(/outdated npm scope/i);
   });
 });

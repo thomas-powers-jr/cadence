@@ -1,0 +1,48 @@
+{
+  "draftId": "308-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/host-codex/src/install.ts",
+        "packages/host-toolkit/src/routing.ts"
+      ],
+      "updatedAt": "2026-09-17T14:58:56.202Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/reference/commands.md",
+        "packages/core/src/doctor/host-hooks.ts",
+        "packages/core/src/doctor/run.ts"
+      ],
+      "updatedAt": "2026-09-17T15:02:54.018Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T15:03:35.249Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/src/index.ts",
+        "packages/core/tests/doctor/host-checks.test.ts",
+        "packages/core/tests/doctor/host-hooks-fixture.ts",
+        "packages/core/tests/doctor/run.test.ts",
+        "packages/host-codex/tests/expected-hooks-drift.test.ts"
+      ],
+      "updatedAt": "2026-09-17T15:07:46.904Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T15:15:31.505Z"
+    }
+  }
+}

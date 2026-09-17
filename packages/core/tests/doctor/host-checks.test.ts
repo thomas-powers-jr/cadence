@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { runDoctor } from '../../src/doctor/run.js';
-import { writeCompleteManagedSettings } from './host-hooks-fixture.js';
+import { writeCompleteManagedSettings, writeCompleteManagedCodexHooks } from './host-hooks-fixture.js';
 
 const ENV = { nodeVersion: 'v22.11.0', platform: 'linux' as const };
 
@@ -191,10 +191,25 @@ describe('runDoctor — setup + host checks', () => {
     expect(check?.detail).not.toMatch(/deja/);
   });
 
-  it('295-01/AC-7: codex-hooks: a single managed marker still reports ok — existence-only, unaffected by phase 295', async () => {
+  it('308-01/AC-1: codex-hooks: a single managed marker now reports error naming every missing entry — completeness, not just marker existence', async () => {
     active = await tempRepo({ initialized: true });
     process.env.CODEX_HOME = join(active.root, 'codex-home');
     await writeCodexHooks(active.root);
+    const report = await runDoctor(active.root, ENV);
+    const check = report.checks.find((c) => c.name === 'codex-hooks');
+    expect(check?.severity).toBe('error');
+    expect(check?.fixId).toBe('codex-host-install');
+    for (const name of ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'SubagentStop']) {
+      expect(check?.detail).toMatch(new RegExp(name));
+    }
+    expect(check?.detail?.match(/\^apply_patch\$/g)).toHaveLength(2);
+    expect(check?.detail).toMatch(/5 managed hook entries are missing/);
+  });
+
+  it('308-01/AC-2: codex-hooks: the full expected set reports ok', async () => {
+    active = await tempRepo({ initialized: true });
+    process.env.CODEX_HOME = join(active.root, 'codex-home');
+    await writeCompleteManagedCodexHooks(active.root);
     const report = await runDoctor(active.root, ENV);
     expect(report.checks.find((c) => c.name === 'codex-hooks')?.severity).toBe('ok');
   });
@@ -202,7 +217,7 @@ describe('runDoctor — setup + host checks', () => {
   it('codex readiness: all managed artifacts present → ok', async () => {
     active = await tempRepo({ initialized: true });
     process.env.CODEX_HOME = join(active.root, 'codex-home');
-    await writeCodexHooks(active.root);
+    await writeCompleteManagedCodexHooks(active.root);
     await writeCodexPrompt(process.env.CODEX_HOME);
     await writeFile(
       join(active.root, 'AGENTS.md'),

@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CLAUDE_CODE_EXPECTED_HOOKS } from '../../src/doctor/host-hooks.js';
+import { CLAUDE_CODE_EXPECTED_HOOKS, CODEX_EXPECTED_HOOKS } from '../../src/doctor/host-hooks.js';
 
 const DEFAULT_COMMAND = 'npx @thomas-powers-jr/cadence-host-claude-code hook';
+const DEFAULT_CODEX_COMMAND = 'npx @thomas-powers-jr/cadence-host-codex hook';
 
 /** Per-entry override for {@link completeManagedHooksObject}: identify the
  *  expected `(event, matcher)` pair, then either give it a different
@@ -59,4 +60,39 @@ export async function writeCompleteManagedSettings(
   }
   await mkdir(join(root, '.claude'), { recursive: true });
   await writeFile(join(root, '.claude', 'settings.json'), JSON.stringify({ hooks }));
+}
+
+/**
+ * Codex counterpart to {@link completeManagedHooksObject} (phase 308):
+ * builds a `.codex/hooks.json`-shaped `hooks` object with every managed
+ * entry `CODEX_EXPECTED_HOOKS` expects, present and current by default.
+ * Same `overrides` shape (swap a single entry's command, or omit it
+ * entirely) — `HookOverride` is generic over `(event, matcher)` already.
+ */
+export function completeManagedCodexHooksObject(
+  overrides: readonly HookOverride[] = [],
+  command = DEFAULT_CODEX_COMMAND,
+): Record<string, unknown[]> {
+  const hooks: Record<string, unknown[]> = {};
+  for (const exp of CODEX_EXPECTED_HOOKS) {
+    const override = overrides.find((o) => o.event === exp.event && o.matcher === exp.matcher);
+    if (override?.omit) continue;
+    const entry: Record<string, unknown> = {
+      hooks: [{ type: 'command', command: override?.command ?? command }],
+      _managedBy: 'cadence',
+    };
+    if (exp.matcher !== null) entry.matcher = exp.matcher;
+    (hooks[exp.event] ??= []).push(entry);
+  }
+  return hooks;
+}
+
+/** Writes a complete (by default) managed `.codex/hooks.json` to `root`. */
+export async function writeCompleteManagedCodexHooks(
+  root: string,
+  overrides: readonly HookOverride[] = [],
+): Promise<void> {
+  const hooks = completeManagedCodexHooksObject(overrides);
+  await mkdir(join(root, '.codex'), { recursive: true });
+  await writeFile(join(root, '.codex', 'hooks.json'), JSON.stringify({ hooks }));
 }

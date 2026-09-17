@@ -2410,36 +2410,6 @@
       "updatedAt": "2026-08-23T15:01:45.883Z"
     },
     {
-      "id": "rec-20260823-006",
-      "title": "checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks",
-      "summary": "Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (every managed hook entry the installer writes is present), not just existence (hasManagedCadence finding any single non-stale marker). checkCodexHooks (packages/core/src/doctor/run.ts), which checks .codex/hooks.json, shares the identical hasManagedCadence-based existence-only predicate and was deliberately left unfixed in that phase -- Codex's expected hook shape genuinely differs (different event names, host-codex's apply_patch matcher vs Claude Code's edit-tool/Skill matchers), so phase 295's Claude-Code-specific CLAUDE_CODE_EXPECTED_HOOKS/findMissingManagedHooks design does not directly generalize. A new test (packages/core/tests/doctor/host-checks.test.ts, '295-01/AC-7') pins this as a deliberate, tested deferral: checkCodexHooks still reports ok on a single managed marker. Fixing it would need an analogous host-codex-specific expected-hooks list and its own drift test against host-codex's installer.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "doctor",
-        "codex",
-        "skillAudit"
-      ],
-      "affectedFiles": [
-        "packages/core/src/doctor/run.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260823-006"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "scoutId": "scout-20260823-host-hooks-completeness",
-      "createdAt": "2026-08-23T20:24:29.144Z",
-      "updatedAt": "2026-08-23T20:24:29.144Z"
-    },
-    {
       "id": "rec-20260907-002",
       "title": "packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/",
       "summary": "pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is [\"src/**/*\"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.",
@@ -9655,6 +9625,40 @@
       "archiveReason": "shipped",
       "createdAt": "2026-09-16T23:26:34.462Z",
       "updatedAt": "2026-09-17T00:06:21.266Z"
+    },
+    {
+      "id": "rec-20260823-006",
+      "title": "checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks",
+      "summary": "Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (every managed hook entry the installer writes is present), not just existence (hasManagedCadence finding any single non-stale marker). checkCodexHooks (packages/core/src/doctor/run.ts), which checks .codex/hooks.json, shares the identical hasManagedCadence-based existence-only predicate and was deliberately left unfixed in that phase -- Codex's expected hook shape genuinely differs (different event names, host-codex's apply_patch matcher vs Claude Code's edit-tool/Skill matchers), so phase 295's Claude-Code-specific CLAUDE_CODE_EXPECTED_HOOKS/findMissingManagedHooks design does not directly generalize. A new test (packages/core/tests/doctor/host-checks.test.ts, '295-01/AC-7') pins this as a deliberate, tested deferral: checkCodexHooks still reports ok on a single managed marker. Fixing it would need an analogous host-codex-specific expected-hooks list and its own drift test against host-codex's installer.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "doctor",
+        "codex",
+        "skillAudit"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260823-006"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "308-codex-hooks-completeness-check",
+      "scoutId": "scout-20260823-host-hooks-completeness",
+      "createdAt": "2026-08-23T20:24:29.144Z",
+      "updatedAt": "2026-09-17T15:31:47.834Z",
+      "shippedRef": "phase 308, PR TBD",
+      "archivedAt": "2026-09-17T15:31:47.834Z",
+      "archiveReason": "shipped"
     }
   ]
 }

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { mergeManagedHookEntries } from '@thomas-powers-jr/cadence-host-toolkit/install-merge';
 import type { ManagedHookEntry } from '@thomas-powers-jr/cadence-host-toolkit/install-merge';
-import { EDIT_TOOL_MATCHER } from './event-map.js';
+import { CODEX_EXPECTED_HOOKS } from '@thomas-powers-jr/cadence-host-toolkit';
 import { resolveLocalPaths } from './locate-self.js';
 
 export interface InstallOptions {
@@ -25,10 +25,6 @@ export interface InstallOptions {
    */
   local?: boolean;
 }
-
-// Codex's apply_patch is the sole edit tool; the matcher is applied to
-// `tool_name` for Pre/PostToolUse, anchored so it matches only apply_patch.
-const PATCH_MATCHER = `^${EDIT_TOOL_MATCHER}$`;
 
 type HookEntry = ManagedHookEntry;
 
@@ -65,14 +61,15 @@ export async function installHooks(root: string, opts: InstallOptions = {}): Pro
     _managedBy: 'cadence',
   });
 
-  const desired: Record<string, HookEntry[]> = {
-    SessionStart: [plain()],
-    UserPromptSubmit: [plain()],
-    PreToolUse: [matched(PATCH_MATCHER)],
-    PostToolUse: [matched(PATCH_MATCHER)],
-    Stop: [plain()],
-    SubagentStop: [plain()],
-  };
+  // Phase 308: built from CODEX_EXPECTED_HOOKS, the single source of truth
+  // also pinned against core's independent copy by a drift test
+  // (packages/host-codex/tests/expected-hooks-drift.test.ts) — this
+  // installer and cadence doctor's completeness check must not disagree
+  // about what "fully installed" means.
+  const desired: Record<string, HookEntry[]> = {};
+  for (const { event, matcher } of CODEX_EXPECTED_HOOKS) {
+    (desired[event] ??= []).push(matcher === null ? plain() : matched(matcher));
+  }
 
   current.hooks = mergeManagedHookEntries(current.hooks ?? {}, desired);
 

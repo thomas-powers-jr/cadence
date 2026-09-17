@@ -1346,22 +1346,6 @@ Phase 292's wave-1 dispatch ran 4 mutating subagents (T1/T3/T4/T5) concurrently 
 
 docs/packs-design.md §7 Slice 4 (marked 'stretch -- may land after this arc closes'; Slices 1-3, the arc's committed scope, are now all shipped as of phase 292). A pack manifest's commands[] field (already parsed by PackManifestZ since Slice 1, currently unconsumed by any check) should be verified by cadence doctor -- confirming each declared command actually exists/registers in the CLI -- matching D-AP's explicit exclusion of commands from anything gate-shaped (doctor-checked only, never enforced, no refusal path). Acceptance per the design doc: a pack declaring a command that doesn't exist in the CLI's registered command set is flagged by doctor; a pack declaring a real command is a clean pass. Scope is intentionally narrow -- this is an observability check, not a new enforcement surface, consistent with commands never appearing in the Gate enum or DELTAS matrix.
 
-## rec-20260823-006 — checkCodexHooks has the identical existence-only completeness gap that phase 295 fixed for checkHostHooks
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: doctor, codex, skillAudit
-- files: packages/core/src/doctor/run.ts
-- evidence: measured 2026-08-23: packages/core/src/doctor/run.ts's checkCodexHooks (.codex/hooks.json) and checkHostHooks (.claude/settings.json, pre-phase-295) both relied solely on hasManagedCadence (packages/core/src/doctor/host-hooks.ts) -- existence of any single non-stale marker, not completeness. Phase 295 fixed checkHostHooks; checkCodexHooks's identical gap is unchanged, confirmed by an empty git diff on that function and a new pinning test (295-01/AC-7) asserting its unaffected ok-on-single-marker behavior.
-- next: cadence milestone propose
-
-Phase 295 fixed checkHostHooks (.claude/settings.json) to verify completeness (every managed hook entry the installer writes is present), not just existence (hasManagedCadence finding any single non-stale marker). checkCodexHooks (packages/core/src/doctor/run.ts), which checks .codex/hooks.json, shares the identical hasManagedCadence-based existence-only predicate and was deliberately left unfixed in that phase -- Codex's expected hook shape genuinely differs (different event names, host-codex's apply_patch matcher vs Claude Code's edit-tool/Skill matchers), so phase 295's Claude-Code-specific CLAUDE_CODE_EXPECTED_HOOKS/findMissingManagedHooks design does not directly generalize. A new test (packages/core/tests/doctor/host-checks.test.ts, '295-01/AC-7') pins this as a deliberate, tested deferral: checkCodexHooks still reports ok on a single managed marker. Fixing it would need an analogous host-codex-specific expected-hooks list and its own drift test against host-codex's installer.
-
 ## rec-20260907-002 — packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
 
 - status: candidate
