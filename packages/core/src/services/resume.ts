@@ -36,6 +36,11 @@ export async function resumeService(
         `⚠ state.json's lastHandoff pointer ("${res.danglingHandoffPointer}") does not exist — served ${res.handoffPath} instead, which may not be the most recent session.\n\n`,
       );
     }
+    if (res.supersededHandoffPointer) {
+      io.out(
+        `⚠ state.json's lastHandoff pointer ("${res.supersededHandoffPointer}") is stale — a newer handoff exists and ${res.handoffPath} was served instead.\n\n`,
+      );
+    }
     if (res.pickedSource === 'sibling') {
       io.out(`--- from sibling worktree: ${res.pickedWorktree} ---\n\n`);
     }

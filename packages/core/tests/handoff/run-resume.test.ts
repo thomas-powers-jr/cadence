@@ -159,6 +159,58 @@ describe('runResume', () => {
     }
   });
 
+  // Phase 309 task 3: locateFreshestHandoff() (fixed in T2) now returns
+  // `supersededPointer` when the lastHandoff pointer names a file that
+  // exists but is strictly staler than another SESSION doc in the dir. This
+  // test proves runResume()'s local-resolve path threads that signal into
+  // `ResumeResult.supersededHandoffPointer`, mirroring 273-01/AC-1's
+  // dangling-pointer coverage above.
+  it('309-01/AC-4: ResumeResult carries supersededHandoffPointer when session.lastHandoff names an existing but stale SESSION doc', async () => {
+    active = await tempRepo({ initialized: true });
+    const OLDER = new Date('2026-06-01T09:00:00.000Z');
+    const NEWER = new Date('2026-06-03T09:00:00.000Z');
+    await runHandoff(active.root, { label: 'first' }, OLDER);
+    await runHandoff(active.root, { label: 'second' }, NEWER);
+
+    const backend = new SimpleStateBackend(active.root);
+    const state = await backend.readState();
+    // runHandoff's second call already stamped lastHandoff to the newer doc
+    // (the correct, non-stale case) — corrupt it back to the older doc's
+    // filename to simulate a pointer that went stale because a newer
+    // SESSION doc landed without this checkout's local state.json being
+    // rewritten (rec-20260917-001).
+    const olderFileName = `SESSION-2026-06-01-first.md`;
+    const newerFileName = `SESSION-2026-06-03-second.md`;
+    expect(state.session.lastHandoff).toBe(newerFileName);
+    await backend.commit({
+      ...state,
+      session: { ...state.session, lastHandoff: olderFileName },
+    });
+
+    const res = await runResume(active.root, {}, NEWER);
+    expect(res.found).toBe(true);
+    if (res.found) {
+      // The freshest doc is served, not the stale pointer's file.
+      expect(res.handoffPath.endsWith(newerFileName)).toBe(true);
+      expect(
+        (res as { supersededHandoffPointer?: string }).supersededHandoffPointer,
+      ).toBe(olderFileName);
+    }
+  });
+
+  it('309-01/AC-4: supersededHandoffPointer is absent when lastHandoff names the freshest doc', async () => {
+    active = await tempRepo({ initialized: true });
+    await runHandoff(active.root, { label: 'demo' }, NOW);
+    const res = await runResume(active.root, {}, NOW);
+    expect(res.found).toBe(true);
+    if (res.found) {
+      expect(
+        (res as { supersededHandoffPointer?: string }).supersededHandoffPointer,
+      ).toBeUndefined();
+      expect('supersededHandoffPointer' in res).toBe(false);
+    }
+  });
+
   it('273-01/AC-2: danglingHandoffPointer is absent when lastHandoff is null and a doc is still found via fallback', async () => {
     active = await tempRepo({ initialized: true });
     await runHandoff(active.root, { label: 'demo' }, NOW);

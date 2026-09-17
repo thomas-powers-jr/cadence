@@ -350,6 +350,58 @@ describe('resumeService: dangling lastHandoff pointer warning (phase 273 task 1)
     expect(driftParagraph).not.toBe(warningParagraph);
   });
 
+  // Phase 309 task 3: mirrors the dangling-pointer warning above, but for the
+  // distinct "pointer names a real file that a newer doc superseded" case
+  // (309-01/AC-4). The pointer file exists on disk — this is not the
+  // "does not exist" wording, it must read as stale/superseded instead.
+  it('309-01/AC-4: warns naming the superseded pointer and the doc actually served', async () => {
+    const main = await realpath(await mkdtemp(join(parent, 'main-superseded-')));
+    await initRepo(main);
+    await writeRepoState(main, { loopPosition: 'IDLE', lastHandoff: 'SESSION-2026-07-01-local.md' });
+    await writeHandoffDoc(main, 'SESSION-2026-07-01-local.md', '2026-07-01T09:00:00.000Z', {
+      loop_position: 'IDLE',
+    });
+    await writeHandoffDoc(main, 'SESSION-2026-07-02-newer.md', '2026-07-02T09:00:00.000Z', {
+      loop_position: 'IDLE',
+    });
+
+    const io = bufferIO();
+    const res = await resumeService(main, {}, io);
+
+    expect(res.exitCode).toBe(0);
+    const data = res.data as { found: boolean; handoffPath?: string; supersededHandoffPointer?: string };
+    expect(data.found).toBe(true);
+    expect(data.handoffPath?.endsWith('SESSION-2026-07-02-newer.md')).toBe(true);
+    expect(data.supersededHandoffPointer).toBe('SESSION-2026-07-01-local.md');
+
+    const out = io.stdout();
+    expect(out).toContain(
+      `⚠ state.json's lastHandoff pointer ("SESSION-2026-07-01-local.md") is stale — a newer handoff exists and`,
+    );
+    expect(out).toContain('SESSION-2026-07-02-newer.md');
+    // Distinct from the dangling-pointer wording — must never say "does not exist".
+    expect(out).not.toContain('does not exist');
+  });
+
+  it('309-01/AC-4: no superseded-pointer warning when lastHandoff already names the freshest doc', async () => {
+    const main = await realpath(await mkdtemp(join(parent, 'main-not-superseded-')));
+    await initRepo(main);
+    await writeRepoState(main, { loopPosition: 'IDLE', lastHandoff: 'SESSION-2026-07-01-local.md' });
+    await writeHandoffDoc(main, 'SESSION-2026-07-01-local.md', '2026-07-01T09:00:00.000Z', {
+      loop_position: 'IDLE',
+    });
+
+    const io = bufferIO();
+    const res = await resumeService(main, {}, io);
+
+    expect(res.exitCode).toBe(0);
+    const data = res.data as { found: boolean; supersededHandoffPointer?: string };
+    expect(data.found).toBe(true);
+    expect(data.supersededHandoffPointer).toBeUndefined();
+    expect('supersededHandoffPointer' in data).toBe(false);
+    expect(io.stdout()).not.toContain('is stale');
+  });
+
   // 273-01/AC-2: the two normal resolution paths must never render the new
   // warning — lastHandoff naming a file that exists, and lastHandoff being
   // null while a doc is still found via the fallback glob.

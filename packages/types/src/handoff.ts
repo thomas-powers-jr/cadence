@@ -95,6 +95,12 @@ export const ResumeResultZ = z.union([
      *  freshest-by-`generated_at` doc instead. Holds the missing pointer's
      *  filename. Absent on every normal resolution path. */
     danglingHandoffPointer: z.string().optional(),
+    /** Set only when `state.json`'s `session.lastHandoff` named a SESSION
+     *  doc that *does* exist but a strictly fresher (or ranking-tie-winning)
+     *  doc was served instead. Holds the superseded pointer's filename.
+     *  Absent on every other resolution path — including when the pointer
+     *  is dangling (see `danglingHandoffPointer`) or itself won. */
+    supersededHandoffPointer: z.string().optional(),
   }),
 ]);
 export type ResumeResult = z.infer<typeof ResumeResultZ>;

@@ -76,6 +76,9 @@ async function localResolve(
       ...(located.danglingPointer !== undefined
         ? { danglingHandoffPointer: located.danglingPointer }
         : {}),
+      ...(located.supersededPointer !== undefined
+        ? { supersededHandoffPointer: located.supersededPointer }
+        : {}),
     };
   }
 
@@ -90,6 +93,9 @@ async function localResolve(
     mode,
     ...(located.danglingPointer !== undefined
       ? { danglingHandoffPointer: located.danglingPointer }
+      : {}),
+    ...(located.supersededPointer !== undefined
+      ? { supersededHandoffPointer: located.supersededPointer }
       : {}),
   };
 }

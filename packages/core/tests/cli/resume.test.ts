@@ -281,6 +281,57 @@ describe('cadence resume', () => {
       expect(r.stdout).not.toMatch(/does not exist — served/);
     });
   });
+
+  // -------------------------------------------------------------------
+  // Phase 309 task 3: mirrors the dangling-pointer warning above, but for
+  // the distinct "pointer names a real file that a newer doc superseded"
+  // case (309-01/AC-4) — the pointer's file exists on disk, so this must
+  // never say "does not exist".
+  // -------------------------------------------------------------------
+
+  describe('phase 309: superseded lastHandoff pointer warning', () => {
+    it('309-01/AC-4: warns on stdout naming both the superseded pointer and the doc actually served', async () => {
+      active = await tempRepo({ initialized: true });
+      await run(['handoff', '--label', 'first'], active.root);
+      await run(['handoff', '--label', 'second'], active.root);
+
+      const backend = new SimpleStateBackend(active.root);
+      const state = await backend.readState();
+      const newerFileName = state.session.lastHandoff;
+      expect(newerFileName).not.toBeNull();
+      expect(newerFileName).toMatch(/-second\.md$/);
+      const olderFileName = newerFileName!.replace('-second.md', '-first.md');
+
+      // Corrupt the pointer back to the older doc, while the newer doc
+      // (already the freshest on disk) stays present — the stale-but-
+      // existing case, distinct from a dangling pointer.
+      await backend.commit({
+        ...state,
+        session: { ...state.session, lastHandoff: olderFileName },
+      });
+
+      const served = JSON.parse((await run(['resume', '--json'], active.root)).stdout)
+        .handoffPath as string;
+      expect(served.endsWith(newerFileName!)).toBe(true);
+
+      const r = await run(['resume'], active.root);
+      expect(r.code).toBe(0);
+      expect(r.stdout).toContain(
+        `⚠ state.json's lastHandoff pointer ("${olderFileName}") is stale — a newer handoff exists and ${served} was served instead.`,
+      );
+      expect(r.stdout).not.toContain('does not exist');
+    });
+
+    it('309-01/AC-4: no superseded-pointer warning when lastHandoff already names the freshest doc', async () => {
+      active = await tempRepo({ initialized: true });
+      await run(['handoff', '--label', 'cli'], active.root);
+      const r = await run(['resume'], active.root);
+      expect(r.code).toBe(0);
+      expect(r.stdout).toMatch(/--- narrative from/);
+      expect(r.stdout).not.toMatch(/is stale/);
+      expect(r.stdout).not.toMatch(/lastHandoff pointer/);
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
