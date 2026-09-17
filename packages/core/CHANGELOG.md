@@ -1,5 +1,24 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.67.2
+
+### Patch Changes
+
+- b1a79cc: Fix: `cadence doctor`'s `codex-hooks` check now verifies completeness, not just marker existence, closing the identical gap phase 295 fixed for `checkHostHooks` (Claude Code).
+
+  `.codex/hooks.json` used to report `ok` on any single `_managedBy: "cadence"` marker anywhere in the document. It now checks every managed hook entry Codex's installer actually writes (`SessionStart`, `UserPromptSubmit`, `PreToolUse`/`PostToolUse` matched on `^apply_patch$`, `Stop`, `SubagentStop`) is present, failing with severity `error` and naming every missing entry when it isn't. The expected-hook list moved into `@thomas-powers-jr/cadence-host-toolkit` as `CODEX_EXPECTED_HOOKS` — the new single source of truth `packages/host-codex`'s installer builds its `desired` hook map from (no change to what it actually installs) — with core holding its own independently-duplicated copy (core cannot import host-adapter code), pinned against the toolkit original by a new drift test. Both `@thomas-powers-jr/cadence-core` and `@thomas-powers-jr/cadence-host-toolkit` now export `CODEX_EXPECTED_HOOKS` for that test.
+
+- 8f265f9: Fix: `parseDraftMd` no longer rejects a CRLF-terminated `DRAFT.md` with a misleading "missing frontmatter" error.
+
+  A `DRAFT.md` rewritten in text mode on Windows (Python's default `open(..,'w')`, PowerShell redirection, some editors) comes out `\r\n`-terminated. The frontmatter delimiter regex only ever matched bare `\n`, so such a file failed to parse even though its frontmatter was well-formed — and the error named the wrong cause. `parseDraftMd` now normalizes `\r\n` to `\n` once at its entry point before any section/frontmatter regex runs, so a CRLF draft parses field-for-field identically to its LF equivalent (no stray `\r` left in any string field), while a genuinely malformed frontmatter delimiter still throws the same error as before.
+
+- 27770af: Fix: `cadence resume` no longer silently serves a stale handoff when `state.json`'s `lastHandoff` pointer names a file that still exists but is no longer the freshest session doc (rec-20260917-001).
+
+  `locateFreshestHandoff` previously short-circuited on any existing pointer, returning it without ever comparing it against the other `SESSION-*.md` docs in the handoff directory. It now ranks the pointer alongside every glob-matched doc by `generated_at` → filename date → mtime (breaking exact ties in the pointer's favor, and unioning in a custom-labeled pointer filename that fails the `SESSION-*.md` glob), and only serves the pointer outright when it actually wins. When a fresher doc supersedes it, `resume` prints a loud stdout notice naming the stale pointer and the doc served instead — mirroring the existing dangling-pointer notice. The new `supersededHandoffPointer` field on `ResumeResultZ` (`@thomas-powers-jr/cadence-types`) carries this outcome through the CLI and service layer.
+
+- Updated dependencies [27770af]
+  - @thomas-powers-jr/cadence-types@1.67.2
+
 ## 1.67.1
 
 ### Patch Changes
