@@ -1505,3 +1505,18 @@ assumption add takes --rec and --text, but validate <id> and reject <id> take an
 - next: cadence milestone propose
 
 Discovered live during phase 313's resume-and-settle (2026-09-18). Invoking the phase-build Skill tool from inside this worktree (.claude/worktrees/313-systematic-debugging-skill) recorded the invocation into the PRIMARY checkout's .cadence/state.json (as the scoped name .claude/worktrees/313-systematic-debugging-skill:phase-build), not into this worktree's own .cadence/state.json, causing settle run --auto to refuse with a skill-audit miss for phase-build even though the skill genuinely had been invoked in this session. Root cause not fully isolated: the CLI's own hook command resolves repoRoot from process.cwd() and would write correctly if invoked directly with cwd set to the worktree (confirmed by manually re-dispatching cadence hook skill-invoke with stdin {skill: phase-build} from inside the worktree, which did land in the worktree state and unblocked settle) -- so the gap is in whatever bridges the host's Skill tool call to the hook dispatch (a host adapter shim or IDE-extension layer), which appears to resolve the dispatch cwd from the session's original/primary directory rather than the tool call's effective cwd inside a worktree. This is distinct from rec-20260917-006 (time-ambiguity and identity-blindness of the invoked list itself): this is about WHICH .cadence/state.json a genuine invocation lands in when work happens inside a worktree, and it makes the skillAudit.required gate effectively unresumable inside a worktree without a manual cadence hook skill-invoke workaround. Worked around this time via that manual dispatch rather than --allow-skill-audit-miss, since the invocation was real. Recurrence risk: every future subagent-driven-development / phase-build worktree build that resolves a skillAudit.required pack.
+
+## rec-20260918-004 — debugging-skill-walkthrough.test.ts is a latent CI timeout flake risk on loaded macOS runners
+
+- status: candidate
+- ready: needs-evidence
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 40%
+- decay: fresh
+- areas: gates, intelligence
+- files: packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts, vitest.shared.ts
+- next: cadence milestone propose
+
+Phase 313's AC-2/AC-4 tests in packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts each spawn 6-9 real CLI child processes (recommendation add/evidence add/assumption add x2/reject/validate/list) against vitest.shared.ts's 20s global testTimeout. Observed timing out on macOS-latest/Node22 in CI (PR 520, run 35298507536, both AC-2 at 72:3 and AC-4 at 158:3) despite the identical test file passing clean on the same OS/Node leg minutes earlier in PR 519's own CI run on the same code -- a one-shot re-run of the failed job came back fully green, consistent with transient CI-runner subprocess-spawn contention under parallel load, the same class CLAUDE.md's Windows-Panic section already names for other subprocess-heavy tests. Not investigated further per the Flake Reflex protocol (single leg red, diff on the observing PR was docs-only and could not plausibly touch this test's timing, re-run succeeded). Left as a recommendation rather than a fix: options are a per-file testTimeout override (CLAUDE.md's Per-Test Band-Aid failure mode warns against reflexive per-test timeouts, so this would need a considered exception) or restructuring the test to reduce subprocess-spawn count. Low urgency until it recurs.
