@@ -29,10 +29,15 @@ function runShim(args: string[], cwd: string, stdin: string): Promise<Result> {
 }
 
 let active: Fixture | null = null;
+let activeMulti: Fixture[] = [];
 afterEach(async () => {
   if (active) {
     await active.cleanup();
     active = null;
+  }
+  if (activeMulti.length > 0) {
+    await Promise.all(activeMulti.map((f) => f.cleanup()));
+    activeMulti = [];
   }
 });
 
@@ -84,5 +89,102 @@ describe('shim → core integration', () => {
     );
     expect(r.code).toBe(0);
     expect(r.stdout).toBe('');
+  });
+});
+
+// Regression tests for phase 314 (rec-20260918-003): the shim spawns
+// `cadence hook <event>` without an explicit `cwd`, so the child silently
+// inherits whatever process.cwd() the shim itself was launched with instead
+// of honoring the hook payload's own `cwd` field. This produced a live bug:
+// invoking a skill from inside a worktree-resident session recorded the
+// automatic Skill-tool hook into the *primary checkout's* state instead of
+// the worktree's own. These tests only prove the bug exists — T2 (a
+// separate task) implements the fix.
+describe('shim cwd passthrough (regression, phase 314)', () => {
+  function skillInvokePayload(extra: Record<string, unknown>): string {
+    return JSON.stringify({
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Skill',
+      tool_input: { skill: 'phase-build' },
+      session_id: 'test',
+      ...extra,
+    });
+  }
+
+  it('314-01/AC-1: (a) honors the payload cwd: state lands in the payload cwd, not the shim process cwd', async () => {
+    const outer = await tempRepo({ initialized: true, projectName: 'outer-a' });
+    const target = await tempRepo({ initialized: true, projectName: 'target-a' });
+    activeMulti.push(outer, target);
+
+    const stdin = skillInvokePayload({ cwd: target.root });
+    const r = await runShim(
+      ['hook', '--cadence', `${process.execPath} ${CADENCE_CLI}`],
+      outer.root,
+      stdin,
+    );
+    expect(r.code).toBe(0);
+
+    const targetState = JSON.parse(
+      await readFile(join(target.root, '.cadence/state.json'), 'utf8'),
+    );
+    expect(targetState.skillAudit.invoked).toContain('phase-build');
+
+    const outerState = JSON.parse(
+      await readFile(join(outer.root, '.cadence/state.json'), 'utf8'),
+    );
+    expect(outerState.skillAudit.invoked).not.toContain('phase-build');
+  });
+
+  it('314-01/AC-3: (b) no cwd field in payload: falls back to the shim process cwd and exits 0', async () => {
+    const outer = await tempRepo({ initialized: true, projectName: 'outer-b' });
+    activeMulti.push(outer);
+
+    const stdin = skillInvokePayload({});
+    const r = await runShim(
+      ['hook', '--cadence', `${process.execPath} ${CADENCE_CLI}`],
+      outer.root,
+      stdin,
+    );
+    expect(r.code).toBe(0);
+
+    const outerState = JSON.parse(
+      await readFile(join(outer.root, '.cadence/state.json'), 'utf8'),
+    );
+    expect(outerState.skillAudit.invoked).toContain('phase-build');
+  });
+
+  it('314-01/AC-3: (c) payload cwd names a nonexistent directory: falls back to the shim process cwd and exits 0', async () => {
+    const outer = await tempRepo({ initialized: true, projectName: 'outer-c' });
+    activeMulti.push(outer);
+
+    const bogusCwd = join(outer.root, 'does-not-exist-on-disk');
+    const stdin = skillInvokePayload({ cwd: bogusCwd });
+    const r = await runShim(
+      ['hook', '--cadence', `${process.execPath} ${CADENCE_CLI}`],
+      outer.root,
+      stdin,
+    );
+    expect(r.code).toBe(0);
+
+    const outerState = JSON.parse(
+      await readFile(join(outer.root, '.cadence/state.json'), 'utf8'),
+    );
+    expect(outerState.skillAudit.invoked).toContain('phase-build');
+  });
+
+  it('314-01/AC-3: (d) when the payload cwd and shim process cwd diverge, stderr names both', async () => {
+    const outer = await tempRepo({ initialized: true, projectName: 'outer-d' });
+    const target = await tempRepo({ initialized: true, projectName: 'target-d' });
+    activeMulti.push(outer, target);
+
+    const stdin = skillInvokePayload({ cwd: target.root });
+    const r = await runShim(
+      ['hook', '--cadence', `${process.execPath} ${CADENCE_CLI}`],
+      outer.root,
+      stdin,
+    );
+
+    expect(r.stderr).toContain(target.root);
+    expect(r.stderr).toContain(outer.root);
   });
 });

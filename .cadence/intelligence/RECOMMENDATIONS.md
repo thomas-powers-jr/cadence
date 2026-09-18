@@ -1491,21 +1491,6 @@ docs/reference/config.md:219 introduces the skillAudit section with 'Drives the 
 
 assumption add takes --rec and --text, but validate <id> and reject <id> take an id and nothing else (packages/core/src/cli/commands/assumption.ts). So the ledger records THAT a hypothesis was validated or rejected and never WHY: the observation that discriminated it is not storable on the assumption. This is the same audit-trail shape this arc has now found three times (rec-20260917-004 for settle bypasses, rec-20260917-006 for skill-audit telemetry) — a verdict survives in the durable record while the evidence for it does not. It matters more here than elsewhere because the assumption ledger is the substrate for a hypothesis-driven debugging discipline whose entire value is that the trail is inspectable afterwards: a reader of a closed debugging session can see which hypotheses were rejected but cannot see what rejected them. The available workaround is a convention, not a schema link: put the observation on the anchor recommendation via , which keeps it in the ledger but binds it to the rec rather than to the assumption, so nothing enforces or validates the reference. Options to consider: an optional --note on validate/reject stored on the assumption; or an evidence row that can cite an assumptionId as well as a recommendationId. Additive either way.
 
-## rec-20260918-003 — skill-invoke hook writes to the primary checkout's state.json, not the worktree's own, when invoked while working inside a sibling worktree
-
-- status: candidate
-- ready: needs-evidence
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 40%
-- decay: fresh
-- areas: gates, hooks, worktrees
-- files: packages/core/src/cli/commands/hook.ts, packages/core/src/hooks/dispatcher.ts, packages/core/src/hooks/handlers.ts
-- next: cadence milestone propose
-
-Discovered live during phase 313's resume-and-settle (2026-09-18). Invoking the phase-build Skill tool from inside this worktree (.claude/worktrees/313-systematic-debugging-skill) recorded the invocation into the PRIMARY checkout's .cadence/state.json (as the scoped name .claude/worktrees/313-systematic-debugging-skill:phase-build), not into this worktree's own .cadence/state.json, causing settle run --auto to refuse with a skill-audit miss for phase-build even though the skill genuinely had been invoked in this session. Root cause not fully isolated: the CLI's own hook command resolves repoRoot from process.cwd() and would write correctly if invoked directly with cwd set to the worktree (confirmed by manually re-dispatching cadence hook skill-invoke with stdin {skill: phase-build} from inside the worktree, which did land in the worktree state and unblocked settle) -- so the gap is in whatever bridges the host's Skill tool call to the hook dispatch (a host adapter shim or IDE-extension layer), which appears to resolve the dispatch cwd from the session's original/primary directory rather than the tool call's effective cwd inside a worktree. This is distinct from rec-20260917-006 (time-ambiguity and identity-blindness of the invoked list itself): this is about WHICH .cadence/state.json a genuine invocation lands in when work happens inside a worktree, and it makes the skillAudit.required gate effectively unresumable inside a worktree without a manual cadence hook skill-invoke workaround. Worked around this time via that manual dispatch rather than --allow-skill-audit-miss, since the invocation was real. Recurrence risk: every future subagent-driven-development / phase-build worktree build that resolves a skillAudit.required pack.
-
 ## rec-20260918-004 — debugging-skill-walkthrough.test.ts is a latent CI timeout flake risk on loaded macOS runners
 
 - status: candidate

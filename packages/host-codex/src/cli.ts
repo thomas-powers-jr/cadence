@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { installHooks, type InstallOptions } from './install.js';
@@ -106,19 +106,42 @@ program
       // translatedStdin isn't a JSON object for some reason, send it through
       // unmodified rather than throwing.
       let stdinToSend = translatedStdin;
+      let payloadCwd: string | undefined;
       try {
         const parsed: unknown = JSON.parse(translatedStdin);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           stdinToSend = JSON.stringify({ ...parsed, hostCapabilities: codexCapabilities });
+          const rec = parsed as Record<string, unknown>;
+          if (typeof rec.cwd === 'string' && rec.cwd.length > 0) {
+            payloadCwd = rec.cwd;
+          }
         }
       } catch {
         // translatedStdin wasn't valid JSON (routeHookEvent only guarantees
         // this when abstractEvent !== null, which is already checked above,
         // but degrade rather than assume) — send the original through.
       }
+      // Phase 314 (rec-20260918-003): honor the hook payload's own `cwd`
+      // when spawning `cadence hook <event>` instead of silently inheriting
+      // whatever process.cwd() the shim itself was launched with — that
+      // mismatch previously recorded a worktree's hook effect into the
+      // primary checkout's .cadence/state.json. Fall back to the shim's own
+      // cwd (by omitting the spawn `cwd` option) when the payload has no
+      // `cwd` or names a directory that no longer exists.
+      const shimCwd = process.cwd();
+      let spawnCwd: string | undefined;
+      if (payloadCwd !== undefined && existsSync(payloadCwd)) {
+        spawnCwd = payloadCwd;
+        if (payloadCwd !== shimCwd) {
+          process.stderr.write(
+            `notice: hook payload cwd (${payloadCwd}) differs from shim cwd (${shimCwd}); using payload cwd\n`,
+          );
+        }
+      }
       const child = spawn(exe, [...baseArgs, 'hook', abstractEvent], {
         stdio: ['pipe', 'inherit', 'inherit'],
         shell: process.platform === 'win32',
+        ...(spawnCwd !== undefined ? { cwd: spawnCwd } : {}),
       });
       child.stdin.write(stdinToSend);
       child.stdin.end();
