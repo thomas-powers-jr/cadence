@@ -2,7 +2,7 @@
 
 > **Status: Slice 1 shipped (phase 290); Slice 2 shipped (phase 291); Slice 3
 > shipped (phase 292); Slice 4 shipped (phase 293); Slice 5 shipped (phase
-> 294).** As of Slice 1,
+> 294, completed phase 312).** As of Slice 1,
 > `config.packs` is parsed and resolved —
 > `resolvePacks()` (`packages/core/src/packs/resolve.ts`)
 > validates each enabled id's `.cadence/packs/<id>/pack.json` against
@@ -34,7 +34,11 @@
 > `PostToolUse` hook matcher was unregistered, so a `skillAudit.required`
 > declaration would have hard-refused every settle — and recorded that a
 > commands-only pack, as a result, contributes nothing to
-> `SUMMARY.json`'s `skillAudit.provenance` (see §7 Slice 5). This document
+> `SUMMARY.json`'s `skillAudit.provenance`. Phase 295 fixed that matcher and
+> phase 312 completed the slice: the manifest now declares
+> `skillAudit.required: ["phase-build"]`, so the pack contributes a real
+> `pack:cadence/core-skills` provenance entry rather than nothing — see §7
+> Slice 5 for what that does and does not prove. This document
 > remains the design record for the whole arc; §7 tracks which slice is
 > done. It is intentionally **not** indexed in `docs/README.md`.
 
@@ -421,6 +425,31 @@ this slice's settle too: a commands-only pack currently leaves **zero
 trace** in a settled `SUMMARY.json`. Both the broken telemetry matcher and
 this observability gap are filed as separate recommendations
 (`rec-20260823-005`), not fixed here — see this phase's Boundaries.
+
+*Completed (phase 312).* Phase 295 fixed the missing `Skill`-tool matcher, so
+the telemetry blocker recorded above is gone and `state.skillAudit.invoked`
+populates for real. The manifest now declares
+`skillAudit.required: ["phase-build"]` (`version` bumped to `1.1.0`), which
+makes `cadence/core-skills` a behavioral contributor rather than a
+declaration: its demand unions into `runSkillAuditCheck`'s
+`effectiveRequired` and is attributed to `pack:cadence/core-skills` in
+`SUMMARY.json`'s `skillAudit.provenance` — the first non-empty provenance
+array in the corpus, which read `[]` in all 322 settle records before it.
+**What this does and does not prove.** It does not enforce that every phase
+ran through `phase-build`. `state.skillAudit.invoked` is deduped,
+append-only and never reset (`rec-20260917-006`), so the requirement is
+satisfied by the skill appearing anywhere in a checkout's invocation
+history; each git worktree holds a private `.cadence/`, so a phase built in
+a fresh worktree does have to invoke it, but a long-lived checkout inherits
+the satisfaction indefinitely — the list is FIFO-capped at 100 *distinct*
+skills, so eviction is theoretically possible and practically never happens. The refusal path is therefore demonstrable
+only by fixture
+(`packages/core/tests/packs/core-skills-manifest.test.ts`), never by a live
+settle in a checkout that has already invoked the skill. The requirement is
+also not phase-conditional (D-AW), and `phase-build` appears in only 4 of
+phases 295-310, so `--allow-skill-audit-miss` is expected to be routine
+rather than exceptional — which is why phase 311 made that bypass record in
+`SUMMARY.gateBypasses` first.
 
 **Explicit non-goals for the whole arc**, not just this document: registry
 or remote source resolution, pack-on-pack dependencies, a public product
