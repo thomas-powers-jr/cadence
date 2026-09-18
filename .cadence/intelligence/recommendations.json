@@ -2705,6 +2705,33 @@
       "decisionIds": [],
       "createdAt": "2026-09-18T01:48:32.426Z",
       "updatedAt": "2026-09-18T01:48:32.426Z"
+    },
+    {
+      "id": "rec-20260918-004",
+      "title": "debugging-skill-walkthrough.test.ts is a latent CI timeout flake risk on loaded macOS runners",
+      "summary": "Phase 313's AC-2/AC-4 tests in packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts each spawn 6-9 real CLI child processes (recommendation add/evidence add/assumption add x2/reject/validate/list) against vitest.shared.ts's 20s global testTimeout. Observed timing out on macOS-latest/Node22 in CI (PR 520, run 35298507536, both AC-2 at 72:3 and AC-4 at 158:3) despite the identical test file passing clean on the same OS/Node leg minutes earlier in PR 519's own CI run on the same code -- a one-shot re-run of the failed job came back fully green, consistent with transient CI-runner subprocess-spawn contention under parallel load, the same class CLAUDE.md's Windows-Panic section already names for other subprocess-heavy tests. Not investigated further per the Flake Reflex protocol (single leg red, diff on the observing PR was docs-only and could not plausibly touch this test's timing, re-run succeeded). Left as a recommendation rather than a fix: options are a per-file testTimeout override (CLAUDE.md's Per-Test Band-Aid failure mode warns against reflexive per-test timeouts, so this would need a considered exception) or restructuring the test to reduce subprocess-spawn count. Low urgency until it recurs.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "intelligence"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts",
+        "vitest.shared.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-18T02:39:19.565Z",
+      "updatedAt": "2026-09-18T02:39:19.565Z"
     }
   ],
   "archived": [
