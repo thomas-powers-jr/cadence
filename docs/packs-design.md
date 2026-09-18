@@ -451,6 +451,31 @@ phases 295-310, so `--allow-skill-audit-miss` is expected to be routine
 rather than exceptional — which is why phase 311 made that bypass record in
 `SUMMARY.gateBypasses` first.
 
+**Distributed skills — a gap, recorded (phase 313).** A pack can *require* a
+skill (`skillAudit.required`) or declare a slash command (`commands[]`). It
+has no way to say "this pack ships a skill you may use." `PackManifestZ` is
+`.strict()` and `dec-20260822-023` locks the payload allowlist to
+`skillAudit.required` + `gates[].add` + declared `commands`; `dec-20260822-022`
+further limits packs to naming skills, never shipping their bodies. Skills are
+not commands, so `commands[]` is not a substitute.
+
+This bites the first expansion skill. `systematic-debugging`
+(`.claude/skills/systematic-debugging/SKILL.md`, phase 313) is deliberately
+**not** in the manifest: `skillAudit.required` is non-conditional (D-AW), so
+declaring it there would refuse every phase that did not debug anything —
+which is most of them. It therefore ships as a file and is referenced from
+this document instead, with no manifest involvement at all. The mechanism gap
+is filed as `rec-20260917-003` (a Slice 6 candidate) rather than built here.
+
+Note what that skill's gate is and is not, since it is the arc's first
+non-required skill: its conclusion step is gated on
+`cadence assumption list --filter-rec <id> --filter-status open --format json`
+returning empty. That query is deterministic and the ledger behind it is real,
+but nothing in the engine refuses a conclusion the way `settle` refuses a
+phase. It is a gate the skill honors, and the value is that a reader can check
+afterwards whether it was honored. It is not CADENCE enforcing debugging
+discipline, and must not be described as such.
+
 **Explicit non-goals for the whole arc**, not just this document: registry
 or remote source resolution, pack-on-pack dependencies, a public product
 name or ecosystem launch, and any config-default payload field.

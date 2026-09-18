@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 2,
+  "draftId": "313-01",
+  "completedAt": "2026-09-18T01:47:32.245Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "SKILL.md verified: 4 template sections in order, name/description frontmatter present; T2's AC-1/AC-3 content assertions pass (re-verified in main thread)."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "debugging-skill-walkthrough.test.ts: 5/5 tests pass (re-run in main thread); nonzero exit is the known single-file coverage-threshold artifact, not a failure. AC-1..AC-4 tokens confirmed inside asserting it() blocks."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "docs/packs-design.md distributed-skills note verified (cites rec-20260917-003, frames gate as skill-honored not engine-enforced); changeset confirmed patch-level; added packages/core/tests/docs/packs-design-distributed-skills.test.ts for AC-5 coverage (was missing on resume); tests/docs: 37 files / 221 passed."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "AC-6 discoverability test passes; state.skillAudit.invoked contains systematic-debugging; pnpm turbo run lint typecheck test build --force: 24/24 tasks green (forced, not a cached replay); diff confined to T1-T4 declared files (verified via git diff --stat against origin/main)."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "systematic-debugging",
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 14,
+    "sessionSubagentSpawns": 3
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 6,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "4d9a1a48c333ba3fe22c6cb971f31610eb9eaef0bb888c1f5f17bf4899252926"
+  }
+}
