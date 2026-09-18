@@ -1452,6 +1452,7 @@ Phase 311 closed only the --allow-skill-audit-miss third of rec-20260917-004. Th
 - decay: fresh
 - areas: gates, skills, telemetry
 - files: packages/core/src/hooks/handlers.ts, packages/core/src/checks/skill-audit.ts, packages/core/src/services/settle.ts
+- decisions: dec-20260918-002 (active), dec-20260918-003 (active), dec-20260918-004 (active), dec-20260918-005 (active)
 - evidence: Code: handlers.ts:494 dedup early-return, :495 applySkillInvoke append + SKILL_AUDIT_CAP=100; grep of skillAudit across packages/core/src shows no other writer. Corpus proof of accumulation, phases 299-311 SUMMARY.skillAudit.invoked: 301 and 302 both ['cadence-resume','pr-land'], 303 ['cadence-resume','pr-land','phase-build'] — monotonic growth within one checkout, never reset at settle. Empty rows (304-307, 309-310) are fresh per-worktree states, and 311 ['phase-build','release-cut','handoff'] carries release-cut and handoff from sessions before the one that built it — i.e. a phase that invoked nothing would still have satisfied a requirement naming them. Measured 2026-09-17 @ main ccd5572f.
 - evidence: AMBIGUOUS IN IDENTITY AS WELL AS IN TIME. Observed live 2026-09-18 while building phase 313: the Skill tool was called with skill="systematic-debugging" and RESOLVED to the Superpowers plugin copy, yet state.skillAudit.invoked recorded the bare string "systematic-debugging". So the telemetry records the name that was REQUESTED, not the skill that actually ran (single write site, hooks/handlers.ts:495, which takes ctx.raw.skill verbatim). Combined with skill-match.ts satisfies(), which matches inv === req OR inv.endsWith(":" + req), this means a requirement naming a bare skill can be satisfied by any namespaced skill sharing that suffix from any installed plugin — a repo could declare skillAudit.required for its own skill and have a third-party plugin skill of the same name satisfy it. So skillAudit.required is ambiguous in identity as well as in time: it cannot show WHICH implementation ran, only that something by that name was asked for, sometime in this checkout. Latent today, not exercised: phase 313 deliberately does not add its skill to any manifest, and no CADENCE pack currently requires a name that collides with an installed plugin skill.
 - next: cadence milestone propose
@@ -1553,3 +1554,19 @@ Phase 310 made parseDraftMd tolerate CRLF, but draft-mutate.ts's addAcceptanceCr
 - next: cadence milestone propose
 
 spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same ^---\n([\s\S]*?)\n---\n frontmatter regex (and parseFrontmatter/stripFrontmatter/extractSection helpers) that draft-parser.ts had before phase 310 -- same bug shape, same fix (normalize \r\n to \n once at each parse entry point), not yet applied. Explicitly deferred by phase 310's DRAFT boundary ('no recommendation covers them; leave for a future phase') -- this rec makes that deferral durable rather than an unlogged gap.
+
+## rec-20260918-008 — skillAudit.required is identity-ambiguous: a bare requirement can be satisfied by a same-named skill from an unrelated plugin
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, skills, telemetry
+- files: packages/core/src/hooks/handlers.ts, packages/core/src/verify/skill-match.ts
+- evidence: Split from rec-20260917-006 per phase-315 scoping (2026-09-18): handlers.ts:495 writes ctx.raw.skill verbatim; skill-match.ts satisfies() does suffix matching. Live observation from phase 313: Skill tool resolved systematic-debugging to the Superpowers plugin copy, but state.skillAudit.invoked recorded the bare requested string.
+- next: cadence milestone propose
+
+hooks/handlers.ts:495 records ctx.raw.skill verbatim (the requested name), not the resolved skill; skill-match.ts's satisfies() accepts inv === req OR inv.endsWith(':' + req). So a repo declaring skillAudit.required: [systematic-debugging] is satisfied by the Superpowers plugin's namespaced superpowers:systematic-debugging, observed live during phase 313. Split off rec-20260917-006's temporal half (phase 315 fixes that); this is the identity half, called out by rec-20260917-006 as latent today, not exercised -- no current pack requires a name colliding with an installed plugin skill. Needs a decision on whether satisfies() should require an exact match, a source-qualified match, or something else, before any fix.

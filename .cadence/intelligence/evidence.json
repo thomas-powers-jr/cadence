@@ -2634,6 +2634,13 @@
       "kind": "note",
       "summary": "Confirmed live on the PC-transfer checkout 2026-09-18: only draft-parser.ts has CRLF normalization; spec-parser.ts and ui-spec-parser.ts do not.",
       "createdAt": "2026-09-18T14:23:17.963Z"
+    },
+    {
+      "id": "ev-20260918-008",
+      "recommendationId": "rec-20260918-008",
+      "kind": "note",
+      "summary": "Split from rec-20260917-006 per phase-315 scoping (2026-09-18): handlers.ts:495 writes ctx.raw.skill verbatim; skill-match.ts satisfies() does suffix matching. Live observation from phase 313: Skill tool resolved systematic-debugging to the Superpowers plugin copy, but state.skillAudit.invoked recorded the bare requested string.",
+      "createdAt": "2026-09-18T17:23:19.476Z"
     }
   ]
 }

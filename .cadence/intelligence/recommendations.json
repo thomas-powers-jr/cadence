@@ -2613,7 +2613,12 @@
         "ev-20260918-004"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20260918-002",
+        "dec-20260918-003",
+        "dec-20260918-004",
+        "dec-20260918-005"
+      ],
       "scoutId": "scout-20260917-expansion-1",
       "createdAt": "2026-09-17T23:31:37.050Z",
       "updatedAt": "2026-09-18T01:02:25.876Z"
@@ -2788,6 +2793,36 @@
       "decisionIds": [],
       "createdAt": "2026-09-18T14:23:17.963Z",
       "updatedAt": "2026-09-18T14:23:17.963Z"
+    },
+    {
+      "id": "rec-20260918-008",
+      "title": "skillAudit.required is identity-ambiguous: a bare requirement can be satisfied by a same-named skill from an unrelated plugin",
+      "summary": "hooks/handlers.ts:495 records ctx.raw.skill verbatim (the requested name), not the resolved skill; skill-match.ts's satisfies() accepts inv === req OR inv.endsWith(':' + req). So a repo declaring skillAudit.required: [systematic-debugging] is satisfied by the Superpowers plugin's namespaced superpowers:systematic-debugging, observed live during phase 313. Split off rec-20260917-006's temporal half (phase 315 fixes that); this is the identity half, called out by rec-20260917-006 as latent today, not exercised -- no current pack requires a name colliding with an installed plugin skill. Needs a decision on whether satisfies() should require an exact match, a source-qualified match, or something else, before any fix.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "skills",
+        "telemetry"
+      ],
+      "affectedFiles": [
+        "packages/core/src/hooks/handlers.ts",
+        "packages/core/src/verify/skill-match.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-008"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-18T17:23:19.476Z",
+      "updatedAt": "2026-09-18T17:23:19.476Z"
     }
   ],
   "archived": [
@@ -10106,11 +10141,11 @@
       "evidenceIds": [],
       "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-09-18T01:48:32.426Z",
-      "updatedAt": "2026-09-18T16:04:02.933Z",
       "shippedRef": "phase 314, PR TBD",
       "archivedAt": "2026-09-18T16:04:02.933Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-18T01:48:32.426Z",
+      "updatedAt": "2026-09-18T16:04:02.933Z"
     }
   ]
 }
