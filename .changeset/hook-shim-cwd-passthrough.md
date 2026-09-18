@@ -1,0 +1,8 @@
+---
+"@thomas-powers-jr/cadence-host-claude-code": patch
+"@thomas-powers-jr/cadence-host-codex": patch
+---
+
+Fix: both host adapters' hook shims now honor the hook payload's own `cwd` field when spawning `cadence hook <event>`, instead of silently inheriting the shim process's own `process.cwd()`.
+
+Neither shim read the payload's `cwd` field before this fix — the spawned `cadence hook <event>` child always inherited whatever directory the shim itself was launched from, regardless of what the payload's `cwd` named. This produced a live bug (phase 313, `rec-20260918-003`): invoking a skill while working inside a worktree recorded the invocation into the primary checkout's `.cadence/state.json` instead of the worktree's own, making the `skillAudit.required` gate effectively unresumable inside a worktree without a manual `cadence hook skill-invoke` workaround. Both shims now extract `cwd` from the parsed stdin payload and pass it through to `spawn()`, falling back to the shim's own `process.cwd()` when the field is absent or names a directory that no longer exists on disk (e.g. a deleted worktree) — never throwing, never changing the exit code for that reason alone. When the payload's `cwd` exists and genuinely differs from the shim's own `process.cwd()`, both shims now also emit a one-line stderr notice naming both directories, matching this repo's "every fallback/divergence prints a loud notice" convention — this also serves as the empirical signal for whether Claude Code's own hook-subprocess working directory follows a worktree, a question this fix's design deliberately left open pending production evidence rather than settled by (ambiguous, contradictory-on-re-reading) documentation.

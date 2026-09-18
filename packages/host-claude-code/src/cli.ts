@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { installHooks, type InstallOptions } from './install.js';
@@ -105,9 +105,36 @@ program
         process.exitCode = 1;
         return;
       }
+
+      // Honor the hook payload's own `cwd` field (e.g. a worktree-resident
+      // session) rather than silently inheriting the shim's own
+      // process.cwd(). Falls back to the shim's cwd (by omitting the spawn
+      // option) when the payload has no cwd field or names a directory that
+      // does not exist on disk — never throws, never changes exit code.
+      let payloadCwd: string | undefined;
+      try {
+        const parsedRaw = JSON.parse(raw) as { cwd?: unknown };
+        if (
+          typeof parsedRaw.cwd === 'string' &&
+          parsedRaw.cwd.length > 0 &&
+          existsSync(parsedRaw.cwd)
+        ) {
+          payloadCwd = parsedRaw.cwd;
+        }
+      } catch {
+        // malformed JSON: fall through to the shim's own process.cwd()
+      }
+      const shimCwd = process.cwd();
+      if (payloadCwd !== undefined && payloadCwd !== shimCwd) {
+        process.stderr.write(
+          `hook cwd divergence: payload cwd=${payloadCwd}, shim process cwd=${shimCwd}; spawning with payload cwd\n`,
+        );
+      }
+
       const child = spawn(exe, [...baseArgs, 'hook', abstractEvent], {
         stdio: ['pipe', 'inherit', 'inherit'],
         shell: process.platform === 'win32',
+        ...(payloadCwd !== undefined ? { cwd: payloadCwd } : {}),
       });
       child.stdin.write(translatedStdin);
       child.stdin.end();

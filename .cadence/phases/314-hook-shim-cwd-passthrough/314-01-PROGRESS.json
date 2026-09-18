@@ -1,0 +1,56 @@
+{
+  "draftId": "314-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "4 regression tests added to shim-integration.test.ts; (a)/(d) red for the bug, (b)/(c) green as legitimate pre-existing-behavior regression guards. Independently re-verified diff + test run in main thread; independent reviewer PASS, no findings.",
+      "touchedFiles": [
+        "packages/host-claude-code/tests/shim-integration.test.ts",
+        "packages/host-codex/tests/shim-integration.test.ts"
+      ],
+      "updatedAt": "2026-09-18T14:57:40.690Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "4 regression tests added to host-codex's shim-integration.test.ts mirroring T1; AC-2/AC-3 red-for-the-bug cases confirmed, fallback cases green as legitimate regression guards. Independently re-verified diff + test run in main thread; independent reviewer PASS, no findings.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-18T14:57:45.761Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Extracts payload.cwd, gates via existsSync, falls back to shim's own process.cwd() when missing/stale, emits stderr divergence notice. 107/107 tests pass (all 4 T1 regression tests green + shim/event-map/adapter-conformance suites). Independently re-verified diff + test run in main thread; independent reviewer PASS, no findings.",
+      "touchedFiles": [
+        "packages/host-claude-code/src/cli.ts",
+        "packages/host-codex/src/cli.ts"
+      ],
+      "updatedAt": "2026-09-18T15:02:32.234Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Mirrors T2's fix in host-codex's cli.ts, folded into the existing hostCapabilities JSON.parse block. 58/58 tests pass (all 4 T3 regression tests green + shim/event-map/adapter-conformance suites). Independently re-verified diff + test run in main thread; independent reviewer PASS, no findings.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-18T15:02:38.266Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "Full pnpm turbo run lint typecheck test build: 24/24 tasks successful. All packages green (types 372, testkit 14, host-toolkit 57, host-claude-code 107, host-codex 58, core 4525/15-skipped = 5128 tests total, 0 failures). Required a detour: phase 314's own new phase directory tipped an unrelated pre-existing roadmap-currency drift test over its threshold; resolved via a separate backfill PR (#523, merged) per operator decision, then rebased this worktree onto updated main.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-18T15:56:59.450Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    }
+  }
+}
