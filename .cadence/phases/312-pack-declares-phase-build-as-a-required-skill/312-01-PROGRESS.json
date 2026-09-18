@@ -1,0 +1,33 @@
+{
+  "draftId": "312-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Manifest declares skillAudit.required: ['phase-build'], version 1.0.0 -> 1.1.0. Two new 312-01/AC-1 tests against the real manifest failed before the change. Phase-294's AC-1 assertion retargeted from skillAudit-undefined to the new shape (supersession commented, not loosened).",
+      "touchedFiles": [
+        "docs/packs-design.md",
+        "packages/core/tests/packs/core-skills-manifest.test.ts",
+        ".changeset/core-skills-requires-phase-build.md"
+      ],
+      "updatedAt": "2026-09-17T23:42:39.183Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Refusal and bypass paths proven against the REAL committed manifest rather than a synthetic fixture: check refuses with effectiveRequired ['phase-build'] attributed to pack:cadence/core-skills, and --allow-skill-audit-miss yields pass with the phase-311 bypassed marker. Phase-294's AC-3 absence-assertion retargeted to the stronger refusal assertion. As-built recorded on the DRAFT.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T23:42:39.609Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "docs/packs-design.md status line and Slice 5 entry amended in place, original finding kept intact; explicitly states what the requirement does NOT prove and cites rec-20260917-006. Patch changeset added carrying the same scoping.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T23:42:40.040Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "pnpm turbo run lint typecheck test build: 24/24 successful, exit 0, 1m54s. Core 457 files / 4515 tests passed, 1 file + 15 tests skipped. Diff confined to DRAFT files as amended.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-17T23:42:40.478Z"
+    }
+  }
+}

@@ -2564,6 +2564,27 @@
       "kind": "note",
       "summary": "COMPLETENESS: a fourth unrecorded skill-audit path, missed in the original residual list. When config is null (loadConfig failed), checks/skill-audit.ts:113 skips enforcement wholesale — the effective required set is still computed so SUMMARY stays truthful, but nothing records that enforcement did not run. Same shape as the telemetry-off path and correct to leave out of gateBypasses for the same reason (no operator flag was passed), but it belongs in whatever representation the unenforceable/skipped paths eventually get. Identified by independent review of phase 311, 2026-09-17.",
       "createdAt": "2026-09-17T23:01:31.528Z"
+    },
+    {
+      "id": "ev-20260917-010",
+      "recommendationId": "rec-20260917-006",
+      "kind": "note",
+      "summary": "Code: handlers.ts:494 dedup early-return, :495 applySkillInvoke append + SKILL_AUDIT_CAP=100; grep of skillAudit across packages/core/src shows no other writer. Corpus proof of accumulation, phases 299-311 SUMMARY.skillAudit.invoked: 301 and 302 both ['cadence-resume','pr-land'], 303 ['cadence-resume','pr-land','phase-build'] — monotonic growth within one checkout, never reset at settle. Empty rows (304-307, 309-310) are fresh per-worktree states, and 311 ['phase-build','release-cut','handoff'] carries release-cut and handoff from sessions before the one that built it — i.e. a phase that invoked nothing would still have satisfied a requirement naming them. Measured 2026-09-17 @ main ccd5572f.",
+      "createdAt": "2026-09-17T23:31:37.050Z"
+    },
+    {
+      "id": "ev-20260917-011",
+      "recommendationId": "rec-20260917-007",
+      "kind": "note",
+      "summary": "skillAudit.provenance is [] in all 322 SUMMARY.json records in .cadence/phases (measured 2026-09-17). Live manifest .cadence/packs/cadence/core-skills/pack.json declares commands only. PackManifestZ (packages/types/src/pack.ts) accepts skillAudit.required as an optional string array under .strict(). Telemetry confirmed live: state.skillAudit.invoked non-empty in 6 of 16 phases since 295, with phase-build specifically in 4 (299, 300, 303, 308). Predecessor rec-20260823-004 (Slice 5) and rec-20260822-010 (Slice 2) are both shipped/archived; no open rec covered this. Base main ccd5572f.",
+      "createdAt": "2026-09-17T23:34:47.128Z"
+    },
+    {
+      "id": "ev-20260917-012",
+      "recommendationId": "rec-20260917-008",
+      "kind": "note",
+      "summary": "docs/reference/config.md:219 and :223 read as quoted, verified 2026-09-17 on the phase-312 branch off main ccd5572f. Contradicted by packages/core/src/hooks/handlers.ts:494-495 (dedup early-return + FIFO append, sole writer) and the absence of any reset in packages/core/src. Surfaced by independent review of phase 312.",
+      "createdAt": "2026-09-17T23:54:45.845Z"
     }
   ]
 }

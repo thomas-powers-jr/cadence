@@ -2584,6 +2584,66 @@
       "scoutId": "scout-20260917-expansion-1",
       "createdAt": "2026-09-17T23:00:23.602Z",
       "updatedAt": "2026-09-17T23:01:31.528Z"
+    },
+    {
+      "id": "rec-20260917-006",
+      "title": "skillAudit.required proves a skill was invoked SOMETIME in this checkout, not during the phase being settled — state.skillAudit.invoked is deduped, append-only and never reset",
+      "summary": "state.skillAudit.invoked has exactly one writer (hooks/handlers.ts:494-495): it returns early if the skill is already present (dedup, so a skill is recorded at most once ever) and otherwise appends with a FIFO cap of 100 DISTINCT skills. Nothing in packages/core/src ever clears it — settle only reads it into SUMMARY (services/settle.ts:1488). Consequence: once a required skill is invoked once in a given .cadence/state.json, skillAudit.required is satisfied permanently in that checkout; eviction would need 100 distinct skill names, which realistically never occurs. The check therefore proves 'this skill appears in this checkout's invocation history', not 'this phase invoked it'. Scope is bounded, not total: each git worktree holds a private .cadence/, so a phase built in a fresh worktree does start from an empty list and must genuinely invoke the skill. The exposure is phases built in a long-lived checkout — which includes the primary checkout. This matters because it is the premise under which a pack or config declares skillAudit.required expecting per-phase enforcement; the declaration is still worth making (it is the only way SUMMARY.skillAudit.provenance is ever non-empty), but it should not be described as proving every phase ran through the required skill. Fixing it is a mechanism change — per-phase invocation tracking, e.g. a phase-scoped invoked set or a draftApprovedAt watermark — deliberately out of scope for the phase that declares the requirement.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "skills",
+        "telemetry"
+      ],
+      "affectedFiles": [
+        "packages/core/src/hooks/handlers.ts",
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/services/settle.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-010"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-17T23:31:37.050Z",
+      "updatedAt": "2026-09-17T23:31:37.050Z"
+    },
+    {
+      "id": "rec-20260917-008",
+      "title": "docs/reference/config.md overclaims skill-audit: says it enforces skills were invoked 'during a phase', which the checkout-scoped invoked list does not support",
+      "summary": "docs/reference/config.md:219 introduces the skillAudit section with 'Drives the skill-audit check, which enforces that declared required skills were actually invoked during a phase', and the skillAudit.required row at :223 says 'Skill IDs that must be invoked before a phase settles'. Both assert per-phase semantics. Per rec-20260917-006, state.skillAudit.invoked is deduped, append-only and never reset, so the check proves only that the skill appears somewhere in that checkout's invocation history; a long-lived checkout satisfies the requirement indefinitely after one invocation. This is the published, consumer-facing config reference, and phase 312 makes it matter to consumers for the first time by shipping skillAudit.required in the bundled cadence/core-skills pack — a user enabling that pack will read this page to understand what the requirement guarantees. Pre-existing text, not introduced by phase 312, and outside that phase's declared files, so filed rather than fixed inline. Fix is a wording correction on both lines plus, ideally, one sentence on the worktree-vs-long-lived-checkout distinction.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs"
+      ],
+      "affectedFiles": [
+        "docs/reference/config.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-012"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-17T23:54:45.845Z",
+      "updatedAt": "2026-09-17T23:54:45.845Z"
     }
   ],
   "archived": [
@@ -9801,11 +9861,45 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "311-skill-audit-bypass-recorded-in-gatebypasses",
-      "scoutId": "scout-20260917-expansion-1",
-      "createdAt": "2026-09-17T22:21:58.607Z",
-      "updatedAt": "2026-09-17T23:05:52.071Z",
       "shippedRef": "phase 311 (311-01) — PARTIAL: closes only the --allow-skill-audit-miss third. --allow-stale-draft, --allow-open-tasks, the skill-audit unenforceable/null-config paths, and the split gateBypasses[]/gates[].skipReason design question all remain OPEN on rec-20260917-005.",
+      "scoutId": "scout-20260917-expansion-1",
       "archivedAt": "2026-09-17T23:05:52.071Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-17T22:21:58.607Z",
+      "updatedAt": "2026-09-17T23:05:52.071Z"
+    },
+    {
+      "id": "rec-20260917-007",
+      "title": "Packs Slice 5 completion: cadence/core-skills declares no skillAudit.required, so skillAudit.provenance has never been non-empty in 322 settle records",
+      "summary": "Phase 294 shipped the first real pack declaring commands[] only, because the Skill-tool PostToolUse matcher was missing from this repo's settings.json and state.skillAudit.invoked never populated — a pack declaring skillAudit.required would have hard-refused its own settle. Phase 295 fixed the matcher and the telemetry is now live (invoked populates across phases 299-311). The blocker is gone, but the manifest still declares commands only, so the pack contributes nothing a settled SUMMARY can show: skillAudit.provenance reads [] in every record in the corpus. Declaring skillAudit.required: ['phase-build'] makes the pack a real behavioral contributor and produces the first pack:<id> provenance attribution ever recorded. Two honesty constraints on what this can claim, both measured rather than assumed. (a) Per rec-20260917-006, state.skillAudit.invoked is deduped, append-only and never reset, so the requirement proves a skill appears in the checkout's invocation history, not that this phase invoked it; the live pass path therefore cannot demonstrate enforcement, and a fixture is the only place the refusal path can be proven. (b) The requirement is not phase-conditional (phase 294 D-AW), so it applies to every phase in a checkout whose telemetry lacks the skill — measured against phases 295-310, phase-build appears in only 4 of 16, so the escape hatch --allow-skill-audit-miss is expected to be used routinely rather than exceptionally. That hatch now records in SUMMARY.gateBypasses as of phase 311, which is why this work was sequenced after it.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packs",
+        "skills"
+      ],
+      "affectedFiles": [
+        ".cadence/packs/cadence/core-skills/pack.json",
+        "docs/packs-design.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260917-011"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "312-pack-declares-phase-build-as-a-required-skill",
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-17T23:34:47.128Z",
+      "updatedAt": "2026-09-18T00:00:51.189Z",
+      "shippedRef": "phase 312 (312-01) — manifest declares skillAudit.required: ['phase-build'], version 1.1.0; first non-empty skillAudit.provenance in the corpus. Scoped: attribution, not per-phase enforcement (see rec-20260917-006).",
+      "archivedAt": "2026-09-18T00:00:51.189Z",
       "archiveReason": "shipped"
     }
   ]

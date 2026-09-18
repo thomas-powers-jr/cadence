@@ -1440,3 +1440,35 @@ D-BH of the expansion-arc-1 handoff asks whether a pack can declare a skill it d
 - next: cadence milestone propose
 
 Phase 311 closed only the --allow-skill-audit-miss third of rec-20260917-004. This rec carries the remainder forward as a live item so it does not retire with that rec when phase 311 settles. Remaining: (1) --allow-stale-draft (gates/draft-read.ts:16) returns {outcome:'pass'} with no flags on bypass, so the gate records as an ordinary pass, indistinguishable from one that genuinely passed. (2) --allow-open-tasks (gates/structural-verifier.ts:20) does the same AND emits no stderr line at all — the only fully silent bypass in the codebase. Mitigating fact, so this is not overread: a SUMMARY's taskResults still shows non-terminal statuses, so the condition stays inferable even though the bypass is not recorded. (3) The skill-audit unenforceable path (telemetry.skillInvocations false) remains absent from the durable artifact; phase 311 deliberately did NOT record a bypass there because naming --allow-skill-audit-miss would cite a flag the operator never passed, so that path needs its own representation rather than reuse of the bypass record. (4) The design question underneath all of it: the bypass trail is split across SUMMARY.gateBypasses[] and SUMMARY.gates[].skipReason with no single field to read, which is why these gaps stayed invisible. Deciding whether to unify them, and how, is the real work — the per-flag pushes are the symptom.
+
+## rec-20260917-006 — skillAudit.required proves a skill was invoked SOMETIME in this checkout, not during the phase being settled — state.skillAudit.invoked is deduped, append-only and never reset
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, skills, telemetry
+- files: packages/core/src/hooks/handlers.ts, packages/core/src/checks/skill-audit.ts, packages/core/src/services/settle.ts
+- evidence: Code: handlers.ts:494 dedup early-return, :495 applySkillInvoke append + SKILL_AUDIT_CAP=100; grep of skillAudit across packages/core/src shows no other writer. Corpus proof of accumulation, phases 299-311 SUMMARY.skillAudit.invoked: 301 and 302 both ['cadence-resume','pr-land'], 303 ['cadence-resume','pr-land','phase-build'] — monotonic growth within one checkout, never reset at settle. Empty rows (304-307, 309-310) are fresh per-worktree states, and 311 ['phase-build','release-cut','handoff'] carries release-cut and handoff from sessions before the one that built it — i.e. a phase that invoked nothing would still have satisfied a requirement naming them. Measured 2026-09-17 @ main ccd5572f.
+- next: cadence milestone propose
+
+state.skillAudit.invoked has exactly one writer (hooks/handlers.ts:494-495): it returns early if the skill is already present (dedup, so a skill is recorded at most once ever) and otherwise appends with a FIFO cap of 100 DISTINCT skills. Nothing in packages/core/src ever clears it — settle only reads it into SUMMARY (services/settle.ts:1488). Consequence: once a required skill is invoked once in a given .cadence/state.json, skillAudit.required is satisfied permanently in that checkout; eviction would need 100 distinct skill names, which realistically never occurs. The check therefore proves 'this skill appears in this checkout's invocation history', not 'this phase invoked it'. Scope is bounded, not total: each git worktree holds a private .cadence/, so a phase built in a fresh worktree does start from an empty list and must genuinely invoke the skill. The exposure is phases built in a long-lived checkout — which includes the primary checkout. This matters because it is the premise under which a pack or config declares skillAudit.required expecting per-phase enforcement; the declaration is still worth making (it is the only way SUMMARY.skillAudit.provenance is ever non-empty), but it should not be described as proving every phase ran through the required skill. Fixing it is a mechanism change — per-phase invocation tracking, e.g. a phase-scoped invoked set or a draftApprovedAt watermark — deliberately out of scope for the phase that declares the requirement.
+
+## rec-20260917-008 — docs/reference/config.md overclaims skill-audit: says it enforces skills were invoked 'during a phase', which the checkout-scoped invoked list does not support
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: docs
+- files: docs/reference/config.md
+- evidence: docs/reference/config.md:219 and :223 read as quoted, verified 2026-09-17 on the phase-312 branch off main ccd5572f. Contradicted by packages/core/src/hooks/handlers.ts:494-495 (dedup early-return + FIFO append, sole writer) and the absence of any reset in packages/core/src. Surfaced by independent review of phase 312.
+- next: cadence milestone propose
+
+docs/reference/config.md:219 introduces the skillAudit section with 'Drives the skill-audit check, which enforces that declared required skills were actually invoked during a phase', and the skillAudit.required row at :223 says 'Skill IDs that must be invoked before a phase settles'. Both assert per-phase semantics. Per rec-20260917-006, state.skillAudit.invoked is deduped, append-only and never reset, so the check proves only that the skill appears somewhere in that checkout's invocation history; a long-lived checkout satisfies the requirement indefinitely after one invocation. This is the published, consumer-facing config reference, and phase 312 makes it matter to consumers for the first time by shipping skillAudit.required in the bundled cadence/core-skills pack — a user enabling that pack will read this page to understand what the requirement guarantees. Pre-existing text, not introduced by phase 312, and outside that phase's declared files, so filed rather than fixed inline. Fix is a wording correction on both lines plus, ideally, one sentence on the worktree-vs-long-lived-checkout distinction.
