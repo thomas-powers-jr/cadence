@@ -2732,6 +2732,91 @@
       "decisionIds": [],
       "createdAt": "2026-09-18T02:39:19.565Z",
       "updatedAt": "2026-09-18T02:39:19.565Z"
+    },
+    {
+      "id": "rec-20260918-005",
+      "title": "DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error",
+      "summary": "Phase 310 (rec-20260907-003) normalized CRLF to LF once at parseDraftMd's entry point, but the frontmatter regex is anchored with ^--- and a leading BOM (U+FEFF) still prevents that anchor from matching, so the same operator-facing symptom the rec exists to kill is still live for a named trigger: this repo's own CLAUDE.md notes PowerShell here writes UTF-8 with BOM by default, and PowerShell redirection was one of the motivating CRLF sources. A lone \\r with no \\n (classic-Mac line endings) hits the identical root cause -- normalization only handles \\r\\n -- and is a second, lower-priority instance of the same gap. Fix: strip a leading BOM (and normalize a lone \\r) at the same parseDraftMd entry point that already normalizes \\r\\n.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/parse/draft-parser.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-18T14:23:01.158Z",
+      "updatedAt": "2026-09-18T14:23:01.158Z"
+    },
+    {
+      "id": "rec-20260918-006",
+      "title": "draft-mutate.ts's add-ac/add-task splice regexes are \\n-only, so a CRLF draft now fails with a different misleading error post-phase-310",
+      "summary": "Phase 310 made parseDraftMd tolerate CRLF, but draft-mutate.ts's addAcceptanceCriterion/addTask call parseDraftMd (now CRLF-tolerant) and then splice into the ORIGINAL un-normalized raw string using \\n-only regexes (e.g. /(## Acceptance Criteria\\n\\n)([\\s\\S]*?)(\\n\\n## Tasks)/). On a CRLF-terminated draft this splice regex no longer matches, so the mutation throws 'DRAFT.md missing a ## Acceptance Criteria section' -- a new misleading error, though notably it fails loud rather than corrupting the file or writing mixed line endings. Explicitly out of scope for phase 310 (DRAFT boundary: 'Do NOT touch the DRAFT writer/serializer'). Fix: either normalize the raw the same way before splicing, or serialize consistently.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/parse/draft-mutate.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-006"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-18T14:23:09.612Z",
+      "updatedAt": "2026-09-18T14:23:09.612Z"
+    },
+    {
+      "id": "rec-20260918-007",
+      "title": "spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts",
+      "summary": "spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same ^---\\n([\\s\\S]*?)\\n---\\n frontmatter regex (and parseFrontmatter/stripFrontmatter/extractSection helpers) that draft-parser.ts had before phase 310 -- same bug shape, same fix (normalize \\r\\n to \\n once at each parse entry point), not yet applied. Explicitly deferred by phase 310's DRAFT boundary ('no recommendation covers them; leave for a future phase') -- this rec makes that deferral durable rather than an unlogged gap.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/parse/spec-parser.ts",
+        "packages/core/src/parse/ui-spec-parser.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-007"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-18T14:23:17.963Z",
+      "updatedAt": "2026-09-18T14:23:17.963Z"
     }
   ],
   "archived": [

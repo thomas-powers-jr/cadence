@@ -724,6 +724,12 @@ Empirically verified this session (two isolated test repos, gitleaks v8.30.0, st
 
 dec-20260822-020's rationale said doctor's reachability scan and config-explain's matrix builder correctly keep calling raw gatesFor since they answer a whole-matrix question. That held for config-explain only through phase 292 (Slice 3 gave its current-tier row a pack-aware follow-up) and for doctor/run.ts only until phase 302, which routed assessGateReachability's profile axis through effectiveGateSet(config, resolvedPacks) instead of raw gatesFor -- closing the exception Slice 3's own DRAFT boundary had deferred, not reopening it. The decision's core chokepoint architecture (resolvePacks for resolution, effectiveGateSet for application, gatesFor unchanged/pure) is unaffected and remains active; only the doctor-reachability-stays-raw clause is now stale. docs/packs-design.md section 4b carries the full As-built note.
 
+### dec-20260918-001 — D-BF-adjacent: classifyTier's minTasks floor is not wired into the coherence gate
+
+- decided: 2026-09-18T14:23:25.846Z
+
+packages/core/src/coherence/check.ts:48-52 explicitly documents that classifyTier (packages/core/src/classify/tier.ts) 'was never wired into this check, and remains explicitly out of scope.' tier.complex.minTasks=6 is therefore advisory only -- a 3-4 task Phase 1 declared --tier complex will not be gate-refused for under-counting tasks. Declared tier only changes which gates fire per the profile x tier matrix (gates/engine.ts), it is not cross-checked against actual task/file counts at settle time. Re-filed on the PC-transfer checkout 2026-09-18 -- original dec-20260917-002 was local-only, never pushed, and its rec cross-ref (rec-20260917-005) was superseded by the shipped phase 312; no equivalent exists on origin.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

@@ -1520,3 +1520,51 @@ Discovered live during phase 313's resume-and-settle (2026-09-18). Invoking the 
 - next: cadence milestone propose
 
 Phase 313's AC-2/AC-4 tests in packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts each spawn 6-9 real CLI child processes (recommendation add/evidence add/assumption add x2/reject/validate/list) against vitest.shared.ts's 20s global testTimeout. Observed timing out on macOS-latest/Node22 in CI (PR 520, run 35298507536, both AC-2 at 72:3 and AC-4 at 158:3) despite the identical test file passing clean on the same OS/Node leg minutes earlier in PR 519's own CI run on the same code -- a one-shot re-run of the failed job came back fully green, consistent with transient CI-runner subprocess-spawn contention under parallel load, the same class CLAUDE.md's Windows-Panic section already names for other subprocess-heavy tests. Not investigated further per the Flake Reflex protocol (single leg red, diff on the observing PR was docs-only and could not plausibly touch this test's timing, re-run succeeded). Left as a recommendation rather than a fix: options are a per-file testTimeout override (CLAUDE.md's Per-Test Band-Aid failure mode warns against reflexive per-test timeouts, so this would need a considered exception) or restructuring the test to reduce subprocess-spawn count. Low urgency until it recurs.
+
+## rec-20260918-005 — DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: parsers, dx
+- files: packages/core/src/parse/draft-parser.ts
+- evidence: Confirmed live on the PC-transfer checkout 2026-09-18: no BOM/FEFF handling anywhere in packages/core/src/parse/.
+- next: cadence milestone propose
+
+Phase 310 (rec-20260907-003) normalized CRLF to LF once at parseDraftMd's entry point, but the frontmatter regex is anchored with ^--- and a leading BOM (U+FEFF) still prevents that anchor from matching, so the same operator-facing symptom the rec exists to kill is still live for a named trigger: this repo's own CLAUDE.md notes PowerShell here writes UTF-8 with BOM by default, and PowerShell redirection was one of the motivating CRLF sources. A lone \r with no \n (classic-Mac line endings) hits the identical root cause -- normalization only handles \r\n -- and is a second, lower-priority instance of the same gap. Fix: strip a leading BOM (and normalize a lone \r) at the same parseDraftMd entry point that already normalizes \r\n.
+
+## rec-20260918-006 — draft-mutate.ts's add-ac/add-task splice regexes are \n-only, so a CRLF draft now fails with a different misleading error post-phase-310
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: parsers, dx
+- files: packages/core/src/parse/draft-mutate.ts
+- evidence: Confirmed live on the PC-transfer checkout 2026-09-18: draft-mutate.ts's splice regexes remain \n-only.
+- next: cadence milestone propose
+
+Phase 310 made parseDraftMd tolerate CRLF, but draft-mutate.ts's addAcceptanceCriterion/addTask call parseDraftMd (now CRLF-tolerant) and then splice into the ORIGINAL un-normalized raw string using \n-only regexes (e.g. /(## Acceptance Criteria\n\n)([\s\S]*?)(\n\n## Tasks)/). On a CRLF-terminated draft this splice regex no longer matches, so the mutation throws 'DRAFT.md missing a ## Acceptance Criteria section' -- a new misleading error, though notably it fails loud rather than corrupting the file or writing mixed line endings. Explicitly out of scope for phase 310 (DRAFT boundary: 'Do NOT touch the DRAFT writer/serializer'). Fix: either normalize the raw the same way before splicing, or serialize consistently.
+
+## rec-20260918-007 — spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: parsers, dx
+- files: packages/core/src/parse/spec-parser.ts, packages/core/src/parse/ui-spec-parser.ts
+- evidence: Confirmed live on the PC-transfer checkout 2026-09-18: only draft-parser.ts has CRLF normalization; spec-parser.ts and ui-spec-parser.ts do not.
+- next: cadence milestone propose
+
+spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same ^---\n([\s\S]*?)\n---\n frontmatter regex (and parseFrontmatter/stripFrontmatter/extractSection helpers) that draft-parser.ts had before phase 310 -- same bug shape, same fix (normalize \r\n to \n once at each parse entry point), not yet applied. Explicitly deferred by phase 310's DRAFT boundary ('no recommendation covers them; leave for a future phase') -- this rec makes that deferral durable rather than an unlogged gap.

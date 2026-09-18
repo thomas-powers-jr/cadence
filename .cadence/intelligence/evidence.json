@@ -2613,6 +2613,27 @@
       "kind": "note",
       "summary": "AMBIGUOUS IN IDENTITY AS WELL AS IN TIME. Observed live 2026-09-18 while building phase 313: the Skill tool was called with skill=\"systematic-debugging\" and RESOLVED to the Superpowers plugin copy, yet state.skillAudit.invoked recorded the bare string \"systematic-debugging\". So the telemetry records the name that was REQUESTED, not the skill that actually ran (single write site, hooks/handlers.ts:495, which takes ctx.raw.skill verbatim). Combined with skill-match.ts satisfies(), which matches inv === req OR inv.endsWith(\":\" + req), this means a requirement naming a bare skill can be satisfied by any namespaced skill sharing that suffix from any installed plugin — a repo could declare skillAudit.required for its own skill and have a third-party plugin skill of the same name satisfy it. So skillAudit.required is ambiguous in identity as well as in time: it cannot show WHICH implementation ran, only that something by that name was asked for, sometime in this checkout. Latent today, not exercised: phase 313 deliberately does not add its skill to any manifest, and no CADENCE pack currently requires a name that collides with an installed plugin skill.",
       "createdAt": "2026-09-18T01:02:25.876Z"
+    },
+    {
+      "id": "ev-20260918-005",
+      "recommendationId": "rec-20260918-005",
+      "kind": "note",
+      "summary": "Confirmed live on the PC-transfer checkout 2026-09-18: no BOM/FEFF handling anywhere in packages/core/src/parse/.",
+      "createdAt": "2026-09-18T14:23:01.158Z"
+    },
+    {
+      "id": "ev-20260918-006",
+      "recommendationId": "rec-20260918-006",
+      "kind": "note",
+      "summary": "Confirmed live on the PC-transfer checkout 2026-09-18: draft-mutate.ts's splice regexes remain \\n-only.",
+      "createdAt": "2026-09-18T14:23:09.612Z"
+    },
+    {
+      "id": "ev-20260918-007",
+      "recommendationId": "rec-20260918-007",
+      "kind": "note",
+      "summary": "Confirmed live on the PC-transfer checkout 2026-09-18: only draft-parser.ts has CRLF normalization; spec-parser.ts and ui-spec-parser.ts do not.",
+      "createdAt": "2026-09-18T14:23:17.963Z"
     }
   ]
 }
