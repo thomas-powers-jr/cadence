@@ -1,0 +1,36 @@
+{
+  "draftId": "313-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "SKILL.md verified: 4 template sections in order, name/description frontmatter present; T2's AC-1/AC-3 content assertions pass (re-verified in main thread).",
+      "touchedFiles": [
+        ".changeset/systematic-debugging-skill.md",
+        ".claude/skills/systematic-debugging/SKILL.md",
+        "docs/packs-design.md",
+        "packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts",
+        "packages/core/tests/docs/packs-design-distributed-skills.test.ts",
+        "packages/core/tests/skills/systematic-debugging-discoverability.test.ts"
+      ],
+      "updatedAt": "2026-09-18T01:22:36.908Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "debugging-skill-walkthrough.test.ts: 5/5 tests pass (re-run in main thread); nonzero exit is the known single-file coverage-threshold artifact, not a failure. AC-1..AC-4 tokens confirmed inside asserting it() blocks.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-18T01:22:43.051Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "docs/packs-design.md distributed-skills note verified (cites rec-20260917-003, frames gate as skill-honored not engine-enforced); changeset confirmed patch-level; added packages/core/tests/docs/packs-design-distributed-skills.test.ts for AC-5 coverage (was missing on resume); tests/docs: 37 files / 221 passed.",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-18T01:23:03.752Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "AC-6 discoverability test passes; state.skillAudit.invoked contains systematic-debugging; pnpm turbo run lint typecheck test build --force: 24/24 tasks green (forced, not a cached replay); diff confined to T1-T4 declared files (verified via git diff --stat against origin/main).",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-18T01:26:12.407Z"
+    }
+  }
+}

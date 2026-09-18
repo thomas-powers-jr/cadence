@@ -155,8 +155,9 @@ describe('313-01 — the systematic-debugging skill and its ledger substrate', (
     expect(whenClosed).toHaveLength(0);
   });
 
-  it('313-01/AC-4: concluding advances the anchor, so a debugging session leaves no dead candidate row', async () => {
-    active = await tempRepo({ initialized: true, projectName: 'debug-anchor' });
+  it('313-01/AC-4: concluding advances the anchor on both exits — false alarm and root cause found', async () => {
+    // Exit 1: false alarm. No bug after all, closed with its trail intact.
+    active = await tempRepo({ initialized: true, projectName: 'debug-anchor-false-alarm' });
     const root = active.root;
 
     const rec = await run(
@@ -171,7 +172,6 @@ describe('313-01 — the systematic-debugging skill and its ledger substrate', (
       .find((r) => r.id === recId);
     expect(before?.status).toBe('candidate');
 
-    // The false-alarm exit: no bug after all, closed with its trail intact.
     const promoted = await run(
       ['recommendation', 'promote', recId, '--status=rejected'],
       root,
@@ -183,6 +183,40 @@ describe('313-01 — the systematic-debugging skill and its ledger substrate', (
       .find((r) => r.id === recId);
     // Terminal-status recs leave the active ledger, so nothing dangles.
     expect(stillActive).toBeUndefined();
+    await active.cleanup();
+
+    // Exit 2: root cause found. `accepted` recs stay in the active list (they
+    // become real queued work, not an abandoned row) — so the assertion here
+    // is the AC-literal claim, not "removed from the list": the anchor must
+    // no longer sit at `candidate`, which is what "no dead ledger entry"
+    // actually requires for this branch.
+    active = await tempRepo({ initialized: true, projectName: 'debug-anchor-root-cause' });
+    const root2 = active.root;
+
+    const rec2 = await run(
+      ['recommendation', 'add', '--title', 'bug: anchor lifecycle (root cause)', '--summary', 's',
+        '--priority', 'low', '--readiness', 'needs-evidence'],
+      root2,
+    );
+    const recId2 = addedId(rec2.stdout);
+
+    const listed2 = await run(['recommendation', 'list', '--format', 'json'], root2);
+    const before2 = (JSON.parse(listed2.stdout) as { id: string; status: string }[])
+      .find((r) => r.id === recId2);
+    expect(before2?.status).toBe('candidate');
+
+    const promoted2 = await run(
+      ['recommendation', 'promote', recId2, '--status=accepted', '--readiness=ready-for-cadence-spec'],
+      root2,
+    );
+    expect(promoted2.code).toBe(0);
+
+    const after2 = await run(['recommendation', 'list', '--format', 'json'], root2);
+    const advanced = (JSON.parse(after2.stdout) as { id: string; status: string }[])
+      .find((r) => r.id === recId2);
+    expect(advanced).toBeDefined();
+    expect(advanced?.status).not.toBe('candidate');
+    expect(advanced?.status).toBe('accepted');
   });
 
   it('313-01/AC-1: the skill matches the house template shape and names real trigger phrases', async () => {
@@ -203,7 +237,7 @@ describe('313-01 — the systematic-debugging skill and its ledger substrate', (
     // make the skill unreachable. Require concrete debugging triggers.
     const description = /^description: (.+)$/m.exec(skill)?.[1] ?? '';
     expect(description.length).toBeGreaterThan(80);
-    for (const trigger of ['test fails', 'CI', 'bug', 'fix did not work']) {
+    for (const trigger of ['test fails', 'ci goes red', 'a bug is reported', 'fix did not work']) {
       expect(description.toLowerCase()).toContain(trigger.toLowerCase());
     }
   });
