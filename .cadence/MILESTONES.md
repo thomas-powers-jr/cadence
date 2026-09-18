@@ -1123,6 +1123,38 @@ changeset (example/test-only change, no published-package surface).*
   `changeset version` step would have permanently broken; extracted a shared
   helper that falls back to a pinned, verified CHANGELOG.md discriminator
   after consumption (rec-20260916-002).
+- **Phase 304** — `doctor`'s `profileRemediationHint` now enumerates
+  reachable profile×tier cells via `effectiveGateSet`, packs-aware,
+  replacing the old hardcoded two-branch text (#498).
+- **Phase 305** — fixed `settle run --deep` never committing in a project
+  with CADENCE's own hooks installed: the host-cli verifier child's
+  `UserPromptSubmit` hook no longer advances the state revision (issue
+  #500, #503).
+- **Phase 306** — `cadence tutorial`/`cadence demo` now read Node 24's
+  spec-reporter `node --test` summary instead of only TAP, fixing a false
+  "no test files found" on Node 24 (#502).
+- **Phase 307** — settle's `ctx.diff()` now covers the phase's
+  committed-since-divergence range, not just uncommitted changes, fixing
+  `deep-verify`/`code-review`/`security-audit` rejecting fully-committed
+  phases (issue #501, #504).
+- **Phase 308** — `doctor`'s Codex hooks check verifies every expected hook
+  entry is present instead of inferring completeness from one marker
+  (#510).
+- **Phase 309** — `cadence resume` no longer silently serves a stale
+  handoff when a newer session doc lands without the local pointer being
+  rewritten (rec-20260917-001, #511).
+- **Phase 310** — `parseDraftMd` normalizes CRLF line endings so a
+  DRAFT.md saved on Windows no longer fails with a misleading "missing
+  frontmatter" error (#512).
+- **Phase 311** — `--allow-skill-audit-miss` now records the bypass in
+  `SUMMARY.gateBypasses`, not just stderr (rec-20260917-004, #515).
+- **Phase 312** — `cadence/core-skills` declares `phase-build` as a
+  required skill, the pack's first behavioral contribution and the
+  corpus's first non-empty `skillAudit.provenance` (rec-20260917-007,
+  #516).
+- **Phase 313** — shipped the `systematic-debugging` skill, gated on the
+  assumption ledger via `cadence assumption`, giving the ledger its first
+  consumer (rec-20260918-002, #519).
 
 
 

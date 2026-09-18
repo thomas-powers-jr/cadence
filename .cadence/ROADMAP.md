@@ -2944,6 +2944,165 @@ discriminator string pinned per fix and verified (by live grep during
 drafting) to have zero pre-existing hits, so the fallback stays meaningful
 rather than hollow.
 
+### Phase 304 — `profileRemediationHint` enumerates reachable cells via `effectiveGateSet`, packs-aware (#498)
+
+**Objective.** Phase 302 made `assessGateReachability`'s profile-blocked
+verdict pack-aware, but `profileRemediationHint` (`doctor/run.ts`) still
+hardcoded each gate's reachable profile×tier cells as a two-branch prose
+string derived from raw `DELTAS` only, so a pack-added gate reachable at a
+cell absent from `DELTAS` still got remediation text pointing at the old
+cell. Replaced the hardcoded branches with a dynamic enumeration of
+reachable cells across all 3 profiles × 3 tiers via `effectiveGateSet`,
+packs-aware end to end.
+
+**As built (2026-09-16).** Shipped as designed. PR #498.
+
+### Phase 305 — `settle run --deep`'s host-cli child no longer advances the state revision (issue #500) (#503)
+
+**Objective.** Fixed GitHub issue #500: a project with CADENCE's own Claude
+Code hooks installed could never commit `settle run --deep`, because the
+`host-cli` verifier's spawned `claude -p` child fired the project's
+`UserPromptSubmit` hook, which bumped `session.tokenUtilization` through the
+revision-checked `commit()` path and advanced the on-disk revision out from
+under settle's own end-of-run commit. Moved `tokenUtilization` onto the same
+revision-exempt `bumpSessionCounter` path phase 194 already used for
+`subagentSpawns`, clamped to its `[0, 1]` schema range — the same class of
+gap as issue #234, left behind because phase 194 didn't touch this counter.
+A broader hook-wide no-op for verifier children was considered and rejected
+as depending on an unverified environment-passthrough premise; filed as its
+own recommendation instead.
+
+**As built (2026-09-17).** Shipped as designed. PR #503.
+
+### Phase 306 — Walkthrough `node --test` summaries read the Node 24 spec reporter (#502)
+
+**Objective.** `cadence tutorial`/`cadence demo` echoed a one-line
+`node --test` summary through a private `showTestRun` helper that only
+recognized Node 22's TAP-style count lines (`# tests N`); Node 24 emits its
+spec reporter instead (`ℹ tests 1`), so both walkthroughs printed
+`(no test files found)` for a run that actually passed — `build-test-must-pass`
+was unaffected since it gates on exit code, but the visible summary was
+false, reproduced on Windows under Node 24.20.0. Extracted one shared, pure
+summary parser recognizing both the `#` and `ℹ` count-line prefixes, and
+changed the unrecognized-summary fallback to say the summary couldn't be
+read rather than asserting no test files existed. Corrects the premise
+`rec-20260916-005` was filed under during phase 305, before the root cause
+was found.
+
+**As built (2026-09-16).** Shipped as designed. PR #502.
+
+### Phase 307 — Settle review diff covers the phase's committed range (issue #501) (#504)
+
+**Objective.** Fixed GitHub issue #501: settle's shared `ctx.diff()` was
+`git diff HEAD` (uncommitted changes only), so any phase whose tasks were
+committed as they landed handed `deep-verify`/`code-review`/`security-audit`
+a diff missing its own implementation, and every AC was rejected. Changed
+the diff basis to `git diff <merge-base> -- <declared files>`, resolved
+against `origin/<integrationRef>` then the local ref (the same order
+`boundary-scan` already uses), falling back to today's `HEAD` diff with a
+loud stderr notice when no base resolves inside a git work tree, and staying
+empty with no notice outside one. Added notices for two further
+silent-empty paths (a resolved-but-empty merge-base diff; a git failure
+while diffing) and, per the issue's second ask, made a `deep-verify` refusal
+print the diff byte count and declared-file count it was given. The
+build-time per-task diff in `gates/build-context.ts` stays on `HEAD` by
+design, since it runs before a task's work is committed.
+
+**As built (2026-09-17).** Shipped as designed. PR #504.
+
+### Phase 308 — `doctor`'s Codex hooks check verifies completeness, not just existence (#510)
+
+**Objective.** `cadence doctor`'s `checkCodexHooks` reported `.codex/hooks.json`
+as fully managed on a single `_managedBy: "cadence"` marker anywhere in the
+document — the same existence-only gap phase 295 had already fixed for
+`checkHostHooks` (Claude Code). Gave `checkCodexHooks` the same completeness
+check, verifying every hook entry `host-codex`'s installer actually writes
+(`SessionStart`, `UserPromptSubmit`, `PreToolUse`/`PostToolUse` matched on
+`^apply_patch$`, `Stop`, `SubagentStop`) is present rather than inferring
+from one marker, moved the expected-hook list into
+`@thomas-powers-jr/cadence-host-toolkit` as the shared source of truth
+between the installer and the doctor check (mirroring phase 295's
+`CLAUDE_CODE_EXPECTED_HOOKS` pattern), and added a drift test pinning the
+installer's and core's independently-held copies against each other.
+
+**As built (2026-09-17).** Shipped as designed. PR #510.
+
+### Phase 309 — `cadence resume` no longer silently serves a stale handoff (rec-20260917-001) (#511)
+
+**Objective.** `locateFreshestHandoff()` returned `state.json`'s
+`lastHandoff` pointer unconditionally whenever the file existed on disk,
+rather than ranking it against the `SESSION-*.md` glob by `generated_at` —
+so `cadence resume`/`resume --list` could silently serve a stale handoff
+when a newer session doc landed (e.g. merged from another branch) without
+that checkout's local, gitignored pointer being rewritten. Made
+`locateFreshestHandoff()` rank the pointer against the glob and return the
+newer doc when one exists, naming the superseded pointer in the result's
+`supersededPointer` field; a fresh or tied pointer is still preferred with
+no false notice.
+
+**As built (2026-09-17).** Shipped with two recorded bypasses: `test-coverage`
+via `--allow-missing-coverage`, and `evidence-floor:AC-6` via
+`--evidence-floor-bypass` for a process/pipeline claim with no single
+asserting unit test, independently re-run green three times this session.
+PR #511.
+
+### Phase 310 — DRAFT frontmatter parser rejects CRLF line endings (#512)
+
+**Objective.** `parseDraftMd` failed a DRAFT.md saved with `\r\n` line
+endings with a misleading "missing frontmatter" error instead of parsing it
+— a real trap for a DRAFT authored or rewritten on Windows. Normalized CRLF
+line endings before parsing so a CRLF-saved DRAFT parses field-for-field
+identically to its LF equivalent, with no stray `\r` left in any string
+field, while a genuinely malformed frontmatter delimiter (regardless of line
+ending) still throws the existing `CadenceError`.
+
+**As built (2026-09-17).** Shipped as designed. PR #512.
+
+### Phase 311 — `--allow-skill-audit-miss` records the bypass in `SUMMARY.gateBypasses` (rec-20260917-004) (#515)
+
+**Objective.** `--allow-skill-audit-miss` let settle proceed past a missing
+required skill but left the bypass visible only on ephemeral stderr —
+`skill-audit` is dispatched outside the Phase 44.1 gate registry and isn't a
+`Gate` enum member, so it produced no `gates[].skipReason` entry and
+`anomalyToGateBypass` had no case for it either. Added a direct
+`gateBypasses` push mirroring the existing `pack-resolution` precedent
+(`services/settle.ts`), so a bypassed settle now records exactly one
+`skill-audit` entry (gate, flag, reason, `severity: 'warn'`) in
+`SUMMARY.json` alongside the pre-existing stderr notice, and updated
+`docs/cli.md`/`docs/reference/commands.md` to match.
+
+**As built (2026-09-17).** Shipped as designed. PR #515.
+
+### Phase 312 — `cadence/core-skills` declares `phase-build` as a required skill (rec-20260917-007) (#516)
+
+**Objective.** Made `cadence/core-skills` declare
+`skillAudit.required: ["phase-build"]`, its first behavioral contribution
+beyond a commands-only manifest, producing the corpus's first non-empty
+`skillAudit.provenance` (`[]` across all 322 prior settle records) now that
+phase 295 fixed the `Skill`-tool matcher phase 294 was blocked on. Proved
+both the refusal and bypass paths against the real committed manifest
+rather than a synthetic fixture, and documented that
+`state.skillAudit.invoked` is checkout-scoped, append-only telemetry
+(`rec-20260917-006`) — the requirement proves a skill appears in a
+checkout's history, not that this phase's own settle invoked it.
+
+**As built (2026-09-18).** Shipped as designed. PR #516.
+
+### Phase 313 — `systematic-debugging` skill gated on the assumption ledger (rec-20260918-002) (#519)
+
+**Objective.** Shipped `.claude/skills/systematic-debugging/SKILL.md`: a
+debugging discipline whose hypotheses are recorded as `cadence assumption`
+rows tied to one anchor recommendation, with its conclusion step gated on
+`cadence assumption list --filter-rec <id> --filter-status open --format
+json` coming back empty — giving the assumption ledger (`open | validated |
+rejected`, previously zero callers anywhere in `.claude/`) its first
+consumer and making a debugging session's trail inspectable after the fact.
+The skill's conclusion is gated on a ledger query the skill itself honors,
+not an engine-enforced refusal the way settle refuses a phase — that
+distinction is stated explicitly, not glossed.
+
+**As built (2026-09-18).** Shipped as designed. PR #519.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
