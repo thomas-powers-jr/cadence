@@ -2585,6 +2585,34 @@
       "kind": "note",
       "summary": "docs/reference/config.md:219 and :223 read as quoted, verified 2026-09-17 on the phase-312 branch off main ccd5572f. Contradicted by packages/core/src/hooks/handlers.ts:494-495 (dedup early-return + FIFO append, sole writer) and the absence of any reset in packages/core/src. Surfaced by independent review of phase 312.",
       "createdAt": "2026-09-17T23:54:45.845Z"
+    },
+    {
+      "id": "ev-20260918-001",
+      "recommendationId": "rec-20260918-001",
+      "kind": "note",
+      "summary": "cadence assumption validate --help and reject --help both list only -h/--help; add --help lists --rec and --text. AssumptionZ status enum is open|validated|rejected (packages/types/src/intelligence.ts:129) with no note/observation field. recommendation evidence add --note is the only free-text sink in the neighbourhood and it attaches to a recommendation, not an assumption. Measured 2026-09-17 @ main 18d2bf78. Surfaced while designing phase 313's debugging skill, whose pipeline step 3 assumed the observation could be recorded on the transition.",
+      "createdAt": "2026-09-18T00:52:56.132Z"
+    },
+    {
+      "id": "ev-20260918-002",
+      "recommendationId": "rec-20260918-001",
+      "kind": "note",
+      "summary": "TEXT REPAIR: the summary above has a clause missing after \"via\" — backticks in the filing command were shell-substituted away before the text was stored. The intended clause named the workaround command: cadence recommendation evidence add <recId> --note \"<assumption-id>: <observation>\". The claim itself is unaffected; only the example command was lost. Filing note for future sessions: avoid backticks in recommendation add --summary values, they are evaluated by the shell.",
+      "createdAt": "2026-09-18T00:53:21.162Z"
+    },
+    {
+      "id": "ev-20260918-003",
+      "recommendationId": "rec-20260918-002",
+      "kind": "note",
+      "summary": "Zero matches for the assumption CLI across .claude/ (measured). Assumption status enum open|validated|rejected at packages/types/src/intelligence.ts:129; transitions validate|reject|reopen at packages/core/src/cli/commands/assumption.ts:277. assumption list supports --filter-rec, --filter-status and --format json, so the gate query is deterministic. Superpowers systematic-debugging SKILL.md read at superpowers/6.3.0 — four phases, advice only, no ledger. Base main 18d2bf78.",
+      "createdAt": "2026-09-18T00:54:11.844Z"
+    },
+    {
+      "id": "ev-20260918-004",
+      "recommendationId": "rec-20260917-006",
+      "kind": "note",
+      "summary": "AMBIGUOUS IN IDENTITY AS WELL AS IN TIME. Observed live 2026-09-18 while building phase 313: the Skill tool was called with skill=\"systematic-debugging\" and RESOLVED to the Superpowers plugin copy, yet state.skillAudit.invoked recorded the bare string \"systematic-debugging\". So the telemetry records the name that was REQUESTED, not the skill that actually ran (single write site, hooks/handlers.ts:495, which takes ctx.raw.skill verbatim). Combined with skill-match.ts satisfies(), which matches inv === req OR inv.endsWith(\":\" + req), this means a requirement naming a bare skill can be satisfied by any namespaced skill sharing that suffix from any installed plugin — a repo could declare skillAudit.required for its own skill and have a third-party plugin skill of the same name satisfy it. So skillAudit.required is ambiguous in identity as well as in time: it cannot show WHICH implementation ran, only that something by that name was asked for, sometime in this checkout. Latent today, not exercised: phase 313 deliberately does not add its skill to any manifest, and no CADENCE pack currently requires a name that collides with an installed plugin skill.",
+      "createdAt": "2026-09-18T01:02:25.876Z"
     }
   ]
 }

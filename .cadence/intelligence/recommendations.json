@@ -2609,13 +2609,14 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260917-010"
+        "ev-20260917-010",
+        "ev-20260918-004"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "scoutId": "scout-20260917-expansion-1",
       "createdAt": "2026-09-17T23:31:37.050Z",
-      "updatedAt": "2026-09-17T23:31:37.050Z"
+      "updatedAt": "2026-09-18T01:02:25.876Z"
     },
     {
       "id": "rec-20260917-008",
@@ -2644,6 +2645,68 @@
       "scoutId": "scout-20260917-expansion-1",
       "createdAt": "2026-09-17T23:54:45.845Z",
       "updatedAt": "2026-09-17T23:54:45.845Z"
+    },
+    {
+      "id": "rec-20260918-001",
+      "title": "cadence assumption validate|reject cannot record the observation that justified the transition — the hypothesis ledger keeps the verdict but loses the evidence for it",
+      "summary": "assumption add takes --rec and --text, but validate <id> and reject <id> take an id and nothing else (packages/core/src/cli/commands/assumption.ts). So the ledger records THAT a hypothesis was validated or rejected and never WHY: the observation that discriminated it is not storable on the assumption. This is the same audit-trail shape this arc has now found three times (rec-20260917-004 for settle bypasses, rec-20260917-006 for skill-audit telemetry) — a verdict survives in the durable record while the evidence for it does not. It matters more here than elsewhere because the assumption ledger is the substrate for a hypothesis-driven debugging discipline whose entire value is that the trail is inspectable afterwards: a reader of a closed debugging session can see which hypotheses were rejected but cannot see what rejected them. The available workaround is a convention, not a schema link: put the observation on the anchor recommendation via , which keeps it in the ledger but binds it to the rec rather than to the assumption, so nothing enforces or validates the reference. Options to consider: an optional --note on validate/reject stored on the assumption; or an evidence row that can cite an assumptionId as well as a recommendationId. Additive either way.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "intelligence",
+        "cli"
+      ],
+      "affectedFiles": [
+        "packages/core/src/cli/commands/assumption.ts",
+        "packages/types/src/intelligence.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-001",
+        "ev-20260918-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-18T00:52:56.132Z",
+      "updatedAt": "2026-09-18T00:53:21.162Z"
+    },
+    {
+      "id": "rec-20260918-002",
+      "title": "Superpowers scorecard: systematic-debugging is unclaimed, and the cadence assumption hypothesis ledger has zero callers anywhere in .claude/",
+      "summary": "cadence assumption add/show/list/validate/reject/reopen is a full hypothesis ledger with open|validated|rejected states, and nothing in .claude/ has ever used it — measured zero references. Meanwhile the Superpowers scorecard lists systematic-debugging as unclaimed, and that skill is four phases of prompt discipline with no durable trail: reproduce, hypothesize, test, confirm. Shipping a CADENCE debugging skill gives the existing ledger its first caller and makes the trail inspectable after the session: each hypothesis is an assumption row tied to an anchor recommendation, closed validated or rejected, and the conclusion step is gated on a deterministic query (assumption list --filter-rec ID --filter-status open --format json) that must come back empty. Scoped honestly: that gate is a query the skill honors, not an engine-enforced gate — CADENCE cannot refuse a conclusion the way settle refuses a phase, so the deliverable is a discipline with a real substrate underneath it, not enforcement. The skill ships as a file under .claude/skills/ and is referenced from the pack docs, because PackManifestZ has no slot for a distributed-but-not-required skill (rec-20260917-003).",
+      "source": "manual",
+      "status": "converted",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "skills",
+        "intelligence"
+      ],
+      "affectedFiles": [
+        ".claude/skills/systematic-debugging/SKILL.md",
+        "docs/packs-design.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "313-systematic-debugging-skill-gated-on-the-assumption-ledger",
+      "scoutId": "scout-20260917-expansion-1",
+      "createdAt": "2026-09-18T00:54:11.844Z",
+      "updatedAt": "2026-09-18T00:54:17.432Z"
     }
   ],
   "archived": [
@@ -9895,12 +9958,12 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "312-pack-declares-phase-build-as-a-required-skill",
-      "scoutId": "scout-20260917-expansion-1",
-      "createdAt": "2026-09-17T23:34:47.128Z",
-      "updatedAt": "2026-09-18T00:00:51.189Z",
       "shippedRef": "phase 312 (312-01) — manifest declares skillAudit.required: ['phase-build'], version 1.1.0; first non-empty skillAudit.provenance in the corpus. Scoped: attribution, not per-phase enforcement (see rec-20260917-006).",
+      "scoutId": "scout-20260917-expansion-1",
       "archivedAt": "2026-09-18T00:00:51.189Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-17T23:34:47.128Z",
+      "updatedAt": "2026-09-18T00:00:51.189Z"
     }
   ]
 }
