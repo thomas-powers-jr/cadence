@@ -1017,6 +1017,14 @@
       "status": "active",
       "decidedAt": "2026-09-16T17:13:38.982Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20260918-001",
+      "title": "D-BF-adjacent: classifyTier's minTasks floor is not wired into the coherence gate",
+      "rationale": "packages/core/src/coherence/check.ts:48-52 explicitly documents that classifyTier (packages/core/src/classify/tier.ts) 'was never wired into this check, and remains explicitly out of scope.' tier.complex.minTasks=6 is therefore advisory only -- a 3-4 task Phase 1 declared --tier complex will not be gate-refused for under-counting tasks. Declared tier only changes which gates fire per the profile x tier matrix (gates/engine.ts), it is not cross-checked against actual task/file counts at settle time. Re-filed on the PC-transfer checkout 2026-09-18 -- original dec-20260917-002 was local-only, never pushed, and its rec cross-ref (rec-20260917-005) was superseded by the shipped phase 312; no equivalent exists on origin.",
+      "status": "active",
+      "decidedAt": "2026-09-18T14:23:25.846Z",
+      "supersedes": []
     }
   ]
 }
