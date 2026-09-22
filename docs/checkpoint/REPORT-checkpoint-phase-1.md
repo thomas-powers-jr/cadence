@@ -40,3 +40,17 @@ None outstanding for Phase 1. Decisions 1, 3, 4, 5 are answered (see Task 1.0's 
 ## 6. Proposed for operator filing
 
 None from Phase 1 itself. Phase 0's report (`REPORT-checkpoint-phase-0.md`) carries any product-gap proposals from the platform-fact measurements.
+
+## 7. Addendum (post-report, same worktree) — a real lint gap this report missed
+
+A separate assessment session, running independently in this same worktree, re-verified this report's claims and ran a command this report's own AC table never named: `pnpm --filter @thomas-powers-jr/cadence-checkpoint lint`. It failed:
+
+```
+packages/checkpoint/src/types.ts
+  21:18  error  An empty interface declaration allows any non-nullish value, including literals like `0` and `""`.
+  @typescript-eslint/no-empty-object-type
+```
+
+Independently reproduced, then fixed: `ValidateOptions` changed from `interface ValidateOptions {}` to `export type ValidateOptions = Record<string, never>;` — same signature-compatibility intent from Task 1.0 (the spec's `validate(markdown, opts)` shape), but not the empty-object shape the rule flags. `lint`, `typecheck`, and the full 24-test suite are all green after the fix (commit `1b4ec848f42725e3d124c32ed5166ad8e31875f9`).
+
+**Process gap, not just a code gap:** none of this phase's tasks named `lint` as a required verification command — only `test` and `typecheck` were. That's why a real, CI-failing defect shipped past every checkpoint this report checked. Worth carrying forward: any future task list for this package should name `lint` alongside `test`/`typecheck` as a per-task gate, not something assumed to ride along with the others.
