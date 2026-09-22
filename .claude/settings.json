@@ -9,6 +9,14 @@
           }
         ],
         "_managedBy": "cadence"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/checkpoint-probe/hook-probe.cjs"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -28,6 +36,14 @@
           }
         ],
         "_managedBy": "cadence"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/checkpoint-probe/hook-probe.cjs"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -91,6 +107,44 @@
           }
         ],
         "_managedBy": "cadence"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/checkpoint-probe/hook-probe.cjs"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/checkpoint-probe/hook-probe.cjs"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/checkpoint-probe/hook-probe.cjs"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/checkpoint-probe/hook-probe.cjs"
+          }
+        ]
       }
     ],
     "SubagentStop": [
@@ -115,5 +169,9 @@
         "_managedBy": "cadence"
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node scripts/checkpoint-probe/statusline-probe.cjs"
   }
 }
