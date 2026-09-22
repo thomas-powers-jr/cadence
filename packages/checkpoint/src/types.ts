@@ -18,9 +18,10 @@ export interface Diagnostic {
   line?: number;
 }
 
-export interface ValidateOptions {
-  // Reserved for future options (e.g. a custom resume-core budget); empty today.
-}
+// Reserved for future options (e.g. a custom resume-core budget); empty today.
+// Record<string, never> (not `interface ValidateOptions {}`) so an empty
+// object type isn't accidentally wide enough to accept any non-nullish value.
+export type ValidateOptions = Record<string, never>;
 
 export interface ValidateResult {
   ok: boolean;
