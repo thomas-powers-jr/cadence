@@ -54,6 +54,15 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(vite@7.3.6(@types/node@22.20.1)(tsx@4.23.12))
 
+  packages/checkpoint:
+    devDependencies:
+      '@thomas-powers-jr/cadence-testkit':
+        specifier: workspace:*
+        version: link:../testkit
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(vite@7.3.6(@types/node@22.20.1)(tsx@4.23.12))
+
   packages/core:
     dependencies:
       '@anthropic-ai/sdk':
