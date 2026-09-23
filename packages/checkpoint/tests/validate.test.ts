@@ -32,6 +32,11 @@ describe('validate', () => {
     expect(result).toEqual({ ok: true, diagnostics: [] });
   });
 
+  it('does not let a same-char marker with an info string (```typescript) close the outer fence early', () => {
+    const result = validate(fixture('fenced-info-string-closer.md'));
+    expect(result).toEqual({ ok: true, diagnostics: [] });
+  });
+
   it('strips the real generator\'s decorated header suffix (" · ...") before matching', () => {
     const result = validate(fixture('decorated-headers.md'));
     expect(result).toEqual({ ok: true, diagnostics: [] });
@@ -99,6 +104,13 @@ describe('validate', () => {
     expect(result).toEqual({ ok: true, diagnostics: [] });
   });
 
+  it('still flags a measured percentage when a command keyword sits outside the code span', () => {
+    const result = validate(fixture('measured-context-command-outside-span.md'));
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ code: 'MEASURED_CONTEXT_MISSING_COMMAND', message: expect.stringContaining('42%') }),
+    ]);
+  });
+
   it('reports exactly one OPEN_DECISIONS_EMPTY_NOT_EXPLICIT for an empty section with no None', () => {
     const result = validate(fixture('open-decisions-empty.md'));
     expect(result.diagnostics).toEqual([
@@ -123,11 +135,19 @@ describe('validate', () => {
     expect(result.diagnostics).toEqual([expect.objectContaining({ code: 'EMPTY_FILE' })]);
   });
 
-  it('reports NON_UTF8_INPUT without throwing', () => {
+  it('reports NON_UTF8_INPUT for genuinely malformed bytes, without throwing', () => {
     const buf = fixtureBuffer('non-utf8.md');
-    expect(() => validate(buf.toString('utf8'))).not.toThrow();
-    const result = validate(buf.toString('utf8'));
+    expect(() => validate(buf)).not.toThrow();
+    const result = validate(buf);
     expect(result.diagnostics).toEqual([expect.objectContaining({ code: 'NON_UTF8_INPUT' })]);
+  });
+
+  it('does not flag a string that legitimately contains a literal U+FFFD replacement character', () => {
+    // Only Buffer input goes through byte-level UTF-8 validation. A string
+    // has already been decoded by its caller, so a literal "�" character in
+    // it is just text — it must not be conflated with a decode failure.
+    const result = validate(fixture('literal-replacement-char.md'));
+    expect(result.diagnostics.some((d) => d.code === 'NON_UTF8_INPUT')).toBe(false);
   });
 
   it('reports exactly one SECTION_OUT_OF_ORDER when all sections are present but reordered', () => {

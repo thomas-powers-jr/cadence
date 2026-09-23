@@ -26,12 +26,6 @@ interface ParsedHeader {
   line: number;
 }
 
-function looksNonUtf8(input: string): boolean {
-  // A round-trip through the Buffer UTF-8 codec replaces invalid sequences
-  // with U+FFFD; if that happens, the input wasn't valid UTF-8 text.
-  return input.includes('�');
-}
-
 function splitLines(markdown: string): string[] {
   return markdown.split(/\r\n|\r|\n/);
 }
@@ -47,19 +41,23 @@ function parseHeaders(lines: string[]): ParsedHeader[] {
   let fenceLen = 0;
 
   lines.forEach((line, idx) => {
-    const fenceMatch = /^\s*(`{3,}|~{3,})/.exec(line);
+    const fenceMatch = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
     if (fenceMatch) {
       const marker = fenceMatch[1] as string;
+      const rest = fenceMatch[2] as string;
       const char = marker[0] as string;
       const len = marker.length;
       if (fenceChar === null) {
+        // An info string (```typescript) is legal on an opener.
         fenceChar = char;
         fenceLen = len;
-      } else if (char === fenceChar && len >= fenceLen) {
+      } else if (char === fenceChar && len >= fenceLen && rest.trim().length === 0) {
         // Closes only on a same-character run at least as long as the
-        // opener — a differently-charactered or shorter marker nested
-        // inside an open fence (e.g. ~~~ pasted inside a ``` block) is
-        // just fence content, not a state change.
+        // opener, with nothing but whitespace after it — CommonMark never
+        // treats a marker with an info string (```typescript) as a closer,
+        // so a differently-charactered, shorter, or info-string-suffixed
+        // marker nested inside an open fence is just fence content, not a
+        // state change.
         fenceChar = null;
         fenceLen = 0;
       }
@@ -189,6 +187,18 @@ function checkAcceptanceCriteria(sections: ParsedSection[]): Diagnostic[] {
   return diagnostics;
 }
 
+function hasProducingCommand(line: string): boolean {
+  // The command indicator must sit inside a code span, not just anywhere on
+  // the line — otherwise unrelated prose text ("cadence note: 42% (see
+  // `details`)") satisfies the check without ever naming a real command.
+  const spanPattern = /`([^`]+)`/g;
+  let match: RegExpExecArray | null;
+  while ((match = spanPattern.exec(line)) !== null) {
+    if (/\$|cadence|git|node|curl/.test(match[1] as string)) return true;
+  }
+  return false;
+}
+
 function checkMeasuredContext(sections: ParsedSection[]): Diagnostic[] {
   const section = sections.find((s) => s.name === 'State on handoff');
   if (!section) return [];
@@ -201,7 +211,7 @@ function checkMeasuredContext(sections: ParsedSection[]): Diagnostic[] {
     const percentageMatch = /\b\d+%/.exec(line);
     if (!percentageMatch) return;
 
-    const hasCommand = /`[^`]+`/.test(line) && /\$|cadence|git|node|curl/.test(line);
+    const hasCommand = hasProducingCommand(line);
     if (!hasCommand) {
       diagnostics.push({
         code: 'MEASURED_CONTEXT_MISSING_COMMAND',
@@ -254,22 +264,35 @@ function checkResumeCoreBudget(sections: ParsedSection[]): Diagnostic[] {
   return [];
 }
 
-export function validate(markdown: string, _opts?: ValidateOptions): ValidateResult {
-  if (markdown.length === 0) {
+export function validate(markdown: string | Buffer, _opts?: ValidateOptions): ValidateResult {
+  let text: string;
+  if (Buffer.isBuffer(markdown)) {
+    // Only raw bytes can actually prove an encoding failure. A caller that
+    // already decoded to a string may have done so permissively (Node's
+    // default `.toString('utf8')` silently substitutes U+FFFD for bad
+    // bytes) — by then, malformed input and a document that legitimately
+    // quotes a literal "�" character are indistinguishable, so a string is
+    // trusted as-is and never flagged NON_UTF8_INPUT.
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(markdown);
+    } catch {
+      return {
+        ok: false,
+        diagnostics: [{ code: 'NON_UTF8_INPUT', message: 'Input contains invalid UTF-8 byte sequences.' }],
+      };
+    }
+  } else {
+    text = markdown;
+  }
+
+  if (text.length === 0) {
     return {
       ok: false,
       diagnostics: [{ code: 'EMPTY_FILE', message: 'Input is empty.' }],
     };
   }
 
-  if (looksNonUtf8(markdown)) {
-    return {
-      ok: false,
-      diagnostics: [{ code: 'NON_UTF8_INPUT', message: 'Input contains invalid UTF-8 byte sequences.' }],
-    };
-  }
-
-  const lines = splitLines(markdown);
+  const lines = splitLines(text);
   const headers = parseHeaders(lines);
   const { diagnostics: headerDiagnostics } = checkHeaders(headers);
 

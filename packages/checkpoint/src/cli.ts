@@ -9,9 +9,9 @@ function main(argv: string[]): void {
     process.exit(2);
   }
 
-  let content: string;
+  let content: Buffer;
   try {
-    content = readFileSync(filePath, 'utf8');
+    content = readFileSync(filePath);
   } catch (err) {
     process.stderr.write(`Cannot read ${filePath}: ${(err as Error).message}\n`);
     process.exit(2);

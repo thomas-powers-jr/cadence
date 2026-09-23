@@ -25,4 +25,10 @@ describe('checkpoint validate CLI', () => {
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('AC_LIST_EMPTY');
   });
+
+  it('exits 2 with NON_UTF8_INPUT for genuinely invalid UTF-8 bytes', () => {
+    const result = run(['validate', join(__dirname, 'fixtures', 'non-utf8.md')]);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('NON_UTF8_INPUT');
+  });
 });

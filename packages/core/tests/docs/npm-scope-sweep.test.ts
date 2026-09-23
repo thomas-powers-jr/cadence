@@ -140,6 +140,13 @@ const ALLOWED_FILES = new Set<string>([
   // record a fact about it, not a leftover reference needing migration.
   'docs/checkpoint/REPORT-checkpoint-phase-0.md',
   'docs/checkpoint/phase-0-autonomous-measurements.md',
+
+  // checkpoint's own spec doc, committed onto this branch on 2026-09-23
+  // (it previously sat untracked in a different checkout and so never hit
+  // this sweep). Its M9 row is the same measurement instruction described
+  // above, just in the source doc rather than the phase-0 report that
+  // records the instruction's output.
+  'docs/handoffs/HANDOFF-checkpoint-handoff-before-reset.md',
 ]);
 
 // Note on generated docs: `website/src/content/docs/api/**` (typedoc output)
