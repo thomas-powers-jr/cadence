@@ -730,6 +730,34 @@ dec-20260822-020's rationale said doctor's reachability scan and config-explain'
 
 packages/core/src/coherence/check.ts:48-52 explicitly documents that classifyTier (packages/core/src/classify/tier.ts) 'was never wired into this check, and remains explicitly out of scope.' tier.complex.minTasks=6 is therefore advisory only -- a 3-4 task Phase 1 declared --tier complex will not be gate-refused for under-counting tasks. Declared tier only changes which gates fire per the profile x tier matrix (gates/engine.ts), it is not cross-checked against actual task/file counts at settle time. Re-filed on the PC-transfer checkout 2026-09-18 -- original dec-20260917-002 was local-only, never pushed, and its rec cross-ref (rec-20260917-005) was superseded by the shipped phase 312; no equivalent exists on origin.
 
+### dec-20260918-002 — Phase 315: per-phase skill-invocation scoping via a timestamped invocations map, watermarked against draftReadAt
+
+- recommendation: rec-20260917-006
+- decided: 2026-09-18T17:23:33.197Z
+
+rec-20260917-006's temporal half is fixed by adding state.skillAudit.invocations: Record<string,string> (skill -> last-invoked-at ISO timestamp), written on every skill-invoke hook event -- replacing the current dedup-early-return in handleSkillInvoke, which today only records a skill's first-ever occurrence. skill-audit's per-phase check treats a requirement as satisfied only when the matching invocation's timestamp is >= state.draftReadAt (set fresh, unconditionally, on every draft approve). Existing invoked: string[] and its 100-entry distinct-skill cap are untouched for backward compatibility; SUMMARY/state schemas gain the new field additively only. When draftReadAt is null (no active draft-approve context), fall back to the pre-fix invoked-only check rather than false-refuse.
+
+### dec-20260918-003 — Phase 315: invocations map needs no cap; SKILL_AUDIT_CAP=100 on invoked is unaffected
+
+- recommendation: rec-20260917-006
+- decided: 2026-09-18T17:23:33.693Z
+
+invocations is keyed by skill name (a map, not an array), so it grows only with the number of DISTINCT skill names ever invoked in the checkout, not with invocation count -- the same bound that already makes invoked's 100-cap effectively unreachable in practice. No new cap is needed. invoked's own cap and writer semantics (dedup-first-occurrence, FIFO at 100) stay exactly as they are; phase 315 does not touch them.
+
+### dec-20260918-004 — Phase 315 reaffirms D-BE/D-BF: tightening skill-audit will legitimately refuse more phases; build phase 315 itself via phase-build in a fresh worktree
+
+- recommendation: rec-20260917-006
+- decided: 2026-09-18T17:23:34.193Z
+
+cadence/core-skills already requires phase-build (phase 312). Scoping invoked-ness to the active draft's build window means a checkout carrying only a stale historical invocation (e.g. the primary checkout's leftover state) will now correctly refuse instead of silently passing. Per expansion-arc-1's D-BE, that refusal is the enforcement working, not a regression to route around. Per D-BF, build phase 315 itself via phase-build in a fresh worktree so its own settle is the first live pass under the new semantics; prove the refusal path with a fixture, not by hitting it live.
+
+### dec-20260918-005 — Phase 315: no backfill of historical SUMMARY.json/state.json records under the temporal fix
+
+- recommendation: rec-20260917-006
+- decided: 2026-09-18T17:23:34.707Z
+
+Reaffirms dec-20260816-008 (report-only, no backfill of historical assurance-grade records) and dec-20260822-006 (no backfill for the empty-diff assurance-grade fix) precedent. The corrected semantics apply forward, from the phase that ships them; existing settled records keep their as-recorded provenance.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
