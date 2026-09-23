@@ -1,5 +1,7 @@
 # @thomas-powers-jr/cadence-types
 
+## 1.67.3
+
 ## 1.67.2
 
 ### Patch Changes

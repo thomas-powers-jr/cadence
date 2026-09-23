@@ -1,5 +1,11 @@
 # @thomas-powers-jr/cadence-host-toolkit
 
+## 1.67.3
+
+### Patch Changes
+
+- @thomas-powers-jr/cadence-types@1.67.3
+
 ## 1.67.2
 
 ### Patch Changes

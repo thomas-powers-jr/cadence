@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.67.3] - 2026-09-23
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.67.3`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **`cadence/core-skills` now declares `skillAudit.required: ["phase-build"]`, producing the first pack-attributed `skillAudit.provenance` entry.** Phase 294 shipped the pack with `commands[]` only because a required declaration would have hard-refused its own settle before phase 295 fixed the `Skill`-tool telemetry matcher; the manifest (`version` 1.0.0 → 1.1.0) now unions the demand into `runSkillAuditCheck`'s effective set. `state.skillAudit.invoked` is deduped and append-only, so the requirement is satisfied by the skill appearing anywhere in a checkout's history rather than every phase individually. Promotes `rec-20260917-007` to shipped. (Phase `312`, #516.)
+- **New `systematic-debugging` skill, gated on the CADENCE assumption ledger.** Each hypothesis is recorded as an `open | validated | rejected` row tied to one anchor recommendation via `cadence assumption`; the skill's conclusion step is gated on `cadence assumption list --filter-rec <id> --filter-status open --format json` returning empty. This is a gate the skill honors, not one the engine enforces — nothing exits non-zero if a conclusion is reached with hypotheses still open. Promotes `rec-20260918-002` to shipped. (Phase `313`, #519.)
+
+### Fixed
+
+- **`--allow-skill-audit-miss` now records the bypass in `SUMMARY.gateBypasses` instead of leaving it on stderr only.** `anomalyToGateBypass` had no `skill-audit-miss` case, and `emitSkillAuditMiss` wrote straight to the notifier, so the event never joined the `anomalies` array the bypass list derives from — a settle that proceeded past an un-invoked required skill was indistinguishable from one where every required skill ran. Partially closes `rec-20260917-004`. (Phase `311`, #515.)
+- **Both host adapters' hook shims now honor the hook payload's own `cwd` field when spawning `cadence hook <event>`, instead of silently inheriting the shim process's own `process.cwd()`.** This made invoking a skill while working inside a worktree record into the primary checkout's `.cadence/state.json` instead of the worktree's own, effectively making `skillAudit.required` unresumable inside a worktree. Falls back to the shim's own `process.cwd()` when the payload's `cwd` is absent or no longer exists on disk, with a loud stderr notice on genuine divergence. Closes `rec-20260918-003`. (Phase `314`, #524.)
+
 ## [1.67.2] - 2026-09-17
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.67.2`. Per-package bumps managed by changesets, lockstep across all five published packages.
