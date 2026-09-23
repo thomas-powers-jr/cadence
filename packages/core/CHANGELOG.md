@@ -1,5 +1,30 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.67.3
+
+### Patch Changes
+
+- 18d2bf7: The bundled `cadence/core-skills` pack now declares `skillAudit.required: ["phase-build"]`, producing the first pack-attributed `skillAudit.provenance` entry.
+
+  Packs Slice 5 (phase 294) shipped the pack with `commands[]` only, because the `Skill`-tool telemetry matcher was missing from the host settings and a declared requirement would have hard-refused its own settle. Phase 295 fixed the matcher, so the manifest now declares the requirement (`version` bumped to `1.1.0`): the demand unions into `runSkillAuditCheck`'s effective set and is attributed to `pack:cadence/core-skills` in `SUMMARY.json`'s `skillAudit.provenance`, which had read `[]` in every settle record to date.
+
+  Scoped honestly: this does **not** enforce that every phase ran through `phase-build`. `state.skillAudit.invoked` is deduped, append-only and never reset, so the requirement is satisfied by the skill appearing anywhere in a checkout's invocation history. A fresh git worktree starts empty and must genuinely invoke it; a long-lived checkout inherits the satisfaction, and the invoked list is only evicted after 100 _distinct_ skills, so in practice it never lapses. The requirement is also not phase-conditional, so any phase whose telemetry lacks the skill will refuse unless `--allow-skill-audit-miss` is passed — a bypass that, as of this release, records in `SUMMARY.gateBypasses`.
+
+  Consumers are unaffected unless they enable the `cadence/core-skills` pack.
+
+- ccd5572: Fix: `--allow-skill-audit-miss` now records the bypass in `SUMMARY.gateBypasses` instead of leaving it on stderr only.
+
+  A settle that proceeded past an un-invoked required skill was invisible in the durable phase artifact: `SUMMARY.gateBypasses` carried no entry, so a later reader could not tell it apart from a settle where every required skill was invoked. Two independent causes — `anomalyToGateBypass` had no `skill-audit-miss` case, and `emitSkillAuditMiss` writes straight to the notifier, so the event never joined the `anomalies` array that the bypass list is derived from. skill-audit also cannot use the `gates[].skipReason` convention that records `--allow-failing-build` and `--allow-boundary-scan-failure`, because it is deliberately not a `Gate` enum member and is dispatched outside the gate registry, so it produces no `gates[]` entry at all. `runSkillAuditCheck` now reports the bypass to settle, which pushes a `{ gate: 'skill-audit', flag: '--allow-skill-audit-miss', reason, severity: 'warn' }` entry exactly as the `pack-resolution` bypass already did. The existing stderr notice is unchanged — the durable record supplements it. Refusal behavior, the clean-pass path, and the unenforceable `telemetry.skillInvocations: false` path are all untouched and record nothing.
+
+- 648dd37: Adds a `systematic-debugging` skill whose hypotheses are recorded in the CADENCE assumption ledger, and documents why a pack cannot distribute it.
+
+  `cadence assumption` has been a full `open | validated | rejected` hypothesis store since Slice 9, with no callers anywhere. The new skill (`.claude/skills/systematic-debugging/SKILL.md`) gives it one: each hypothesis is an assumption row tied to one anchor recommendation, closed `validated` or `rejected` by an observation, and the skill's conclusion step is gated on `cadence assumption list --filter-rec <id> --filter-status open --format json` returning empty. The effect is that a debugging session leaves an inspectable trail instead of a transcript nobody rereads.
+
+  Stated plainly, because the distinction matters: **this is a gate the skill honors, not one the engine enforces.** Nothing exits non-zero if a conclusion is reached with hypotheses still open — CADENCE does not refuse a conclusion the way `settle` refuses a phase. What is mechanical is the ledger and the query; what is disciplinary is honoring it. The value is that anyone can run one command afterwards and see whether it was honored.
+
+  Two limitations are documented rather than papered over. `assumption validate|reject` take only an id, so the observation that justified a transition cannot be stored on the assumption — the skill puts it on the anchor as evidence, naming the assumption id by convention. And the skill is not declared in the `cadence/core-skills` manifest: `PackManifestZ` has no slot for a distributed-but-not-required skill, and `skillAudit.required` is non-conditional, so declaring it would refuse every phase that did no debugging. `docs/packs-design.md` records both.
+  - @thomas-powers-jr/cadence-types@1.67.3
+
 ## 1.67.2
 
 ### Patch Changes
