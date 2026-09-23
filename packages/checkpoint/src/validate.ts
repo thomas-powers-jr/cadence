@@ -43,14 +43,29 @@ function stripHeaderDecoration(rawLabel: string): string {
 
 function parseHeaders(lines: string[]): ParsedHeader[] {
   const headers: ParsedHeader[] = [];
-  let inFence = false;
+  let fenceChar: string | null = null;
+  let fenceLen = 0;
 
   lines.forEach((line, idx) => {
-    if (/^\s*(```|~~~)/.test(line)) {
-      inFence = !inFence;
+    const fenceMatch = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (fenceMatch) {
+      const marker = fenceMatch[1] as string;
+      const char = marker[0] as string;
+      const len = marker.length;
+      if (fenceChar === null) {
+        fenceChar = char;
+        fenceLen = len;
+      } else if (char === fenceChar && len >= fenceLen) {
+        // Closes only on a same-character run at least as long as the
+        // opener — a differently-charactered or shorter marker nested
+        // inside an open fence (e.g. ~~~ pasted inside a ``` block) is
+        // just fence content, not a state change.
+        fenceChar = null;
+        fenceLen = 0;
+      }
       return;
     }
-    if (inFence) return;
+    if (fenceChar !== null) return;
 
     const match = /^##\s+(.+?)\s*$/.exec(line);
     if (match) {

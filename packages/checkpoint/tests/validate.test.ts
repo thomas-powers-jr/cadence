@@ -27,6 +27,23 @@ describe('validate', () => {
     expect(result.diagnostics.filter((d) => d.code.startsWith('SECTION_'))).toEqual([]);
   });
 
+  it('does not let a differently-marked nested fence (~~~ inside ```) close the outer fence early', () => {
+    const result = validate(fixture('fenced-mismatched-markers.md'));
+    expect(result).toEqual({ ok: true, diagnostics: [] });
+  });
+
+  it('strips the real generator\'s decorated header suffix (" · ...") before matching', () => {
+    const result = validate(fixture('decorated-headers.md'));
+    expect(result).toEqual({ ok: true, diagnostics: [] });
+  });
+
+  it('treats CRLF line endings the same as LF for section/line-number parsing', () => {
+    const lf = fixture('valid.md');
+    const crlf = lf.replace(/\n/g, '\r\n');
+    expect(validate(crlf)).toEqual(validate(lf));
+    expect(validate(crlf)).toEqual({ ok: true, diagnostics: [] });
+  });
+
   it.each([
     ['missing-section-tldr.md', 'TL;DR for the next session'],
     ['missing-section-state.md', 'State on handoff'],
@@ -66,6 +83,11 @@ describe('validate', () => {
     expect(matches[0]?.message).toContain('42%');
   });
 
+  it('does not flag a measured percentage that already has a producing command attached', () => {
+    const result = validate(fixture('measured-context-with-command.md'));
+    expect(result).toEqual({ ok: true, diagnostics: [] });
+  });
+
   it('reports exactly one OPEN_DECISIONS_EMPTY_NOT_EXPLICIT for an empty section with no None', () => {
     const result = validate(fixture('open-decisions-empty.md'));
     expect(result.diagnostics).toEqual([
@@ -77,7 +99,12 @@ describe('validate', () => {
     const result = validate(fixture('resume-core-over-budget.md'));
     const diag = result.diagnostics.find((d) => d.code === 'RESUME_CORE_OVER_BUDGET');
     expect(diag).toBeDefined();
-    expect(diag!.message).toMatch(/\d+/);
+    // 10267 is the real measured length of this fixture's TL;DR + Next action
+    // content (10191-char generated filler + surrounding fixture text) — a
+    // regex like /\d+/ would pass even if the computed length were wrong,
+    // since every over-budget message also contains the literal "10000"
+    // budget constant.
+    expect(diag!.message).toContain('is 10267 characters');
   });
 
   it('reports EMPTY_FILE for a zero-byte input', () => {
