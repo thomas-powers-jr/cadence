@@ -67,9 +67,15 @@ function parseHeaders(lines: string[]): ParsedHeader[] {
     }
     if (fenceChar !== null) return;
 
-    const match = /^##\s+(.+?)\s*$/.exec(line);
+    // A single greedy \s+ followed by a single greedy .* to end-of-line —
+    // not the lazy-middle + greedy-trailing-\s* shape CodeQL flags as a
+    // polynomial ReDoS risk (overlapping quantifiers over \s create
+    // exponential backtracking paths on adversarial input). trimEnd()
+    // replaces the old trailing \s*.
+    const match = /^##\s+(.*)$/.exec(line);
     if (match) {
-      headers.push({ raw: match[1] as string, label: stripHeaderDecoration(match[1] as string), line: idx + 1 });
+      const raw = (match[1] as string).trimEnd();
+      headers.push({ raw, label: stripHeaderDecoration(raw), line: idx + 1 });
     }
   });
 

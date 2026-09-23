@@ -37,6 +37,17 @@ describe('validate', () => {
     expect(result).toEqual({ ok: true, diagnostics: [] });
   });
 
+  it('handles a header line with excess trailing/internal whitespace without a ReDoS-prone regex (CodeQL js/polynomial-redos)', () => {
+    // The original `/^##\s+(.+?)\s*$/` had an overlapping-quantifier shape
+    // CodeQL flagged as polynomial-time on adversarial input. Rewritten to
+    // a single greedy \s+ then .* to end-of-line, with trimEnd() in code.
+    // This pins the resulting behavior: trailing whitespace after a header
+    // label is still stripped, on both a very long run and a normal case.
+    const longRun = ' '.repeat(20000);
+    const result = validate(`# doc\n\n## TL;DR for the next session${longRun}\n\nbody\n`);
+    expect(result.diagnostics.some((d) => d.code === 'SECTION_MISSING' && d.section === 'TL;DR for the next session')).toBe(false);
+  });
+
   it('treats CRLF line endings the same as LF for section/line-number parsing', () => {
     const lf = fixture('valid.md');
     const crlf = lf.replace(/\n/g, '\r\n');
