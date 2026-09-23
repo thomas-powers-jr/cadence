@@ -1,0 +1,22 @@
+{
+  "name": "@thomas-powers-jr/cadence-checkpoint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Handoff-before-reset checkpoint validator (working name; not yet publicly named — see docs/handoffs/HANDOFF-checkpoint-handoff-before-reset.md)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "checkpoint": "./bin/checkpoint.cjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@thomas-powers-jr/cadence-testkit": "workspace:*",
+    "vitest": "^4.1.10"
+  }
+}

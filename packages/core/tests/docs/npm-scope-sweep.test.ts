@@ -131,6 +131,22 @@ const ALLOWED_FILES = new Set<string>([
   // docs/migration-npm-scope.md above: naming the old scope to describe a
   // check about it, not a leftover reference needing migration.
   'docs/handoffs/HANDOFF-v1.55-integrity-release.md',
+
+  // checkpoint Phase 0's M9 measurement (2026-09-22): records which of the
+  // two candidate npm scopes (@thomas-powers-jr vs. the stale
+  // @manehorizons) is the live, actively-published one, by naming and
+  // querying both registry entries directly. Same category as
+  // docs/migration-npm-scope.md above: naming the old scope to measure and
+  // record a fact about it, not a leftover reference needing migration.
+  'docs/checkpoint/REPORT-checkpoint-phase-0.md',
+  'docs/checkpoint/phase-0-autonomous-measurements.md',
+
+  // checkpoint's own spec doc, committed onto this branch on 2026-09-23
+  // (it previously sat untracked in a different checkout and so never hit
+  // this sweep). Its M9 row is the same measurement instruction described
+  // above, just in the source doc rather than the phase-0 report that
+  // records the instruction's output.
+  'docs/handoffs/HANDOFF-checkpoint-handoff-before-reset.md',
 ]);
 
 // Note on generated docs: `website/src/content/docs/api/**` (typedoc output)
