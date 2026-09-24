@@ -1,0 +1,23 @@
+{
+  "bypasses": [],
+  "roughTasks": [],
+  "findings": {
+    "codeReview": {
+      "packages/checkpoint/src/validate.ts": [
+        {
+          "severity": "medium",
+          "message": "A BOM-prefixed string skips frontmatter detection, so valid v1 handoffs are treated as v2 and wrongly fail for missing Open decisions. Strip a leading BOM before parsing.",
+          "line": 80,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-2",
+            "tier": "executable"
+          },
+          "id": "869c03be50aff28061b33ea9ef402e242c1a28ee2a969daf1910ba0f43edfdd0",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ]
+    }
+  }
+}

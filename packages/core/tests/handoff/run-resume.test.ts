@@ -105,6 +105,40 @@ describe('runResume', () => {
     }
   });
 
+  it('316-01/AC-7: replays a filled v2 doc in brief and full mode; only full carries Open decisions', async () => {
+    active = await tempRepo({ initialized: true });
+    const written = await runHandoff(active.root, { label: 'v2' }, NOW);
+    const raw = await readFile(written.path, 'utf8');
+    expect(raw).toMatch(/^cadence_handoff: 2$/m);
+    const decision = 'Decide sqlite vs json store (owner: operator)';
+    const filled = raw
+      .replace(/(## Open decisions\n)<!--[^\n]*-->/, `$1- ${decision}`)
+      .replace(/<!--[^\n]*?-->/g, 'done.');
+    expect(filled).toContain(decision);
+    await writeFile(written.path, filled);
+
+    const brief = await runResume(active.root, { mode: 'brief' });
+    expect(brief.found).toBe(true);
+    if (brief.found) {
+      expect(brief.mode).toBe('brief');
+      expect(brief.unfilled).toBeUndefined();
+      expect(brief.doc).toContain('## Carry-forward gotchas');
+      expect(brief.doc).toContain('## Next action');
+      expect(brief.doc).not.toContain('## Open decisions');
+      expect(brief.doc).not.toContain(decision);
+    }
+
+    const full = await runResume(active.root, { mode: 'full' });
+    expect(full.found).toBe(true);
+    if (full.found) {
+      expect(full.mode).toBe('full');
+      expect(full.unfilled).toBeUndefined();
+      expect(full.doc).toMatch(/^cadence_handoff: 2$/m);
+      expect(full.doc).toContain('## Open decisions');
+      expect(full.doc).toContain(decision);
+    }
+  });
+
   // Phase 273 task 1: reproduces the missing-signal gap at the runResume
   // level. `state.json`'s session.lastHandoff is corrupted to point at a
   // SESSION doc that doesn't exist, while a real SESSION doc (the one

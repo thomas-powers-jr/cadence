@@ -86,12 +86,12 @@ What the command **pre-fills** (verify, don't retype):
 - **Frontmatter** — loop snapshot, read-only git facts (branch/dirty/ahead-behind/head), context-packet path.
 - **State on handoff** — branch, clean/dirty, ahead/behind, HEAD + recent commits, `git diff --stat`, loop position · active phase · tier.
 - **CADENCE context** — top recommendations, open assumptions, active decisions, files in play (from `cadence context handoff`).
-- **Empty narrative stubs** — `TL;DR`, `What landed this session`, `Carry-forward gotchas`, `Next action`.
+- **Empty narrative stubs** — `TL;DR`, `What landed this session`, `Carry-forward gotchas`, `Open decisions`, `Next action`.
 
 Then **fill the narrative stubs** (the next LLM should be able to act from the `TL;DR` alone; put commit shas + phase/slice ids in `What landed`; gate result from Step 1 belongs in `TL;DR`/`Next action`), and **append the sections the engine template does not emit**:
 
 - A one-line **"Continues `<prev SESSION file>`"** link under the title when applicable.
-- **Conventions reaffirmed / decisions** — anything decided this session that constrains future work.
+- **Conventions reaffirmed / decisions made** — anything decided this session that constrains future work. Unresolved decisions go in the engine-emitted `Open decisions` section instead (write `None` there if there are none) — don't duplicate them here.
 - **Quick resume commands** — a copy-pasteable block: pull, `git config core.hooksPath .githooks`, install+build, `cadence progress`, the right ROADMAP/spec slice, the explicit next command.
 
 The doc is for an LLM with **no memory of this session** — keep it self-contained and precise over breezy.

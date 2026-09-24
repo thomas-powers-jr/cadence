@@ -60,6 +60,37 @@ describe('cadence resume', () => {
     expect(r.stdout).toMatch(/cadence resume --full/);
   });
 
+  it('316-01/AC-7: replays a filled v2 doc via brief and --full without error; only --full shows Open decisions', async () => {
+    active = await tempRepo({ initialized: true });
+    const wrote = await run(['handoff', '--label', 'v2', '--json'], active.root);
+    const path: string = JSON.parse(wrote.stdout).path;
+    const { readFile } = await import('node:fs/promises');
+    const raw = await readFile(path, 'utf8');
+    expect(raw).toMatch(/^cadence_handoff: 2$/m);
+    const decision = 'Decide sqlite vs json store (owner: operator)';
+    const filled = raw
+      .replace(/(## Open decisions\n)<!--[^\n]*-->/, `$1- ${decision}`)
+      .replace(/<!--[^\n]*?-->/g, 'done.');
+    expect(filled).toContain(decision);
+    await writeFile(path, filled);
+
+    const brief = await run(['resume', '--brief'], active.root);
+    expect(brief.code).toBe(0);
+    expect(brief.stderr).not.toMatch(/resume failed/);
+    expect(brief.stdout).not.toMatch(/unfilled sections/);
+    expect(brief.stdout).toContain('## Next action');
+    expect(brief.stdout).not.toContain('## Open decisions');
+    expect(brief.stdout).not.toContain(decision);
+    expect(brief.stdout).toMatch(/brief mode; run `cadence resume --full`/);
+
+    const full = await run(['resume', '--full'], active.root);
+    expect(full.code).toBe(0);
+    expect(full.stderr).not.toMatch(/resume failed/);
+    expect(full.stdout).not.toMatch(/unfilled sections/);
+    expect(full.stdout).toContain('## Open decisions');
+    expect(full.stdout).toContain(decision);
+  });
+
   it('AC-32: --json carries mode; context is null in brief', async () => {
     active = await tempRepo({ initialized: true });
     await run(['handoff'], active.root);

@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "draftId": "316-01",
+  "completedAt": "2026-09-24T02:57:37.813Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-8",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Version-gated section schema (SECTIONS_V1/V2, HANDOFF_SCHEMAS map, HANDOFF_VERSION_UNSUPPORTED). Checkpoint suite 69/69, typecheck+lint clean. Only missing-section-ac.md changed outcome among 27 fixtures. Independent review: ready to merge, no Critical/Important findings. Minor (BOM defeats string-path frontmatter detection; duplicate-key-first-wins; non-fence-aware --- close) recorded for T5's Phase 3 preconditions list.",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Generator bumps cadence_handoff to 2 and emits Open decisions between Carry-forward gotchas and Next action. Core suite 4533/4548 passed (15 skipped), typecheck+lint clean, no unlisted-file breakage. Independent review: ready to merge, no must-fix. Minor findings for follow-up: brief-mode resume gives no unfilled-section warning (run-resume.ts, pre-existing pattern, not a regression); .claude/commands/handoff.md still lists 4 narrative stubs (T5's file, already slated).",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Section drift test: header-label comparison (unfiltered, exact) + version guard (cadence_handoff == LATEST_HANDOFF_VERSION) + CLI-exit-0 check on the fresh render. Both desync probes captured verbatim, reverted (hash-object identical). Independent review found the AC-1 CLI gap; fixed and re-verified (4/4 tests, 89/89 package suite).",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "AC-id grammar drift test across core parseDraftMd, types AcceptanceCriterionZ, checkpoint validate; new AC_ID_MALFORMED diagnostic for AC-looking bullets that don't parse (- AC-: x, - AC-1 : x). Core+types added as checkpoint devDependencies (never runtime) for correct turbo build ordering. Independent review found a real 3-way disagreement (stray closing ** accepted by checkpoint, rejected by core/types); fixed via matched-pair bold regex, re-verified (11/11 corpus rows, 89/89 package suite).",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "Docs: commands.md narrative-zone description names Open decisions; .claude/commands/handoff.md stub list + decisions-append reworded to avoid duplicating the new section. REPORT-checkpoint-phase-1.5.md written with all required evidence (red-before, both drift desync runs, changed-fixture list, provisional-schema resolution, Phase 3 preconditions). As-built notes added to Phase 1's report and the parent design doc, purely additive. Arc handoff HANDOFF-checkpoint-arc-phase-2.md staged; required an amendment to T5's file list to add an npm-scope-sweep.test.ts allowlist entry for it (legitimate pre-existing gate, fixed with the same justification pattern as existing Phase-0 M9 entries). Minor core changeset added. Independent review: ready to merge, no Critical/Important findings; a few optional wording nits noted for future polish.",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "v1 fixture and fixed render tests validate clean; CLI tests cover both with exit 0. Report records both pre-change exit-2 cases.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Versioned specs, latest fallback, CRLF handling, optional AC slot/checks, and single unsupported-version diagnostic are implemented and exercised.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Renderer emits v2 plus the positioned Open decisions FILL IN stub; placeholder, handoff-check, and CLI tests report it.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Source-import drift test compares validator-normalized renderer headers to v2 required names; report captures renderer and validator-list desync failures.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Shared corpus drives core, types, and checkpoint; malformed AC-looking bullets now emit AC_ID_MALFORMED and duplicate scope is explicit.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "AC section is optional in both schemas; missing-section-ac is asserted valid, while legacy fixture behavior remains covered and report names the sole outcome change.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Brief and full resume tests replay filled v2 documents; full retains Open decisions while brief excludes it without resume errors.",
+      "provider": "host-cli"
+    },
+    "AC-8": {
+      "pass": true,
+      "reason": "Commands documentation names open decisions, and doc tests require the phase report plus all specified evidence and precondition headings.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 129298,
+    "truncated": false,
+    "filesCount": 28,
+    "provider": "host-cli"
+  },
+  "codeReview": {
+    "packages/checkpoint/src/validate.ts": [
+      {
+        "severity": "medium",
+        "message": "A BOM-prefixed string skips frontmatter detection, so valid v1 handoffs are treated as v2 and wrongly fail for missing Open decisions. Strip a leading BOM before parsing.",
+        "line": 80,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-2",
+          "tier": "executable"
+        },
+        "id": "869c03be50aff28061b33ea9ef402e242c1a28ee2a969daf1910ba0f43edfdd0",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 81,
+    "sessionSubagentSpawns": 14
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 8,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "4e0aed1aa26a0ff15b725333401c61fa15cd9c6a1bf19077af416355a590b254"
+  }
+}

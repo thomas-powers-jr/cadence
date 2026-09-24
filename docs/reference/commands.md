@@ -1678,8 +1678,9 @@ Scaffold a SESSION handoff doc in .cadence/handoff/ with machine facts pre-fille
 doc has two zones: a **machine-filled** zone (loop position, read-only git facts,
 and the `cadence context handoff` intelligence packet — correct by construction,
 labeled "verify, don't retype") and an empty **narrative** zone (TL;DR, what
-landed, gotchas, next action) for a human to fill in. Generating the doc also
-refreshes `.cadence/intelligence/context/handoff.{json,md}` as a side effect of
+landed, gotchas, open decisions, next action) for a human to fill in.
+Generating the doc also refreshes
+`.cadence/intelligence/context/handoff.{json,md}` as a side effect of
 `cadence context handoff`. By default the command stamps
 `state.session.lastHandoff` with the new filename (so `cadence resume` finds it
 reliably); `--no-stamp` skips that single state write. When git is unavailable
