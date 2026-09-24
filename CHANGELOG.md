@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.68.0] - 2026-09-24
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.68.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Changed
+
+- **`cadence handoff` now generates a version-2 SESSION doc: the frontmatter reads `cadence_handoff: 2`, and the narrative zone gains a required `## Open decisions` stub between `Carry-forward gotchas` and `Next action`.** The new stub asks for each unresolved decision (what is undecided, the options, who decides), or an explicit `None`; it carries the usual `FILL IN` marker, so `cadence handoff --check` reports it as unfilled until someone writes it, and `cadence resume --full` replays the section (brief mode stays unchanged in shape, excluding it like other non-brief sections). Motivated by the private, unpublished `checkpoint` package's handoff validator, whose schema expected this section but the generator never emitted it, so real generated handoffs failed validation; the validator now reads the handoff version from the frontmatter, so both version-1 and version-2 docs stay valid. (Phase `316`, #531.)
+
 ## [1.67.3] - 2026-09-23
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.67.3`. Per-package bumps managed by changesets, lockstep across all five published packages.
