@@ -70,6 +70,22 @@ describe('cadence handoff', () => {
     expect(r.stderr).toMatch(/Next action/);
   });
 
+  it('316-01/AC-3: --check reports Open decisions while its FILL IN marker is unreplaced', async () => {
+    active = await tempRepo({ initialized: true });
+    const wrote = await run(['handoff', '--label', 'cli', '--json'], active.root);
+    const path: string = JSON.parse(wrote.stdout).path;
+    const { readFile, writeFile } = await import('node:fs/promises');
+    const doc = await readFile(path, 'utf8');
+    expect(doc).toMatch(/^cadence_handoff: 2$/m);
+    // Fill every section except Open decisions: --check must name exactly it.
+    const onlyOpenDecisionsUnfilled = doc.replace(/<!--[^\n]*?-->/g, (m, offset: number) =>
+      doc.slice(0, offset).endsWith('## Open decisions\n') ? m : 'done.');
+    await writeFile(path, onlyOpenDecisionsUnfilled);
+    const r = await run(['handoff', '--check'], active.root);
+    expect(r.code).toBe(3);
+    expect(r.stderr).toMatch(/unfilled sections: Open decisions\n/);
+  });
+
   it('AC-5: --check exits 0 and prints complete once every FILL-IN section is filled', async () => {
     active = await tempRepo({ initialized: true });
     const wrote = await run(['handoff', '--label', 'cli', '--json'], active.root);

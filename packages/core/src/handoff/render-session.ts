@@ -14,7 +14,7 @@ function fm(input: SessionRenderInput): string {
   const loop = packet.loop;
   const lines = [
     '---',
-    'cadence_handoff: 1',
+    'cadence_handoff: 2',
     `generated_at: ${input.generatedAt}`,
     `label: ${input.label ?? ''}`,
     `loop_position: ${loop.loopPosition ?? 'IDLE'}`,
@@ -90,6 +90,9 @@ export function renderSession(input: SessionRenderInput): string {
     '',
     '## Carry-forward gotchas',
     '<!-- FILL IN -->',
+    '',
+    '## Open decisions',
+    '<!-- List each unresolved decision (what is undecided, the options, who decides), or write "None" if there are none. FILL IN. -->',
     '',
     '## Next action',
     '<!-- FILL IN -->',

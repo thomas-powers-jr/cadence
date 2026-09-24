@@ -147,6 +147,14 @@ const ALLOWED_FILES = new Set<string>([
   // above, just in the source doc rather than the phase-0 report that
   // records the instruction's output.
   'docs/handoffs/HANDOFF-checkpoint-handoff-before-reset.md',
+
+  // checkpoint arc Phase 2 authorization handoff, committed in phase 316
+  // (it previously sat untracked and so never hit this sweep). Its M9 row
+  // restates the Phase 0 measurement's outcome — the live
+  // @thomas-powers-jr scope vs. the stale @manehorizons one at 1.53.0 —
+  // naming the old scope to record a measured fact, not a leftover
+  // reference needing migration.
+  'docs/handoffs/HANDOFF-checkpoint-arc-phase-2.md',
 ]);
 
 // Note on generated docs: `website/src/content/docs/api/**` (typedoc output)

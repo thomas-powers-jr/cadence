@@ -126,6 +126,8 @@ Blocked on Open Decisions 1, 3, 4 and 5. Stack: TypeScript, vitest, pnpm workspa
 
 The validator is a pure function `validate(markdown: string, opts) → { ok, diagnostics[] }`, plus a CLI `checkpoint validate <path>` that exits 2 on failure. It must not read session state; freshness (mtime) is a Phase 3 runtime concern.
 
+> **As built (Phase 1.5, CADENCE phase 316):** Phase 1 shipped with a provisional schema. It came from the Decision 3 schema source, plus two inserted sections (`Acceptance criteria touched`, `Open decisions`) that the `cadence handoff` generator did not emit. Phase 1.5 reconciled the two with version-gating. The generator now emits `cadence_handoff: 2` and a required `## Open decisions` section. The validator reads the frozen six-section v1 schema, or the v2 schema (six plus `Open decisions`), based on each document's frontmatter. `Acceptance criteria touched` is optional in both. See [`docs/checkpoint/REPORT-checkpoint-phase-1.5.md`](../checkpoint/REPORT-checkpoint-phase-1.5.md), including its Phase 3 preconditions.
+
 ### Fixture corpus
 
 At minimum, one fixture per failure class:

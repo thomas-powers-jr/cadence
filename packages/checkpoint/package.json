@@ -16,7 +16,9 @@
     "lint": "eslint src"
   },
   "devDependencies": {
+    "@thomas-powers-jr/cadence-core": "workspace:*",
     "@thomas-powers-jr/cadence-testkit": "workspace:*",
+    "@thomas-powers-jr/cadence-types": "workspace:*",
     "vitest": "^4.1.10"
   }
 }

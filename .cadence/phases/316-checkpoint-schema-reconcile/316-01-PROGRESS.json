@@ -1,0 +1,76 @@
+{
+  "draftId": "316-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Version-gated section schema (SECTIONS_V1/V2, HANDOFF_SCHEMAS map, HANDOFF_VERSION_UNSUPPORTED). Checkpoint suite 69/69, typecheck+lint clean. Only missing-section-ac.md changed outcome among 27 fixtures. Independent review: ready to merge, no Critical/Important findings. Minor (BOM defeats string-path frontmatter detection; duplicate-key-first-wins; non-fence-aware --- close) recorded for T5's Phase 3 preconditions list.",
+      "touchedFiles": [
+        "packages/checkpoint/src/types.ts",
+        "packages/checkpoint/src/validate.ts",
+        "packages/checkpoint/tests/cli.test.ts",
+        "packages/checkpoint/tests/validate.test.ts",
+        "packages/core/src/handoff/render-session.ts",
+        "packages/core/tests/cli/handoff.test.ts",
+        "packages/core/tests/cli/resume.test.ts",
+        "packages/core/tests/handoff/placeholders.test.ts",
+        "packages/core/tests/handoff/run-handoff.test.ts",
+        "packages/core/tests/handoff/run-resume.test.ts",
+        "packages/checkpoint/tests/fixtures/real-v1-session-2026-09-22.md",
+        "packages/checkpoint/tests/fixtures/version-1-six-sections.md",
+        "packages/checkpoint/tests/fixtures/version-2-missing-open-decisions.md",
+        "packages/checkpoint/tests/fixtures/version-unsupported.md"
+      ],
+      "updatedAt": "2026-09-24T01:46:58.985Z",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Generator bumps cadence_handoff to 2 and emits Open decisions between Carry-forward gotchas and Next action. Core suite 4533/4548 passed (15 skipped), typecheck+lint clean, no unlisted-file breakage. Independent review: ready to merge, no must-fix. Minor findings for follow-up: brief-mode resume gives no unfilled-section warning (run-resume.ts, pre-existing pattern, not a regression); .claude/commands/handoff.md still lists 4 narrative stubs (T5's file, already slated).",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-24T01:47:03.275Z",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Section drift test: header-label comparison (unfiltered, exact) + version guard (cadence_handoff == LATEST_HANDOFF_VERSION) + CLI-exit-0 check on the fresh render. Both desync probes captured verbatim, reverted (hash-object identical). Independent review found the AC-1 CLI gap; fixed and re-verified (4/4 tests, 89/89 package suite).",
+      "touchedFiles": [
+        "packages/checkpoint/package.json",
+        "pnpm-lock.yaml",
+        "packages/checkpoint/tests/drift-ac-grammar.test.ts",
+        "packages/checkpoint/tests/drift-sections.test.ts"
+      ],
+      "updatedAt": "2026-09-24T02:12:09.081Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "AC-id grammar drift test across core parseDraftMd, types AcceptanceCriterionZ, checkpoint validate; new AC_ID_MALFORMED diagnostic for AC-looking bullets that don't parse (- AC-: x, - AC-1 : x). Core+types added as checkpoint devDependencies (never runtime) for correct turbo build ordering. Independent review found a real 3-way disagreement (stray closing ** accepted by checkpoint, rejected by core/types); fixed via matched-pair bold regex, re-verified (11/11 corpus rows, 89/89 package suite).",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-24T02:12:12.074Z",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "Docs: commands.md narrative-zone description names Open decisions; .claude/commands/handoff.md stub list + decisions-append reworded to avoid duplicating the new section. REPORT-checkpoint-phase-1.5.md written with all required evidence (red-before, both drift desync runs, changed-fixture list, provisional-schema resolution, Phase 3 preconditions). As-built notes added to Phase 1's report and the parent design doc, purely additive. Arc handoff HANDOFF-checkpoint-arc-phase-2.md staged; required an amendment to T5's file list to add an npm-scope-sweep.test.ts allowlist entry for it (legitimate pre-existing gate, fixed with the same justification pattern as existing Phase-0 M9 entries). Minor core changeset added. Independent review: ready to merge, no Critical/Important findings; a few optional wording nits noted for future polish.",
+      "touchedFiles": [
+        ".claude/commands/handoff.md",
+        "docs/checkpoint/REPORT-checkpoint-phase-1.md",
+        "docs/handoffs/HANDOFF-checkpoint-arc-phase-2.md",
+        "docs/handoffs/HANDOFF-checkpoint-handoff-before-reset.md",
+        "docs/reference/commands.md",
+        "packages/core/tests/docs/npm-scope-sweep.test.ts",
+        ".changeset/checkpoint-handoff-open-decisions.md",
+        "docs/checkpoint/REPORT-checkpoint-phase-1.5.md",
+        "packages/core/tests/docs/checkpoint-phase-1-5-report.test.ts",
+        "packages/core/tests/docs/handoff-narrative-zone.test.ts"
+      ],
+      "updatedAt": "2026-09-24T02:31:00.460Z",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    }
+  }
+}

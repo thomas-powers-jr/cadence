@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 2,
+  "draftId": "316-01",
+  "completedAt": "2026-09-24T02:45:11.903Z",
+  "acResults": [],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "mock"
+    },
+    {
+      "gate": "code-review",
+      "status": "refused",
+      "reason": "code-review: attempt 1/3 did not pass — fix the flagged code and re-run `cadence settle run`, or pass --allow-code-review-failure to proceed anyway.",
+      "provider": "mock",
+      "providerSelection": "fallback"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Version-gated section schema (SECTIONS_V1/V2, HANDOFF_SCHEMAS map, HANDOFF_VERSION_UNSUPPORTED). Checkpoint suite 69/69, typecheck+lint clean. Only missing-section-ac.md changed outcome among 27 fixtures. Independent review: ready to merge, no Critical/Important findings. Minor (BOM defeats string-path frontmatter detection; duplicate-key-first-wins; non-fence-aware --- close) recorded for T5's Phase 3 preconditions list.",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Generator bumps cadence_handoff to 2 and emits Open decisions between Carry-forward gotchas and Next action. Core suite 4533/4548 passed (15 skipped), typecheck+lint clean, no unlisted-file breakage. Independent review: ready to merge, no must-fix. Minor findings for follow-up: brief-mode resume gives no unfilled-section warning (run-resume.ts, pre-existing pattern, not a regression); .claude/commands/handoff.md still lists 4 narrative stubs (T5's file, already slated).",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Section drift test: header-label comparison (unfiltered, exact) + version guard (cadence_handoff == LATEST_HANDOFF_VERSION) + CLI-exit-0 check on the fresh render. Both desync probes captured verbatim, reverted (hash-object identical). Independent review found the AC-1 CLI gap; fixed and re-verified (4/4 tests, 89/89 package suite).",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "AC-id grammar drift test across core parseDraftMd, types AcceptanceCriterionZ, checkpoint validate; new AC_ID_MALFORMED diagnostic for AC-looking bullets that don't parse (- AC-: x, - AC-1 : x). Core+types added as checkpoint devDependencies (never runtime) for correct turbo build ordering. Independent review found a real 3-way disagreement (stray closing ** accepted by checkpoint, rejected by core/types); fixed via matched-pair bold regex, re-verified (11/11 corpus rows, 89/89 package suite).",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "Docs: commands.md narrative-zone description names Open decisions; .claude/commands/handoff.md stub list + decisions-append reworded to avoid duplicating the new section. REPORT-checkpoint-phase-1.5.md written with all required evidence (red-before, both drift desync runs, changed-fixture list, provisional-schema resolution, Phase 3 preconditions). As-built notes added to Phase 1's report and the parent design doc, purely additive. Arc handoff HANDOFF-checkpoint-arc-phase-2.md staged; required an amendment to T5's file list to add an npm-scope-sweep.test.ts allowlist entry for it (legitimate pre-existing gate, fixed with the same justification pattern as existing Phase-0 M9 entries). Minor core changeset added. Independent review: ready to merge, no Critical/Important findings; a few optional wording nits noted for future polish.",
+      "execution": "dispatch",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [
+      "phase-build"
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "codeReview": {
+    "docs/handoffs/HANDOFF-checkpoint-arc-phase-2.md": [
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 39,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-8",
+          "tier": "executable"
+        },
+        "id": "3c464ae15d26ae3edad7f2331528dd63d84748df01c08e5ac427e94c082c99a8",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 84,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-8",
+          "tier": "executable"
+        },
+        "id": "3c464ae15d26ae3edad7f2331528dd63d84748df01c08e5ac427e94c082c99a8",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "mock",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "weak"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "13a020583712b087d7491da73fce29e81613c423cd7ca2dd3e7071829eb40c1f"
+  }
+}

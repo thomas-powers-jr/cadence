@@ -129,4 +129,19 @@ describe('runHandoff', () => {
     expect(check.path).toBe(res.path);
     expect(check.unfilled).toContain('Next action');
   });
+
+  it('316-01/AC-3: writes a v2 SESSION doc whose unfilled Open decisions section runHandoffCheck reports', async () => {
+    active = await tempRepo({ initialized: true });
+    const res = await runHandoff(active.root, {}, new Date('2026-01-02T03:04:05Z'));
+    const doc = await readFile(res.path, 'utf8');
+    expect(doc).toMatch(/^cadence_handoff: 2$/m);
+    const carry = doc.indexOf('\n## Carry-forward gotchas\n');
+    const open = doc.indexOf('\n## Open decisions\n');
+    const next = doc.indexOf('\n## Next action\n');
+    expect(carry).toBeGreaterThan(-1);
+    expect(open).toBeGreaterThan(carry);
+    expect(next).toBeGreaterThan(open);
+    const check = await runHandoffCheck(active.root);
+    expect(check.unfilled).toContain('Open decisions');
+  });
 });
