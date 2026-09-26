@@ -43,11 +43,13 @@ Before running the above, a narrower probe confirmed piped stdin actually surviv
 cover, since that one only tested stdout):
 
 ```
-spawn('powershell.exe', ['-NoProfile','-Command','node -e "process.stdin.pipe(process.stdout)"'], {stdio:['pipe','pipe','inherit']})
-  .stdin.write('{"hook_event_name":"Stop","probe":true}')
+const child = spawn('powershell.exe', ['-NoProfile','-Command','node -e "process.stdin.pipe(process.stdout)"'], {stdio:['pipe','pipe','inherit']});
+child.stdin.write('{"hook_event_name":"Stop","probe":true}');
+child.stdin.end(); // required -- process.stdin.pipe(process.stdout) only ends once stdin closes
 → exit code: 0
 → stdout received: '{"hook_event_name":"Stop","probe":true}'
 ```
+(The earlier version of this snippet omitted `.stdin.end()`, which the actual script — `scratchpad/probe-stdin.mjs`, not reproduced in full here — did call; this was a documentation-simplification omission, not an error in what was actually executed.)
 
 Confirms the shim's `hook_event_name`-from-stdin read (`cli.ts:96-100`) is not at risk
 of receiving empty/truncated input through this spawn form.
