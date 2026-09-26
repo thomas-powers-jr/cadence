@@ -2711,6 +2711,13 @@
       "kind": "note",
       "summary": "Observed 2026-09-26 in phase 318 shim-integration test output on Windows: '(node:10888) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities' on the SubagentStop call's stderr.",
       "createdAt": "2026-09-26T16:03:04.725Z"
+    },
+    {
+      "id": "ev-20260926-010",
+      "recommendationId": "rec-20260926-005",
+      "kind": "note",
+      "summary": "Observed 2026-09-26 during phase 317 settle on Windows 11: with CADENCE_HOST_CLI_BIN=codex, settle printed 'verifier: host-cli provider failed (not-found: host-cli provider: binary \"codex\" not found on PATH) — falling back to mock provider' and the same for code-review; 'where codex' lists codex and codex.cmd in AppData\\Roaming\\npm. With CADENCE_HOST_CLI_BIN=<path>\\codex.exe, deep-verify ran on host-cli (10 ACs, diffBytes 95114) but code-review timed out after 180000ms and fell back to mock.",
+      "createdAt": "2026-09-26T19:22:06.582Z"
     }
   ]
 }

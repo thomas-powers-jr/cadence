@@ -1618,3 +1618,19 @@ Discovered 2026-09-26 during phase 317-hook-json-block's SPEC review. Four relat
 - next: cadence milestone propose
 
 packages/host-claude-code/src/cli.ts:136 spawns the cadence child with shell: process.platform === 'win32' while also passing an args array. Node 22+ emits DeprecationWarning DEP0190 ('Passing args to a child process with shell option true can lead to security vulnerabilities') to stderr on every Windows hook invocation. Observed in phase 318's shim-integration tests. Stderr from hooks is surfaced to the model/user in Claude Code, so this is noise on every hook call on Windows, and args are not escaped by Node under shell:true. Check whether host-codex's shim has the same pattern.
+
+## rec-20260926-005 — host-cli provider cannot spawn npm-installed CLIs on Windows (codex.cmd), so CADENCE_HOST_CLI_BIN=codex silently falls back to mock
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, host-cli, windows
+- files: packages/core/src/verify/host-cli-client.ts
+- evidence: Observed 2026-09-26 during phase 317 settle on Windows 11: with CADENCE_HOST_CLI_BIN=codex, settle printed 'verifier: host-cli provider failed (not-found: host-cli provider: binary "codex" not found on PATH) — falling back to mock provider' and the same for code-review; 'where codex' lists codex and codex.cmd in AppData\Roaming\npm. With CADENCE_HOST_CLI_BIN=<path>\codex.exe, deep-verify ran on host-cli (10 ACs, diffBytes 95114) but code-review timed out after 180000ms and fell back to mock.
+- next: cadence milestone propose
+
+packages/core/src/verify/host-cli-client.ts spawns the host CLI with spawn(bin, args, {stdio:pipe}) and no shell. On Windows an npm-installed CLI resolves to a .cmd wrapper (C:\Users\<u>\AppData\Roaming\npm\codex.cmd), which Node's spawn cannot execute without a shell, so the verifier and code-review gates report 'binary "codex" not found on PATH' and fall back to mock. The fallback is loud on stderr, but the documented operator workflow (CADENCE_HOST_CLI_BIN=codex) never produces a real in-loop review on Windows. Workaround used in phase 317: point CADENCE_HOST_CLI_BIN at the native codex.exe under node_modules/@openai/codex/.../vendor/x86_64-pc-windows-msvc/bin/. Second finding in the same settle: even with codex.exe, code-review timed out at the 180000ms host-cli timeout and fell back to mock, while deep-verify completed. Contrast: host-claude-code's shim spawns with shell:true on win32 (rec-20260926-004). A fix must avoid shell:true + args (DEP0190) — e.g. resolve .cmd shims explicitly or run the package's JS entry with process.execPath.

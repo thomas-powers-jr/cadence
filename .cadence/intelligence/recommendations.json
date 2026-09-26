@@ -2910,6 +2910,35 @@
       "decisionIds": [],
       "createdAt": "2026-09-26T16:03:04.725Z",
       "updatedAt": "2026-09-26T16:03:04.725Z"
+    },
+    {
+      "id": "rec-20260926-005",
+      "title": "host-cli provider cannot spawn npm-installed CLIs on Windows (codex.cmd), so CADENCE_HOST_CLI_BIN=codex silently falls back to mock",
+      "summary": "packages/core/src/verify/host-cli-client.ts spawns the host CLI with spawn(bin, args, {stdio:pipe}) and no shell. On Windows an npm-installed CLI resolves to a .cmd wrapper (C:\\Users\\<u>\\AppData\\Roaming\\npm\\codex.cmd), which Node's spawn cannot execute without a shell, so the verifier and code-review gates report 'binary \"codex\" not found on PATH' and fall back to mock. The fallback is loud on stderr, but the documented operator workflow (CADENCE_HOST_CLI_BIN=codex) never produces a real in-loop review on Windows. Workaround used in phase 317: point CADENCE_HOST_CLI_BIN at the native codex.exe under node_modules/@openai/codex/.../vendor/x86_64-pc-windows-msvc/bin/. Second finding in the same settle: even with codex.exe, code-review timed out at the 180000ms host-cli timeout and fell back to mock, while deep-verify completed. Contrast: host-claude-code's shim spawns with shell:true on win32 (rec-20260926-004). A fix must avoid shell:true + args (DEP0190) — e.g. resolve .cmd shims explicitly or run the package's JS entry with process.execPath.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "verify",
+        "host-cli",
+        "windows"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/host-cli-client.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260926-010"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-26T19:22:06.582Z",
+      "updatedAt": "2026-09-26T19:22:06.582Z"
     }
   ],
   "archived": [
