@@ -20,7 +20,11 @@ required (report-back #6).
    `packages/...` form an earlier draft of this SPEC assumed.)
 3. That exact command spawned via `powershell.exe -NoProfile -Command "<command>"`
    (Node's `spawn`, `stdio: ['pipe','pipe','pipe']`, `cwd` set to the scratch project),
-   with a realistic `PreToolUse`/`Write` stdin payload piped in.
+   with a realistic `PreToolUse`/`Write` stdin payload piped in. Reproducible with
+   `317-01-probe-ac4-redstate.mjs` (committed alongside this file) — edit its
+   `CAPTURED_COMMAND` constant to match your own `install --local` output (paths
+   are machine-absolute) and run `node 317-01-probe-ac4-redstate.mjs <scratch-project-path>`
+   against a scratch project set up per step 1.
 
 ## Result
 
@@ -42,14 +46,15 @@ Before running the above, a narrower probe confirmed piped stdin actually surviv
 `powershell.exe -NoProfile -Command "node ..."` (a real risk the encoding probe didn't
 cover, since that one only tested stdout):
 
+Full script: `317-01-probe-stdin.mjs`, committed alongside this file. Run with
+`node 317-01-probe-stdin.mjs`. Result:
 ```
-const child = spawn('powershell.exe', ['-NoProfile','-Command','node -e "process.stdin.pipe(process.stdout)"'], {stdio:['pipe','pipe','inherit']});
-child.stdin.write('{"hook_event_name":"Stop","probe":true}');
-child.stdin.end(); // required -- process.stdin.pipe(process.stdout) only ends once stdin closes
-→ exit code: 0
-→ stdout received: '{"hook_event_name":"Stop","probe":true}'
+exit code: 0
+stdout received: '{"hook_event_name":"Stop","probe":true}'
 ```
-(The earlier version of this snippet omitted `.stdin.end()`, which the actual script — `scratchpad/probe-stdin.mjs`, not reproduced in full here — did call; this was a documentation-simplification omission, not an error in what was actually executed.)
+(An earlier version of this file's snippet omitted the script's `.stdin.end()` call —
+a documentation-simplification bug, not an error in what was actually executed; the
+committed script has always called it.)
 
 Confirms the shim's `hook_event_name`-from-stdin read (`cli.ts:96-100`) is not at risk
 of receiving empty/truncated input through this spawn form.
