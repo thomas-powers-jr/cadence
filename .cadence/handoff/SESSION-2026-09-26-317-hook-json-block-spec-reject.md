@@ -1,14 +1,14 @@
 ---
 cadence_handoff: 2
-generated_at: 2026-09-26T00:37:04.934Z
+generated_at: 2026-09-26T03:25:02.504Z
 label: 317-hook-json-block-spec-reject
 loop_position: IDLE
 active_phase: 317-hook-json-block
 active_draft: 
 tier: 
 git_branch: worktree-hook-json-block
-git_dirty: true
-git_head: 2b4c7210
+git_dirty: false
+git_head: bb312f3d
 git_ahead: 0
 git_behind: 0
 context_packet: .cadence/intelligence/context/handoff.json
@@ -17,35 +17,27 @@ context_packet: .cadence/intelligence/context/handoff.json
 # Session Handoff — 2026-09-26 (317-hook-json-block-spec-reject)
 
 ## TL;DR for the next session
-- Phase 317-hook-json-block's SPEC (`.cadence/phases/317-hook-json-block/317-01-SPEC.md`) was **REJECTED** by an independent Codex review (`317-01-SPEC-REVIEW-codex.md`, same directory) — 8 blocking findings, all independently re-verified against source before being trusted (the review file's own header records which).
-- The SPEC's frontmatter still says `status: APPROVED` — that came from `cadence spec approve` running against this project's `specReview.provider: "mock"` config (deliberate, not a fallback) and abstaining. It is **not a real approval**. `spec.ts`'s status enum has no `REJECTED` value, so the sibling review file is the true record, not the frontmatter.
-- **Biggest finding, verified true and worse than the review states:** `packages/host-toolkit/src/routing.ts` drops `agentId`/`agentType` when building outgoing hook stdin for both adapters, so `handleSubagentResult`'s `ok:false` safety-net block (`handlers.ts:368`) is currently unreachable dead code through any real host. Filed separately as `rec-20260926-001` (not part of this phase's fix — pre-existing, distinct bug).
-- **Do not run `cadence draft new` for this phase** until the SPEC is revised against every verified finding.
-- `dec-20260925-001` (D-BN: JSON-decision-on-stdout, exit 0, per event, not exit-2) is unaffected by the review and still stands.
-- Nothing has been committed in this worktree yet — everything (SPEC, both review files, the carried-over rec/dec ledger entries) is uncommitted working-tree state on branch `worktree-hook-json-block`.
+- Phase 317-hook-json-block's SPEC (`.cadence/phases/317-hook-json-block/317-01-SPEC.md`) has been through **three rounds of manual independent review** (the built-in `spec approve` gate abstains — `specReview.provider` is hardcoded `mock` in this project's config). Blocking findings went **10 → 4 → 2**, and the round-3 fixes (commit `bb312f3d`) have **not yet been independently re-reviewed**.
+- **Do not run `cadence draft new` until a review confirms `bb312f3d`'s fixes**, or the operator explicitly decides the 3-review trail is sufficient on its own. This session stopped here deliberately, matching this repo's own `convergence.maxAttempts: 3` pattern for automated gates.
+- The SPEC's frontmatter still says `status: APPROVED` (a mock abstain, not a real approval — `spec.ts`'s status enum has no `REJECTED` value). The three `317-01-SPEC-REVIEW-codex*.md` files in the same directory are the true record.
+- **Genuinely new bug surfaced during review, filed separately, not part of this phase's fix:** `rec-20260926-001` — `routing.ts` drops `agentId`/`agentType` from outgoing hook stdin, making `SubagentStop`'s safety-net block (`handlers.ts:368`) unreachable through Claude Code (silently — no notice fires either). A related, smaller finding — Codex's own capability declaration for this is now stale against Codex's current docs — is `rec-20260926-003`.
+- **A real regression risk was checked and closed**, not left open: fetched Codex's *current* hooks docs directly (`developers.openai.com/codex/hooks.md`, not the four-month-stale research file) and confirmed the exact JSON-on-stdout/exit-0 transport this phase builds for Claude Code is also current and valid for Codex's bare shapes — no host-aware branch needed for this phase.
+- A real, full-chain "red state" was captured for real, not just described: `install --local`'s actual generated command, real config, a real hook payload, through `powershell.exe` — observed exit code `1`, matching the bug. Committed at `317-01-red-state-capture.md` with runnable probe scripts.
+- `dec-20260925-001` (D-BN transport decision) is unaffected by all three reviews and still stands.
 
 ## State on handoff   ·  pre-filled — verify, don't retype
-- Branch `worktree-hook-json-block` (dirty), 0 ahead / 0 behind origin
-- HEAD `2b4c7210`
+- Branch `worktree-hook-json-block` (clean), 0 ahead / 0 behind origin
+- HEAD `bb312f3d`
 - Recent commits:
 ```
+bb312f3d docs(cadence): commit review 2/3 records and probe scripts; fix AC-7's outcome taxonomy
+98ff0724 docs(cadence): fix 317-01 SPEC's remaining review-3 findings (AC-6 heading, AC-7 gating)
+cb943c6e docs(cadence): resolve remaining 317-01 SPEC findings; real full-chain red capture
+4017e0af docs(cadence): revise 317-01 SPEC against first Codex review's blocking findings
+5c04a13a Merge remote-tracking branch 'origin/main' into worktree-hook-json-block
+ef4a6b13 docs(checkpoint): add hook-json-block phase handoff (#537)
+0fa69675 docs(cadence): phase 317 SPEC drafted and rejected on independent review; session handoff
 2b4c7210 docs(checkpoint): Phase 0.4a active block-probe report (#534)
-a341d696 chore(release): v1.68.0 -- checkpoint handoff schema reconcile (phase 316) (#533)
-2ef7870a feat: checkpoint handoff schema reconcile, version-gated (phase 316) (#531)
-f553841d chore(release): v1.67.3 -- skill-audit gateBypasses, core-skills phase-build requirement, systematic-debugging skill, worktree hook-shim cwd fix (#529)
-eea11ae5 feat: checkpoint handoff validator, phases 0-1 (working name) (#528)
-ff338a05 chore(cadence): file phase-315 scoping decisions and the identity-half split (rec-20260917-006) (#526)
-3803113f docs(cadence): session handoff for 2026-09-22 (PR #521 merged, sync check) (#527)
-225d9012 docs(cadence): session handoff for PC transfer (2026-09-18) (#521)
-```
-- Uncommitted (diff --stat):
-```
-.cadence/intelligence/DECISIONS.md         |  7 ++++
- .cadence/intelligence/RECOMMENDATIONS.md   | 33 ++++++++++++++++
- .cadence/intelligence/decisions.json       |  9 +++++
- .cadence/intelligence/evidence.json        | 14 +++++++
- .cadence/intelligence/recommendations.json | 62 ++++++++++++++++++++++++++++++
- 5 files changed, 125 insertions(+)
 ```
 - Loop: IDLE · phase 317-hook-json-block · tier (none)
 
@@ -172,6 +164,10 @@ ff338a05 chore(cadence): file phase-315 scoping decisions and the identity-half 
   - dec-20260918-004 — Phase 315 reaffirms D-BE/D-BF: tightening skill-audit will legitimately refuse more phases; build phase 315 itself via phase-build in a fresh worktree
   - dec-20260918-005 — Phase 315: no backfill of historical SUMMARY.json/state.json records under the temporal fix
   - dec-20260925-001 — D-BN: hook blocks transport via per-event JSON decision on stdout, exit 0 -- not exit code 2
+  - dec-20260926-001 — Correction to rec-20260926-001: bug is Claude-Code-specific, Codex's SubagentStop inertness is a declared, self-reported gap
+  - dec-20260926-002 — D-BP: doctor states the hook-shell transport rule, does not claim to measure the resolved shell
+  - dec-20260926-003 — D-BO: doctor reports the posture now (b); a settle-time anomaly (c) is filed, not built, in this phase
+  - dec-20260926-004 — Correction to dec-20260926-001: Codex's agentIdentification:false is now stale documentation, not a permanent protocol gap
 - Files in play:
   - `packages/core/tsconfig.json` — affected by rec-20260907-002 packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
   - `docs/reference/config.md` — affected by rec-20260917-008 docs/reference/config.md overclaims skill-audit: says it enforces skills were invoked 'during a phase', which the checkout-scoped invoked list does not support
@@ -181,46 +177,38 @@ ff338a05 chore(cadence): file phase-315 scoping decisions and the identity-half 
   - `packages/core/src/parse/ui-spec-parser.ts` — affected by rec-20260918-007 spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts
 
 ## What landed this session
-1. Filed `rec-20260925-001` (Windows/PowerShell hook-blocking exit-code collapse, from `docs/checkpoint/REPORT-checkpoint-phase-0.4a.md` and independent reproduction), dedup-checked clean first.
-2. Recorded `dec-20260925-001` (D-BN: transport = JSON decision on stdout, exit 0, per event).
-3. Cut worktree `.claude/worktrees/hook-json-block` (branch `worktree-hook-json-block`) off fresh `origin/main` — the checkpoint 0.4a report (PR #534) was already merged there, so the primary checkout's local `docs/checkpoint-phase-0.4a-report` branch (one commit, already squash-merged) was correctly identified as stale and not used as the base. Carried the uncommitted rec-ledger diff over via `git diff`/`git apply` (saved as a patch, applied cleanly).
-4. Scaffolded and authored `.cadence/phases/317-hook-json-block/317-01-SPEC.md` (via `cadence spec new --from-rec rec-20260925-001`, which converted the rec to `status: converted`). Went through two authoring passes with advisor consultation between each, incorporating live measurements: `curl` of the raw `code.claude.com/docs/en/hooks.md` (verbatim shapes for `PreToolUse`/`Stop`/`SubagentStop`/`shell` field), a live PowerShell exit-code-collapse reproduction on this box (`powershell.exe -NoProfile -Command "node -e 'process.exit(2)'"` → observed `1`; `; exit $LASTEXITCODE` restores `2`), a UTF-8-through-pipe encoding probe (non-ASCII survives byte-for-byte), a direct read of both `host-claude-code` and `host-codex`'s shim relay code, and a `windows-latest` CI log check confirming Git Bash is present there (`git version 2.55.0.windows.5`).
-5. Ran `cadence spec approve 317-hook-json-block 01` with `CADENCE_HOST_CLI_BIN=codex` — discovered this project's `specReview.provider` is hardcoded `"mock"` in `.cadence/config.json` (only `verifier`/`perTaskVerifier`/`codeReview` are `"host-cli"`), so the env var had no effect; the gate abstained and the loop still advanced SPEC→IDLE. Corrected the memory that assumed this env var alone was sufficient for every host-cli-shaped gate — see the new `project_cadence_specreview_mock` memory.
-6. Ran a real, manual independent review via `codex exec -s read-only --ephemeral`, with the raw hooks-doc excerpts pasted directly into the prompt (the sandbox may lack network). Result: **REJECT**, saved as `317-01-SPEC-REVIEW-codex.md`.
-7. Independently re-verified every blocking finding against the actual source before accepting any of them (not taken on faith) — full verification notes are in that file's own header.
-8. Discovered and filed `rec-20260926-001` (the `routing.ts` agentId/agentType drop making `SubagentStop`'s safety-net block unreachable) — a distinct, pre-existing bug surfaced by the review, dedup-checked clean before filing.
-9. Wrote two new persistent-memory entries (`project_cadence_specreview_mock.md`, `project_phase317_spec_rejected.md`) and updated `MEMORY.md`'s index.
-10. Ran the full `pnpm turbo run lint typecheck test build` gate: **28/28 tasks passed** (cached — no `packages/**` source was touched this session, only `.cadence/` artifacts).
+1. Filed `rec-20260925-001` + `dec-20260925-001` (D-BN), scaffolded and authored `.cadence/phases/317-hook-json-block/317-01-SPEC.md`, ran `spec approve` (mock abstain — see the `project_cadence_specreview_mock` memory), then ran a **first manual Codex review** (`317-01-SPEC-REVIEW-codex.md`): REJECT, 10 findings.
+2. **Revision round 1** (commit `4017e0af`): fixed all 10 — rescoped `SubagentStop` reachability, corrected AC-6's combined-shape claim, named AC-4's real sites, required per-site AC-1 coverage, pinned citations. Discovered and filed `rec-20260926-001` (the `routing.ts` agentId/agentType drop) with real empirical evidence (`ev-20260926-002`) and a decision (`dec-20260926-001`) along the way. Also recorded `dec-20260926-002`/`dec-20260926-003` (D-BP/D-BO) since AC-7 was quietly assuming answers to both, and filed `rec-20260926-002` (the D-BO(c) follow-up) per that decision.
+3. **Second manual Codex review** (`317-01-SPEC-REVIEW-codex-2.md`, now committed): REJECT, 4 remaining findings — most importantly, a real Codex-regression-risk concern (this phase's transport change is shared code; nothing had confirmed Codex honors it).
+4. **Revision round 2** (commit `cb943c6e`): fetched Codex's *current* hooks docs fresh (`developers.openai.com/codex/hooks.md`) and confirmed the shapes this phase emits are current and valid for Codex — closing the regression risk with a primary source. That same fetch revealed Codex's docs now document `agent_id`/`agent_type` for `SubagentStop`, contradicting `host-codex/capabilities.ts`'s "undocumented" comment — corrected via `dec-20260926-004`/`ev-20260926-004` and filed as `rec-20260926-003`. Also ran the actual full-chain AC-4 probe (a real `install --local`, real config, real payload, through `powershell.exe`) and captured a genuine red-state result, committed as `317-01-red-state-capture.md`.
+5. **Third manual Codex review** (`317-01-SPEC-REVIEW-codex-3.md`, now committed): REJECT, 2 remaining findings — AC-6's heading still said "cannot combine" after the body was softened; AC-7's outcome taxonomy didn't match `checkHostHooks`'s real branches (`run.ts:400-455`).
+6. **Revision round 3** (commits `98ff0724`, `bb312f3d`): fixed both, committed the two review files and four probe scripts into the phase directory (they only existed in ephemeral scratchpad before), and updated the SPEC's own Constraints to list all three review verdicts honestly.
+7. **This session stopped here without launching a fourth review**, per the advisor's explicit reminder that this repo's own automated gates cap at `convergence.maxAttempts: 3` — the same discipline should apply to a manual stand-in.
 
 ## Carry-forward gotchas
-- **Read `317-01-SPEC-REVIEW-codex.md`'s header before re-deriving anything** — it already states which of the 10 findings were independently verified true (1, 2, 3, 4, 6, 9 confirmed; 7, 8, 10 accepted as valid structural critique) and which citation is **not** to be trusted (finding 5's URL `learn.chatgpt.com/docs/hooks` does not match any known real OpenAI docs domain — don't propagate it as fact; the *code* claim in that same finding, that `ctx.raw.hostCapabilities` is a capability descriptor and not a host-identity field, was separately verified true by reading `packages/types/src/host.ts:11-29` directly).
-- **`docs/handoffs/HANDOFF-hook-json-block.md`** (Thomas's original handoff for this phase) is still untracked and does not exist in this worktree at all — the SPEC cited it as if readable here, which the review correctly flagged. Either get it committed to the repo (so future worktrees inherit it) or stop citing it as a worktree-local file.
-- **This project's `.cadence/config.json` has 4 of 7 verify-family gates hardcoded to `mock`**: `specReview`, `uiSpecReview`, `planReview`, `securityAudit`. `CADENCE_HOST_CLI_BIN` only matters for the 3 that are `"host-cli"`: `verifier`, `perTaskVerifier`, `codeReview`. Full detail in the `project_cadence_specreview_mock` memory. There's an existing open rec about wiring the rest: `rec-20260801-002` (candidate, needs-decision) — the code-level `HostCliSpecReviewVerifier` builder already exists, only the config flip (an operator decision, its own commit) is missing.
-- **The primary checkout** (`C:\Users\softw\projects\cadence`, branch `docs/checkpoint-phase-0.4a-report`) may still have leftover uncommitted `.cadence/intelligence/*` changes from before this worktree was cut (a stale `candidate`-status copy of `rec-20260925-001`, superseded by this worktree's `converted`-status copy) — check and clean up if still present; do not let both copies get committed independently.
-- **ID collision risk, unresolved**: `rec-20260925-001`, `dec-20260925-001`, and `rec-20260926-001` use date-based IDs. If the parallel checkpoint-arc session in `.claude/worktrees/checkpoint-phase-0-1` mints IDs the same way on the same days, they could collide at merge time — this is the exact fragility `rec-20260821-005` already describes as open. Worth a heads-up to that session if still active.
-- **D-BO option (c)** from the SPEC's own Open Questions (a settle-time anomaly if a block was emitted for an edit that landed anyway) was dedup-checked clean but deliberately **not filed** — left as a written item per the operator's explicit preference to resume with a list rather than a growing set of speculative recs.
+- **The SPEC has not been independently re-reviewed since `bb312f3d`.** Don't treat round 3's fixes as confirmed correct — the pattern across all three rounds is that each fix round introduced at least one new, real finding the *next* round caught (a citation slip, an overclaim, a heading that didn't match its own body). Read all three `317-01-SPEC-REVIEW-codex*.md` files' headers before touching the SPEC again — they record exactly what was verified true vs. what turned out to need a second look.
+- **`docs/handoffs/HANDOFF-hook-json-block.md` visibility gap is resolved** — it's merged into `main` (PR #537) and pulled into this worktree via `git merge origin/main` (commit `5c04a13a`). No longer an issue.
+- **This project's `.cadence/config.json` has 4 of 7 verify-family gates hardcoded to `mock`**: `specReview`, `uiSpecReview`, `planReview`, `securityAudit`. `CADENCE_HOST_CLI_BIN` only matters for the 3 that are `"host-cli"`: `verifier`, `perTaskVerifier`, `codeReview`. Full detail in the `project_cadence_specreview_mock` memory. `rec-20260801-002` (candidate, needs-decision) already tracks wiring the rest — the code-level `HostCliSpecReviewVerifier` builder exists, only the config flip (operator's call, its own commit) is missing.
+- **Primary-checkout cleanup was completed** this session (the stale `candidate`-status ledger copy was reverted there) — not an open item anymore.
+- **ID collision risk, still unresolved**: `rec-20260925-001`, `dec-20260925-001`, `rec-20260926-001/002/003`, and `dec-20260926-001/002/003/004` all use date-based IDs. If the parallel checkpoint-arc session in `.claude/worktrees/checkpoint-phase-0-1` mints IDs the same way on the same days, they could collide at merge time — `rec-20260821-005` already describes this exact fragility as open. Still worth a heads-up if that session is active.
+- **`.cadence/research/codex-hooks.md` is confirmed stale** (dated 2026-05-13; Codex's docs have moved on in at least two ways found this session) — `rec-20260926-003` tracks refreshing it, not done here.
 
 ## Open decisions
-- **D-BO, D-BP, D-BQ** (from the SPEC's Open Questions) — still genuinely open, not yet decided. Record each with `cadence decision add` once the DRAFT is being authored, per the SPEC's own instruction, not before.
-- **Codex transport ambiguity (AC-9)** — does Codex honor an exit-0 JSON `decision:block`, or only exit code 2? `.cadence/research/codex-hooks.md` is 4 months stale on this exact point. Needs a fresh primary-source check before the SPEC can be re-submitted. If the answer is "exit 2 only," core needs a host-aware branch (via `ctx.raw.hostCapabilities` — but note the review's finding 5: that field is a capability descriptor, not a host-identity field, so the exact detection mechanism still needs designing, not just invoking).
-- **Should `.cadence/config.json`'s `specReview.provider` move to `"host-cli"`?** Operator's call, its own commit, tracked already at `rec-20260801-002`. Not blocking this phase's SPEC rework, but blocking a *real* automated `spec approve` for this or any future phase until decided.
-- **Primary-checkout cleanup and the ID-collision heads-up** (see Carry-forward gotchas) — raised to the operator, no explicit resolution captured yet.
+- **Should a fourth manual review run, or does the operator accept the 3-review trail as sufficient?** This session's explicit stopping point — the operator's call.
+- **D-BQ** (checkpoint arc Phase 3's `Stop` hook: separate entry or a branch in `handleSessionStop`?) — still genuinely open, direction only, decide at DRAFT time.
+- Does `pwsh` 7 share the `-Command` exit-code collapse Windows PowerShell 5.1 has? Untested (no `pwsh` on this box) — doesn't block this phase's design, worth a future probe.
+- **Should `.cadence/config.json`'s `specReview.provider` move to `"host-cli"`?** Operator's call, its own commit, tracked at `rec-20260801-002`. Would make future `spec approve` calls real instead of needing this manual-review workaround.
 
 ## Next action
-Revise `.cadence/phases/317-hook-json-block/317-01-SPEC.md` against every verified finding in `317-01-SPEC-REVIEW-codex.md` before touching `cadence draft new`:
-1. Rescope AC-2 and AC-9 to acknowledge `SubagentStop`'s block path is currently unreachable (pending `rec-20260926-001`'s fix, out of this phase's scope) rather than assuming it's live.
-2. Reword AC-6/AC-9 to drop "the host accepts"/"actually proven to block" language — pure transport-shape-and-exit-code assertions only, consistent with the SPEC's own no-live-host Constraint.
-3. Fix AC-4 to require capturing the real `install --local`-registered command (absolute paths via `resolveLocalPaths()`), not a hand-written equivalent.
-4. Tighten AC-7 (concrete doctor-check contract) and AC-10 (pin the new comment's actual text, not just assert the old text is gone).
-5. Fix the two citation slips (`hook.ts:35` not `:36`; separate the dispatcher.ts handler-routing claim from routing.ts's event-name mapping).
-6. Resolve the `docs/handoffs/HANDOFF-hook-json-block.md` worktree-visibility gap (get it into the repo, or stop citing it as readable here).
-
-Then get a **second real review** — either ask the operator to flip `specReview.provider` to `host-cli` in its own commit (`rec-20260801-002`), or run another manual `codex exec` review — before treating the SPEC as ready for `spec approve`/`draft new`. Decide the open items (D-BO(c) filing, ID-collision heads-up, Codex host-detection design) at that point, not before.
+1. Get one more independent read on commit `bb312f3d`'s fixes — either a fourth manual `codex exec` review (same methodology as the prior three, see any of the `317-01-SPEC-REVIEW-codex*.md` files for the prompt shape) or the operator's own read of the diff since `317-01-SPEC-REVIEW-codex-3.md` was written.
+2. If it comes back clean: proceed to `cadence draft new` — but note `cadence progress` currently suggests deriving **phase 318**, not continuing 317, and `--from-rec` refuses a recommendation already `status: converted` (which `rec-20260925-001` is). Read `packages/core/src/services/draft-new.ts` first to find the correct way to seed a DRAFT from an already-approved SPEC for the *same* phase number (317), not derive a fresh one.
+3. If it finds new issues: repeat the revise-then-review cycle once more, but consider whether the pattern (each fix round creates one new finding) means the remaining issues are genuinely running out, or whether a fresh pair of eyes (the operator's own read, not another automated pass) would be more efficient than a fourth round.
 
 Quick resume:
 ```
 cd C:\Users\softw\projects\cadence\.claude\worktrees\hook-json-block
 git status --short --branch
 node packages/core/bin/cadence.cjs doctor
-cat .cadence/phases/317-hook-json-block/317-01-SPEC-REVIEW-codex.md
+cat .cadence/phases/317-hook-json-block/317-01-SPEC-REVIEW-codex-3.md
+git diff cb943c6e..HEAD -- .cadence/phases/317-hook-json-block/317-01-SPEC.md
 ```
