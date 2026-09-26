@@ -8,7 +8,7 @@ import { join } from 'node:path';
  * rename and needs a fresh `install` run to pick up the current command
  * string (phase 250, AC-5).
  */
-const STALE_NPM_SCOPE = '@manehorizons/';
+export const STALE_NPM_SCOPE = '@manehorizons/';
 
 /** True when a string anywhere in `value`'s subtree references {@link STALE_NPM_SCOPE}. */
 function referencesStaleScope(value: unknown): boolean {

@@ -7,6 +7,7 @@ import {
   classifyHostHooksSettings,
   readHostHooksInstallState,
 } from '../../src/doctor/host-hooks-state.js';
+import { STALE_NPM_SCOPE } from '../../src/doctor/host-hooks.js';
 import { completeManagedHooksObject, writeCompleteManagedSettings } from './host-hooks-fixture.js';
 
 const ENV = { nodeVersion: 'v22.11.0', platform: 'linux' as const };
@@ -92,7 +93,7 @@ describe('doctor hook-transport — install-state outcomes (317-01/AC-7)', () =>
   it('317-01/AC-7: stale-scope managed entry → pass, not applicable', async () => {
     active = await tempRepo({ initialized: true });
     await writeCompleteManagedSettings(active.root, [
-      { event: 'Stop', matcher: null, command: 'npx @manehorizons/cadence-host-claude-code hook' },
+      { event: 'Stop', matcher: null, command: `npx ${STALE_NPM_SCOPE}cadence-host-claude-code hook` },
     ]);
     const { report, check } = await hookTransport(active.root);
     const hostHooks = report.checks.find((c) => c.name === 'host-hooks');
@@ -236,7 +237,7 @@ describe('doctor hook-transport ↔ host-hooks shared classification (317-01/AC-
     });
     const stale = classifyHostHooksSettings({
       hooks: completeManagedHooksObject([
-        { event: 'Stop', matcher: null, command: 'npx @manehorizons/cadence-host-claude-code hook' },
+        { event: 'Stop', matcher: null, command: `npx ${STALE_NPM_SCOPE}cadence-host-claude-code hook` },
       ]),
     });
     expect(stale.kind).toBe('stale-scope');
@@ -260,7 +261,7 @@ describe('doctor hook-transport ↔ host-hooks shared classification (317-01/AC-
         'stale scope',
         (root) =>
           writeCompleteManagedSettings(root, [
-            { event: 'Stop', matcher: null, command: 'npx @manehorizons/cadence-host-claude-code hook' },
+            { event: 'Stop', matcher: null, command: `npx ${STALE_NPM_SCOPE}cadence-host-claude-code hook` },
           ]),
       ],
       ['complete', (root) => writeCompleteManagedSettings(root)],
