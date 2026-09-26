@@ -1602,3 +1602,19 @@ D-BO option (c), filed per dec-20260926-003: after phase 317-hook-json-block shi
 - next: cadence milestone propose
 
 Discovered 2026-09-26 during phase 317-hook-json-block's SPEC review. Four related, small gaps in host-codex, all traced to .cadence/research/codex-hooks.md (2026-05-13) being stale against Codex's current docs (developers.openai.com/codex/hooks.md, re-fetched 2026-09-26): (1) packages/host-codex/src/capabilities.ts:29-32's comment says SubagentStop agent identity fields are 'undocumented' -- Codex's current docs list agent_id/agent_type as documented SubagentStop input fields, so this is stale; host-codex's shim.ts could be updated to extract them, mirroring the fix rec-20260926-001 needs for Claude Code's routing.ts. (2) capabilities.ts:24's blockingHooks array is ['pre-tool-edit','session-stop'] and omits 'subagent-result', even though Codex's current docs describe SubagentStop's decision:block as controlling continuation (functionally a blocking point) the same way Stop's does -- worth checking whether omitting it from blockingHooks has any behavioral effect in core, or if the array is purely declarative. (3) Codex's current docs confirm exit-0 JSON decision shapes (hookSpecificOutput.permissionDecision for PreToolUse, top-level decision:block for Stop/SubagentStop) are valid and current, alongside exit code 2 -- this was doc-verified during phase 317 (its SPEC's AC-9), but only for the shapes that phase actually emits (bare deny, bare block); it was NOT verified for combined shapes (e.g. deny + additionalContext together) on Codex specifically. (4) .cadence/research/codex-hooks.md itself should be refreshed wholesale against the current docs -- it predates this by four months and multiple of its specifics (exit-code-only framing, undocumented-agent-fields claim) are now measurably out of date.
+
+## rec-20260926-004 — host-claude-code shim spawns core with shell:true + args on win32, emitting Node DEP0190 on every hook call's stderr
+
+- status: candidate
+- ready: needs-evidence
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, host-claude-code
+- files: packages/host-claude-code/src/cli.ts
+- evidence: Observed 2026-09-26 in phase 318 shim-integration test output on Windows: '(node:10888) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities' on the SubagentStop call's stderr.
+- next: cadence milestone propose
+
+packages/host-claude-code/src/cli.ts:136 spawns the cadence child with shell: process.platform === 'win32' while also passing an args array. Node 22+ emits DeprecationWarning DEP0190 ('Passing args to a child process with shell option true can lead to security vulnerabilities') to stderr on every Windows hook invocation. Observed in phase 318's shim-integration tests. Stderr from hooks is surfaced to the model/user in Claude Code, so this is noise on every hook call on Windows, and args are not escaped by Node under shell:true. Check whether host-codex's shim has the same pattern.

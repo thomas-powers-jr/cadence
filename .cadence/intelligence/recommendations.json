@@ -2882,6 +2882,34 @@
       "scoutId": "scout-20260925-hook-json-block",
       "createdAt": "2026-09-26T03:07:45.275Z",
       "updatedAt": "2026-09-26T03:07:45.275Z"
+    },
+    {
+      "id": "rec-20260926-004",
+      "title": "host-claude-code shim spawns core with shell:true + args on win32, emitting Node DEP0190 on every hook call's stderr",
+      "summary": "packages/host-claude-code/src/cli.ts:136 spawns the cadence child with shell: process.platform === 'win32' while also passing an args array. Node 22+ emits DeprecationWarning DEP0190 ('Passing args to a child process with shell option true can lead to security vulnerabilities') to stderr on every Windows hook invocation. Observed in phase 318's shim-integration tests. Stderr from hooks is surfaced to the model/user in Claude Code, so this is noise on every hook call on Windows, and args are not escaped by Node under shell:true. Check whether host-codex's shim has the same pattern.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "hooks",
+        "host-claude-code"
+      ],
+      "affectedFiles": [
+        "packages/host-claude-code/src/cli.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260926-009"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-26T16:03:04.725Z",
+      "updatedAt": "2026-09-26T16:03:04.725Z"
     }
   ],
   "archived": [
