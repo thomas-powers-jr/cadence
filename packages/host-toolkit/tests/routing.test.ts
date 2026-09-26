@@ -257,6 +257,64 @@ describe('routeHookEvent (AC-1)', () => {
   });
 });
 
+describe('routeHookEvent agent identity translation (318-01/AC-1)', () => {
+  it('318-01/AC-1: SubagentStart translated stdin carries camelCase agentId/agentType', () => {
+    const raw = JSON.stringify({
+      hook_event_name: 'SubagentStart',
+      agent_id: 'agent-abc123',
+      agent_type: 'general-purpose',
+    });
+    const r = routeHookEvent(raw);
+    expect(r.abstractEvent).toBe('subagent-start');
+    const parsed = JSON.parse(r.translatedStdin);
+    expect(parsed.agentId).toBe('agent-abc123');
+    expect(parsed.agentType).toBe('general-purpose');
+  });
+
+  it('318-01/AC-1: SubagentStop translated stdin carries camelCase agentId/agentType', () => {
+    const raw = JSON.stringify({
+      hook_event_name: 'SubagentStop',
+      agent_id: 'agent-def456',
+      agent_type: 'Explore',
+    });
+    const r = routeHookEvent(raw);
+    expect(r.abstractEvent).toBe('subagent-result');
+    const parsed = JSON.parse(r.translatedStdin);
+    expect(parsed.agentId).toBe('agent-def456');
+    expect(parsed.agentType).toBe('Explore');
+  });
+
+  it('318-01/AC-1: PostToolUse Edit inside a subagent carries agentId/agentType alongside files[]', () => {
+    const raw = JSON.stringify({
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Edit',
+      tool_input: { file_path: '/abs/sub.ts', old_string: 'a', new_string: 'b' },
+      agent_id: 'agent-ghi789',
+      agent_type: 'general-purpose',
+    });
+    const r = routeHookEvent(raw);
+    expect(r.abstractEvent).toBe('post-tool-edit');
+    const parsed = JSON.parse(r.translatedStdin);
+    expect(parsed.files).toEqual(['/abs/sub.ts']);
+    expect(parsed.agentId).toBe('agent-ghi789');
+    expect(parsed.agentType).toBe('general-purpose');
+  });
+
+  it('318-01/AC-1: main-thread PostToolUse Edit (no agent_id/agent_type) adds no agentId/agentType keys', () => {
+    const raw = JSON.stringify({
+      hook_event_name: 'PostToolUse',
+      tool_name: 'Edit',
+      tool_input: { file_path: '/abs/main.ts', old_string: 'a', new_string: 'b' },
+    });
+    const r = routeHookEvent(raw);
+    expect(r.abstractEvent).toBe('post-tool-edit');
+    const parsed = JSON.parse(r.translatedStdin);
+    expect(parsed.files).toEqual(['/abs/main.ts']);
+    expect(parsed).not.toHaveProperty('agentId');
+    expect(parsed).not.toHaveProperty('agentType');
+  });
+});
+
 describe('COMMANDS slash-command catalog (AC-1)', () => {
   it('is the single shared source of truth both adapters render from', () => {
     expect(COMMANDS.length).toBeGreaterThan(0);
