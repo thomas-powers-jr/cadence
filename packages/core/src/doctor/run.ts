@@ -62,6 +62,7 @@ import {
   findMissingManagedHooks,
   CODEX_EXPECTED_HOOKS,
 } from './host-hooks.js';
+import { readHostHooksInstallState, type HostHooksInstallState } from './host-hooks-state.js';
 
 function checkNode(env: DoctorEnv): DoctorCheck {
   const r = checkNodeMajor(env.nodeVersion);
@@ -398,60 +399,115 @@ async function checkGitHooks(root: string): Promise<DoctorCheck> {
 }
 
 async function checkHostHooks(root: string): Promise<DoctorCheck> {
-  const settings = join(root, '.claude', 'settings.json');
-  if (!existsSync(settings)) {
-    return pass('host-hooks', 'Not applicable — no .claude/settings.json here.');
+  // Phase 317 (AC-7): the install-state classification lives in the shared
+  // pure helper (host-hooks-state.ts) so `hook-transport` classifies
+  // identically; this function only maps each state to its (unchanged)
+  // message.
+  const state = await readHostHooksInstallState(root);
+  switch (state.kind) {
+    case 'missing-file':
+      return pass('host-hooks', 'Not applicable — no .claude/settings.json here.');
+    case 'invalid-json':
+      return fail(
+        'host-hooks',
+        'warning',
+        `.claude/settings.json is not valid JSON: ${state.message}`,
+        'Fix or regenerate it with `cadence-host-claude-code install`.',
+      );
+    case 'incomplete': {
+      // Phase 295: completeness before existence. A single non-stale marker
+      // used to be sufficient (hasManagedCadence); this repo's own
+      // settings.json proved that's not enough — it was missing 2 of 7 managed
+      // entries while reporting `ok` throughout.
+      const { missing } = state;
+      const named = missing
+        .map((m) => (m.matcher === null ? m.event : `${m.event} (matcher: ${m.matcher})`))
+        .join(', ');
+      return fail(
+        'host-hooks',
+        'error',
+        `${missing.length} managed hook ${missing.length === 1 ? 'entry is' : 'entries are'} missing from settings.json: ${named}.`,
+        'Run `cadence doctor --fix --wire-host` to reinstall the lifecycle hooks.',
+        'host-install',
+      );
+    }
+    case 'complete':
+      return pass(
+        'host-hooks',
+        'CADENCE-managed hook entries are present in settings.json.',
+      );
+    case 'stale-scope':
+      return fail(
+        'host-hooks',
+        'warning',
+        'A CADENCE-managed hook entry is present in settings.json but is stale — it references an outdated npm scope and needs reinstalling.',
+        'Run `cadence doctor --fix --wire-host` to reinstall the lifecycle hooks with the current package scope.',
+        'host-install',
+      );
+    case 'no-managed-entries':
+      return fail(
+        'host-hooks',
+        'warning',
+        'No CADENCE-managed (_managedBy: "cadence") hook entries found in settings.json.',
+        'Run `cadence-host-claude-code install` to (re)write the lifecycle hooks.',
+        'host-install',
+      );
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await readFile(settings, 'utf8'));
-  } catch (err) {
-    return fail(
-      'host-hooks',
-      'warning',
-      `.claude/settings.json is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
-      'Fix or regenerate it with `cadence-host-claude-code install`.',
-    );
+}
+
+const HOOK_TRANSPORT_SCOPE =
+  'checked the first managed hook entry; hand-edited divergence across entries is not detected';
+
+/**
+ * Pure mapping from the shared host-hooks install state to the
+ * `hook-transport` result (phase 317, AC-7). Claude Code only: inspects the
+ * `shell` key on the first managed CADENCE entry's command-hook handler (the
+ * object carrying `command`, where Claude Code reads `shell`). States the
+ * documented default rule when the key is absent — it never tries to measure
+ * which shell a machine will actually resolve to (`dec-20260926-002`).
+ */
+export function evaluateHookTransport(state: HostHooksInstallState): DoctorCheck {
+  if (state.kind === 'missing-file') {
+    return pass('hook-transport', 'Not applicable — no .claude/settings.json here.');
   }
-  // Phase 295: completeness before existence. A single non-stale marker
-  // used to be sufficient (hasManagedCadence below); this repo's own
-  // settings.json proved that's not enough — it was missing 2 of 7 managed
-  // entries while reporting `ok` throughout.
-  const missing = findMissingManagedHooks(parsed);
-  if (missing.length > 0) {
-    const named = missing
-      .map((m) => (m.matcher === null ? m.event : `${m.event} (matcher: ${m.matcher})`))
-      .join(', ');
-    return fail(
-      'host-hooks',
-      'error',
-      `${missing.length} managed hook ${missing.length === 1 ? 'entry is' : 'entries are'} missing from settings.json: ${named}.`,
-      'Run `cadence doctor --fix --wire-host` to reinstall the lifecycle hooks.',
-      'host-install',
-    );
-  }
-  if (hasManagedCadence(parsed)) {
+  if (state.kind !== 'complete') {
     return pass(
-      'host-hooks',
-      'CADENCE-managed hook entries are present in settings.json.',
+      'hook-transport',
+      'Not applicable — host-hooks reports an install problem; fix that first.',
     );
   }
-  if (hasStaleScopeManagedHook(parsed)) {
-    return fail(
-      'host-hooks',
-      'warning',
-      'A CADENCE-managed hook entry is present in settings.json but is stale — it references an outdated npm scope and needs reinstalling.',
-      'Run `cadence doctor --fix --wire-host` to reinstall the lifecycle hooks with the current package scope.',
-      'host-install',
+  const handlers = state.firstManagedEntry?.['hooks'];
+  const first: unknown = Array.isArray(handlers) ? handlers[0] : undefined;
+  const handler =
+    first !== null && typeof first === 'object' && !Array.isArray(first)
+      ? (first as Record<string, unknown>)
+      : null;
+  if (handler === null || !Object.hasOwn(handler, 'shell')) {
+    return pass(
+      'hook-transport',
+      'no `shell` field is set on the installed hook command — per Claude Code\'s own docs this defaults to `bash`, or to `powershell` on Windows when Git Bash isn\'t installed; CADENCE blocks via a JSON decision on stdout regardless of which shell runs it, so this is informational, not a warning. ' +
+        `(${HOOK_TRANSPORT_SCOPE}.)`,
+    );
+  }
+  const shell = handler['shell'];
+  if (shell === 'bash' || shell === 'powershell') {
+    return pass(
+      'hook-transport',
+      `The installed hook command is configured with \`shell: "${shell}"\`; CADENCE blocks via a JSON decision on stdout regardless of which shell runs it. ` +
+        `(${HOOK_TRANSPORT_SCOPE}.)`,
     );
   }
   return fail(
-    'host-hooks',
+    'hook-transport',
     'warning',
-    'No CADENCE-managed (_managedBy: "cadence") hook entries found in settings.json.',
-    'Run `cadence-host-claude-code install` to (re)write the lifecycle hooks.',
-    'host-install',
+    `The installed hook command sets \`shell\` to ${JSON.stringify(shell)}, but Claude Code documents only "bash" and "powershell" for this field. ` +
+      `(${HOOK_TRANSPORT_SCOPE}.)`,
+    'remove the `shell` field or set it to `"bash"`/`"powershell"`, or re-run `cadence-host-claude-code install`.',
   );
+}
+
+async function checkHookTransport(root: string): Promise<DoctorCheck> {
+  return evaluateHookTransport(await readHostHooksInstallState(root));
 }
 
 const CADENCE_MANAGED_BLOCK = '<!-- cadence:managed:start -->';
@@ -2665,6 +2721,7 @@ export async function runDoctor(
     await checkStateTracked(root),
     await checkGitHooks(root),
     await checkHostHooks(root),
+    await checkHookTransport(root),
     await checkHostCommands(root),
     await checkCodexHooks(root),
     await checkCodexPrompts(root),
