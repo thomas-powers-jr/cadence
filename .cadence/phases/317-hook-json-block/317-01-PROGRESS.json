@@ -1,0 +1,76 @@
+{
+  "draftId": "317-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/reference/commands.md",
+        "packages/core/src/doctor/host-hooks-state.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/hooks/render-result.ts",
+        "packages/core/tests/cli/hook-stdout-golden.test.ts",
+        "packages/core/tests/docs/ci-windows-leg.test.ts",
+        "packages/core/tests/doctor/hook-transport.test.ts",
+        "packages/core/tests/doctor/host-checks.test.ts",
+        "packages/core/tests/fixtures/hook-stdout-golden/session-start.txt",
+        "packages/core/tests/fixtures/hook-stdout-golden/subagent-start.txt",
+        "packages/core/tests/hooks/render-result.test.ts"
+      ],
+      "updatedAt": "2026-09-26T17:58:31.957Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T17:58:34.523Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T17:58:37.468Z"
+    },
+    "T7": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T17:58:40.475Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/src/cli/commands/hook.ts",
+        "packages/core/tests/cli/hook.test.ts",
+        "packages/host-codex/tests/shim-integration.test.ts",
+        "packages/host-claude-code/tests/powershell-transport.test.ts"
+      ],
+      "updatedAt": "2026-09-26T18:06:36.827Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/host-adapters.md",
+        "docs/reference/exit-codes.md",
+        ".changeset/hook-json-block.md"
+      ],
+      "updatedAt": "2026-09-26T18:17:19.925Z"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T18:17:25.116Z"
+    },
+    "T8": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/src/doctor/host-hooks.ts"
+      ],
+      "updatedAt": "2026-09-26T19:00:03.938Z"
+    }
+  }
+}
