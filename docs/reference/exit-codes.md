@@ -16,11 +16,17 @@ documented code that source no longer uses.
 
 ## Notes
 
-- Exit code `2` is also used by hook dispatch (`cadence hook <event>`) to
-  signal a **blocking** result per the Claude Code hook protocol, not only
-  malformed input — the shared meaning across both cases is "the caller must
-  stop and look at stderr before proceeding," which is why it is grouped
-  with usage errors here rather than given its own code.
+- Hook dispatch (`cadence hook <event>`) does **not** signal a block with an
+  exit code for `pre-tool-edit`, `session-stop`, or `subagent-result`: it
+  exits `0` and prints a per-event JSON decision on stdout
+  (`hookSpecificOutput.permissionDecision: "deny"` for `pre-tool-edit`,
+  top-level `{"decision":"block","reason":…}` for `session-stop` /
+  `subagent-result`), because exit `2` collapses to a non-blocking `1` when a
+  hook runs under Windows PowerShell (phase 317, `dec-20260925-001`). Hook
+  dispatch still exits `2` for an unknown event name, and for a block on an
+  event with no documented JSON decision shape (no handler produces one
+  today), which also prints a loud stderr warning that the block may not
+  hold under PowerShell.
 - This table only covers `packages/core/src`. Host adapter packages
   (`cadence-host-claude-code`, `cadence-host-codex`) and any process spawned
   by `cadence settle`'s configured `verification.testCommand` have their own
