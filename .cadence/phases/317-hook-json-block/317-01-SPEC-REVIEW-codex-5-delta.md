@@ -26,3 +26,22 @@ VERDICT: REJECT
 2. **NON-BLOCKING** — The updated review trail falsely says a focused delta review was “recorded in `317-01-SPEC-REVIEW-codex-5-delta.md`” (`SPEC.md:109`), but no such file exists in the phase directory. This review is the requested delta check and is read-only, so the sentence is premature.
 
 The locator citation and fixture-wrapper wording fixes are accurate. The unsupported-value taxonomy is otherwise unambiguous, follows first-managed-entry scope, and remains consistent with D-BP; the raw doc supports only `"bash"`/`"powershell"` (`317-01-raw-doc-excerpts.md:64-65`).
+---
+
+# Follow-up check of 28390f1e (the fix for this review's findings)
+
+Same tool and mode. **Result: APPROVE**, no findings. With this, the SPEC as of `28390f1e` has a passing independent review: the full review #4 plus these two focused delta checks.
+
+## Prompt
+
+Independent read-only check. Do not edit files. Run `git show 28390f1e` in this worktree. It fixes the two findings in `.cadence/phases/317-hook-json-block/317-01-SPEC-REVIEW-codex-5-delta.md`: (1) AC-7's "Unsupported value" bullet named a nonexistent `warn()` doctor helper; (2) the Constraints review-trail sentence cited a review file that did not yet exist.
+Check ONLY: is the new helper call exactly implementable against `packages/core/src/doctor/model.ts` (signature, argument order, severity literal, cited line numbers)? Is the review-trail sentence now factually accurate against the files and commits that exist (`git log --oneline -6`, `ls .cadence/phases/317-hook-json-block/`)? Any new inconsistency introduced by this commit?
+First line `VERDICT: APPROVE` or `VERDICT: REJECT`, then numbered findings tagged BLOCKING / NON-BLOCKING with file:line. Be brief.
+
+## Output
+
+VERDICT: APPROVE
+
+1. **NON-BLOCKING** — No issue: `317-01-SPEC.md:71` calls `fail(name, severity, detail, remediation)` in the exact order; `'warning'` is valid and `model.ts:52-60` accurately covers the helper signature.
+
+2. **NON-BLOCKING** — No issue: `317-01-SPEC.md:109` accurately records the delta review and its subsequent correction. The review file exists, and `28390f1e` immediately follows `feffec21` in the six-commit log.
