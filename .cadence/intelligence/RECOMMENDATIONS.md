@@ -1582,7 +1582,7 @@ hooks/handlers.ts:495 records ctx.raw.skill verbatim (the requested name), not t
 - decay: fresh
 - areas: hooks, gates, host-claude-code
 - files: packages/core/src/cli/commands/hook.ts
-- decisions: dec-20260925-001 (active)
+- decisions: dec-20260925-001 (active), dec-20260926-002 (active), dec-20260926-003 (active)
 - evidence: checkpoint 0.4a probe: Claude Code 2.1.282 transcript recorded exitCode:1 for three hook calls that sent 2, PowerShell path (Git Bash undetected); Stop via JSON decision PASSED in the same session; collapse reproduced independently in $TEMP/probe-repro (docs/checkpoint/REPORT-checkpoint-phase-0.4a.md §5c)
 - next: cadence milestone propose
 
@@ -1599,7 +1599,25 @@ packages/core/src/cli/commands/hook.ts:33-37 signals every hook-level block (bou
 - decay: fresh
 - areas: hooks, host-toolkit
 - files: packages/host-toolkit/src/routing.ts
+- decisions: dec-20260926-001 (active)
 - evidence: Direct read, 2026-09-26: routing.ts:181-184 (translated stdin construction, only files/skill copied from extracted), hook.ts:23,28-29 (core reads camelCase only), handlers.ts:310-321 (handleSubagentResult's early ok:true return when !agentId). Surfaced by an adversarial codex exec review of .cadence/phases/317-hook-json-block/317-01-SPEC.md's AC-2.
+- evidence: Empirically confirmed 2026-09-26: running packages/host-toolkit's routeHookEvent directly on a SubagentStop payload with agent_id/agent_type set produces translatedStdin containing agent_id/agent_type (snake_case, passthrough) but never agentId/agentType (camelCase) -- core's hook.ts only reads camelCase, so ctx.agentId is confirmed undefined for a real Claude-Code-routed SubagentStop dispatch. Separately, direct read of packages/host-codex/src/shim.ts (its own local routeHookEvent, NOT shared with host-toolkit -- only host-claude-code re-exports the toolkit's) shows it never even attempts to extract agentId/agentType at all, consistent with packages/host-codex/src/capabilities.ts:35 declaring agentIdentification:false. That is a DECLARED, loudly-notified gap for Codex (handlers.ts's noticeIfAgentIdentificationUnsupported fires because capabilities.agentIdentification===false), NOT the same defect as Claude Code's case. Claude Code's own capabilities.ts never declares agentIdentification at all (grep found no match), so for Claude Code the same guard (handlers.ts:29, 'if (capabilities?.agentIdentification !== false) return;') takes its early-return WITHOUT printing any notice -- the routing.ts drop is completely silent for Claude Code, unlike Codex's honest declared gap. Correction to this rec's original title/summary: the bug is Claude-Code-specific (the routing.ts drop plus the missing loud notice); Codex's inertness is by design and already correctly self-reported.
 - next: cadence milestone propose
 
 packages/host-toolkit/src/routing.ts's routeHookEvent (shared by both host-claude-code and host-codex shims) computes extracted.agentId/extracted.agentType (camelCase) via extractPayload, but when building the outgoing translated stdin object (lines ~181-184) it only copies extracted.files and extracted.skill onto the {...parsed} spread -- it never copies extracted.agentId/extracted.agentType. The spread does carry the ORIGINAL snake_case agent_id/agent_type through unchanged, but packages/core/src/cli/commands/hook.ts (lines 23,28-29) only reads camelCase rawObj.agentId/rawObj.agentType from stdin -- it never looks for snake_case. Net effect: ctx.agentId/ctx.agentType are always undefined when core dispatches a subagent-result event, for both real adapters. handleSubagentResult (packages/core/src/hooks/handlers.ts:304-322) checks 'if (!agentId || !baseline) return {ok:true}' as its very first branch, so its ok:false safety-net block (line 368, the redundantWorkEnforcement=block path) can never be reached through a real Claude Code or Codex hook invocation today -- only through a hand-constructed test stdin payload that bypasses the real shim. Discovered 2026-09-26 during an independent Codex review of phase 317's hook-transport SPEC (317-01), which had assumed this block path was live and reachable. Fix direction: routing.ts's translated-stdin construction should also copy extracted.agentId/extracted.agentType (camelCase) the same way it already does for files/skill.
+
+## rec-20260926-002 — Settle-time anomaly when a hook block was emitted but the edit landed in the diff anyway
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, gates, state
+- files: packages/core/src/services/settle.ts
+- evidence: SPEC 317-01's Open Questions D-BO; dec-20260926-003 commits to filing this rather than building it speculatively inside the transport-only phase 317
+- next: cadence milestone propose
+
+D-BO option (c), filed per dec-20260926-003: after phase 317-hook-json-block ships JSON-decision hook blocking, nothing yet records whether a block that WAS emitted was actually honored by the host. A settle-time check could compare emitted block events (once recorded somewhere settle can read -- a state-schema addition, not yet designed) against the final diff: if a file CADENCE blocked an edit to nonetheless appears changed, that's a strong signal the block was ignored (transport failure, host bug, or a bypass) and worth a loud settle-time anomaly, the hook-path analogue of existing empty-diff provenance. Needs its own phase: (1) a place to record emitted-block attempts (state.json or a phase-scoped sidecar), (2) the settle-time diff comparison, (3) the anomaly shape and where it surfaces (SUMMARY, doctor, or both).

@@ -765,6 +765,27 @@ Reaffirms dec-20260816-008 (report-only, no backfill of historical assurance-gra
 
 Exit code 2 is undeliverable on a real, common platform configuration: powershell.exe -Command collapses a wrapped child's exit code 2 to 1 (reproduced independently 2026-09-25, matching checkpoint 0.4a's Claude Code transcript evidence of exitCode:1 received for three exitCode:2 sends). The JSON decision path is honored regardless of shell -- proven for Stop in 0.4a and now cross-checked against the raw hooks doc (curl, 2026-09-25): PreToolUse uses hookSpecificOutput.permissionDecision=deny; Stop, SubagentStop, ConfigChange, TaskCreated, UserPromptSubmit/Expansion, PostToolUse-family all accept a top-level {decision:block,reason}. Rejected alternatives: JSON+exit-2 belt-and-braces (undocumented interaction between a non-zero exit and JSON stdout, not proven equivalent per-event); exit-2-only with the installer forcing shell:bash (makes every CADENCE gate depend on Git Bash being installed on the operator's machine -- the same environmental assumption that just failed silently). host-codex's shim relays core's hook stdout/exit code transparently (stdio:['pipe','inherit','inherit'], spawn exit code passed through unchanged) and Codex's own documented hook JSON format accepts the identical shapes, so this decision is expected to carry over to Codex without adapter changes -- to be confirmed by a pinned test, not assumed.
 
+### dec-20260926-001 — Correction to rec-20260926-001: bug is Claude-Code-specific, Codex's SubagentStop inertness is a declared, self-reported gap
+
+- recommendation: rec-20260926-001
+- decided: 2026-09-26T02:48:04.493Z
+
+Empirical evidence (ev-20260926-002) shows the agentId/agentType drop is real for the Claude Code path (host-toolkit's routeHookEvent, re-exported by host-claude-code's shim.ts) and also silent there -- host-claude-code's capabilities.ts never declares agentIdentification, so handlers.ts:29's guard (capabilities?.agentIdentification !== false) takes its early return without printing a notice. host-codex has its OWN separate routeHookEvent (packages/host-codex/src/shim.ts, not shared with host-toolkit) which never attempts agentId/agentType extraction at all, matching its capabilities.ts:35 explicit agentIdentification:false declaration -- for Codex, the same guard correctly fires noticeIfAgentIdentificationUnsupported, a loud, intentional, already-correct degrade. The rec's original framing ('shared by both shims') is imprecise: the routing bug is Claude-Code-specific; Codex's inertness is by design and not a defect. Fix direction narrows accordingly: (1) host-claude-code's routing (via host-toolkit) should copy extracted.agentId/agentType into translatedStdin the way it already does for files/skill; (2) separately, Claude Code's capabilities should declare agentIdentification explicitly (true, once fixed) so the guard's silent-vs-loud behavior stays correct going forward.
+
+### dec-20260926-002 — D-BP: doctor states the hook-shell transport rule, does not claim to measure the resolved shell
+
+- recommendation: rec-20260925-001
+- decided: 2026-09-26T02:50:41.939Z
+
+CADENCE can only read what's explicitly configured in .claude/settings.json / .codex/hooks.json -- whether Claude Code itself resolves to pwsh.exe, powershell.exe, or Git Bash on a given machine is an internal runtime decision of the host, invisible to any file CADENCE has access to. There is no signal available to measure it. AC-7's doctor check therefore states the documented rule (defaults to bash, or powershell on Windows without Git Bash) when no explicit shell field is set, and reports the literal configured value when one is set -- it never claims to have measured the actually-resolved shell. This is the only honest option available; the alternative (silence) would leave operators with no doctor-level signal at all about why blocking works differently across their machines.
+
+### dec-20260926-003 — D-BO: doctor reports the posture now (b); a settle-time anomaly (c) is filed, not built, in this phase
+
+- recommendation: rec-20260925-001
+- decided: 2026-09-26T02:50:42.620Z
+
+Of D-BO's three options, (a) nothing is insufficient -- operators need some signal. (b) cadence doctor reporting hook-transport posture is cheap and already required by AC-7, so it ships in this phase. (c) a settle-time anomaly for a block emitted but nonetheless landed in the diff is genuinely valuable but needs a state-schema change (recording emitted block attempts somewhere settle can read) which is its own phase's worth of design -- it is filed as a follow-up recommendation, not built speculatively here, consistent with this phase's scope (transport only).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
