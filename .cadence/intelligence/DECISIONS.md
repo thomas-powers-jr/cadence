@@ -758,6 +758,13 @@ cadence/core-skills already requires phase-build (phase 312). Scoping invoked-ne
 
 Reaffirms dec-20260816-008 (report-only, no backfill of historical assurance-grade records) and dec-20260822-006 (no backfill for the empty-diff assurance-grade fix) precedent. The corrected semantics apply forward, from the phase that ships them; existing settled records keep their as-recorded provenance.
 
+### dec-20260925-001 — D-BN: hook blocks transport via per-event JSON decision on stdout, exit 0 -- not exit code 2
+
+- recommendation: rec-20260925-001
+- decided: 2026-09-25T23:56:18.226Z
+
+Exit code 2 is undeliverable on a real, common platform configuration: powershell.exe -Command collapses a wrapped child's exit code 2 to 1 (reproduced independently 2026-09-25, matching checkpoint 0.4a's Claude Code transcript evidence of exitCode:1 received for three exitCode:2 sends). The JSON decision path is honored regardless of shell -- proven for Stop in 0.4a and now cross-checked against the raw hooks doc (curl, 2026-09-25): PreToolUse uses hookSpecificOutput.permissionDecision=deny; Stop, SubagentStop, ConfigChange, TaskCreated, UserPromptSubmit/Expansion, PostToolUse-family all accept a top-level {decision:block,reason}. Rejected alternatives: JSON+exit-2 belt-and-braces (undocumented interaction between a non-zero exit and JSON stdout, not proven equivalent per-event); exit-2-only with the installer forcing shell:bash (makes every CADENCE gate depend on Git Bash being installed on the operator's machine -- the same environmental assumption that just failed silently). host-codex's shim relays core's hook stdout/exit code transparently (stdio:['pipe','inherit','inherit'], spawn exit code passed through unchanged) and Codex's own documented hook JSON format accepts the identical shapes, so this decision is expected to carry over to Codex without adapter changes -- to be confirmed by a pinned test, not assumed.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

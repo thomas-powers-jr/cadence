@@ -1570,3 +1570,36 @@ spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same 
 - next: cadence milestone propose
 
 hooks/handlers.ts:495 records ctx.raw.skill verbatim (the requested name), not the resolved skill; skill-match.ts's satisfies() accepts inv === req OR inv.endsWith(':' + req). So a repo declaring skillAudit.required: [systematic-debugging] is satisfied by the Superpowers plugin's namespaced superpowers:systematic-debugging, observed live during phase 313. Split off rec-20260917-006's temporal half (phase 315 fixes that); this is the identity half, called out by rec-20260917-006 as latent today, not exercised -- no current pack requires a name colliding with an installed plugin skill. Needs a decision on whether satisfies() should require an exact match, a source-qualified match, or something else, before any fix.
+
+## rec-20260925-001 — Hook blocks fail open on Windows/PowerShell: exit code 2 collapses to 1, every block-mode gate is inert
+
+- status: converted
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, gates, host-claude-code
+- files: packages/core/src/cli/commands/hook.ts
+- decisions: dec-20260925-001 (active)
+- evidence: checkpoint 0.4a probe: Claude Code 2.1.282 transcript recorded exitCode:1 for three hook calls that sent 2, PowerShell path (Git Bash undetected); Stop via JSON decision PASSED in the same session; collapse reproduced independently in $TEMP/probe-repro (docs/checkpoint/REPORT-checkpoint-phase-0.4a.md §5c)
+- next: cadence milestone propose
+
+packages/core/src/cli/commands/hook.ts:33-37 signals every hook-level block (boundaryEnforcement: block, redundant-work block mode, the SubagentStop safety net, and the Stop-handler block path -- all five ok:false sites in handlers.ts) via process.exitCode = 2, per a comment citing 'Claude Code hook protocol.' Checkpoint Phase 0.4a proved, with independent reproduction, that on Windows without Git Bash on PATH, Claude Code invokes hooks through powershell.exe, and PowerShell collapses a child process's exit code 2 to 1. Claude Code's own docs state exit 1 is a non-blocking error for most hook events ('the action proceeds'), and its transcript recorded exitCode:1 for three consecutive hook calls that sent 2. So on that platform every CADENCE hook-level block is fail-open: the edit proceeds, and nothing in doctor, settle provenance, or the anomaly log records that a block was attempted and ignored. No CI leg currently exercises this path -- the installer registers hook commands with no explicit shell field, so a Windows runner without Git Bash silently takes the vulnerable path. The same probe proved the fix: Stop already blocks correctly via {"decision":"block","reason":...} on stdout with exit 0, including stop_hook_active on re-blocks. Fix direction: move every ok:false transport from exit-code signaling to the documented per-event JSON decision on stdout (top-level decision:block for Stop/SubagentStop/PostToolUse-family events, hookSpecificOutput.permissionDecision:deny for PreToolUse), verified against the raw hooks doc via curl -- not a summarizer, which mis-stated this exact page during 0.4a -- with a Windows CI fixture that forces the PowerShell path and proves the block is honored post-fix. Full phase writeup: docs/handoffs/HANDOFF-hook-json-block.md.
+
+## rec-20260926-001 — SubagentStop safety net can never block: routing.ts drops camelCase agentId/agentType from translated stdin, core only reads camelCase
+
+- status: candidate
+- ready: needs-evidence
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, host-toolkit
+- files: packages/host-toolkit/src/routing.ts
+- evidence: Direct read, 2026-09-26: routing.ts:181-184 (translated stdin construction, only files/skill copied from extracted), hook.ts:23,28-29 (core reads camelCase only), handlers.ts:310-321 (handleSubagentResult's early ok:true return when !agentId). Surfaced by an adversarial codex exec review of .cadence/phases/317-hook-json-block/317-01-SPEC.md's AC-2.
+- next: cadence milestone propose
+
+packages/host-toolkit/src/routing.ts's routeHookEvent (shared by both host-claude-code and host-codex shims) computes extracted.agentId/extracted.agentType (camelCase) via extractPayload, but when building the outgoing translated stdin object (lines ~181-184) it only copies extracted.files and extracted.skill onto the {...parsed} spread -- it never copies extracted.agentId/extracted.agentType. The spread does carry the ORIGINAL snake_case agent_id/agent_type through unchanged, but packages/core/src/cli/commands/hook.ts (lines 23,28-29) only reads camelCase rawObj.agentId/rawObj.agentType from stdin -- it never looks for snake_case. Net effect: ctx.agentId/ctx.agentType are always undefined when core dispatches a subagent-result event, for both real adapters. handleSubagentResult (packages/core/src/hooks/handlers.ts:304-322) checks 'if (!agentId || !baseline) return {ok:true}' as its very first branch, so its ok:false safety-net block (line 368, the redundantWorkEnforcement=block path) can never be reached through a real Claude Code or Codex hook invocation today -- only through a hand-constructed test stdin payload that bypasses the real shim. Discovered 2026-09-26 during an independent Codex review of phase 317's hook-transport SPEC (317-01), which had assumed this block path was live and reachable. Fix direction: routing.ts's translated-stdin construction should also copy extracted.agentId/extracted.agentType (camelCase) the same way it already does for files/skill.
