@@ -2683,6 +2683,41 @@
       "kind": "note",
       "summary": "curl -sL https://developers.openai.com/codex/hooks.md, 2026-09-26, cross-checked against packages/host-codex/src/capabilities.ts and .cadence/research/codex-hooks.md during phase 317-hook-json-block's SPEC review (317-01-SPEC-REVIEW-codex.md and its revisions)",
       "createdAt": "2026-09-26T03:07:45.275Z"
+    },
+    {
+      "id": "ev-20260926-006",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Scope widening, direct read 2026-09-26: the camelCase agentId/agentType drop in host-toolkit routing.ts routeHookEvent (translated stdin copies only extracted.files/skill) breaks the WHOLE per-subagent redundancy chain for Claude Code, not only the SubagentStop block path. handlers.ts:405-437 (subagent-start) returns early without creating state.session.subagentBaselines[agentId] when !ctx.agentId; handlers.ts:278 (post-tool-edit) only appends to baseline.touchedFiles when ctx.agentId is set; handlers.ts:310-321 (subagent-result) returns ok:true when !agentId. So the DEFAULT redundantWorkEnforcement=warn mode (types/config.ts:521) is equally dead, not just opt-in block. Fix site is unchanged (routing.ts translated-stdin construction).",
+      "createdAt": "2026-09-26T15:27:34.372Z"
+    },
+    {
+      "id": "ev-20260926-007",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Primary source, fetched fresh 2026-09-26: code.claude.com/docs/en/hooks common input fields state agent_id is 'Present only when the hook fires inside a subagent call' and 'When a subagent calls a tool, tool events such as PreToolUse and PostToolUse fire the same configured hooks as in the main conversation, and the input carries the agent_id and agent_type common input fields that identify the subagent.' So Claude Code DOES tag in-subagent edit events with agent_id: copying agentId/agentType into translated stdin in routing.ts is sufficient to revive baseline creation, touched-file tracking, and the SubagentStop check -- no redesign needed.",
+      "createdAt": "2026-09-26T15:27:35.112Z"
+    },
+    {
+      "id": "ev-20260926-008",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Correction to ev-20260926-006 (direct read 2026-09-26): the edit-time redundancy check in handlePreToolEdit (handlers.ts ~195-235, runRedundancyCheck on the active task's files) does NOT depend on ctx.agentId and is live for Claude Code today. What the routing.ts drop kills is precisely the agentId-keyed subagent chain: (1) handleSubagentStart's baseline snapshot AND its user-visible 'Live task status as of your start ... Do not redo T1 -- already finished' context nudge (handlers.ts:404-450), (2) post-tool-edit's per-subagent touchedFiles accumulation (handlers.ts:278), (3) handleSubagentResult's SubagentStop safety net in both warn and block mode (handlers.ts:310-375).",
+      "createdAt": "2026-09-26T15:29:12.548Z"
+    },
+    {
+      "id": "ev-20260926-009",
+      "recommendationId": "rec-20260926-004",
+      "kind": "note",
+      "summary": "Observed 2026-09-26 in phase 318 shim-integration test output on Windows: '(node:10888) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities' on the SubagentStop call's stderr.",
+      "createdAt": "2026-09-26T16:03:04.725Z"
+    },
+    {
+      "id": "ev-20260926-010",
+      "recommendationId": "rec-20260926-005",
+      "kind": "note",
+      "summary": "Observed 2026-09-26 during phase 317 settle on Windows 11: with CADENCE_HOST_CLI_BIN=codex, settle printed 'verifier: host-cli provider failed (not-found: host-cli provider: binary \"codex\" not found on PATH) — falling back to mock provider' and the same for code-review; 'where codex' lists codex and codex.cmd in AppData\\Roaming\\npm. With CADENCE_HOST_CLI_BIN=<path>\\codex.exe, deep-verify ran on host-cli (10 ACs, diffBytes 95114) but code-review timed out after 180000ms and fell back to mock.",
+      "createdAt": "2026-09-26T19:22:06.582Z"
     }
   ]
 }
