@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { AbstractEventZ } from '@thomas-powers-jr/cadence-types';
 import { HookDispatcher } from '../../hooks/dispatcher.js';
+import { renderHookResult } from '../../hooks/render-result.js';
 
 export function registerHookCommand(program: Command): void {
   program
@@ -29,12 +30,11 @@ export function registerHookCommand(program: Command): void {
           ...(typeof rawObj?.agentType === 'string' ? { agentType: rawObj.agentType } : {}),
         };
         const result = await dispatcher.dispatch(parsed.data, ctx);
-        if (result.contextPayload) console.log(result.contextPayload);
-        if (!result.ok) {
-          if (result.blockMessage) process.stderr.write(result.blockMessage + '\n');
-          // Exit 2 = blocking per Claude Code hook protocol; stderr surfaces to the model.
-          process.exitCode = 2;
-        }
+        // Blocking is delivered as a per-event JSON decision on stdout, exit 0 (not exit-code 2 -- checkpoint 0.4a proved that collapses to a non-blocking 1 on Windows/PowerShell).
+        const out = renderHookResult(parsed.data, result);
+        if (out.stdout) process.stdout.write(out.stdout);
+        if (out.stderr) process.stderr.write(out.stderr);
+        if (out.exitCode !== 0) process.exitCode = out.exitCode;
       } catch (err) {
         process.stderr.write(
           `hook dispatch failed: ${err instanceof Error ? err.message : String(err)}\n`,

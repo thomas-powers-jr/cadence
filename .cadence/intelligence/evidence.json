@@ -2641,6 +2641,48 @@
       "kind": "note",
       "summary": "Split from rec-20260917-006 per phase-315 scoping (2026-09-18): handlers.ts:495 writes ctx.raw.skill verbatim; skill-match.ts satisfies() does suffix matching. Live observation from phase 313: Skill tool resolved systematic-debugging to the Superpowers plugin copy, but state.skillAudit.invoked recorded the bare requested string.",
       "createdAt": "2026-09-18T17:23:19.476Z"
+    },
+    {
+      "id": "ev-20260925-001",
+      "recommendationId": "rec-20260925-001",
+      "kind": "note",
+      "summary": "checkpoint 0.4a probe: Claude Code 2.1.282 transcript recorded exitCode:1 for three hook calls that sent 2, PowerShell path (Git Bash undetected); Stop via JSON decision PASSED in the same session; collapse reproduced independently in $TEMP/probe-repro (docs/checkpoint/REPORT-checkpoint-phase-0.4a.md §5c)",
+      "createdAt": "2026-09-25T23:09:04.457Z"
+    },
+    {
+      "id": "ev-20260926-001",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Direct read, 2026-09-26: routing.ts:181-184 (translated stdin construction, only files/skill copied from extracted), hook.ts:23,28-29 (core reads camelCase only), handlers.ts:310-321 (handleSubagentResult's early ok:true return when !agentId). Surfaced by an adversarial codex exec review of .cadence/phases/317-hook-json-block/317-01-SPEC.md's AC-2.",
+      "createdAt": "2026-09-26T00:21:31.790Z"
+    },
+    {
+      "id": "ev-20260926-002",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Empirically confirmed 2026-09-26: running packages/host-toolkit's routeHookEvent directly on a SubagentStop payload with agent_id/agent_type set produces translatedStdin containing agent_id/agent_type (snake_case, passthrough) but never agentId/agentType (camelCase) -- core's hook.ts only reads camelCase, so ctx.agentId is confirmed undefined for a real Claude-Code-routed SubagentStop dispatch. Separately, direct read of packages/host-codex/src/shim.ts (its own local routeHookEvent, NOT shared with host-toolkit -- only host-claude-code re-exports the toolkit's) shows it never even attempts to extract agentId/agentType at all, consistent with packages/host-codex/src/capabilities.ts:35 declaring agentIdentification:false. That is a DECLARED, loudly-notified gap for Codex (handlers.ts's noticeIfAgentIdentificationUnsupported fires because capabilities.agentIdentification===false), NOT the same defect as Claude Code's case. Claude Code's own capabilities.ts never declares agentIdentification at all (grep found no match), so for Claude Code the same guard (handlers.ts:29, 'if (capabilities?.agentIdentification !== false) return;') takes its early-return WITHOUT printing any notice -- the routing.ts drop is completely silent for Claude Code, unlike Codex's honest declared gap. Correction to this rec's original title/summary: the bug is Claude-Code-specific (the routing.ts drop plus the missing loud notice); Codex's inertness is by design and already correctly self-reported.",
+      "createdAt": "2026-09-26T02:47:51.750Z"
+    },
+    {
+      "id": "ev-20260926-003",
+      "recommendationId": "rec-20260926-002",
+      "kind": "note",
+      "summary": "SPEC 317-01's Open Questions D-BO; dec-20260926-003 commits to filing this rather than building it speculatively inside the transport-only phase 317",
+      "createdAt": "2026-09-26T02:50:56.307Z"
+    },
+    {
+      "id": "ev-20260926-004",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Correction 2026-09-26: developers.openai.com/codex/hooks.md (fetched fresh, current as of today) documents SubagentStop's input fields as including agent_id (string, 'Identifier for the subagent') and agent_type (string, 'Subagent type or profile'), and states 'matcher is applied to agent_type for this event.' This contradicts host-codex's capabilities.ts:29-32 comment ('undocumented whether SubagentStop even carries one'), which is now stale -- Codex's current docs DO document these fields. host-codex's own shim.ts still never extracts agent_id/agent_type (only files), and capabilities.ts:35 still declares agentIdentification:false, so the loud-notice degrade path still correctly fires -- that behavior is not wrong today. But the STATED REASON for declaring agentIdentification:false (undocumented fields) is outdated; Codex's own protocol now documents the fields needed to support this, so host-codex COULD be updated to extract them, mirroring the fix needed for Claude Code's routing.ts. This does not change today's correct degrade behavior, but it means the prior framing ('Codex's inertness is by design, not a defect') overstates permanence -- it is currently-correct-and-declared, but the underlying capability gap is now closable, not fundamental.",
+      "createdAt": "2026-09-26T03:07:12.629Z"
+    },
+    {
+      "id": "ev-20260926-005",
+      "recommendationId": "rec-20260926-003",
+      "kind": "note",
+      "summary": "curl -sL https://developers.openai.com/codex/hooks.md, 2026-09-26, cross-checked against packages/host-codex/src/capabilities.ts and .cadence/research/codex-hooks.md during phase 317-hook-json-block's SPEC review (317-01-SPEC-REVIEW-codex.md and its revisions)",
+      "createdAt": "2026-09-26T03:07:45.275Z"
     }
   ]
 }

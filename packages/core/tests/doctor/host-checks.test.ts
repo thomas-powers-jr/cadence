@@ -114,6 +114,7 @@ describe('runDoctor — setup + host checks', () => {
     for (const n of [
       'git-hooks',
       'host-hooks',
+      'hook-transport',
       'host-commands',
       'codex-hooks',
       'codex-prompts',

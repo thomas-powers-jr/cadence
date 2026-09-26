@@ -1,0 +1,1 @@
+Live task status as of your start: T1 DONE, T2 PENDING. Do not redo T1 — already finished.

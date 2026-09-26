@@ -196,8 +196,11 @@ the reference are the instructive ones:
 3. **A near-1:1 event map.** Codex's hook lifecycle
    (`SessionStart`/`PreToolUse`/`PostToolUse`/`Stop`/`SubagentStop`/`UserPromptSubmit`)
    maps almost directly onto the same `AbstractEvent`s, and its stdin-JSON shape
-   and exit-`2`/`permissionDecision` blocking mirror Claude's — so the shim's
-   parsing and blocking logic carried over with little change.
+   and JSON decision blocking (`permissionDecision: "deny"` for `PreToolUse`,
+   top-level `decision: "block"` for `Stop`/`SubagentStop`, exit `0`) mirror
+   Claude's — so the shim's parsing and blocking logic carried over with little
+   change. Core emits those decisions and the shim relays core's stdout and exit
+   code unchanged (phase 317).
 
 Conformance test: `packages/host-codex/tests/adapter-conformance.test.ts`.
 
