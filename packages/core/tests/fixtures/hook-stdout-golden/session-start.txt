@@ -1,0 +1,6 @@
+CADENCE session resumed.
+Project: golden
+Loop position: BUILD
+Active phase: 01-foundation
+Active draft: 01-01
+Open drafts: 01-01
