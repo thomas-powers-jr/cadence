@@ -2669,6 +2669,20 @@
       "kind": "note",
       "summary": "SPEC 317-01's Open Questions D-BO; dec-20260926-003 commits to filing this rather than building it speculatively inside the transport-only phase 317",
       "createdAt": "2026-09-26T02:50:56.307Z"
+    },
+    {
+      "id": "ev-20260926-004",
+      "recommendationId": "rec-20260926-001",
+      "kind": "note",
+      "summary": "Correction 2026-09-26: developers.openai.com/codex/hooks.md (fetched fresh, current as of today) documents SubagentStop's input fields as including agent_id (string, 'Identifier for the subagent') and agent_type (string, 'Subagent type or profile'), and states 'matcher is applied to agent_type for this event.' This contradicts host-codex's capabilities.ts:29-32 comment ('undocumented whether SubagentStop even carries one'), which is now stale -- Codex's current docs DO document these fields. host-codex's own shim.ts still never extracts agent_id/agent_type (only files), and capabilities.ts:35 still declares agentIdentification:false, so the loud-notice degrade path still correctly fires -- that behavior is not wrong today. But the STATED REASON for declaring agentIdentification:false (undocumented fields) is outdated; Codex's own protocol now documents the fields needed to support this, so host-codex COULD be updated to extract them, mirroring the fix needed for Claude Code's routing.ts. This does not change today's correct degrade behavior, but it means the prior framing ('Codex's inertness is by design, not a defect') overstates permanence -- it is currently-correct-and-declared, but the underlying capability gap is now closable, not fundamental.",
+      "createdAt": "2026-09-26T03:07:12.629Z"
+    },
+    {
+      "id": "ev-20260926-005",
+      "recommendationId": "rec-20260926-003",
+      "kind": "note",
+      "summary": "curl -sL https://developers.openai.com/codex/hooks.md, 2026-09-26, cross-checked against packages/host-codex/src/capabilities.ts and .cadence/research/codex-hooks.md during phase 317-hook-json-block's SPEC review (317-01-SPEC-REVIEW-codex.md and its revisions)",
+      "createdAt": "2026-09-26T03:07:45.275Z"
     }
   ]
 }

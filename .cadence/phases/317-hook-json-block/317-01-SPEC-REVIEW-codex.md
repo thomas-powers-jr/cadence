@@ -22,11 +22,17 @@ blocking finding below was independently re-checked against the actual source fi
 before being accepted — this review's claims are not taken on faith. Verified TRUE:
 findings 1, 2, 3 (worse than stated — see `rec-20260926-001`), 4, 6, 9. Findings 7, 8,
 10 are valid structural/precision critiques, accepted as written. Finding 5's URL
-citation (`learn.chatgpt.com/docs/hooks`) does not resolve to a domain matching any
-known real OpenAI documentation location and is **not verified** — treat that specific
-citation as unconfirmed. Finding 5's underlying code claim (`hostCapabilities` is a
-capability descriptor, not a host-identity field — `packages/types/src/host.ts:11-29`)
-was independently verified true by direct read, separate from the citation.
+citation (`learn.chatgpt.com/docs/hooks`) was flagged here as unverified/possibly
+fabricated at the time this review was first read. **Correction, added during the
+SPEC's revision pass (2026-09-26):** `learn.chatgpt.com` is in fact a real OpenAI
+docs domain — `developers.openai.com/codex/hooks`'s own page HTML lists it as a
+registered "site variant domain" for the same documentation, and its `llms.txt`
+index is cited by the live page itself. The specific path `/docs/hooks` was not
+independently re-verified, but the domain itself was wrongly doubted; this
+correction stands in place of the original flag. Finding 5's underlying code claim
+(`hostCapabilities` is a capability descriptor, not a host-identity field —
+`packages/types/src/host.ts:11-29`) was independently verified true by direct read,
+separate from the citation, and remains correct.
 
 ---
 

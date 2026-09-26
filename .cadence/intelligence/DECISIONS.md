@@ -786,6 +786,13 @@ CADENCE can only read what's explicitly configured in .claude/settings.json / .c
 
 Of D-BO's three options, (a) nothing is insufficient -- operators need some signal. (b) cadence doctor reporting hook-transport posture is cheap and already required by AC-7, so it ships in this phase. (c) a settle-time anomaly for a block emitted but nonetheless landed in the diff is genuinely valuable but needs a state-schema change (recording emitted block attempts somewhere settle can read) which is its own phase's worth of design -- it is filed as a follow-up recommendation, not built speculatively here, consistent with this phase's scope (transport only).
 
+### dec-20260926-004 — Correction to dec-20260926-001: Codex's agentIdentification:false is now stale documentation, not a permanent protocol gap
+
+- recommendation: rec-20260926-001
+- decided: 2026-09-26T03:07:13.402Z
+
+dec-20260926-001 correctly established that Codex's SubagentStop inertness is declared and loudly notified today, unlike Claude Code's silent bug -- that remains true and is not reversed here. What's corrected: dec-20260926-001's framing implied the gap was permanent/by-design because Codex's protocol didn't document agent identity fields for SubagentStop. A fresh fetch of developers.openai.com/codex/hooks.md (2026-09-26) shows Codex's CURRENT docs DO document agent_id/agent_type as SubagentStop input fields (evidence ev- attached to rec-20260926-001). host-codex/src/capabilities.ts's agentIdentification:false declaration and its comment citing 'the phase-65 spike's documented Codex hook stdin fields... don't include one' are now based on stale information. The correct framing: Codex's degrade is currently declared and loud (correct behavior, no regression), but the capability gap itself is closable with a small follow-up (extract agent_id/agent_type in host-codex's shim.ts, matching Claude Code's needed fix, then flip agentIdentification to true) -- it is not an intentional, permanent design choice the way it was previously framed. Filed as a follow-up recommendation, not built in phase 317 (transport-only scope).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
