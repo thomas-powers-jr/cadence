@@ -76,3 +76,13 @@ describe('claudeCodeAdapter conforms to HostAdapter (AC-4)', () => {
     expect(() => AbstractEventZ.parse(mapped)).not.toThrow();
   });
 });
+
+describe('claudeCodeCapabilities agent identification (phase 318)', () => {
+  it('318-01/AC-4: declares agentIdentification: true', () => {
+    // Claude Code's hook payloads carry agent_id/agent_type on SubagentStart,
+    // SubagentStop, and tool events fired inside a subagent, and the routing
+    // translation now forwards them to core as agentId/agentType.
+    expect(claudeCodeCapabilities.agentIdentification).toBe(true);
+    expect(HostCapabilitiesZ.parse(claudeCodeCapabilities).agentIdentification).toBe(true);
+  });
+});

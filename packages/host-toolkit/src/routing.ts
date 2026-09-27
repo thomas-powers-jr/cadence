@@ -182,6 +182,10 @@ export function routeHookEvent(raw: string): RouteResult {
   const translated: Record<string, unknown> = { ...(parsed as Record<string, unknown>) };
   if (extracted?.files) translated.files = extracted.files;
   if (extracted?.skill) translated.skill = extracted.skill;
+  // Core's `cadence hook` reads camelCase agentId/agentType only; the
+  // snake_case originals survive the spread but are invisible to it (318-01).
+  if (extracted?.agentId) translated.agentId = extracted.agentId;
+  if (extracted?.agentType) translated.agentType = extracted.agentType;
   return { abstractEvent, translatedStdin: JSON.stringify(translated) };
 }
 

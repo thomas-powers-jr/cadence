@@ -1,0 +1,42 @@
+{
+  "draftId": "318-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/host-claude-code/src/capabilities.ts",
+        "packages/host-claude-code/tests/adapter-conformance.test.ts",
+        "packages/host-claude-code/tests/shim-integration.test.ts",
+        "packages/host-toolkit/src/routing.ts",
+        "packages/host-toolkit/tests/routing.test.ts",
+        ".changeset/subagent-agentid-routing.md"
+      ],
+      "updatedAt": "2026-09-26T15:59:09.967Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T15:59:11.435Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T15:59:12.530Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T15:59:13.523Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-26T15:59:14.547Z"
+    }
+  }
+}

@@ -188,3 +188,130 @@ describe('shim cwd passthrough (regression, phase 314)', () => {
     expect(r.stderr).toContain(outer.root);
   });
 });
+
+// Phase 318-01 (T2): end-to-end regression for the subagent task-redundancy
+// safety net through the REAL shim. Claude Code sends snake_case
+// `agent_id`/`agent_type`; core's `cadence hook` reads camelCase
+// `agentId`/`agentType`. These tests drive SubagentStart → PostToolUse(Edit)
+// → SubagentStop with snake_case fields only, so they fail until the shim's
+// routing forwards agent identity into the translated stdin.
+describe('shim → core subagent agent-identity routing (phase 318)', () => {
+  const AGENT = { agent_id: 'agent-318', agent_type: 'general-purpose' } as const;
+
+  async function patchConfig(root: string, patch: Record<string, unknown>): Promise<void> {
+    const { writeFile } = await import('node:fs/promises');
+    const path = join(root, '.cadence/config.json');
+    const cfg = JSON.parse(await readFile(path, 'utf8'));
+    await writeFile(path, JSON.stringify({ ...cfg, ...patch }, null, 2));
+  }
+
+  // Seeds BUILD state with a DRAFT (T1 owns src/a.ts, T2 owns src/b.ts) and a
+  // PROGRESS.json marking T1 DONE / T2 PENDING. Deliberately does NOT seed a
+  // subagent baseline — the real SubagentStart hook must create it.
+  async function seedBuildState(root: string): Promise<void> {
+    const { writeFile, mkdir } = await import('node:fs/promises');
+    const phaseDir = join(root, '.cadence/phases/01-foundation');
+    await mkdir(phaseDir, { recursive: true });
+    const draftMd = `---\nphase: 01-foundation\nid: 01-01\ntier: standard\nstatus: APPROVED\n---\n\n# 01-01 — Demo\n\n## Objective\n\nDemo.\n\n## Acceptance Criteria\n\n### AC-1: Demo\nGiven setup\nWhen action\nThen outcome\n\n## Tasks\n\n### T1: done thing\n- files: \`src/a.ts\`\n- action: do\n- verify: vitest\n- done: AC-1\n\n### T2: pending thing\n- files: \`src/b.ts\`\n- action: do\n- verify: vitest\n- done: AC-1\n\n## Boundaries\n\n- _(none)_\n`;
+    await writeFile(join(phaseDir, '01-01-DRAFT.md'), draftMd);
+    const now = new Date().toISOString();
+    const progress = {
+      draftId: '01-01',
+      tasks: {
+        T1: { status: 'DONE', notes: '', touchedFiles: ['src/a.ts'], updatedAt: now },
+        T2: { status: 'PENDING', notes: '', touchedFiles: [], updatedAt: now },
+      },
+    };
+    await writeFile(join(phaseDir, '01-01-PROGRESS.json'), JSON.stringify(progress, null, 2));
+    const statePath = join(root, '.cadence/state.json');
+    const state = JSON.parse(await readFile(statePath, 'utf8'));
+    state.activePhase = '01-foundation';
+    state.activeDraft = '01-01';
+    state.loopPosition = 'BUILD';
+    state.tier = 'standard';
+    state.openDrafts = [{ id: '01-01', since: now }];
+    await writeFile(statePath, JSON.stringify(state, null, 2));
+  }
+
+  async function readAnomalies(
+    root: string,
+  ): Promise<Array<{ type: string; context: Record<string, unknown> }>> {
+    const { existsSync } = await import('node:fs');
+    const path = join(root, '.cadence/anomalies.log');
+    if (!existsSync(path)) return [];
+    return (await readFile(path, 'utf8'))
+      .split('\n')
+      .filter((l) => l.length > 0)
+      .map((l) => JSON.parse(l) as { type: string; context: Record<string, unknown> });
+  }
+
+  async function driveSubagentLifecycle(root: string): Promise<{
+    start: Result;
+    edit: Result;
+    stop: Result;
+  }> {
+    const cadence = ['hook', '--cadence', `${process.execPath} ${CADENCE_CLI}`];
+    const base = { session_id: 'test', cwd: root, ...AGENT };
+    const start = await runShim(
+      cadence,
+      root,
+      JSON.stringify({ hook_event_name: 'SubagentStart', ...base }),
+    );
+    const edit = await runShim(
+      cadence,
+      root,
+      JSON.stringify({
+        hook_event_name: 'PostToolUse',
+        tool_name: 'Edit',
+        tool_input: { file_path: join(root, 'src', 'a.ts'), old_string: 'a', new_string: 'b' },
+        ...base,
+      }),
+    );
+    const stop = await runShim(
+      cadence,
+      root,
+      JSON.stringify({ hook_event_name: 'SubagentStop', ...base }),
+    );
+    return { start, edit, stop };
+  }
+
+  it('318-01/AC-2: snake_case agent_id through the shim seeds a baseline, nudges, and flags redundant work (warn)', async () => {
+    active = await tempRepo({ initialized: true });
+    const root = active.root;
+    await patchConfig(root, {
+      notify: { transport: 'file', file: join(root, '.cadence/anomalies.log') },
+    });
+    await seedBuildState(root);
+
+    const { start, edit, stop } = await driveSubagentLifecycle(root);
+
+    expect(start.code).toBe(0);
+    expect(edit.code).toBe(0);
+    expect(stop.code).toBe(0);
+    expect(start.stdout).toContain('Do not redo T1');
+
+    const events = await readAnomalies(root);
+    const redundant = events.filter((e) => e.type === 'redundant-task-work');
+    expect(redundant).toHaveLength(1);
+    expect(redundant[0]!.context).toMatchObject({ taskId: 'T1', status: 'DONE' });
+
+    const after = JSON.parse(await readFile(join(root, '.cadence/state.json'), 'utf8'));
+    expect(Object.keys(after.session.subagentBaselines)).not.toContain('agent-318');
+  });
+
+  it('318-01/AC-3: snake_case agent_id through the shim blocks the SubagentStop under redundantWorkEnforcement=block', async () => {
+    active = await tempRepo({ initialized: true });
+    const root = active.root;
+    await patchConfig(root, {
+      notify: { transport: 'file', file: join(root, '.cadence/anomalies.log') },
+      redundantWorkEnforcement: 'block',
+    });
+    await seedBuildState(root);
+
+    const { stop } = await driveSubagentLifecycle(root);
+
+    const combined = stop.stdout + stop.stderr;
+    expect(combined).toContain('redundantWorkEnforcement=block');
+    expect(combined).toContain('belongs to T1, already DONE');
+  });
+});

@@ -1571,25 +1571,6 @@ spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same 
 
 hooks/handlers.ts:495 records ctx.raw.skill verbatim (the requested name), not the resolved skill; skill-match.ts's satisfies() accepts inv === req OR inv.endsWith(':' + req). So a repo declaring skillAudit.required: [systematic-debugging] is satisfied by the Superpowers plugin's namespaced superpowers:systematic-debugging, observed live during phase 313. Split off rec-20260917-006's temporal half (phase 315 fixes that); this is the identity half, called out by rec-20260917-006 as latent today, not exercised -- no current pack requires a name colliding with an installed plugin skill. Needs a decision on whether satisfies() should require an exact match, a source-qualified match, or something else, before any fix.
 
-## rec-20260926-001 — SubagentStop safety net can never block: routing.ts drops camelCase agentId/agentType from translated stdin, core only reads camelCase
-
-- status: candidate
-- ready: needs-evidence
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: hooks, host-toolkit
-- files: packages/host-toolkit/src/routing.ts
-- decisions: dec-20260926-001 (active), dec-20260926-004 (active)
-- evidence: Direct read, 2026-09-26: routing.ts:181-184 (translated stdin construction, only files/skill copied from extracted), hook.ts:23,28-29 (core reads camelCase only), handlers.ts:310-321 (handleSubagentResult's early ok:true return when !agentId). Surfaced by an adversarial codex exec review of .cadence/phases/317-hook-json-block/317-01-SPEC.md's AC-2.
-- evidence: Empirically confirmed 2026-09-26: running packages/host-toolkit's routeHookEvent directly on a SubagentStop payload with agent_id/agent_type set produces translatedStdin containing agent_id/agent_type (snake_case, passthrough) but never agentId/agentType (camelCase) -- core's hook.ts only reads camelCase, so ctx.agentId is confirmed undefined for a real Claude-Code-routed SubagentStop dispatch. Separately, direct read of packages/host-codex/src/shim.ts (its own local routeHookEvent, NOT shared with host-toolkit -- only host-claude-code re-exports the toolkit's) shows it never even attempts to extract agentId/agentType at all, consistent with packages/host-codex/src/capabilities.ts:35 declaring agentIdentification:false. That is a DECLARED, loudly-notified gap for Codex (handlers.ts's noticeIfAgentIdentificationUnsupported fires because capabilities.agentIdentification===false), NOT the same defect as Claude Code's case. Claude Code's own capabilities.ts never declares agentIdentification at all (grep found no match), so for Claude Code the same guard (handlers.ts:29, 'if (capabilities?.agentIdentification !== false) return;') takes its early-return WITHOUT printing any notice -- the routing.ts drop is completely silent for Claude Code, unlike Codex's honest declared gap. Correction to this rec's original title/summary: the bug is Claude-Code-specific (the routing.ts drop plus the missing loud notice); Codex's inertness is by design and already correctly self-reported.
-- evidence: Correction 2026-09-26: developers.openai.com/codex/hooks.md (fetched fresh, current as of today) documents SubagentStop's input fields as including agent_id (string, 'Identifier for the subagent') and agent_type (string, 'Subagent type or profile'), and states 'matcher is applied to agent_type for this event.' This contradicts host-codex's capabilities.ts:29-32 comment ('undocumented whether SubagentStop even carries one'), which is now stale -- Codex's current docs DO document these fields. host-codex's own shim.ts still never extracts agent_id/agent_type (only files), and capabilities.ts:35 still declares agentIdentification:false, so the loud-notice degrade path still correctly fires -- that behavior is not wrong today. But the STATED REASON for declaring agentIdentification:false (undocumented fields) is outdated; Codex's own protocol now documents the fields needed to support this, so host-codex COULD be updated to extract them, mirroring the fix needed for Claude Code's routing.ts. This does not change today's correct degrade behavior, but it means the prior framing ('Codex's inertness is by design, not a defect') overstates permanence -- it is currently-correct-and-declared, but the underlying capability gap is now closable, not fundamental.
-- next: cadence milestone propose
-
-packages/host-toolkit/src/routing.ts's routeHookEvent (shared by both host-claude-code and host-codex shims) computes extracted.agentId/extracted.agentType (camelCase) via extractPayload, but when building the outgoing translated stdin object (lines ~181-184) it only copies extracted.files and extracted.skill onto the {...parsed} spread -- it never copies extracted.agentId/extracted.agentType. The spread does carry the ORIGINAL snake_case agent_id/agent_type through unchanged, but packages/core/src/cli/commands/hook.ts (lines 23,28-29) only reads camelCase rawObj.agentId/rawObj.agentType from stdin -- it never looks for snake_case. Net effect: ctx.agentId/ctx.agentType are always undefined when core dispatches a subagent-result event, for both real adapters. handleSubagentResult (packages/core/src/hooks/handlers.ts:304-322) checks 'if (!agentId || !baseline) return {ok:true}' as its very first branch, so its ok:false safety-net block (line 368, the redundantWorkEnforcement=block path) can never be reached through a real Claude Code or Codex hook invocation today -- only through a hand-constructed test stdin payload that bypasses the real shim. Discovered 2026-09-26 during an independent Codex review of phase 317's hook-transport SPEC (317-01), which had assumed this block path was live and reachable. Fix direction: routing.ts's translated-stdin construction should also copy extracted.agentId/extracted.agentType (camelCase) the same way it already does for files/skill.
-
 ## rec-20260926-002 — Settle-time anomaly when a hook block was emitted but the edit landed in the diff anyway
 
 - status: candidate
@@ -1621,3 +1602,35 @@ D-BO option (c), filed per dec-20260926-003: after phase 317-hook-json-block shi
 - next: cadence milestone propose
 
 Discovered 2026-09-26 during phase 317-hook-json-block's SPEC review. Four related, small gaps in host-codex, all traced to .cadence/research/codex-hooks.md (2026-05-13) being stale against Codex's current docs (developers.openai.com/codex/hooks.md, re-fetched 2026-09-26): (1) packages/host-codex/src/capabilities.ts:29-32's comment says SubagentStop agent identity fields are 'undocumented' -- Codex's current docs list agent_id/agent_type as documented SubagentStop input fields, so this is stale; host-codex's shim.ts could be updated to extract them, mirroring the fix rec-20260926-001 needs for Claude Code's routing.ts. (2) capabilities.ts:24's blockingHooks array is ['pre-tool-edit','session-stop'] and omits 'subagent-result', even though Codex's current docs describe SubagentStop's decision:block as controlling continuation (functionally a blocking point) the same way Stop's does -- worth checking whether omitting it from blockingHooks has any behavioral effect in core, or if the array is purely declarative. (3) Codex's current docs confirm exit-0 JSON decision shapes (hookSpecificOutput.permissionDecision for PreToolUse, top-level decision:block for Stop/SubagentStop) are valid and current, alongside exit code 2 -- this was doc-verified during phase 317 (its SPEC's AC-9), but only for the shapes that phase actually emits (bare deny, bare block); it was NOT verified for combined shapes (e.g. deny + additionalContext together) on Codex specifically. (4) .cadence/research/codex-hooks.md itself should be refreshed wholesale against the current docs -- it predates this by four months and multiple of its specifics (exit-code-only framing, undocumented-agent-fields claim) are now measurably out of date.
+
+## rec-20260926-004 — host-claude-code shim spawns core with shell:true + args on win32, emitting Node DEP0190 on every hook call's stderr
+
+- status: candidate
+- ready: needs-evidence
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, host-claude-code
+- files: packages/host-claude-code/src/cli.ts
+- evidence: Observed 2026-09-26 in phase 318 shim-integration test output on Windows: '(node:10888) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities' on the SubagentStop call's stderr.
+- next: cadence milestone propose
+
+packages/host-claude-code/src/cli.ts:136 spawns the cadence child with shell: process.platform === 'win32' while also passing an args array. Node 22+ emits DeprecationWarning DEP0190 ('Passing args to a child process with shell option true can lead to security vulnerabilities') to stderr on every Windows hook invocation. Observed in phase 318's shim-integration tests. Stderr from hooks is surfaced to the model/user in Claude Code, so this is noise on every hook call on Windows, and args are not escaped by Node under shell:true. Check whether host-codex's shim has the same pattern.
+
+## rec-20260926-005 — host-cli provider cannot spawn npm-installed CLIs on Windows (codex.cmd), so CADENCE_HOST_CLI_BIN=codex silently falls back to mock
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, host-cli, windows
+- files: packages/core/src/verify/host-cli-client.ts
+- evidence: Observed 2026-09-26 during phase 317 settle on Windows 11: with CADENCE_HOST_CLI_BIN=codex, settle printed 'verifier: host-cli provider failed (not-found: host-cli provider: binary "codex" not found on PATH) — falling back to mock provider' and the same for code-review; 'where codex' lists codex and codex.cmd in AppData\Roaming\npm. With CADENCE_HOST_CLI_BIN=<path>\codex.exe, deep-verify ran on host-cli (10 ACs, diffBytes 95114) but code-review timed out after 180000ms and fell back to mock.
+- next: cadence milestone propose
+
+packages/core/src/verify/host-cli-client.ts spawns the host CLI with spawn(bin, args, {stdio:pipe}) and no shell. On Windows an npm-installed CLI resolves to a .cmd wrapper (C:\Users\<u>\AppData\Roaming\npm\codex.cmd), which Node's spawn cannot execute without a shell, so the verifier and code-review gates report 'binary "codex" not found on PATH' and fall back to mock. The fallback is loud on stderr, but the documented operator workflow (CADENCE_HOST_CLI_BIN=codex) never produces a real in-loop review on Windows. Workaround used in phase 317: point CADENCE_HOST_CLI_BIN at the native codex.exe under node_modules/@openai/codex/.../vendor/x86_64-pc-windows-msvc/bin/. Second finding in the same settle: even with codex.exe, code-review timed out at the 180000ms host-cli timeout and fell back to mock, while deep-verify completed. Contrast: host-claude-code's shim spawns with shell:true on win32 (rec-20260926-004). A fix must avoid shell:true + args (DEP0190) — e.g. resolve .cmd shims explicitly or run the package's JS entry with process.execPath.
