@@ -1,0 +1,17 @@
+{
+  "draftId": "319-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Pure win32 resolver (win32-command.ts) + 47 tests. Independent Opus review: 2 fix rounds (canonical cmd-shim anchoring, ambiguity refusal, indented legacy shims, REM/:: skip, segment-aware containment, last-key-wins env). Orchestrator re-verified: 79/79 in win32-command + host-cli-client tests, typecheck clean, lint 0 errors; real-machine probe resolves codex -> node.exe + codex.js.",
+      "touchedFiles": [
+        "packages/core/src/verify/win32-command.ts",
+        "packages/core/tests/verify/win32-command.test.ts"
+      ],
+      "updatedAt": "2026-09-27T19:23:00.057Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    }
+  }
+}
