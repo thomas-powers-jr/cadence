@@ -1051,4 +1051,37 @@ describe('makeRealSpawn — real process, win32 only (extra evidence)', () => {
     },
     30_000,
   );
+
+  it.runIf(process.platform === 'win32')(
+    '319-01/AC-1 (extra evidence, real fs): a DIRECTORY named foo.exe on PATH is not a binary — libuv skips it, so the default fileExists must too',
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'cadence-win32-hostcli-dir-'));
+      try {
+        mkdirSync(join(dir, 'foo.exe'));
+        const calls: string[] = [];
+        const spawn: UnderlyingSpawnFn = (command) => {
+          calls.push(command);
+          throw new Error('underlying spawn must not be reached');
+        };
+        // Real default fileExists/readFile; only env and the underlying spawn are injected.
+        const spawnImpl = makeRealSpawn({ env: { Path: dir }, spawn });
+
+        const err = await hostCliJSON({
+          system: 's',
+          user: 'u',
+          schema: Schema,
+          env: {},
+          bin: 'foo',
+          spawnImpl,
+          timeoutMs: 15_000,
+        }).catch((e: unknown) => e);
+
+        expect(err).toMatchObject({ name: 'HostCliError', reason: 'not-found' });
+        expect(calls).toEqual([]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+      }
+    },
+    30_000,
+  );
 });

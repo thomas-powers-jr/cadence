@@ -4,14 +4,16 @@ import { win32 } from 'node:path';
  * Phase 319 T1 — dependency-injected facts `resolveHostCliCommand` needs to
  * do win32 PATH/PATHEXT resolution without touching the real filesystem or
  * `process` directly. T2 (`host-cli-client.ts`'s real spawn seam) supplies
- * real `fs.existsSync`/`fs.readFileSync`/`process.execPath`; tests supply
+ * a real regular-file check, `fs.readFileSync`, and `process.execPath`; tests supply
  * fakes so this module (and everything that imports it) runs deterministically
  * on Linux/macOS CI too.
  */
 export interface HostCliCommandFacts {
   platform: NodeJS.Platform;
   env: NodeJS.ProcessEnv;
-  /** Synchronous existence check, e.g. `fs.existsSync`. Never called on non-win32. */
+  /** Synchronous check that `p` exists AND is a regular file — a directory
+   *  named `claude.exe` must not count, matching libuv, which skips
+   *  directories. Never called on non-win32. */
   fileExists: (p: string) => boolean;
   /** Synchronous file read, e.g. `p => fs.readFileSync(p, 'utf8')`. Only called for a `.cmd`/`.bat` hit. */
   readFile: (p: string) => string;
@@ -26,9 +28,9 @@ export interface ResolvedHostCliCommand {
   prefixArgs: string[];
 }
 
-/** Extensions win32 `cmd.exe`/CreateProcess can launch directly. Anything a
- *  PATHEXT search turns up outside this set is not something this resolver
- *  knows how to run, and is refused rather than launched. */
+/** The only extensions this resolver ever probes or dispatches on. PATHEXT
+ *  entries outside this set (`.JS`, `.VBS`, …) are filtered out up front by
+ *  {@link getPathext}, so they are never probed at all. */
 const LAUNCHABLE_EXTS = ['.com', '.exe', '.bat', '.cmd'];
 
 /** Fallback PATHEXT, applied when the env var is unset *or* empty — an empty
@@ -88,9 +90,9 @@ function getPathDirs(env: NodeJS.ProcessEnv): string[] {
   return dirs;
 }
 
-/** Parses PATHEXT into an ordered list of launchable extensions (lowercased
- *  for the actual filename suffix — see the module-level note on suffix
- *  casing in `buildSuffixCandidates`), filtered to {@link LAUNCHABLE_EXTS}.
+/** Parses PATHEXT into an ordered list of launchable extensions (lowercased,
+ *  so appended suffixes are predictable; lookups are case-insensitive on
+ *  Windows anyway), filtered to {@link LAUNCHABLE_EXTS}.
  *  A real operator's PATHEXT commonly also lists `.VBS;.JS;.WSH;.MSC` and
  *  the like; this resolver only ever knows how to turn a hit into a spawn
  *  for the four launchable extensions, so a non-launchable PATHEXT entry is
@@ -213,8 +215,9 @@ function locateBinary(bin: string, facts: HostCliCommandFacts): string | undefin
 }
 
 /** Exhausted-lookup wording differs by lookup kind, so it stays accurate for
- *  both: a bare name is searched across PATH × PATHEXT and the current
- *  directory is never part of that search; a separator-bearing `bin` is an
+ *  both: a bare name is searched across PATH in two passes (`.com`/`.exe`,
+ *  then `.bat`/`.cmd` per PATHEXT) and the current directory is never part
+ *  of that search; a separator-bearing `bin` is an
  *  explicit operator-configured path used as given — this resolver never
  *  resolves it against the cwd itself, but if the operator chose a relative
  *  path (e.g. `.\codex.exe`), the underlying `fileExists`/`spawn` call does
@@ -370,7 +373,8 @@ function classifyHit(hit: string, bin: string, facts: HostCliCommandFacts): Reso
 /**
  * Phase 319 T1 — pure, dependency-injected resolution of a configured
  * `CADENCE_HOST_CLI_BIN` value into the command + argv prefix the real
- * spawn seam should hand to `child_process.spawn(..., { shell: undefined })`.
+ * spawn seam should hand to `child_process.spawn(...)`, which it calls with
+ * no `shell` option at all.
  *
  * On any platform other than `win32` this is a no-op (`bin` returned as
  * given, `facts.fileExists`/`facts.readFile` never called) — win32 is the

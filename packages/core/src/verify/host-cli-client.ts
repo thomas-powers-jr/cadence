@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { basename } from 'node:path';
 import type { ZodType } from 'zod/v4';
 import { discoverKey } from '../activate/key-discovery.js';
@@ -121,7 +121,9 @@ export function makeRealSpawn(deps: RealSpawnDeps = {}): SpawnFn {
     const facts: HostCliCommandFacts = {
       platform: deps.platform ?? process.platform,
       env: deps.env ?? process.env,
-      fileExists: deps.fileExists ?? ((p: string) => existsSync(p)),
+      // Regular files only: `existsSync` is also true for a directory, and a
+      // directory named `claude.exe` on PATH is something libuv skips.
+      fileExists: deps.fileExists ?? ((p: string) => statSync(p, { throwIfNoEntry: false })?.isFile() ?? false),
       readFile: deps.readFile ?? ((p: string) => readFileSync(p, 'utf8')),
       execPath: deps.execPath ?? process.execPath,
     };

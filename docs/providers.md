@@ -322,15 +322,16 @@ the earlier plain `spawn`, whose own lookup also checked the current
 directory: a CLI present only in the current directory, or reachable only via
 a relative PATH entry, no longer launches).
 
-When resolution lands on an npm `.cmd` launcher (the standard npm cmd-shim
+When resolution lands on an npm `.cmd` launcher (npm's canonical cmd-shim
 format), its JavaScript target is invoked by running Node directly against
 that target — never `shell: true`. (Since its CVE-2024-27980 hardening,
 Node refuses to spawn a `.cmd`/`.bat` file unless `shell: true` is set, and a
 `cmd.exe`-mediated spawn is an injection surface CADENCE does not open.) Only
-npm's own cmd-shim format is recognised. Any other, **unrecognised** launcher
-shape — a pnpm/yarn/volta launcher, a hand-written wrapper — or
-a recognised shim whose target **escapes** its own directory — is refused
-loudly with a `spawn-error` (the same per-call fallback to `mock` described
+npm's own cmd-shim format is recognised. An **unrecognised** launcher shape
+(for example a hand-written wrapper) is refused, and so is a launcher whose
+target **escapes** its own directory — which is how global launchers from
+package managers such as pnpm typically look, since their target lives in a
+separate store directory. Both are refused loudly with a `spawn-error` (the same per-call fallback to `mock` described
 below), rather than being guessed at or shelled out to.
 
 The workaround/override on Windows, when a CLI's launcher isn't a
@@ -384,7 +385,7 @@ The fallback is per-call and lazy — there is no upfront probe of whether the
 binary exists or is authenticated, the same way `local`/`anthropic` don't
 probe connectivity at selection time either. The prompt itself is written to
 the child's stdin and stdin is then closed, which delivers an EOF rather than
-leaving the CLI blocked waiting on more input or on interactive auth.
+leaving the CLI blocked waiting on more input.
 
 Every host-cli failure reason — `not-found`, `spawn-error`, `nonzero-exit`,
 `output-error`, `self-invocation` (see [Self-invocation

@@ -111,8 +111,8 @@ describe('319-01/AC-5: non-win32 is unchanged', () => {
   });
 });
 
-describe('319-01/AC-1: bare name resolves via PATH x PATHEXT to a native executable', () => {
-  it('319-01/AC-1: bare name resolves to codex.exe via Path/PATHEXT, skipping ext-less and non-PATHEXT siblings', () => {
+describe('319-01/AC-1: bare name resolves via PATH (native .com/.exe first, then .bat/.cmd per PATHEXT)', () => {
+  it('319-01/AC-1: bare name resolves to codex.exe via Path, skipping extension-less and non-launchable (.ps1) siblings', () => {
     const facts = makeFacts({
       env: { Path: 'C:\\tools\\codex' },
       files: {
@@ -347,8 +347,10 @@ describe('319-01/AC-1: bare name resolves via PATH x PATHEXT to a native executa
     const facts = makeFacts({
       env: { Path: '.;C:tools;\\tools' },
       files: {
-        // Seeded so a wrongly-permissive resolver WOULD find these.
-        '.\\codex.exe': 'cwd',
+        // Seeded at exactly the keys win32.join(segment, 'codex.exe') produces
+        // ('.' joins to plain 'codex.exe'), so a wrongly-permissive resolver
+        // WOULD find these.
+        'codex.exe': 'cwd',
         'C:tools\\codex.exe': 'drive-relative',
         '\\tools\\codex.exe': 'root-relative',
       },
@@ -360,10 +362,12 @@ describe('319-01/AC-1: bare name resolves via PATH x PATHEXT to a native executa
 
   it('319-01/AC-1 / current directory is never searched: every probed path is fully qualified', () => {
     const facts = makeFacts({
-      env: { Path: 'C:\\real;.;C:relative;\\rootrel' },
+      // The fully-qualified dir comes LAST, so the relative segments ahead of
+      // it would be probed first if the resolver ever accepted them.
+      env: { Path: '.;C:relative;\\rootrel;C:\\real' },
       files: { 'C:\\real\\codex.exe': 'binary' },
     });
-    resolveHostCliCommand('codex', facts);
+    expect(resolveHostCliCommand('codex', facts)).toEqual({ command: 'C:\\real\\codex.exe', prefixArgs: [] });
     const probed = (facts.fileExists as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0] as string);
     for (const p of probed) {
       expect(p).toMatch(/^[A-Za-z]:[\\/]|^\\\\/);
@@ -704,8 +708,8 @@ describe('319-01/AC-3 & AC-4: refusals and ENOENT (resolver-level behaviors)', (
     const facts = makeFacts({
       env: { Path: 'C:\\real', PATHEXT: '.EXE' },
       files: {
-        // "cwd" file — never on PATH, and PATH also contains a "." segment
-        // and a drive-relative segment that some shells treat as cwd-ish.
+        // "cwd" files — present only relative to the process cwd, never in
+        // the one PATH directory (C:\real).
         'codex.exe': 'cwd file',
         'C:\\cwd\\codex.exe': 'cwd file 2',
       },
@@ -718,7 +722,8 @@ describe('319-01/AC-3 & AC-4: refusals and ENOENT (resolver-level behaviors)', (
   it('319-01/AC-4: Path=".;C:relative" never resolves a bare name from the cwd', () => {
     const facts = makeFacts({
       env: { Path: '.;C:relative' },
-      files: { '.\\codex.exe': 'cwd', 'C:relative\\codex.exe': 'drive-relative' },
+      // 'codex.exe' is what win32.join('.', 'codex.exe') yields.
+      files: { 'codex.exe': 'cwd', 'C:relative\\codex.exe': 'drive-relative' },
     });
     expect(() => resolveHostCliCommand('codex', facts)).toThrow(
       expect.objectContaining({ code: 'ENOENT' }),
