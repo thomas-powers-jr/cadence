@@ -14,6 +14,15 @@
       "execution": "dispatch",
       "isolation": "worktree",
       "modelClass": "standard"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "makeRealSpawn factory wires the win32 resolver into the real spawn seam (piped stdio, no shell key; family/guard/error text keyed on configured bin). Independent Opus review round 1 proved a default-claude regression in T1's search order (fixed via operator-approved AC-1 amendment + T1 revisit) and a vacuous cwd test; round 2 PASS. Orchestrator re-verified: host-cli-client + win32-command + host-cli-verifier 106/106, test diff deletions confined to T2-added code, win32 real-process test ran (not skipped).",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-27T20:13:36.284Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
     }
   }
 }
