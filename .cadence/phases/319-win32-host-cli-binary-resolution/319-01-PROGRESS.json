@@ -23,6 +23,19 @@
       "execution": "dispatch",
       "isolation": "worktree",
       "modelClass": "standard"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "docs/providers.md Windows resolution paragraphs (native-first two-pass, cwd never searched, npm cmd-shim via Node without shell, non-npm launchers refused, native-exe override), stale stdin text + argv prompt examples corrected; doc test providers-host-cli-windows.test.ts (319-01/AC-6); patch changeset. Orchestrator re-read the doc diff and corrected three inaccuracies (old spawn was not shell-mediated; CVE sentence; changeset 'silently'/'the way a shell would'); all 41 doc test files pass. Independent review of T3 is folded into the whole-branch review, which re-reads docs last.",
+      "touchedFiles": [
+        "docs/providers.md",
+        ".changeset/win32-host-cli-resolve.md",
+        "packages/core/tests/docs/providers-host-cli-windows.test.ts"
+      ],
+      "updatedAt": "2026-09-27T20:27:08.483Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
     }
   }
 }
