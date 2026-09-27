@@ -1,9 +1,11 @@
 import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import type { ZodType } from 'zod/v4';
 import { discoverKey } from '../activate/key-discovery.js';
 import { getLogger } from '../logging/logger.js';
 import { runWithRepair, type RepairMessage } from './json-repair.js';
+import { resolveHostCliCommand, type HostCliCommandFacts } from './win32-command.js';
 
 /** Which host CLI's headless-mode flags/output shape to use. */
 export type HostCliFamily = 'claude' | 'codex';
@@ -20,7 +22,7 @@ export type HostCliFamily = 'claude' | 'codex';
  * `packages/core/tests/verify/json-repair.test.ts`) whose fake process
  * objects predate the timeout guard and do not implement `kill`. Making it
  * required would break those files' typecheck. Real spawned processes
- * (`realSpawn`, below) structurally satisfy the optional method fine via
+ * (via `makeRealSpawn`, below) structurally satisfy the optional method fine via
  * Node's actual `ChildProcess.kill`; the timeout logic calls it defensively
  * (`child.kill?.(...)`) rather than assuming it exists.
  */
@@ -31,7 +33,7 @@ export interface SpawnedProcessLike {
    * files named above build fake process objects that predate this change
    * and do not implement a stdin. Requiring it would break their typecheck.
    * Real spawned processes satisfy it via Node's actual `ChildProcess.stdin`
-   * now that `realSpawn` pipes the channel; the write path guards with
+   * now that `makeRealSpawn`'s underlying spawn pipes the channel; the write path guards with
    * `child.stdin?.` rather than assuming it exists.
    */
   stdin?: NodeJS.WritableStream | null;
@@ -45,13 +47,66 @@ export interface SpawnedProcessLike {
 /** Test seam / real implementation signature: spawn `bin args…`, return the process. */
 export type SpawnFn = (bin: string, args: string[]) => SpawnedProcessLike;
 
+/** The underlying `child_process.spawn`-shaped call `makeRealSpawn` drives,
+ *  narrowed to just the three positional args this module ever passes, so a
+ *  test can inject a fake and observe exactly what real spawn would have
+ *  received (command, full argv, and the options object) without needing to
+ *  implement `child_process.spawn`'s much wider real signature. */
+export type UnderlyingSpawnFn = (
+  command: string,
+  args: string[],
+  options: { stdio: ['pipe', 'pipe', 'pipe'] },
+) => SpawnedProcessLike;
+
 /**
- * Real spawn implementation. Piped stdio only (`['pipe', 'pipe', 'pipe']`)
- * — never `'inherit'`, which is reserved for the interactive `init`/`start`
- * launcher use case elsewhere in this codebase.
+ * Phase 319 T2 — dependency bag for {@link makeRealSpawn}: the win32 command
+ * resolver's facts, plus the underlying spawn call itself, all optional so a
+ * caller (real usage, or a test) can override just the pieces it cares about.
+ * `Partial<HostCliCommandFacts>` rather than repeating each field lets this
+ * stay in lockstep with `win32-command.ts`'s fact shape — T1's file, never
+ * edited here.
+ */
+export type RealSpawnDeps = Partial<HostCliCommandFacts> & {
+  /** Underlying spawn call; defaults to `node:child_process.spawn`. */
+  spawn?: UnderlyingSpawnFn;
+};
+
+/**
+ * Real spawn implementation factory. Piped stdio only (`['pipe', 'pipe',
+ * 'pipe']`) — never `'inherit'`, which is reserved for the interactive
+ * `init`/`start` launcher use case elsewhere in this codebase, and never
+ * `shell: true` (DEP0190 / an injection surface) — resolution below is what
+ * replaces a shell's own PATH/PATHEXT lookup and cmd-shim handling.
  *
- * Phase 296 T2 - stdin is now PIPED, reversing the original rationale. It
- * used to be `'ignore'` so a host CLI that opportunistically reads a non-TTY
+ * Phase 319 T2 — on win32 a bare npm-installed CLI name (e.g. `codex`)
+ * doesn't resolve to anything `spawn` can launch without a shell: it either
+ * misses PATH entirely (`ENOENT`) or resolves to npm's `.cmd` launcher, which
+ * `spawn` refuses to run without `shell: true` (Node's CVE-2024-27980
+ * hardening). `resolveHostCliCommand` (`win32-command.ts`, a pure,
+ * dependency-injected resolver — never edited here) does the PATH/PATHEXT
+ * search and npm cmd-shim parsing this seam used to leave to the OS/shell,
+ * and returns the literal `command`/`prefixArgs` to hand `spawn` directly.
+ * On non-win32 it is a no-op passthrough. A resolver throw (exhausted
+ * lookup, or an unrecognised/unsafe launcher) propagates synchronously out
+ * of the function this factory returns, so `spawnCapture`'s existing
+ * `try { child = spawnImpl(bin, args) } catch` maps it via `toHostCliError`
+ * exactly like any other spawn-time failure — no new error path needed here.
+ *
+ * `deps` is read afresh on every call (via `deps.env ?? process.env` etc.
+ * inside the returned closure, not captured once at factory-construction
+ * time) so a later change to `process.env`/`process.platform` is honored —
+ * this matters because `hostCliJSON` wires the module-level default instance
+ * once at import time, not per call.
+ *
+ * `inferFamily`, the self-invocation guard, and `buildInvocation` all stay
+ * keyed on the *configured* `bin` the caller passed to `hostCliJSON` — this
+ * factory's returned {@link SpawnFn} still receives that same `bin` as its
+ * first argument (family/guard/error-text logic in this file never sees the
+ * resolved command); only the underlying spawn call gets the resolved
+ * `command`/`prefixArgs`.
+ *
+ * Phase 296 T2 - stdin is PIPED (unchanged from before this task). It used
+ * to be `'ignore'` so a host CLI that opportunistically reads a non-TTY
  * stdin saw an immediate EOF instead of hanging. That made the prompt an
  * argv element, and Windows caps a command line at 32,767 characters: a
  * deep-verify prompt carrying a real diff threw `spawn ENAMETOOLONG`, the
@@ -61,8 +116,27 @@ export type SpawnFn = (bin: string, args: string[]) => SpawnedProcessLike;
  * against is prevented instead by always calling `end()` after the write
  * (see `spawnCapture`), which is what delivers the EOF.
  */
-const realSpawn: SpawnFn = (bin, args) =>
-  spawn(bin, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+export function makeRealSpawn(deps: RealSpawnDeps = {}): SpawnFn {
+  return (bin, args) => {
+    const facts: HostCliCommandFacts = {
+      platform: deps.platform ?? process.platform,
+      env: deps.env ?? process.env,
+      fileExists: deps.fileExists ?? ((p: string) => existsSync(p)),
+      readFile: deps.readFile ?? ((p: string) => readFileSync(p, 'utf8')),
+      execPath: deps.execPath ?? process.execPath,
+    };
+    const { command, prefixArgs } = resolveHostCliCommand(bin, facts);
+    const underlyingSpawn = deps.spawn ?? ((c: string, a: string[], o: { stdio: ['pipe', 'pipe', 'pipe'] }) => spawn(c, a, o));
+    const options: { stdio: ['pipe', 'pipe', 'pipe'] } = { stdio: ['pipe', 'pipe', 'pipe'] };
+    return underlyingSpawn(command, [...prefixArgs, ...args], options);
+  };
+}
+
+/** Module-level default real-spawn instance, built once at import time with
+ *  no overrides — `hostCliJSON` falls back to this when a caller injects no
+ *  `spawnImpl`. Facts are still read at call time (see {@link makeRealSpawn}'s
+ *  doc comment), so this single shared instance is not a stale snapshot. */
+const defaultRealSpawn = makeRealSpawn();
 
 /**
  * Phase 178 T1 — one-time-per-process quota-transparency notice. A module-
@@ -596,7 +670,7 @@ async function callOnce(
 export async function hostCliJSON<T>(o: HostCliJSONOptions<T>): Promise<T> {
   const bin = o.bin ?? 'claude';
   const family = o.family ?? inferFamily(bin);
-  const spawnImpl = o.spawnImpl ?? realSpawn;
+  const spawnImpl = o.spawnImpl ?? defaultRealSpawn;
   const env = o.env ?? process.env;
   const timeoutMs = resolveTimeoutMs(o.timeoutMs, env);
 
