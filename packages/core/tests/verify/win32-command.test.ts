@@ -136,12 +136,15 @@ describe('319-01/AC-1: bare name resolves via PATH x PATHEXT to a native executa
     });
   });
 
-  it('319-01/AC-1: PATHEXT unset falls back to default .COM;.EXE;.BAT;.CMD order', () => {
+  it('319-01/AC-1: PATHEXT unset — pass 1 (native) still finds .exe over a sibling .bat', () => {
     const facts = makeFacts({
       env: { Path: 'C:\\tools' },
       files: {
         'C:\\tools\\codex.bat': 'bat',
-        'C:\\tools\\codex.exe': 'exe wins because .EXE precedes .BAT in the default order',
+        // .exe wins because pass 1 (native .com/.exe) always runs before
+        // pass 2 (.bat/.cmd) — not because of PATHEXT's default order
+        // (which pass 1 ignores entirely).
+        'C:\\tools\\codex.exe': 'exe',
       },
     });
     expect(resolveHostCliCommand('codex', facts)).toEqual({
@@ -161,7 +164,14 @@ describe('319-01/AC-1: bare name resolves via PATH x PATHEXT to a native executa
     expect(resolveHostCliCommand('codex', facts)).toEqual({ command: 'C:\\dir1\\codex.exe', prefixArgs: [] });
   });
 
-  it('319-01/AC-1: within a directory, PATHEXT extensions are tried in order', () => {
+  it('319-01/AC-1: pass 1 (native .com/.exe) wins over a .cmd in the SAME directory regardless of PATHEXT order', () => {
+    // As-built 2026-09-27: this used to assert the .CMD-precedes-.EXE
+    // PATHEXT order made the shim win even in the same directory as an
+    // .exe. That was exactly the single-pass, PATHEXT-first order the
+    // T2 review proved regresses pre-319 `spawn(bin)` — resolution is now
+    // two-pass, native-first: pass 1 (.com/.exe, ignoring PATHEXT) always
+    // wins over pass 2 (.bat/.cmd), even when PATHEXT would have ranked the
+    // launcher first.
     const facts = makeFacts({
       env: { Path: 'C:\\tools', PATHEXT: '.CMD;.EXE' },
       files: {
@@ -170,9 +180,121 @@ describe('319-01/AC-1: bare name resolves via PATH x PATHEXT to a native executa
         'C:\\tools\\bin\\codex.js': 'js',
       },
     });
-    // .CMD precedes .EXE in this custom PATHEXT, so the shim wins.
     const result = resolveHostCliCommand('codex', facts);
-    expect(result.prefixArgs).toEqual(['C:\\tools\\bin\\codex.js']);
+    expect(result).toEqual({ command: 'C:\\tools\\codex.exe', prefixArgs: [] });
+  });
+
+  it('319-01/AC-1: pass 2 only — with no native .com/.exe anywhere, PATHEXT order still governs .bat vs .cmd', () => {
+    const facts = makeFacts({
+      env: { Path: 'C:\\tools', PATHEXT: '.BAT;.CMD' },
+      files: {
+        'C:\\tools\\codex.bat': npmCmdShim('bat-target.js'),
+        'C:\\tools\\codex.cmd': npmCmdShim('cmd-target.js'),
+        'C:\\tools\\bat-target.js': 'js',
+        'C:\\tools\\cmd-target.js': 'js',
+      },
+    });
+    // No codex.com/codex.exe exists anywhere, so pass 1 finds nothing and
+    // pass 2 applies — and .BAT precedes .CMD in this custom PATHEXT.
+    const result = resolveHostCliCommand('codex', facts);
+    expect(result.prefixArgs).toEqual(['C:\\tools\\bat-target.js']);
+  });
+
+  it('319-01/AC-1: PATHEXT=.CMD alone still resolves a bare name to a bare .exe (libuv-parity regression fixed)', () => {
+    // The regression the T2 review found: PATHEXT=.CMD on this box made the
+    // old PATHEXT-first search return not-found for the default `claude`
+    // bin, where pre-319 `spawn('claude')` (libuv: bare .com/.exe search,
+    // PATHEXT-blind) launched Claude Code. Pass 1 must find claude.exe here
+    // even though PATHEXT lists only .CMD.
+    const facts = makeFacts({
+      env: { Path: 'C:\\tools', PATHEXT: '.CMD' },
+      files: { 'C:\\tools\\claude.exe': 'binary' },
+    });
+    expect(resolveHostCliCommand('claude', facts)).toEqual({
+      command: 'C:\\tools\\claude.exe',
+      prefixArgs: [],
+    });
+  });
+
+  it('319-01/AC-1: a non-canonical/escaping .cmd earlier on PATH never shadows a later native .exe', () => {
+    // The second regression the T2 review found: a non-canonical (or
+    // escaping) claude.cmd — e.g. a pnpm-global shim whose target lives
+    // outside its own directory — sitting in a PATH directory earlier than
+    // the real claude.exe used to produce a loud spawn-error, where
+    // pre-319 `spawn('claude')` (which never looks at .cmd at all) launched
+    // claude.exe. Pass 1 runs across ALL directories before pass 2 ever
+    // starts, so the earlier directory's launcher is never even reached.
+    const facts = makeFacts({
+      env: { Path: 'C:\\pnpm-global;C:\\real' },
+      files: {
+        'C:\\pnpm-global\\claude.cmd': npmCmdShim('..\\pnpm-escape\\claude.js'),
+        'C:\\pnpm-escape\\claude.js': 'escaping target',
+        'C:\\real\\claude.exe': 'binary',
+      },
+    });
+    expect(resolveHostCliCommand('claude', facts)).toEqual({
+      command: 'C:\\real\\claude.exe',
+      prefixArgs: [],
+    });
+  });
+
+  it('319-01/AC-1: a canonical npm .cmd earlier on PATH loses to a later native .exe', () => {
+    const facts = makeFacts({
+      env: { Path: 'C:\\npm-global;C:\\real' },
+      files: {
+        'C:\\npm-global\\claude.cmd': npmCmdShim('node_modules\\@anthropic-ai\\claude-code\\cli.js'),
+        'C:\\real\\claude.exe': 'binary',
+      },
+    });
+    expect(resolveHostCliCommand('claude', facts)).toEqual({
+      command: 'C:\\real\\claude.exe',
+      prefixArgs: [],
+    });
+  });
+
+  it('319-01/AC-1: launcher-only bin (no .exe/.com anywhere) still resolves through its canonical shim', () => {
+    const facts = makeFacts({
+      env: { Path: 'C:\\npm' },
+      files: {
+        'C:\\npm\\codex': 'sh script, no extension',
+        'C:\\npm\\codex.ps1': '# powershell',
+        'C:\\npm\\codex.cmd': npmCmdShim('node_modules\\@openai\\codex\\bin\\codex.js'),
+        'C:\\npm\\node.exe': 'node',
+      },
+    });
+    const result = resolveHostCliCommand('codex', facts);
+    expect(result).toEqual({
+      command: 'C:\\npm\\node.exe',
+      prefixArgs: ['C:\\npm\\node_modules\\@openai\\codex\\bin\\codex.js'],
+    });
+  });
+
+  it('319-01/AC-1: within one directory, .com wins over .exe', () => {
+    const facts = makeFacts({
+      env: { Path: 'C:\\tools' },
+      files: {
+        'C:\\tools\\x.com': 'com binary',
+        'C:\\tools\\x.exe': 'exe binary',
+      },
+    });
+    expect(resolveHostCliCommand('x', facts)).toEqual({ command: 'C:\\tools\\x.com', prefixArgs: [] });
+  });
+
+  it('319-01/AC-1: pass 2 refusal is still loud — a non-canonical .cmd with no native anywhere is refused, not skipped', () => {
+    const facts = makeFacts({
+      env: { Path: 'C:\\only-launcher' },
+      files: {
+        'C:\\only-launcher\\claude.cmd': ['@ECHO off', 'node "%dp0%\\claude.js" %*'].join('\r\n'),
+      },
+    });
+    try {
+      resolveHostCliCommand('claude', facts);
+      expect.unreachable();
+    } catch (err) {
+      expect((err as NodeJS.ErrnoException).code).toBeUndefined();
+      expect((err as Error).message).toContain('claude');
+      expect((err as Error).message).toContain('CADENCE_HOST_CLI_BIN');
+    }
   });
 
   it('319-01/AC-1: UNC PATH directory joins correctly', () => {
@@ -638,7 +760,7 @@ describe('319-01/AC-3 & AC-4: refusals and ENOENT (resolver-level behaviors)', (
 
   it('319-01/AC-4: ENOENT wording differs for a bare (PATH-searched) lookup vs an explicit configured path', () => {
     const bareFacts = makeFacts({ env: { Path: 'C:\\empty' }, files: {} });
-    expect(() => resolveHostCliCommand('codex', bareFacts)).toThrow(/PATH × PATHEXT/);
+    expect(() => resolveHostCliCommand('codex', bareFacts)).toThrow(/searched PATH for \.com\/\.exe, then \.bat\/\.cmd per PATHEXT; never the current directory/);
 
     const pathFacts = makeFacts({ files: {} });
     expect(() => resolveHostCliCommand('.\\codex.exe', pathFacts)).toThrow(/configured path/);

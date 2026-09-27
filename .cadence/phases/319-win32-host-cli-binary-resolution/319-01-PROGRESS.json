@@ -3,12 +3,14 @@
   "tasks": {
     "T1": {
       "status": "DONE",
-      "notes": "Pure win32 resolver (win32-command.ts) + 47 tests. Independent Opus review: 2 fix rounds (canonical cmd-shim anchoring, ambiguity refusal, indented legacy shims, REM/:: skip, segment-aware containment, last-key-wins env). Orchestrator re-verified: 79/79 in win32-command + host-cli-client tests, typecheck clean, lint 0 errors; real-machine probe resolves codex -> node.exe + codex.js.",
+      "notes": "REVISITED after operator re-approval of the AC-1 as-built amendment (2026-09-27): T2's independent review proved the PATHEXT-first first-match order regressed the default claude bin vs pre-319 libuv spawn (PATHEXT=.CMD -> not-found; earlier non-canonical claude.cmd shadowing claude.exe -> spawn-error). Resolver now native-first two-pass (.com/.exe across PATH, then .bat/.cmd by PATH x PATHEXT). Independent re-review PASS with real-machine spawnSync parity for claude/node/git/gh; orchestrator re-verified 54/54 resolver tests + real-machine probe of both regression scenarios; ENOENT wording updated for the two-pass order.",
       "touchedFiles": [
+        "packages/core/src/verify/host-cli-client.ts",
         "packages/core/src/verify/win32-command.ts",
+        "packages/core/tests/verify/host-cli-client.test.ts",
         "packages/core/tests/verify/win32-command.test.ts"
       ],
-      "updatedAt": "2026-09-27T19:23:00.057Z",
+      "updatedAt": "2026-09-27T20:07:56.478Z",
       "execution": "dispatch",
       "isolation": "worktree",
       "modelClass": "standard"

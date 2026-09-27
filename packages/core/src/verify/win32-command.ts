@@ -114,44 +114,98 @@ function hasRecognizedExt(p: string): boolean {
   return LAUNCHABLE_EXTS.includes(win32.extname(p).toLowerCase());
 }
 
-/** Builds the ordered candidate filenames for `bin`: itself, if already
- *  suffixed with a launchable extension (probed as given, regardless of
- *  PATHEXT's contents); otherwise `bin` suffixed with each PATHEXT extension
- *  in order (lowercased — see the casing note below). */
-function buildSuffixCandidates(bin: string, pathext: string[]): string[] {
-  if (hasRecognizedExt(bin)) return [bin];
-  return pathext.map((ext) => bin + ext);
+/** Native, directly-launchable extensions — tried in this fixed order,
+ *  regardless of PATHEXT's contents, as pass 1 of the two-pass search (see
+ *  {@link locateBinary}). This mirrors libuv's/pre-319 `spawn(bin)`'s own
+ *  bare-name search, which only ever tries `<bin>.com` then `<bin>.exe` per
+ *  PATH directory and has no notion of PATHEXT at all. */
+const NATIVE_EXTS = ['.com', '.exe'];
+
+/** PATHEXT filtered down to just the two launcher extensions this resolver
+ *  parses (`.bat`/`.cmd`), in PATHEXT's relative order — pass 2's extension
+ *  order (see {@link locateBinary}). `.com`/`.exe` are deliberately excluded
+ *  here even though {@link getPathext} would otherwise include them: pass 1
+ *  already owns those two extensions unconditionally, so pass 2 never needs
+ *  to (and, since pass 1 always runs first, never gets the chance to)
+ *  reconsider them. */
+function getBatCmdExts(env: NodeJS.ProcessEnv): string[] {
+  return getPathext(env).filter((ext) => ext === '.bat' || ext === '.cmd');
 }
 
 /** Locates the first existing candidate for `bin`, returning its full path,
  *  or `undefined` if every candidate was exhausted.
  *
- *  - `bin` with a path separator: probed at its own path only (candidates
- *    built from `bin` directly, never joined against anything else) — this
- *    is the "explicit operator-configured path is used as given" case. A
- *    bare name's search (below) never touches the current working
- *    directory; a *relative* explicit path (e.g. `.\codex.exe`) is a
- *    different thing — this resolver still doesn't add or resolve a cwd
- *    itself, but the operator's own choice of a relative override means the
- *    underlying `fileExists`/`spawn` call resolves that literal string
- *    against the process's cwd, the same as it would for any other relative
- *    path handed to those APIs.
- *  - `bin` with no separator: probed in each fully-qualified PATH directory,
- *    in order; within a directory, candidates are tried in PATHEXT order. */
+ * `bin` with a path separator is probed at its own path only (candidates
+ * built from `bin` directly, never joined against anything else) — this is
+ * the "explicit operator-configured path is used as given" case. A bare
+ * name's search below never touches the current working directory; a
+ * *relative* explicit path (e.g. `.\codex.exe`) is a different thing — this
+ * resolver still doesn't add or resolve a cwd itself, but the operator's own
+ * choice of a relative override means the underlying `fileExists`/`spawn`
+ * call resolves that literal string against the process's cwd, the same as
+ * it would for any other relative path handed to those APIs.
+ *
+ * A `bin` that already ends in a launchable extension (`.exe`/`.com`/
+ * `.cmd`/`.bat`) is probed exactly as given — one candidate (or one per PATH
+ * directory), no PATHEXT involved at all.
+ *
+ * A bare `bin` with no launchable extension resolves in **two passes** (the
+ * as-built 2026-09-27 AC-1 amendment, replacing the original single
+ * PATHEXT-ordered pass — see the module-level doc comment on
+ * {@link resolveHostCliCommand} for why):
+ *   1. **Native pass** — `<bin>.com` then `<bin>.exe` ({@link NATIVE_EXTS}),
+ *      tried across every fully-qualified PATH directory in PATH order
+ *      (all directories, this extension order) BEFORE pass 2 starts at all,
+ *      regardless of PATHEXT's contents. This is what gives libuv/pre-319
+ *      `spawn(bin)` parity: a native executable anywhere on PATH always
+ *      wins, and a `PATHEXT` that omits `.EXE` (or lists only `.CMD`)
+ *      cannot hide it.
+ *   2. **Launcher pass** — only reached if pass 1 found nothing in ANY
+ *      directory. `.bat`/`.cmd` candidates ({@link getBatCmdExts}), in PATH
+ *      order × PATHEXT order. The first hit wins outright: if it turns out
+ *      to be an unrecognised or escaping launcher it is refused right there
+ *      (`classifyHit`/`resolveShim`) — never skipped in favor of a later
+ *      candidate, matching how a real shell would already have committed to
+ *      that one launcher. */
 function locateBinary(bin: string, facts: HostCliCommandFacts): string | undefined {
-  const pathext = getPathext(facts.env);
-  const candidates = buildSuffixCandidates(bin, pathext);
+  if (hasRecognizedExt(bin)) {
+    if (hasSeparator(bin)) {
+      return facts.fileExists(bin) ? bin : undefined;
+    }
+    for (const dir of getPathDirs(facts.env)) {
+      const full = win32.join(dir, bin);
+      if (facts.fileExists(full)) return full;
+    }
+    return undefined;
+  }
 
   if (hasSeparator(bin)) {
-    for (const candidate of candidates) {
+    for (const ext of NATIVE_EXTS) {
+      const candidate = bin + ext;
+      if (facts.fileExists(candidate)) return candidate;
+    }
+    for (const ext of getBatCmdExts(facts.env)) {
+      const candidate = bin + ext;
       if (facts.fileExists(candidate)) return candidate;
     }
     return undefined;
   }
 
-  for (const dir of getPathDirs(facts.env)) {
-    for (const candidate of candidates) {
-      const full = win32.join(dir, candidate);
+  const dirs = getPathDirs(facts.env);
+
+  // Pass 1: native .com/.exe, every directory, before pass 2 even starts.
+  for (const dir of dirs) {
+    for (const ext of NATIVE_EXTS) {
+      const full = win32.join(dir, bin + ext);
+      if (facts.fileExists(full)) return full;
+    }
+  }
+
+  // Pass 2: .bat/.cmd, PATH order x PATHEXT order.
+  const batCmdExts = getBatCmdExts(facts.env);
+  for (const dir of dirs) {
+    for (const ext of batCmdExts) {
+      const full = win32.join(dir, bin + ext);
       if (facts.fileExists(full)) return full;
     }
   }
@@ -169,7 +223,7 @@ function locateBinary(bin: string, facts: HostCliCommandFacts): string | undefin
 function enoentError(bin: string): Error {
   const detail = hasSeparator(bin)
     ? 'not found at the configured path'
-    : 'not found on PATH (searched PATH × PATHEXT, never the current directory)';
+    : 'not found on PATH (searched PATH for .com/.exe, then .bat/.cmd per PATHEXT; never the current directory)';
   return Object.assign(new Error(`host-cli win32 resolver: "${bin}" ${detail}`), { code: 'ENOENT' });
 }
 
@@ -323,19 +377,47 @@ function classifyHit(hit: string, bin: string, facts: HostCliCommandFacts): Reso
  * only platform where a bare npm-installed CLI name doesn't resolve to
  * something `spawn` can launch without a shell.
  *
- * On win32: resolves `bin` through PATH × PATHEXT the way `cmd.exe` locates
- * a bare command — case-insensitively, current directory never searched —
- * except PATHEXT is filtered down to the four extensions this resolver
- * actually knows how to launch (`.com`/`.exe`/`.bat`/`.cmd`; see
- * {@link LAUNCHABLE_EXTS}), which is deliberately narrower than cmd.exe's
- * own PATHEXT-driven file-association search. It then either returns a
- * native `.exe`/`.com` directly or parses an npm `.cmd`/`.bat`
- * launcher's target and re-dispatches on it. Throws (never returns a
- * sentinel) on any failure:
+ * On win32: resolves a bare `bin` (no launchable extension) in two passes —
+ * see {@link locateBinary} for the full order — rather than a single
+ * PATHEXT-ordered pass:
+ *   1. `.com`/`.exe` across every fully-qualified PATH directory, ignoring
+ *      PATHEXT entirely.
+ *   2. Only if pass 1 found nothing anywhere: `.bat`/`.cmd` by PATH order ×
+ *      PATHEXT order (PATHEXT filtered to the launchable extensions this
+ *      resolver knows how to parse; default `.COM;.EXE;.BAT;.CMD` when
+ *      unset/empty — see {@link LAUNCHABLE_EXTS}/{@link getPathext}).
+ *
+ * **As-built 2026-09-27 (AC-1 amendment):** the original single pass tried
+ * candidates in whatever order PATHEXT listed them, which regressed the
+ * pre-319 `spawn(bin)` behavior an independent T2 review caught on Windows
+ * 11: libuv's own bare-name search only ever tries `<bin>.com`/`<bin>.exe`
+ * per PATH directory and has no notion of PATHEXT at all. Under the old
+ * order, `PATHEXT=.CMD` alone made `spawn('claude')`-equivalent resolution
+ * return not-found where the real `spawn` launched Claude Code, and a
+ * non-canonical or escaping `claude.cmd` sitting in a PATH directory earlier
+ * than the real `claude.exe` produced a loud refusal where the real `spawn`
+ * launched `claude.exe` — `spawn` never even looks at `.cmd`. Guarantee this
+ * two-pass order restores: any bare name pre-319 `spawn` resolved to a
+ * `.com`/`.exe` in a fully-qualified PATH directory resolves to that same
+ * file here too. Two differences remain **deliberate**, not bugs: the
+ * current directory is never searched, and a relative PATH entry is
+ * skipped — so a `.exe` present only in the cwd, or reachable only via a
+ * relative PATH segment, no longer launches (documented in
+ * `docs/providers.md` and the phase's changeset as an intentional behavior
+ * change, not an oversight).
+ *
+ * Case-insensitively throughout; current directory never searched in either
+ * pass. Once a candidate is found (in either pass), it either returns a
+ * native `.exe`/`.com` directly or parses an npm `.cmd`/`.bat` launcher's
+ * target and re-dispatches on it. Throws (never returns a sentinel) on any
+ * failure:
  *   - exhausted lookup → `Error` with `code: 'ENOENT'` (`toHostCliError`
  *     in `host-cli-client.ts` maps this to reason `'not-found'`)
  *   - unrecognised/unsafe launcher → plain `Error`, no `code` (maps to
- *     `'spawn-error'`), naming the bin and the native-exe override
+ *     `'spawn-error'`), naming the bin and the native-exe override. This
+ *     firing on a pass-2 hit is never treated as "try the next PATH
+ *     directory" — the first `.bat`/`.cmd` found is the one a real shell
+ *     would have committed to as well.
  */
 export function resolveHostCliCommand(bin: string, facts: HostCliCommandFacts): ResolvedHostCliCommand {
   if (facts.platform !== 'win32') {
