@@ -1621,7 +1621,7 @@ packages/host-claude-code/src/cli.ts:136 spawns the cadence child with shell: pr
 
 ## rec-20260926-005 — host-cli provider cannot spawn npm-installed CLIs on Windows (codex.cmd), so CADENCE_HOST_CLI_BIN=codex silently falls back to mock
 
-- status: candidate
+- status: converted
 - ready: needs-decision
 - priority: high
 - leverage: 5/10
@@ -1634,3 +1634,35 @@ packages/host-claude-code/src/cli.ts:136 spawns the cadence child with shell: pr
 - next: cadence milestone propose
 
 packages/core/src/verify/host-cli-client.ts spawns the host CLI with spawn(bin, args, {stdio:pipe}) and no shell. On Windows an npm-installed CLI resolves to a .cmd wrapper (C:\Users\<u>\AppData\Roaming\npm\codex.cmd), which Node's spawn cannot execute without a shell, so the verifier and code-review gates report 'binary "codex" not found on PATH' and fall back to mock. The fallback is loud on stderr, but the documented operator workflow (CADENCE_HOST_CLI_BIN=codex) never produces a real in-loop review on Windows. Workaround used in phase 317: point CADENCE_HOST_CLI_BIN at the native codex.exe under node_modules/@openai/codex/.../vendor/x86_64-pc-windows-msvc/bin/. Second finding in the same settle: even with codex.exe, code-review timed out at the 180000ms host-cli timeout and fell back to mock, while deep-verify completed. Contrast: host-claude-code's shim spawns with shell:true on win32 (rec-20260926-004). A fix must avoid shell:true + args (DEP0190) — e.g. resolve .cmd shims explicitly or run the package's JS entry with process.execPath.
+
+## rec-20260927-001 — doctor conduction-reachability flags host-cli code-review as blocked-by-session even when the host bin is codex
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: doctor, host-cli
+- files: packages/core/src/doctor/run.ts
+- evidence: 2026-09-27: cadence doctor with CADENCE_HOST_CLI_BIN=<codex.exe> in .env reported 'code-review: blocked by session'; a direct hostCliJSON call with the same bin from the same Claude Code session returned {"ok":true} in 8.6s.
+- next: cadence milestone propose
+
+packages/core/src/doctor/run.ts (~line 1818) pushes the 'session' blocked axis whenever provider === 'host-cli' && isClaudeCodeSession(env), regardless of which binary CADENCE_HOST_CLI_BIN names. The runtime self-invocation guard in packages/core/src/verify/host-cli-client.ts only applies to the claude family (SELF_INVOCATION_ENV_VAR has no codex entry), so with a codex bin configured, host-cli calls from inside Claude Code run for real (verified 2026-09-27: hostCliJSON via codex.exe returned a real reply from inside a Claude Code session). Doctor therefore prints a false 'code-review: blocked by session' warning and advises running outside Claude Code. Fix direction: have the doctor check infer the family from the configured bin the same way host-cli-client's inferFamily does, and only report the session block for the claude family.
+
+## rec-20260927-002 — host-cli code-review can exceed the 180s default timeout and fall back to mock
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, host-cli
+- files: packages/core/src/verify/host-cli-client.ts
+- evidence: Phase 317 settle 2026-09-26: code-review host-cli call timed out after 180000ms and fell back to mock while deep-verify (diffBytes 95114) completed.
+- next: cadence milestone propose
+
+Split from rec-20260926-005. During the phase 317 settle (2026-09-26) with CADENCE_HOST_CLI_BIN pointed at codex.exe, deep-verify completed on host-cli but code-review timed out at DEFAULT_TIMEOUT_MS (180000ms, packages/core/src/verify/host-cli-client.ts) and fell back to mock. CADENCE_HOST_CLI_TIMEOUT_MS (env or .env) already overrides it. Open question: raise the default for the code-review seam, make it per-seam, or only document the override.

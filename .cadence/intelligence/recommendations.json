@@ -2916,7 +2916,7 @@
       "title": "host-cli provider cannot spawn npm-installed CLIs on Windows (codex.cmd), so CADENCE_HOST_CLI_BIN=codex silently falls back to mock",
       "summary": "packages/core/src/verify/host-cli-client.ts spawns the host CLI with spawn(bin, args, {stdio:pipe}) and no shell. On Windows an npm-installed CLI resolves to a .cmd wrapper (C:\\Users\\<u>\\AppData\\Roaming\\npm\\codex.cmd), which Node's spawn cannot execute without a shell, so the verifier and code-review gates report 'binary \"codex\" not found on PATH' and fall back to mock. The fallback is loud on stderr, but the documented operator workflow (CADENCE_HOST_CLI_BIN=codex) never produces a real in-loop review on Windows. Workaround used in phase 317: point CADENCE_HOST_CLI_BIN at the native codex.exe under node_modules/@openai/codex/.../vendor/x86_64-pc-windows-msvc/bin/. Second finding in the same settle: even with codex.exe, code-review timed out at the 180000ms host-cli timeout and fell back to mock, while deep-verify completed. Contrast: host-claude-code's shim spawns with shell:true on win32 (rec-20260926-004). A fix must avoid shell:true + args (DEP0190) — e.g. resolve .cmd shims explicitly or run the package's JS entry with process.execPath.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "needs-decision",
       "priority": "high",
       "leverageScore": 5,
@@ -2938,7 +2938,64 @@
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-09-26T19:22:06.582Z",
-      "updatedAt": "2026-09-26T19:22:06.582Z"
+      "updatedAt": "2026-09-27T17:51:41.845Z",
+      "convertedToPhaseId": "319-win32-host-cli-binary-resolution"
+    },
+    {
+      "id": "rec-20260927-001",
+      "title": "doctor conduction-reachability flags host-cli code-review as blocked-by-session even when the host bin is codex",
+      "summary": "packages/core/src/doctor/run.ts (~line 1818) pushes the 'session' blocked axis whenever provider === 'host-cli' && isClaudeCodeSession(env), regardless of which binary CADENCE_HOST_CLI_BIN names. The runtime self-invocation guard in packages/core/src/verify/host-cli-client.ts only applies to the claude family (SELF_INVOCATION_ENV_VAR has no codex entry), so with a codex bin configured, host-cli calls from inside Claude Code run for real (verified 2026-09-27: hostCliJSON via codex.exe returned a real reply from inside a Claude Code session). Doctor therefore prints a false 'code-review: blocked by session' warning and advises running outside Claude Code. Fix direction: have the doctor check infer the family from the configured bin the same way host-cli-client's inferFamily does, and only report the session block for the claude family.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "doctor",
+        "host-cli"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260927-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-27T17:51:15.148Z",
+      "updatedAt": "2026-09-27T17:51:15.148Z"
+    },
+    {
+      "id": "rec-20260927-002",
+      "title": "host-cli code-review can exceed the 180s default timeout and fall back to mock",
+      "summary": "Split from rec-20260926-005. During the phase 317 settle (2026-09-26) with CADENCE_HOST_CLI_BIN pointed at codex.exe, deep-verify completed on host-cli but code-review timed out at DEFAULT_TIMEOUT_MS (180000ms, packages/core/src/verify/host-cli-client.ts) and fell back to mock. CADENCE_HOST_CLI_TIMEOUT_MS (env or .env) already overrides it. Open question: raise the default for the code-review seam, make it per-seam, or only document the override.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "verify",
+        "host-cli"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/host-cli-client.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260927-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-27T17:51:19.844Z",
+      "updatedAt": "2026-09-27T17:51:19.844Z"
     }
   ],
   "archived": [
