@@ -2,7 +2,7 @@
 
 - reviewer: codex exec -s read-only --ephemeral (ChatGPT login, codex-cli 0.156.1), 2026-09-27
 - target: uncommitted DRAFT in worktree `worktree-win32-host-cli-resolve` (base c899fcf4), revised between rounds
-- outcome: REJECT (r1) → REJECT (r2) → REJECT (r3) → REJECT (r4) → APPROVE (r5); every finding applied to the DRAFT before the next round
+- outcome: REJECT (r1) → REJECT (r2) → REJECT (r3) → REJECT (r4) → APPROVE (r5); every finding applied to the DRAFT before the next round. Round 6: scoped mid-BUILD amendment review → APPROVE
 - note: config planReview is mock; this manual review is the real plan review of record.
 
 ## Round 1
@@ -146,3 +146,26 @@ Output: `VERDICT: APPROVE` or `VERDICT: REJECT`, the status line, then any new f
 VERDICT: APPROVE
 
 STATUS: RESOLVED — T1 now probes explicit `.cmd` paths “exactly as given regardless of PATHEXT” and requires a `.CMD`-absent PATHEXT test.
+
+## Round 6 (mid-BUILD scoped amendment review, 2026-09-27)
+
+Scope: only the two "As built (2026-09-27)" paragraphs (under AC-1 and at the end of T1), added after the T2 independent review proved the approved PATHEXT-first search regressed the default `claude` bin versus pre-319 `spawn(bin)`.
+
+### Prompt
+
+You are the independent plan reviewer of record for CADENCE phase 319-01 (you APPROVED the DRAFT in round 5). This is ROUND 6, a SCOPED review of one mid-BUILD amendment only.
+
+Read `.cadence/phases/319-win32-host-cli-binary-resolution/319-01-DRAFT.md`. Review ONLY the two paragraphs that begin "As built (2026-09-27)" — one directly under AC-1, one at the end of task T1. Everything else was already approved; do not re-review it.
+
+Context: during BUILD, an independent code review of T2 proved on Windows 11 that the originally approved T1 search order (PATHEXT-ordered first match) regresses the default `claude` host-cli bin versus the pre-change `child_process.spawn(bin)`. libuv's search tries only `.com`/`.exe` per PATH dir and ignores PATHEXT and `.cmd`/`.bat`. The amendment switches to two passes: native `.com`/`.exe` across all PATH dirs first, then `.bat`/`.cmd` by PATH × PATHEXT only if no native binary exists anywhere, with the first launcher still winning and an unrecognised one refused per AC-3.
+
+Judge:
+1. Does the two-pass order really give the stated guarantee ("any bare name that pre-319 spawn resolved to a .com/.exe in a fully qualified PATH directory resolves to the same file")? Consider libuv's actual order: does it try `.com` before `.exe` within a dir? Does it check the name with no extension at all first? Does it search the application directory or the Windows system directories before PATH (as CreateProcess would)? Name any case where pre-319 spawn found a different file than pass 1 would.
+2. Does the amendment conflict with any other AC (AC-2, AC-3, AC-4) or Boundary as written? In particular, does launcher-only `codex` (codex.cmd on PATH, codex.exe not on PATH) still resolve through its shim?
+3. Is refusing (rather than skipping) an unrecognised launcher in pass 2 sound, given that pre-319 every pass-2 case ended in ENOENT → mock anyway?
+
+Output: `VERDICT: APPROVE` or `VERDICT: REJECT`, then only [blocker]/[major] findings with evidence and a concrete fix. No minor findings. Be concise. Do not edit any files.
+
+### Response
+
+VERDICT: APPROVE
