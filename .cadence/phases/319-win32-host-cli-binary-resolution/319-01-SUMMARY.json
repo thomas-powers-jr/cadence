@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 2,
+  "draftId": "319-01",
+  "completedAt": "2026-09-28T00:05:55.234Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "skipped",
+      "skipReason": "bypassed via --allow-failing-build"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "REVISITED after operator re-approval of the AC-1 as-built amendment (2026-09-27): T2's independent review proved the PATHEXT-first first-match order regressed the default claude bin vs pre-319 libuv spawn (PATHEXT=.CMD -> not-found; earlier non-canonical claude.cmd shadowing claude.exe -> spawn-error). Resolver now native-first two-pass (.com/.exe across PATH, then .bat/.cmd by PATH x PATHEXT). Independent re-review PASS with real-machine spawnSync parity for claude/node/git/gh; orchestrator re-verified 54/54 resolver tests + real-machine probe of both regression scenarios; ENOENT wording updated for the two-pass order.",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "makeRealSpawn factory wires the win32 resolver into the real spawn seam (piped stdio, no shell key; family/guard/error text keyed on configured bin). Independent Opus review round 1 proved a default-claude regression in T1's search order (fixed via operator-approved AC-1 amendment + T1 revisit) and a vacuous cwd test; round 2 PASS. Orchestrator re-verified: host-cli-client + win32-command + host-cli-verifier 106/106, test diff deletions confined to T2-added code, win32 real-process test ran (not skipped).",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "docs/providers.md Windows resolution paragraphs (native-first two-pass, cwd never searched, npm cmd-shim via Node without shell, non-npm launchers refused, native-exe override), stale stdin text + argv prompt examples corrected; doc test providers-host-cli-windows.test.ts (319-01/AC-6); patch changeset. Orchestrator re-read the doc diff and corrected three inaccuracies (old spawn was not shell-mediated; CVE sentence; changeset 'silently'/'the way a shell would'); all 41 doc test files pass. Independent review of T3 is folded into the whole-branch review, which re-reads docs last.",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build",
+      ".claude/worktrees/win32-host-cli-resolve:systematic-debugging"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Two-pass native-first resolver uses case-insensitive PATH/PATHEXT, win32 joins, and skips non-qualified segments; linked resolver/seam tests cover .exe, PATHEXT and cwd cases.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Resolver probes recognized suffixes as-is and parses canonical npm/legacy shims to Node+JS or native .exe; linked resolver and seam tests verify command, args, stdio and no shell.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Unsafe/unrecognized shim shapes throw plain errors naming bin and CADENCE_HOST_CLI_BIN before underlying spawn; seam and resolver tests cover noncanonical and escape refusals.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Resolution stays inside real spawn; family derives from configured bin, cwd/relative PATH entries are excluded, and ENOENT maps to not-found before spawn. Linked tests exercise each.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Non-win32 returns {command: bin, prefixArgs: []} before filesystem access; linked Linux test and Darwin tests verify no probing.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Host-cli docs describe Windows two-pass PATH behavior, no cwd/shell, refusal and native override; examples use stdin and text says it is closed. Linked docs tests exercise this.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 95704,
+    "truncated": false,
+    "filesCount": 7,
+    "provider": "host-cli"
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 75,
+    "sessionSubagentSpawns": 14
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 6,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "7e1c5ebc51bab87dfdb97bea52e147eeadcc90dc67742b5d620319d497aebdde"
+  }
+}
