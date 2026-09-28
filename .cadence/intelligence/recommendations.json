@@ -2966,6 +2966,73 @@
       "decisionIds": [],
       "createdAt": "2026-09-27T17:51:19.844Z",
       "updatedAt": "2026-09-27T17:51:19.844Z"
+    },
+    {
+      "id": "rec-20260927-003",
+      "title": "bug: Windows-local full-suite runs fail subprocess-heavy core tests (timeouts, EBUSY) that pass in isolation",
+      "summary": "On the Windows 11 dev box (24 cores, 63 GB), full pnpm test / turbo runs of packages/core fail 3-5 subprocess-heavy test files (settle-security-audit, zero-arg-dispatch, boundary-regression, boundary-scan, git-facts, build-task-boundary) with 20s/90s/120s timeouts, an EBUSY rmdir of a temp dir, and one git-facts fetched=false assertion. The same files pass when run alone (31/31). It blocks settle's build-test-must-pass gate locally (phase 319 settle refused 2026-09-27). Linux CI is canonical, so impact is local-only, but it makes local settle unusable on Windows.",
+      "source": "manual",
+      "status": "accepted",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "testing",
+        "windows",
+        "vitest"
+      ],
+      "affectedFiles": [
+        "vitest.shared.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260927-003",
+        "ev-20260927-004",
+        "ev-20260927-005",
+        "ev-20260927-006",
+        "ev-20260927-007",
+        "ev-20260927-008",
+        "ev-20260927-009",
+        "ev-20260927-010",
+        "ev-20260927-011",
+        "ev-20260927-012"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-27T21:47:12.166Z",
+      "updatedAt": "2026-09-27T23:29:25.430Z"
+    },
+    {
+      "id": "rec-20260927-004",
+      "title": "systematic-debugging skill creates .cadence/intelligence/assumptions.json, which io.test.ts asserts must not exist in this repo",
+      "summary": "Following the repo's own systematic-debugging skill (cadence assumption add) writes .cadence/intelligence/assumptions.json. packages/core/tests/intelligence/store/io.test.ts (Phase 220 T8, AC-5, line ~135) asserts existsSync(assumptionsPath(REPO_ROOT)) === false ('assumptions.json (absent in this repo)'). Any branch that commits a debugging trail, or any local full run after using the skill, fails that test and settle's build-test-must-pass gate. Seen 2026-09-27 while debugging rec-20260927-003 in the phase 319 worktree. Fix direction: make the test tolerate a present, valid assumptions ledger (assert it parses instead of asserting absence), or keep assumption ledgers out of the repo-real-ledger test's scope.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "testing",
+        "intelligence",
+        "skills"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/intelligence/store/io.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260927-013"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-27T23:29:36.771Z",
+      "updatedAt": "2026-09-27T23:29:36.771Z"
     }
   ],
   "archived": [
@@ -10396,11 +10463,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "319-win32-host-cli-binary-resolution",
-      "createdAt": "2026-09-26T19:22:06.582Z",
-      "updatedAt": "2026-09-28T00:05:55.252Z",
       "shippedRef": "phase 319 (win32 host-cli binary resolution), PR pending",
       "archivedAt": "2026-09-28T00:05:55.252Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-26T19:22:06.582Z",
+      "updatedAt": "2026-09-28T00:05:55.252Z"
     }
   ]
 }
