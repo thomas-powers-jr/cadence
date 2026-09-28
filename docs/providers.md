@@ -264,9 +264,10 @@ own gate label in place of `verifier`.)
 The `host-cli` provider reuses your already-installed, already-authenticated
 `claude` or `codex` CLI instead of requiring a separately configured
 `ANTHROPIC_API_KEY`. It spawns the binary in headless/non-interactive mode
-(`claude -p "<prompt>" --output-format json`, or `codex exec --json
---skip-git-repo-check "<prompt>"` for a `codex`-named binary), parses its
-stdout, and coerces it into a schema-valid verdict with the same
+(`claude -p --output-format json`, or `codex exec --json --skip-git-repo-check -`
+for a `codex`-named binary — the trailing `-` tells codex to read its
+instructions from stdin), parses its stdout, and coerces it into a
+schema-valid verdict with the same
 transport-agnostic JSON-extraction + repair-retry harness the `local`
 provider uses (`packages/core/src/verify/json-repair.ts`) — only the
 transport differs (subprocess spawn/capture vs. an HTTP `fetch` call).
@@ -310,6 +311,41 @@ use, how to parse the output) is inferred from the binary's basename — a
 `codex`-named binary gets `codex exec --json …`; everything else is treated
 as `claude`.
 
+**Windows resolution (phase 319).** A bare bin name (e.g. `codex`, with no
+path separator) is resolved without a shell, in two passes: first a native
+`<name>.com`/`<name>.exe` is searched for in each PATH directory in PATH
+order — the same files Node's own bare-command search finds — and only if
+none exists anywhere on PATH, a `.bat`/`.cmd` launcher is searched for by
+PATH order × PATHEXT order. **The current directory is never searched**, and
+a relative PATH entry is skipped entirely (a deliberate behavior change from
+the earlier plain `spawn`, whose own lookup also checked the current
+directory: a CLI present only in the current directory, or reachable only via
+a relative PATH entry, no longer launches).
+
+When resolution lands on an npm `.cmd` launcher (npm's canonical cmd-shim
+format), its JavaScript target is invoked by running Node directly against
+that target — never `shell: true`. (Since its CVE-2024-27980 hardening,
+Node refuses to spawn a `.cmd`/`.bat` file unless `shell: true` is set, and a
+`cmd.exe`-mediated spawn is an injection surface CADENCE does not open.) Only
+npm's own cmd-shim format is recognised. An **unrecognised** launcher shape
+(for example a hand-written wrapper) is refused, and so is a launcher whose
+target **escapes** its own directory — which is how global launchers from
+package managers such as pnpm typically look, since their target lives in a
+separate store directory. Both are refused loudly with a `spawn-error` (the same per-call fallback to `mock` described
+below), rather than being guessed at or shelled out to.
+
+The workaround/override on Windows, when a CLI's launcher isn't a
+recognised npm cmd-shim: point `CADENCE_HOST_CLI_BIN` at the absolute path
+of the CLI's own native executable — in the env, or a repo-root `.env` file
+— instead of the bare name, e.g. for Codex:
+
+```sh
+CADENCE_HOST_CLI_BIN=C:\Users\you\AppData\Roaming\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\bin\codex.exe
+```
+
+Non-Windows platforms are unaffected: `CADENCE_HOST_CLI_BIN` is spawned
+exactly as configured, with no PATH/PATHEXT search or launcher parsing.
+
 ### Verifier family coverage
 
 Every verifier family has a real `host-cli`-backed verifier class wired up:
@@ -347,10 +383,9 @@ per-task-verify: host-cli provider failed (not-found: host-cli provider: binary 
 
 The fallback is per-call and lazy — there is no upfront probe of whether the
 binary exists or is authenticated, the same way `local`/`anthropic` don't
-probe connectivity at selection time either. It never hangs waiting on
-interactive auth: stdin is not piped to the child process, so a CLI that
-opportunistically reads stdin when it isn't a TTY sees an immediate EOF
-instead of blocking.
+probe connectivity at selection time either. The prompt itself is written to
+the child's stdin and stdin is then closed, which delivers an EOF rather than
+leaving the CLI blocked waiting on more input.
 
 Every host-cli failure reason — `not-found`, `spawn-error`, `nonzero-exit`,
 `output-error`, `self-invocation` (see [Self-invocation

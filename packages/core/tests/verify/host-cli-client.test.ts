@@ -1,10 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { z } from 'zod/v4';
 import {
   hostCliJSON,
   HostCliError,
+  makeRealSpawn,
   type SpawnFn,
   type SpawnedProcessLike,
+  type UnderlyingSpawnFn,
 } from '../../src/verify/host-cli-client.js';
 
 // AC-3 (structural, satisfied by the diff): this test file, and the module it
@@ -562,4 +567,521 @@ describe('hostCliJSON', () => {
     expect(r.ok).toBe(true);
     expect(calls).toHaveLength(1);
   });
+});
+
+// Phase 319 T2 — wiring the win32 command resolver (`win32-command.ts`, T1's
+// finished, unedited file) into the real spawn seam via `makeRealSpawn`.
+// Everything below except the single `it.runIf(process.platform === 'win32')`
+// real-process test injects fake resolver facts + a fake underlying spawn,
+// so it runs deterministically on Linux/macOS CI too — no real `claude`/
+// `codex` binary and no real filesystem probing in those tests.
+describe('makeRealSpawn', () => {
+  const base = { system: 's', user: 'u', schema: Schema, env: {} };
+  const codexJsonl = () =>
+    JSON.stringify({ type: 'item.completed', item: { type: 'agent_message', text: '{"ok":true}' } });
+
+  /** Fake win32 filesystem: lowercase-keyed map, mirroring win32's
+   *  case-insensitive filesystem (same fixture shape as win32-command.test.ts,
+   *  reimplemented inline here rather than imported — importing a test file
+   *  would re-run its top-level `describe`s a second time). */
+  function makeFakeFs(files: Record<string, string>) {
+    const map = new Map<string, string>();
+    for (const [p, content] of Object.entries(files)) map.set(p.toLowerCase(), content);
+    return {
+      // `vi.fn(...)`-wrapped (not plain functions) so tests can assert
+      // call counts (e.g. "never even asked" / "never even opened") in
+      // addition to the resolved outcome.
+      fileExists: vi.fn((p: string) => map.has(p.toLowerCase())),
+      readFile: vi.fn((p: string) => {
+        const content = map.get(p.toLowerCase());
+        if (content === undefined) throw new Error(`fake fs: no such file ${p}`);
+        return content;
+      }),
+    };
+  }
+
+  /** The canonical npm cmd-shim, verbatim shape from the DRAFT, CRLF line endings. */
+  function npmCmdShim(rel: string): string {
+    return [
+      '@ECHO off',
+      'GOTO start',
+      ':find_dp0',
+      'SET dp0=%~dp0',
+      'EXIT /b',
+      ':start',
+      'SETLOCAL',
+      'CALL :find_dp0',
+      '',
+      'IF EXIST "%dp0%\\node.exe" (',
+      '  SET "_prog=%dp0%\\node.exe"',
+      ') ELSE (',
+      '  SET "_prog=node"',
+      '  SET PATHEXT=%PATHEXT:;.JS;=;%',
+      ')',
+      '',
+      `endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\${rel}" %*`,
+    ].join('\r\n');
+  }
+
+  /** Wraps the outer fixture's `fakeSpawn` behind an `UnderlyingSpawnFn`
+   *  signature, additionally recording each call's `options` object so tests
+   *  can assert on it (AC-2's options/no-shell claim). */
+  function fakeUnderlying(
+    responses: FakeResponse[],
+    calls: FakeCall[],
+  ): { spawn: UnderlyingSpawnFn; opts: Array<{ stdio: unknown }> } {
+    const opts: Array<{ stdio: unknown }> = [];
+    const inner = fakeSpawn(responses, calls);
+    return {
+      spawn: (command, args, options) => {
+        opts.push(options);
+        return inner(command, args);
+      },
+      opts,
+    };
+  }
+
+  /** Wraps a `SpawnFn` to record the `bin` it is invoked with — verifies
+   *  `makeRealSpawn`'s returned function still receives the *configured* bin
+   *  unchanged (AC-4): resolution happens inside the call, not before it. */
+  function spyOnSpawnFn(fn: SpawnFn): { fn: SpawnFn; received: string[] } {
+    const received: string[] = [];
+    return {
+      fn: (bin, args) => {
+        received.push(bin);
+        return fn(bin, args);
+      },
+      received,
+    };
+  }
+
+  it('319-01/AC-2: win32 seam calls the underlying spawn with piped stdio, no shell key, and the resolved command', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({ 'C:\\tools\\codex.exe': 'exe' });
+    const { spawn: underlyingSpawn, opts } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\tools' },
+      fileExists,
+      readFile,
+      execPath: 'C:\\node-install\\node.exe',
+      spawn: underlyingSpawn,
+    });
+
+    const r = await hostCliJSON({ ...base, bin: 'codex', spawnImpl });
+
+    expect(r.ok).toBe(true);
+    expect(opts).toHaveLength(1);
+    expect(Object.keys(opts[0]!)).toEqual(['stdio']);
+    expect('shell' in opts[0]!).toBe(false);
+    expect(opts[0]!.stdio).toEqual(['pipe', 'pipe', 'pipe']);
+    expect(calls[0]!.bin).toBe('C:\\tools\\codex.exe');
+    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-']);
+  });
+
+  it('319-01/AC-2: non-win32 seam still calls the underlying spawn with piped stdio, no shell key, and the bin unchanged', async () => {
+    const calls: FakeCall[] = [];
+    const { spawn: underlyingSpawn, opts } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({ platform: 'linux', spawn: underlyingSpawn });
+
+    const r = await hostCliJSON({ ...base, bin: 'codex', spawnImpl });
+
+    expect(r.ok).toBe(true);
+    expect(opts).toHaveLength(1);
+    expect(Object.keys(opts[0]!)).toEqual(['stdio']);
+    expect('shell' in opts[0]!).toBe(false);
+    expect(calls[0]!.bin).toBe('codex');
+    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-']);
+  });
+
+  it('319-01/AC-3: a .cmd that does not match the canonical invoking line is refused as spawn-error naming the bin and CADENCE_HOST_CLI_BIN, underlying spawn never called', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({ 'C:\\tools\\codex.cmd': '@ECHO off\r\necho not a shim\r\n' });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\tools' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    const err = await hostCliJSON({ ...base, bin: 'codex', spawnImpl }).catch((e: unknown) => e);
+
+    expect(err).toMatchObject({ name: 'HostCliError', reason: 'spawn-error' });
+    expect((err as Error).message).toContain('"codex"');
+    expect((err as Error).message).toContain('CADENCE_HOST_CLI_BIN');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('319-01/AC-3: a shim target that escapes its own directory (sibling-prefix escape) is refused as spawn-error, underlying spawn never called', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({
+      'C:\\npm\\codex.cmd': npmCmdShim('..\\npm-evil\\payload.js'),
+    });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\npm' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    const err = await hostCliJSON({ ...base, bin: 'codex', spawnImpl }).catch((e: unknown) => e);
+
+    expect(err).toMatchObject({ name: 'HostCliError', reason: 'spawn-error' });
+    expect((err as Error).message).toContain('"codex"');
+    expect((err as Error).message).toContain('CADENCE_HOST_CLI_BIN');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('319-01/AC-4: the underlying spawn receives the Node command and codex argv from the configured bin, not from node.exe, and an injected spawnImpl still receives the configured bin unchanged', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({
+      'C:\\npm\\codex.cmd': npmCmdShim('node_modules\\@openai\\codex\\bin\\codex.js'),
+      'C:\\npm\\node.exe': 'node',
+    });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const realSpawn = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\npm' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+    const { fn: spawnImpl, received } = spyOnSpawnFn(realSpawn);
+
+    const r = await hostCliJSON({ ...base, bin: 'codex', spawnImpl });
+
+    expect(r.ok).toBe(true);
+    // `makeRealSpawn`'s returned function received the configured bin unchanged.
+    expect(received).toEqual(['codex']);
+    // The underlying spawn received the resolved Node command + codex family argv.
+    expect(calls[0]!.bin).toBe('C:\\npm\\node.exe');
+    expect(calls[0]!.args).toEqual([
+      'C:\\npm\\node_modules\\@openai\\codex\\bin\\codex.js',
+      'exec',
+      '--json',
+      '--skip-git-repo-check',
+      '-',
+    ]);
+  });
+
+  it('319-01/AC-4: a bare bin resolvable only via relative ".", drive-relative, or root-relative PATH segments — never a fully-qualified directory — is not resolved: rejects not-found, `fileExists` is never even asked, underlying spawn never called', async () => {
+    const calls: FakeCall[] = [];
+    // Every one of these keys "exists" in the fake fs — specifically the
+    // exact filenames a resolver bug that let a relative/drive-relative/
+    // root-relative segment through `isFullyQualifiedDir` would probe, via
+    // `win32.join(dir, bin + ext)`:
+    //   join('.', 'codex.exe')          -> 'codex.exe'
+    //   join('C:relative', 'codex.exe') -> 'C:relative\codex.exe'
+    //   join('\tools', 'codex.exe')     -> '\tools\codex.exe'
+    // If `getPathDirs` ever (wrongly) let one of those three segments
+    // through, `locateBinary`'s native pass would find one of these files
+    // and resolve successfully — turning this test's "rejects not-found"
+    // assertion into a failure. That is what makes this a real regression
+    // guard rather than the previous, vacuous "nothing is on PATH at all"
+    // version of this test (Path: '' — trivially not-found regardless of
+    // whether the cwd-skipping logic works).
+    const { fileExists, readFile } = makeFakeFs({
+      'codex.exe': 'exe',
+      'C:relative\\codex.exe': 'exe',
+      '\\tools\\codex.exe': 'exe',
+    });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: '.;C:relative;\\tools' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    const err = await hostCliJSON({ ...base, bin: 'codex', spawnImpl }).catch((e: unknown) => e);
+
+    expect(err).toMatchObject({ name: 'HostCliError', reason: 'not-found' });
+    // None of the three segments ever contributed a directory to search, so
+    // the fake filesystem — despite "containing" a matching file at every
+    // address a bug would have probed — was never even consulted.
+    expect(fileExists).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
+  });
+
+  it('319-01/AC-4: every exhausted lookup form — bare name, already-suffixed bare name, nonexistent separator-bearing path — rejects not-found naming the configured bin, underlying spawn never called', async () => {
+    for (const bin of ['codex', 'codex.cmd', 'C:\\tools\\codex.exe']) {
+      const calls: FakeCall[] = [];
+      const { fileExists, readFile } = makeFakeFs({});
+      const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+      const spawnImpl = makeRealSpawn({
+        platform: 'win32',
+        env: { Path: 'C:\\tools' },
+        fileExists,
+        readFile,
+        spawn: underlyingSpawn,
+      });
+
+      const err = await hostCliJSON({ ...base, bin, spawnImpl }).catch((e: unknown) => e);
+
+      expect(err).toMatchObject({ name: 'HostCliError', reason: 'not-found' });
+      expect((err as Error).message).toContain(bin);
+      expect(calls).toHaveLength(0);
+    }
+  });
+
+  // Phase 319 T2 review round — AC-1 as-built amendment (2026-09-27):
+  // resolution is now two-pass (native .com/.exe across all PATH directories
+  // first, ignoring PATHEXT; only then .bat/.cmd by PATH x PATHEXT). These
+  // two seam-level tests, with the DEFAULT bin (no `bin` option -> 'claude'),
+  // reproduce the two regressions an independent review proved on Windows 11
+  // against the ORIGINAL single-pass order, and prove `makeRealSpawn` no
+  // longer has them now that T1's resolver implements the two-pass order.
+
+  it('319-01/AC-1 (seam): default bin (claude) with PATHEXT=.CMD still resolves claude.exe via the native pass, ignoring PATHEXT entirely', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({ 'C:\\tools\\claude.exe': 'exe' });
+    const { spawn: underlyingSpawn, opts } = fakeUnderlying([{ stdout: claudeEnvelope('{"ok":true}') }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\tools', PATHEXT: '.CMD' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    // No `bin` passed at all — exercising the real default ('claude'),
+    // matching how an unconfigured `CADENCE_HOST_CLI_BIN` behaves.
+    const r = await hostCliJSON({ ...base, spawnImpl });
+
+    expect(r.ok).toBe(true);
+    expect(calls[0]!.bin).toBe('C:\\tools\\claude.exe');
+    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json']);
+    expect(opts).toHaveLength(1);
+  });
+
+  it('319-01/AC-4: default bin (claude) resolves to a later PATH directory\'s claude.exe, never even reading an earlier directory\'s non-canonical claude.cmd', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({
+      // Dir A (earlier on PATH) has ONLY a non-canonical .cmd — if the
+      // resolver's native pass didn't search every PATH directory before
+      // falling back to the launcher pass, this would either refuse (a
+      // real regression the review caught) or, worse, silently prefer this
+      // .cmd over the real claude.exe one directory later.
+      'C:\\A\\claude.cmd': 'this is not a canonical npm cmd-shim at all',
+      'C:\\B\\claude.exe': 'exe',
+    });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: claudeEnvelope('{"ok":true}') }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\A;C:\\B' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    const r = await hostCliJSON({ ...base, spawnImpl });
+
+    expect(r.ok).toBe(true);
+    expect(calls[0]!.bin).toBe('C:\\B\\claude.exe');
+    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json']);
+    // `readFile` is only ever called to parse a `.cmd`/`.bat` hit — proving
+    // dir A's claude.cmd was never even opened, let alone refused.
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
+  // AC-3 seam-level coverage for the two refusal shapes not yet exercised
+  // through the real `hostCliJSON` seam above (the resolver-level cases live
+  // in win32-command.test.ts; these confirm the seam maps them the same way).
+
+  it('319-01/AC-3 (seam): a shim target containing an unexpanded "%" is refused as spawn-error naming the bin and CADENCE_HOST_CLI_BIN, underlying spawn never called', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({
+      'C:\\npm\\codex.cmd': npmCmdShim('%VARIABLE%\\codex.js'),
+    });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\npm' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    const err = await hostCliJSON({ ...base, bin: 'codex', spawnImpl }).catch((e: unknown) => e);
+
+    expect(err).toMatchObject({ name: 'HostCliError', reason: 'spawn-error' });
+    expect((err as Error).message).toContain('"codex"');
+    expect((err as Error).message).toContain('CADENCE_HOST_CLI_BIN');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('319-01/AC-3 (seam): a shim target that is neither JS nor a native executable (e.g. .ps1) is refused as spawn-error naming the bin and CADENCE_HOST_CLI_BIN, underlying spawn never called', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({
+      'C:\\npm\\codex.cmd': npmCmdShim('codex.ps1'),
+    });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: codexJsonl() }], calls);
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      env: { Path: 'C:\\npm' },
+      fileExists,
+      readFile,
+      spawn: underlyingSpawn,
+    });
+
+    const err = await hostCliJSON({ ...base, bin: 'codex', spawnImpl }).catch((e: unknown) => e);
+
+    expect(err).toMatchObject({ name: 'HostCliError', reason: 'spawn-error' });
+    expect((err as Error).message).toContain('"codex"');
+    expect((err as Error).message).toContain('CADENCE_HOST_CLI_BIN');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('319-01: makeRealSpawn reads env/platform facts at call time, not at construction time — a process.env change after construction is honored', async () => {
+    const calls: FakeCall[] = [];
+    const { fileExists, readFile } = makeFakeFs({ 'C:\\latecall\\claude.exe': 'exe' });
+    const { spawn: underlyingSpawn } = fakeUnderlying([{ stdout: claudeEnvelope('{"ok":true}') }], calls);
+    // Built with NO `env` override at all — every call reads `process.env`
+    // fresh, per `makeRealSpawn`'s doc comment.
+    const spawnImpl = makeRealSpawn({
+      platform: 'win32',
+      fileExists,
+      readFile,
+      execPath: 'C:\\node-install\\node.exe',
+      spawn: underlyingSpawn,
+    });
+
+    // Save the real keys under their EXISTING casing on this platform (win32
+    // env vars are case-insensitive, but `process.env`'s own key casing is
+    // whatever the OS handed Node — commonly "Path"/"PATHEXT" here) so the
+    // restore in `finally` puts things back exactly as found, not just to
+    // some assumed casing.
+    const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'path') ?? 'Path';
+    const pathextKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'pathext') ?? 'PATHEXT';
+    const originalPath = process.env[pathKey];
+    const originalPathext = process.env[pathextKey];
+    try {
+      // Mutate AFTER construction — this is the whole point of the test.
+      process.env[pathKey] = 'C:\\latecall';
+      process.env[pathextKey] = '.CMD';
+
+      const r = await hostCliJSON({ ...base, bin: 'claude', spawnImpl });
+
+      expect(r.ok).toBe(true);
+      expect(calls[0]!.bin).toBe('C:\\latecall\\claude.exe');
+    } finally {
+      if (originalPath === undefined) {
+        delete process.env[pathKey];
+      } else {
+        process.env[pathKey] = originalPath;
+      }
+      if (originalPathext === undefined) {
+        delete process.env[pathextKey];
+      } else {
+        process.env[pathextKey] = originalPathext;
+      }
+    }
+  });
+});
+
+describe('makeRealSpawn — real process, win32 only (extra evidence)', () => {
+  // Phase 319 T2 — the bare-name regression path this whole phase exists to
+  // fix, exercised end-to-end with the REAL filesystem and the REAL
+  // `node:child_process.spawn`: an npm-style `codex.cmd` sitting on a real
+  // win32 PATH, resolved and launched with no shell. Gated to win32 only —
+  // `it.runIf` skips it elsewhere, so this file still passes on Linux/macOS
+  // CI; the dev box this was authored on is Windows, so it runs for real
+  // here rather than merely type-checking.
+  it.runIf(process.platform === 'win32')(
+    '319-01/AC-4 (extra evidence, real fs + real spawn): a real npm-style codex.cmd on a real win32 PATH resolves through Node and runs to completion',
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'cadence-win32-hostcli-'));
+      try {
+        const shimText = [
+          '@ECHO off',
+          'GOTO start',
+          ':find_dp0',
+          'SET dp0=%~dp0',
+          'EXIT /b',
+          ':start',
+          'SETLOCAL',
+          'CALL :find_dp0',
+          '',
+          'IF EXIST "%dp0%\\node.exe" (',
+          '  SET "_prog=%dp0%\\node.exe"',
+          ') ELSE (',
+          '  SET "_prog=node"',
+          '  SET PATHEXT=%PATHEXT:;.JS;=;%',
+          ')',
+          '',
+          'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\fake\\codex.js" %*',
+        ].join('\r\n');
+        writeFileSync(join(dir, 'codex.cmd'), shimText);
+        mkdirSync(join(dir, 'node_modules', 'fake'), { recursive: true });
+        writeFileSync(
+          join(dir, 'node_modules', 'fake', 'codex.js'),
+          [
+            "let data = '';",
+            "process.stdin.on('data', (chunk) => { data += chunk; });",
+            "process.stdin.on('end', () => {",
+            '  process.stdout.write(JSON.stringify({ type: \'item.completed\', item: { type: \'agent_message\', text: \'{"ok":true}\' } }) + \'\\n\');',
+            '  process.exit(0);',
+            '});',
+          ].join('\n'),
+        );
+
+        // No `node.exe` sibling in `dir` — the resolver must fall back to
+        // `process.execPath` (the real Node running this test).
+        const spawnImpl = makeRealSpawn({ env: { Path: dir, PATHEXT: '.CMD' } });
+
+        const r = await hostCliJSON({
+          system: 's',
+          user: 'u',
+          schema: Schema,
+          env: {},
+          bin: 'codex',
+          spawnImpl,
+          timeoutMs: 15_000,
+        });
+
+        expect(r.ok).toBe(true);
+      } finally {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+      }
+    },
+    30_000,
+  );
+
+  it.runIf(process.platform === 'win32')(
+    '319-01/AC-1 (extra evidence, real fs): a DIRECTORY named foo.exe on PATH is not a binary — libuv skips it, so the default fileExists must too',
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'cadence-win32-hostcli-dir-'));
+      try {
+        mkdirSync(join(dir, 'foo.exe'));
+        const calls: string[] = [];
+        const spawn: UnderlyingSpawnFn = (command) => {
+          calls.push(command);
+          throw new Error('underlying spawn must not be reached');
+        };
+        // Real default fileExists/readFile; only env and the underlying spawn are injected.
+        const spawnImpl = makeRealSpawn({ env: { Path: dir }, spawn });
+
+        const err = await hostCliJSON({
+          system: 's',
+          user: 'u',
+          schema: Schema,
+          env: {},
+          bin: 'foo',
+          spawnImpl,
+          timeoutMs: 15_000,
+        }).catch((e: unknown) => e);
+
+        expect(err).toMatchObject({ name: 'HostCliError', reason: 'not-found' });
+        expect(calls).toEqual([]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+      }
+    },
+    30_000,
+  );
 });

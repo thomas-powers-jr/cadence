@@ -2718,6 +2718,20 @@
       "kind": "note",
       "summary": "Observed 2026-09-26 during phase 317 settle on Windows 11: with CADENCE_HOST_CLI_BIN=codex, settle printed 'verifier: host-cli provider failed (not-found: host-cli provider: binary \"codex\" not found on PATH) — falling back to mock provider' and the same for code-review; 'where codex' lists codex and codex.cmd in AppData\\Roaming\\npm. With CADENCE_HOST_CLI_BIN=<path>\\codex.exe, deep-verify ran on host-cli (10 ACs, diffBytes 95114) but code-review timed out after 180000ms and fell back to mock.",
       "createdAt": "2026-09-26T19:22:06.582Z"
+    },
+    {
+      "id": "ev-20260927-001",
+      "recommendationId": "rec-20260927-001",
+      "kind": "note",
+      "summary": "2026-09-27: cadence doctor with CADENCE_HOST_CLI_BIN=<codex.exe> in .env reported 'code-review: blocked by session'; a direct hostCliJSON call with the same bin from the same Claude Code session returned {\"ok\":true} in 8.6s.",
+      "createdAt": "2026-09-27T17:51:15.148Z"
+    },
+    {
+      "id": "ev-20260927-002",
+      "recommendationId": "rec-20260927-002",
+      "kind": "note",
+      "summary": "Phase 317 settle 2026-09-26: code-review host-cli call timed out after 180000ms and fell back to mock while deep-verify (diffBytes 95114) completed.",
+      "createdAt": "2026-09-27T17:51:19.844Z"
     }
   ]
 }

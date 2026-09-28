@@ -1,0 +1,41 @@
+{
+  "draftId": "319-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "REVISITED after operator re-approval of the AC-1 as-built amendment (2026-09-27): T2's independent review proved the PATHEXT-first first-match order regressed the default claude bin vs pre-319 libuv spawn (PATHEXT=.CMD -> not-found; earlier non-canonical claude.cmd shadowing claude.exe -> spawn-error). Resolver now native-first two-pass (.com/.exe across PATH, then .bat/.cmd by PATH x PATHEXT). Independent re-review PASS with real-machine spawnSync parity for claude/node/git/gh; orchestrator re-verified 54/54 resolver tests + real-machine probe of both regression scenarios; ENOENT wording updated for the two-pass order.",
+      "touchedFiles": [
+        "packages/core/src/verify/host-cli-client.ts",
+        "packages/core/src/verify/win32-command.ts",
+        "packages/core/tests/verify/host-cli-client.test.ts",
+        "packages/core/tests/verify/win32-command.test.ts"
+      ],
+      "updatedAt": "2026-09-27T20:07:56.478Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "makeRealSpawn factory wires the win32 resolver into the real spawn seam (piped stdio, no shell key; family/guard/error text keyed on configured bin). Independent Opus review round 1 proved a default-claude regression in T1's search order (fixed via operator-approved AC-1 amendment + T1 revisit) and a vacuous cwd test; round 2 PASS. Orchestrator re-verified: host-cli-client + win32-command + host-cli-verifier 106/106, test diff deletions confined to T2-added code, win32 real-process test ran (not skipped).",
+      "touchedFiles": [],
+      "updatedAt": "2026-09-27T20:13:36.284Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "docs/providers.md Windows resolution paragraphs (native-first two-pass, cwd never searched, npm cmd-shim via Node without shell, non-npm launchers refused, native-exe override), stale stdin text + argv prompt examples corrected; doc test providers-host-cli-windows.test.ts (319-01/AC-6); patch changeset. Orchestrator re-read the doc diff and corrected three inaccuracies (old spawn was not shell-mediated; CVE sentence; changeset 'silently'/'the way a shell would'); all 41 doc test files pass. Independent review of T3 is folded into the whole-branch review, which re-reads docs last.",
+      "touchedFiles": [
+        "docs/providers.md",
+        ".changeset/win32-host-cli-resolve.md",
+        "packages/core/tests/docs/providers-host-cli-windows.test.ts"
+      ],
+      "updatedAt": "2026-09-27T20:27:08.483Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    }
+  }
+}
