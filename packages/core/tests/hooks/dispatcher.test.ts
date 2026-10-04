@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { writeFile, readFile } from 'node:fs/promises';
+import { writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { HookDispatcher } from '../../src/hooks/dispatcher.js';
@@ -16,6 +16,74 @@ describe('HookDispatcher', () => {
     const result = await d.dispatch('session-start', { cwd: active.root, event: 'session-start' });
     expect(result.ok).toBe(true);
     expect(result.contextPayload).toMatch(/demo/);
+  });
+
+  // Phase 322 (T2, AC-4): the dispatcher resolves the latest settled phase
+  // from the working-tree SUMMARY files for session-start only, best-effort.
+  it('322-01/AC-4: session-start on an IDLE checkout names the latest settled phase found on disk', async () => {
+    active = await tempRepo({ initialized: true, projectName: 'demo' });
+    const statePath = join(active.root, '.cadence/state.json');
+    const state = JSON.parse(await readFile(statePath, 'utf8'));
+    state.activePhase = '311-old';
+    state.loopPosition = 'IDLE';
+    await writeFile(statePath, JSON.stringify(state, null, 2));
+    const phaseDir = join(active.root, '.cadence/phases/312-new');
+    await mkdir(phaseDir, { recursive: true });
+    await writeFile(
+      join(phaseDir, '312-01-SUMMARY.json'),
+      JSON.stringify({
+        draftId: '312-01',
+        stateAtSettle: { loopPositionBeforeSettle: 'BUILD', revision: 1, sessionSubagentSpawns: 0 },
+      }),
+    );
+    const d = new HookDispatcher(active.root);
+    const result = await d.dispatch('session-start', { cwd: active.root, event: 'session-start' });
+    expect(result.ok).toBe(true);
+    expect(result.contextPayload).toContain(
+      'Active phase: (none — loop is IDLE)\nLatest settled phase: 312-new\n',
+    );
+    expect(result.contextPayload).not.toContain('311-old');
+  });
+
+  it('322-01/AC-4: session-start still succeeds when the lookup yields nothing (no phases directory at all)', async () => {
+    active = await tempRepo({ initialized: true, projectName: 'demo' });
+    await rm(join(active.root, '.cadence/phases'), { recursive: true, force: true });
+    const d = new HookDispatcher(active.root);
+    const result = await d.dispatch('session-start', { cwd: active.root, event: 'session-start' });
+    expect(result.ok).toBe(true);
+    expect(result.contextPayload).toContain('Active phase: (none — loop is IDLE)');
+    expect(result.contextPayload).not.toContain('Latest settled phase');
+  });
+
+  it('322-01/AC-4: a refused SUMMARY (no stateAtSettle) is not named as the latest settled phase', async () => {
+    active = await tempRepo({ initialized: true, projectName: 'demo' });
+    const phaseDir = join(active.root, '.cadence/phases/313-refused');
+    await mkdir(phaseDir, { recursive: true });
+    await writeFile(join(phaseDir, '313-01-SUMMARY.json'), JSON.stringify({ draftId: '313-01', acResults: [] }));
+    const d = new HookDispatcher(active.root);
+    const result = await d.dispatch('session-start', { cwd: active.root, event: 'session-start' });
+    expect(result.ok).toBe(true);
+    expect(result.contextPayload).toContain('Active phase: (none — loop is IDLE)');
+    expect(result.contextPayload).not.toContain('Latest settled phase');
+  });
+
+  it('322-01/AC-4: session-start falls back to "Last phase in this checkout:" when only pre-stateAtSettle SUMMARYs exist', async () => {
+    active = await tempRepo({ initialized: true, projectName: 'demo' });
+    const statePath = join(active.root, '.cadence/state.json');
+    const state = JSON.parse(await readFile(statePath, 'utf8'));
+    state.activePhase = '311-old';
+    state.loopPosition = 'IDLE';
+    await writeFile(statePath, JSON.stringify(state, null, 2));
+    const phaseDir = join(active.root, '.cadence/phases/311-old');
+    await mkdir(phaseDir, { recursive: true });
+    await writeFile(join(phaseDir, '311-01-SUMMARY.json'), JSON.stringify({ draftId: '311-01', acResults: [] }));
+    const d = new HookDispatcher(active.root);
+    const result = await d.dispatch('session-start', { cwd: active.root, event: 'session-start' });
+    expect(result.ok).toBe(true);
+    expect(result.contextPayload).toContain(
+      'Active phase: (none — loop is IDLE)\nLast phase in this checkout: 311-old\n',
+    );
+    expect(result.contextPayload).not.toContain('Latest settled phase');
   });
 
   it('subagent-result increments state.session.subagentSpawns', async () => {

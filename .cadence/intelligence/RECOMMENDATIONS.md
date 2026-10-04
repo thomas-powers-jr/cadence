@@ -654,6 +654,7 @@ The docs workflow (.github/workflows/docs.yml:44) pins pnpm/action-setup@v4; ci.
 - areas: security
 - files: scripts/check-lockfile-overrides.mjs
 - evidence: phase 253 (253-dependency-override-remediation) T5 independent review, 2026-08-05: reviewer identified this as a genuine scope boundary while verifying the detector's fail-then-pass evidence
+- evidence: New instance (2026-10-04, found in phase 321 review): package.json keeps "brace-expansion@^2.0.0": "^2.1.4" while GHSA-qhr7-859c-m2p7 fixes 2.x only at >=2.1.6 and GHSA-6j4f-fj2g-mc7p at >=2.1.5. No 2.x instance resolves today, so check-lockfile-overrides.mjs passes; if a 2.x dependent returns, a vulnerable 2.1.4/2.1.5 would satisfy the override silently.
 - next: cadence milestone propose
 
 The phase-253 detector (scripts/check-lockfile-overrides.mjs) only checks internal lockfile consistency: that a resolved instance satisfies its own declared pnpm.overrides target. It cannot catch a target whose floor is self-consistent with the lockfile but sits below the real current upstream patched version (the exact original failure shape phase 253 corrected for fast-uri/brace-expansion, where a stale-but-internally-satisfied override masked a still-vulnerable resolved version). Catching that class needs a live-vulnerability cross-check (pnpm audit's job, via scripts/check-audit-exceptions.mjs), not a lockfile-internal consistency check. Flagged by phase 253's T5 independent reviewer; recorded per the repo's Unlogged Audit Finding convention rather than left implicit.
@@ -1651,9 +1652,70 @@ packages/core/src/doctor/run.ts (~line 1818) pushes the 'session' blocked axis w
 
 Split from rec-20260926-005. During the phase 317 settle (2026-09-26) with CADENCE_HOST_CLI_BIN pointed at codex.exe, deep-verify completed on host-cli but code-review timed out at DEFAULT_TIMEOUT_MS (180000ms, packages/core/src/verify/host-cli-client.ts) and fell back to mock. CADENCE_HOST_CLI_TIMEOUT_MS (env or .env) already overrides it. Open question: raise the default for the code-review seam, make it per-seam, or only document the override.
 
-## rec-20261004-002 — bug: status/STATE.md/session banner report a stale active phase after phases settle elsewhere
+## rec-20261004-003 — check-audit-exceptions.mjs cannot run on Windows: spawnSync('corepack', {shell:false}) hits ENOENT on corepack's .cmd shim
 
-- status: accepted
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 40%
+- decay: fresh
+- areas: security
+- files: scripts/check-audit-exceptions.mjs
+- next: cadence milestone propose
+
+scripts/check-audit-exceptions.mjs runs pnpm audit via spawnSync('corepack', ...) without a shell. On Windows corepack is a .cmd shim (e.g. C:/nodejs/corepack.cmd), so the spawn fails 'spawnSync corepack ENOENT' and the script exits 1 before auditing. Linux CI is unaffected, but no Windows developer can run the security gate locally (observed 2026-10-04 in phase 321, reproduced by two reviewers). Same bug class phase 319 fixed for host-cli (win32 PATH/PATHEXT resolution, never shell:true).
+
+## rec-20261004-004 — recommendation add keeps only the last of a repeated --file flag
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 40%
+- decay: fresh
+- areas: intelligence
+- files: packages/core/src/cli/commands/recommendation.ts
+- next: cadence milestone propose
+
+cadence recommendation add --file a --file b --file c records affectedFiles: [c] only — the earlier values are silently dropped (commander option without an array collector). Observed 2026-10-04: rec-20261004-001 was filed with three --file flags and its affectedFiles holds only .claude/skills/phase-build/SKILL.md; rec-20261004-002 likewise kept only packages/core/src/state/simple.ts. Either collect repeated flags into an array or refuse with a usage error; silently dropping data violates refuse-and-suggest.
+
+## rec-20261004-005 — A checkout left in DRAFT/BUILD after its slice settled elsewhere is told to settle an already-settled slice
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 40%
+- decay: fresh
+- areas: state
+- files: packages/core/src/services/progress.ts
+- next: cadence milestone propose
+
+Inferred risk, not yet reproduced (diagnosis 2026-10-04, rec-20261004-002 evidence ev-20261004-005). state.json is per-checkout; if a primary checkout runs draft new/approve and the slice is then built and settled in a worktree and merged, the primary stays in DRAFT/BUILD. progress's BUILD branch then reads the merged PROGRESS.json, finds every task recorded, and suggests 'cadence settle run --auto' for a slice whose successful SUMMARY (with stateAtSettle) already exists. No CLI path resets a stranded loop. Phase 322 deliberately left progress unchanged. Next step: reproduce in a testkit ephemeral repo, then detect (active draft has a settled SUMMARY) and refuse+suggest.
+
+## rec-20261004-006 — cadence progress (and /cadence-progress) ignores the milestone and recommendation ledgers in IDLE; cadence next does not
+
+- status: candidate
+- ready: raw-idea
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 40%
+- decay: fresh
+- areas: progress
+- files: packages/core/src/services/progress.ts
+- evidence: Fix-scope note (whole-branch review of phase 322, 2026-10-04): passing the ledger hints to nextAction() alone would not change 'cadence progress' output. In IDLE, nextAction() (progress.ts:122-159) always returns command='cadence draft new ...'; the hints only prepend continue-milestone / promote-recommendation entries to legalMoves. services/progress.ts:86-94 renders only action.command and action.reason. A fix must also make progress surface legalMoves[0] (or lift the top hinted move into command/reason), which is a deliberate contract change to weigh against dec-20260721-001.
+- next: cadence milestone propose
+
+progressService passes only nextPhaseNumber to nextAction in IDLE, never the ledger hints (milestoneNextPhase, topRecommendation) that services/next.ts resolves. So progress always prints a bare 'draft new' even when a milestone is mid-flight or a recommendation is ready to promote, while 'cadence next' ranks those first. Possibly what users perceive as /cadence-progress being stale. Raised 2026-10-04 during the rec-20261004-002 diagnosis; the operator was asked and has not yet said whether this matches the staleness they saw.
+
+## rec-20261004-007 — cadence handoff / resume / MCP / context packet still surface a checkout-local stale activePhase while IDLE
+
+- status: candidate
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10
@@ -1661,11 +1723,10 @@ Split from rec-20260926-005. During the phase 317 settle (2026-09-26) with CADEN
 - confidence: 40%
 - decay: fresh
 - areas: state
-- files: packages/core/src/state/simple.ts
-- assumptions: as-20261004-002 (validated), as-20261004-003 (validated)
-- evidence: as-20261004-002: settle.ts:1660-1664 nulls activeDraft/activeTask/tier and sets IDLE, never activePhase; grep of all src assignments -> only draft-new.ts:149 and draft-approve.ts:121 set it, nothing nulls it; only test asserting activePhase null (status.test.ts:54) is on a fresh emptyState, not post-settle -> validated.
-- evidence: as-20261004-003: SUMMARY.json present on main for 312,313,314,316,317,318,319; main state.json activePhase=311, revision 57, draftReadAt 2026-09-17; the only 31[2-9] strings in it are session.lastHandoff and a skillAudit.invoked entry, not loop fields -> validated. Unreproduced inferred risk (not an assumption row): if the primary checkout is left in DRAFT/BUILD while the phase settles in a worktree, after merge progress's BUILD branch reads the merged PROGRESS.json and would suggest 'settle run --auto' for an already-settled phase.
-- evidence: Root cause: as-20261004-002 + as-20261004-003 — settle never clears state.activePhase, and state.json is per-checkout, so status/STATE.md/SessionStart banner show the last phase settled in THAT checkout as if current; phases built in worktrees never update the primary's state. progress's IDLE recommendation is unaffected (next-free phase comes from phase dirs). Fix (no re-tracking of state.json, #177 stands): (1) when loopPosition is IDLE, status/STATE.md/banner derive 'latest settled phase' best-effort from committed *-SUMMARY.json (newest completedAt), labelled as such, instead of printing the stale activePhase as 'phase'; (2) progress/status in DRAFT/BUILD: if the active draft already has a SUMMARY.json, say it was settled elsewhere and suggest the reset path instead of 'settle run'. Note /cadence-progress runs the PATH cadence (global 1.67.1, npm latest 1.68.0), so code fixes reach it only after release + global reinstall.
+- files: packages/core/src/handoff/render-session.ts
+- evidence: Scope correction (2026-10-04, phase 322 T3 code read): 'the MCP surface' is narrower than the summary says. The MCP cadence_status tool calls statusService, so its text output is relabelled and its json output carries lastSettledPhase alongside the raw activePhase; the cadence://state resource serves STATE.md, so it is relabelled too. Only the cadence://state.json resource (the raw file) still shows the raw value. Still raw: handoff/render-session.ts:21,83 (active_phase pre-fill), intelligence/render-context.ts:20, handoff/candidates.ts. Additional surface: 'cadence milestone status' picks a phase's owning worktree by its live activePhase via gatherHandoffCandidates (docs/reference/commands.md ~1587), so an IDLE checkout holding a stale value can look like the owner.
+- evidence: Correction to the earlier scope note (whole-branch review of phase 322, 2026-10-04): 'only the cadence://state.json resource still shows the raw value' is too narrow. The MCP cadence_handoff tool (mcp/tools.ts:405) calls handoffService, so it stamps the raw active_phase pre-fill exactly like the CLI; the MCP cadence_resume tool (mcp/tools.ts:429) calls resumeService, which replays the doc and live context with the raw value. Both belong in this rec's fix scope alongside cadence://state.json.
+- evidence: Additional raw surface (whole-branch review of phase 322, 2026-10-04): 'cadence inspect' prints '- active phase: <activePhase>' from the CADENCE backend (intelligence/render-inspection.ts:40) with no IDLE treatment, so an IDLE primary checkout shows the stale checkout-local phase there too.
 - next: cadence milestone propose
 
-settle resets loopPosition/activeDraft/activeTask/tier but leaves state.activePhase set; state.json is per-checkout and gitignored, and phases are built and settled in worktrees, so the primary checkout keeps reporting the last phase settled locally. Repro on main ec706481: cadence status -> 'phase: 311-...', STATE.md 'Active phase: 311-...', SessionStart banner 'Active phase: 311-...', while phases 312-319 are merged. cadence progress's recommendation is currently correct (IDLE; next-free phase 320 derived from phase dirs).
+Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never clears state.activePhase and state.json is per-checkout, so in a primary checkout whose phases settle in worktrees, 'cadence handoff' pre-fills active_phase with the last phase settled locally (render-session.ts), and resume, the MCP surface and the intelligence context packet (render-context.ts, backend/cadence.ts) report the same stale value. Candidate fix: apply the same IDLE treatment (label as checkout-local; derive the latest settled phase via findLatestSettledPhase) to each surface, without changing activePhase's semantics or JSON contracts.

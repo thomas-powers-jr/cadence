@@ -2781,6 +2781,41 @@
       "kind": "note",
       "summary": "Root cause: as-20261004-002 + as-20261004-003 — settle never clears state.activePhase, and state.json is per-checkout, so status/STATE.md/SessionStart banner show the last phase settled in THAT checkout as if current; phases built in worktrees never update the primary's state. progress's IDLE recommendation is unaffected (next-free phase comes from phase dirs). Fix (no re-tracking of state.json, #177 stands): (1) when loopPosition is IDLE, status/STATE.md/banner derive 'latest settled phase' best-effort from committed *-SUMMARY.json (newest completedAt), labelled as such, instead of printing the stale activePhase as 'phase'; (2) progress/status in DRAFT/BUILD: if the active draft already has a SUMMARY.json, say it was settled elsewhere and suggest the reset path instead of 'settle run'. Note /cadence-progress runs the PATH cadence (global 1.67.1, npm latest 1.68.0), so code fixes reach it only after release + global reinstall.",
       "createdAt": "2026-10-04T14:54:50.516Z"
+    },
+    {
+      "id": "ev-20261004-008",
+      "recommendationId": "rec-20260805-002",
+      "kind": "note",
+      "summary": "New instance (2026-10-04, found in phase 321 review): package.json keeps \"brace-expansion@^2.0.0\": \"^2.1.4\" while GHSA-qhr7-859c-m2p7 fixes 2.x only at >=2.1.6 and GHSA-6j4f-fj2g-mc7p at >=2.1.5. No 2.x instance resolves today, so check-lockfile-overrides.mjs passes; if a 2.x dependent returns, a vulnerable 2.1.4/2.1.5 would satisfy the override silently.",
+      "createdAt": "2026-10-04T17:31:30.986Z"
+    },
+    {
+      "id": "ev-20261004-009",
+      "recommendationId": "rec-20261004-007",
+      "kind": "note",
+      "summary": "Scope correction (2026-10-04, phase 322 T3 code read): 'the MCP surface' is narrower than the summary says. The MCP cadence_status tool calls statusService, so its text output is relabelled and its json output carries lastSettledPhase alongside the raw activePhase; the cadence://state resource serves STATE.md, so it is relabelled too. Only the cadence://state.json resource (the raw file) still shows the raw value. Still raw: handoff/render-session.ts:21,83 (active_phase pre-fill), intelligence/render-context.ts:20, handoff/candidates.ts. Additional surface: 'cadence milestone status' picks a phase's owning worktree by its live activePhase via gatherHandoffCandidates (docs/reference/commands.md ~1587), so an IDLE checkout holding a stale value can look like the owner.",
+      "createdAt": "2026-10-04T17:48:23.741Z"
+    },
+    {
+      "id": "ev-20261004-010",
+      "recommendationId": "rec-20261004-007",
+      "kind": "note",
+      "summary": "Correction to the earlier scope note (whole-branch review of phase 322, 2026-10-04): 'only the cadence://state.json resource still shows the raw value' is too narrow. The MCP cadence_handoff tool (mcp/tools.ts:405) calls handoffService, so it stamps the raw active_phase pre-fill exactly like the CLI; the MCP cadence_resume tool (mcp/tools.ts:429) calls resumeService, which replays the doc and live context with the raw value. Both belong in this rec's fix scope alongside cadence://state.json.",
+      "createdAt": "2026-10-04T18:53:08.495Z"
+    },
+    {
+      "id": "ev-20261004-011",
+      "recommendationId": "rec-20261004-007",
+      "kind": "note",
+      "summary": "Additional raw surface (whole-branch review of phase 322, 2026-10-04): 'cadence inspect' prints '- active phase: <activePhase>' from the CADENCE backend (intelligence/render-inspection.ts:40) with no IDLE treatment, so an IDLE primary checkout shows the stale checkout-local phase there too.",
+      "createdAt": "2026-10-04T18:53:08.820Z"
+    },
+    {
+      "id": "ev-20261004-012",
+      "recommendationId": "rec-20261004-006",
+      "kind": "note",
+      "summary": "Fix-scope note (whole-branch review of phase 322, 2026-10-04): passing the ledger hints to nextAction() alone would not change 'cadence progress' output. In IDLE, nextAction() (progress.ts:122-159) always returns command='cadence draft new ...'; the hints only prepend continue-milestone / promote-recommendation entries to legalMoves. services/progress.ts:86-94 renders only action.command and action.reason. A fix must also make progress surface legalMoves[0] (or lift the top hinted move into command/reason), which is a deliberate contract change to weigh against dec-20260721-001.",
+      "createdAt": "2026-10-04T18:53:09.141Z"
     }
   ]
 }

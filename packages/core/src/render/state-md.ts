@@ -1,5 +1,21 @@
 import type { CadenceState } from '@thomas-powers-jr/cadence-types';
 
+/**
+ * Phase 322 (T2, AC-3): `state.activePhase` survives `settle` and is
+ * per-checkout, so on IDLE it is only the last phase that loop-tripped in
+ * this checkout — not an active one. Relabel it for what it is; every
+ * non-IDLE state renders the line exactly as before.
+ */
+function activePhaseLines(state: CadenceState): string[] {
+  if (state.loopPosition !== 'IDLE') {
+    return [`**Active phase:** ${state.activePhase ?? '(none)'}`];
+  }
+  return [
+    '**Active phase:** (none — loop is IDLE)',
+    `**Last phase in this checkout:** ${state.activePhase ?? '(none)'}`,
+  ];
+}
+
 export function renderStateMd(state: CadenceState): string {
   const lines = [
     '# CADENCE State',
@@ -8,7 +24,7 @@ export function renderStateMd(state: CadenceState): string {
     '',
     `**Project:** ${state.project.name}`,
     `**Loop position:** ${state.loopPosition}`,
-    `**Active phase:** ${state.activePhase ?? '(none)'}`,
+    ...activePhaseLines(state),
     `**Active draft:** ${state.activeDraft ?? '(none)'}`,
     `**Tier:** ${state.tier ?? '(n/a)'}`,
     '',

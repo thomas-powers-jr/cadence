@@ -1179,12 +1179,13 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260805-002"
+        "ev-20260805-002",
+        "ev-20261004-008"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-08-05T01:24:34.767Z",
-      "updatedAt": "2026-08-05T01:24:34.767Z"
+      "updatedAt": "2026-10-04T17:31:30.986Z"
     },
     {
       "id": "rec-20260805-003",
@@ -2968,11 +2969,113 @@
       "updatedAt": "2026-09-27T17:51:19.844Z"
     },
     {
-      "id": "rec-20261004-002",
-      "title": "bug: status/STATE.md/session banner report a stale active phase after phases settle elsewhere",
-      "summary": "settle resets loopPosition/activeDraft/activeTask/tier but leaves state.activePhase set; state.json is per-checkout and gitignored, and phases are built and settled in worktrees, so the primary checkout keeps reporting the last phase settled locally. Repro on main ec706481: cadence status -> 'phase: 311-...', STATE.md 'Active phase: 311-...', SessionStart banner 'Active phase: 311-...', while phases 312-319 are merged. cadence progress's recommendation is currently correct (IDLE; next-free phase 320 derived from phase dirs).",
+      "id": "rec-20261004-003",
+      "title": "check-audit-exceptions.mjs cannot run on Windows: spawnSync('corepack', {shell:false}) hits ENOENT on corepack's .cmd shim",
+      "summary": "scripts/check-audit-exceptions.mjs runs pnpm audit via spawnSync('corepack', ...) without a shell. On Windows corepack is a .cmd shim (e.g. C:/nodejs/corepack.cmd), so the spawn fails 'spawnSync corepack ENOENT' and the script exits 1 before auditing. Linux CI is unaffected, but no Windows developer can run the security gate locally (observed 2026-10-04 in phase 321, reproduced by two reviewers). Same bug class phase 319 fixed for host-cli (win32 PATH/PATHEXT resolution, never shell:true).",
       "source": "manual",
-      "status": "accepted",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security"
+      ],
+      "affectedFiles": [
+        "scripts/check-audit-exceptions.mjs"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-04T17:31:31.727Z",
+      "updatedAt": "2026-10-04T17:31:31.727Z"
+    },
+    {
+      "id": "rec-20261004-004",
+      "title": "recommendation add keeps only the last of a repeated --file flag",
+      "summary": "cadence recommendation add --file a --file b --file c records affectedFiles: [c] only — the earlier values are silently dropped (commander option without an array collector). Observed 2026-10-04: rec-20261004-001 was filed with three --file flags and its affectedFiles holds only .claude/skills/phase-build/SKILL.md; rec-20261004-002 likewise kept only packages/core/src/state/simple.ts. Either collect repeated flags into an array or refuse with a usage error; silently dropping data violates refuse-and-suggest.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "intelligence"
+      ],
+      "affectedFiles": [
+        "packages/core/src/cli/commands/recommendation.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-04T17:31:32.456Z",
+      "updatedAt": "2026-10-04T17:31:32.456Z"
+    },
+    {
+      "id": "rec-20261004-005",
+      "title": "A checkout left in DRAFT/BUILD after its slice settled elsewhere is told to settle an already-settled slice",
+      "summary": "Inferred risk, not yet reproduced (diagnosis 2026-10-04, rec-20261004-002 evidence ev-20261004-005). state.json is per-checkout; if a primary checkout runs draft new/approve and the slice is then built and settled in a worktree and merged, the primary stays in DRAFT/BUILD. progress's BUILD branch then reads the merged PROGRESS.json, finds every task recorded, and suggests 'cadence settle run --auto' for a slice whose successful SUMMARY (with stateAtSettle) already exists. No CLI path resets a stranded loop. Phase 322 deliberately left progress unchanged. Next step: reproduce in a testkit ephemeral repo, then detect (active draft has a settled SUMMARY) and refuse+suggest.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "state"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/progress.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-04T17:31:33.164Z",
+      "updatedAt": "2026-10-04T17:31:33.164Z"
+    },
+    {
+      "id": "rec-20261004-006",
+      "title": "cadence progress (and /cadence-progress) ignores the milestone and recommendation ledgers in IDLE; cadence next does not",
+      "summary": "progressService passes only nextPhaseNumber to nextAction in IDLE, never the ledger hints (milestoneNextPhase, topRecommendation) that services/next.ts resolves. So progress always prints a bare 'draft new' even when a milestone is mid-flight or a recommendation is ready to promote, while 'cadence next' ranks those first. Possibly what users perceive as /cadence-progress being stale. Raised 2026-10-04 during the rec-20261004-002 diagnosis; the operator was asked and has not yet said whether this matches the staleness they saw.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "raw-idea",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "progress"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/progress.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261004-012"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-04T17:31:33.898Z",
+      "updatedAt": "2026-10-04T18:53:09.141Z"
+    },
+    {
+      "id": "rec-20261004-007",
+      "title": "cadence handoff / resume / MCP / context packet still surface a checkout-local stale activePhase while IDLE",
+      "summary": "Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never clears state.activePhase and state.json is per-checkout, so in a primary checkout whose phases settle in worktrees, 'cadence handoff' pre-fills active_phase with the last phase settled locally (render-session.ts), and resume, the MCP surface and the intelligence context packet (render-context.ts, backend/cadence.ts) report the same stale value. Candidate fix: apply the same IDLE treatment (label as checkout-local; derive the latest settled phase via findLatestSettledPhase) to each surface, without changing activePhase's semantics or JSON contracts.",
+      "source": "manual",
+      "status": "candidate",
       "readiness": "ready-for-cadence-spec",
       "priority": "medium",
       "leverageScore": 5,
@@ -2983,21 +3086,18 @@
         "state"
       ],
       "affectedFiles": [
-        "packages/core/src/state/simple.ts"
+        "packages/core/src/handoff/render-session.ts"
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20261004-004",
-        "ev-20261004-005",
-        "ev-20261004-007"
+        "ev-20261004-009",
+        "ev-20261004-010",
+        "ev-20261004-011"
       ],
-      "assumptionIds": [
-        "as-20261004-002",
-        "as-20261004-003"
-      ],
+      "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-10-04T14:53:36.584Z",
-      "updatedAt": "2026-10-04T14:54:51.660Z"
+      "createdAt": "2026-10-04T17:31:34.618Z",
+      "updatedAt": "2026-10-04T18:53:08.820Z"
     }
   ],
   "archived": [
@@ -10464,10 +10564,46 @@
       ],
       "decisionIds": [],
       "convertedToPhaseId": "320-settle-names-a-missing-roadmap-entry",
-      "createdAt": "2026-10-04T14:53:09.376Z",
-      "updatedAt": "2026-10-04T15:44:11.858Z",
       "shippedRef": "phase 320 (settle names a missing roadmap entry), this commit",
       "archivedAt": "2026-10-04T15:44:11.858Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-04T14:53:09.376Z",
+      "updatedAt": "2026-10-04T15:44:11.858Z"
+    },
+    {
+      "id": "rec-20261004-002",
+      "title": "bug: status/STATE.md/session banner report a stale active phase after phases settle elsewhere",
+      "summary": "settle resets loopPosition/activeDraft/activeTask/tier but leaves state.activePhase set; state.json is per-checkout and gitignored, and phases are built and settled in worktrees, so the primary checkout keeps reporting the last phase settled locally. Repro on main ec706481: cadence status -> 'phase: 311-...', STATE.md 'Active phase: 311-...', SessionStart banner 'Active phase: 311-...', while phases 312-319 are merged. cadence progress's recommendation is currently correct (IDLE; next-free phase 320 derived from phase dirs).",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "state"
+      ],
+      "affectedFiles": [
+        "packages/core/src/state/simple.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261004-004",
+        "ev-20261004-005",
+        "ev-20261004-007"
+      ],
+      "assumptionIds": [
+        "as-20261004-002",
+        "as-20261004-003"
+      ],
+      "decisionIds": [],
+      "convertedToPhaseId": "322-idle-status-names-the-latest-settled-phase",
+      "createdAt": "2026-10-04T14:53:36.584Z",
+      "updatedAt": "2026-10-04T19:03:15.001Z",
+      "shippedRef": "phase 322 (322-01 settled 2026-10-04)",
+      "archivedAt": "2026-10-04T19:03:15.001Z",
       "archiveReason": "shipped"
     }
   ]

@@ -522,3 +522,112 @@ describe('loadStatus', () => {
     expect(r.profile).toBe('strict');
   });
 });
+
+/**
+ * Phase 322 (T2, AC-2): `state.activePhase` survives `settle` and is
+ * per-checkout, so on an IDLE checkout it names whatever phase was last
+ * settled *here* — not the repo's latest. The IDLE text output drops the
+ * misleading `phase:` line and names the latest settled phase derived from
+ * the working-tree SUMMARY files instead. `activePhase` itself (and so the
+ * `--json` contract) is unchanged; `lastSettledPhase` is additive.
+ */
+describe('status on an IDLE checkout (phase 322, T2)', () => {
+  const PHASE_LINE = /^\s+phase:/m;
+
+  it('322-01/AC-2: IDLE with a stale activePhase + lastSettledPhase → prints last settled, no phase line', () => {
+    const state = emptyState('demo');
+    state.activePhase = '311-old';
+    const r = gatherStatus(state, null, null, null, null, '319-new');
+    expect(r.activePhase).toBe('311-old');
+    expect(r.lastSettledPhase).toBe('319-new');
+    const out = renderStatus(r);
+    expect(out).not.toMatch(PHASE_LINE);
+    expect(out).not.toContain('311-old');
+    expect(out).toMatch(/^ {2}last settled: 319-new$/m);
+    // Same position the phase line used to occupy: directly after the loop line.
+    expect(out).toContain('  loop:  IDLE\n  last settled: 319-new\n');
+  });
+
+  it('322-01/AC-2: IDLE, no settled phase found but a checkout-local activePhase → honest "last phase in this checkout" fallback', () => {
+    const state = emptyState('demo');
+    state.activePhase = '311-old';
+    const r = gatherStatus(state, null, null, null, null, null);
+    expect(r.lastSettledPhase).toBeNull();
+    const out = renderStatus(r);
+    expect(out).not.toMatch(PHASE_LINE);
+    expect(out).not.toMatch(/last settled/);
+    expect(out).toContain('  loop:  IDLE\n  last phase in this checkout: 311-old\n');
+  });
+
+  it('322-01/AC-2: IDLE with neither a settled phase nor an activePhase → no phase-related line at all', () => {
+    const r = gatherStatus(emptyState('demo'), null, null, null, null, null);
+    const out = renderStatus(r);
+    expect(out).not.toMatch(PHASE_LINE);
+    expect(out).not.toMatch(/last settled/);
+    expect(out).not.toMatch(/last phase in this checkout/);
+    expect(out).toContain('  loop:  IDLE\n  profile:');
+  });
+
+  it('322-01/AC-2: IDLE prefers last settled over the checkout-local fallback when both are known', () => {
+    const state = emptyState('demo');
+    state.activePhase = '311-old';
+    const out = renderStatus(gatherStatus(state, null, null, null, null, '319-new'));
+    expect(out).toContain('  last settled: 319-new\n');
+    expect(out).not.toMatch(/last phase in this checkout/);
+  });
+
+  it('322-01/AC-2: lastSettledPhase omitted → gatherStatus defaults it to null (pure, no fabricated value)', () => {
+    const r = gatherStatus(emptyState('demo'), null, null);
+    expect(r.lastSettledPhase).toBeNull();
+    expect(Object.prototype.hasOwnProperty.call(r, 'lastSettledPhase')).toBe(true);
+  });
+
+  it('322-01/AC-2: non-IDLE output is unchanged — phase line kept, no last-settled line', () => {
+    const state = emptyState('demo');
+    state.activePhase = '05-status-command';
+    state.activeDraft = '05-01';
+    state.loopPosition = 'BUILD';
+    state.tier = 'standard';
+    const withLast = renderStatus(
+      gatherStatus(state, baseDraft, progress({ T1: 'DONE' }), null, null, '319-new'),
+    );
+    const without = renderStatus(gatherStatus(state, baseDraft, progress({ T1: 'DONE' })));
+    expect(withLast).toBe(without);
+    expect(withLast).toContain('  loop:  BUILD\n  phase: 05-status-command\n');
+    expect(withLast).not.toMatch(/last settled/);
+    expect(withLast).not.toMatch(/last phase in this checkout/);
+  });
+
+  it('322-01/AC-2: non-IDLE with no activePhase is unchanged too — no phase line and no last-settled line', () => {
+    const state = emptyState('demo');
+    state.loopPosition = 'SPEC';
+    const withLast = renderStatus(gatherStatus(state, null, null, null, null, '319-new'));
+    const without = renderStatus(gatherStatus(state, null, null));
+    expect(withLast).toBe(without);
+    expect(withLast).not.toMatch(/phase:|last settled|last phase in this checkout/);
+  });
+
+  it('322-01/AC-2: loadStatus derives lastSettledPhase from a settled SUMMARY on disk, keeping activePhase', async () => {
+    active = await tempRepo({ initialized: true, projectName: 'idle-last-settled' });
+    const statePath = join(active.root, '.cadence/state.json');
+    const state = JSON.parse(await readFile(statePath, 'utf8'));
+    state.activePhase = '311-old';
+    state.loopPosition = 'IDLE';
+    await writeFile(statePath, JSON.stringify(state, null, 2));
+    const phaseDir = join(active.root, '.cadence/phases/312-new');
+    await mkdir(phaseDir, { recursive: true });
+    await writeFile(
+      join(phaseDir, '312-01-SUMMARY.json'),
+      JSON.stringify({
+        draftId: '312-01',
+        stateAtSettle: { loopPositionBeforeSettle: 'BUILD', revision: 1, sessionSubagentSpawns: 0 },
+      }),
+    );
+    const r = await loadStatus(active.root);
+    expect(r.activePhase).toBe('311-old');
+    expect(r.lastSettledPhase).toBe('312-new');
+    const out = renderStatus(r);
+    expect(out).toMatch(/^ {2}last settled: 312-new$/m);
+    expect(out).not.toMatch(PHASE_LINE);
+  });
+});

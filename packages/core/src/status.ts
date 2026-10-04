@@ -20,6 +20,7 @@ import { effectiveProfile } from './gates/engine.js';
 // documented in the phase 268 DRAFT: the DRAFT authorizes no new module for
 // this task, so the T2 counter is imported directly rather than extracted.
 import { computeConductionDriftStreak, type ConductionDriftStreakResult } from './doctor/run.js';
+import { findLatestSettledPhase } from './phases/latest-settled.js';
 
 export interface ProgressFile {
   draftId: string;
@@ -80,6 +81,15 @@ export interface StatusReport {
    */
   conductionDriftStreak: ConductionDriftStreakStatus | null;
   /**
+   * Phase 322 (T2, AC-2): the latest SETTLED phase derived from the working-tree
+   * phase directories (`findLatestSettledPhase`), or `null` when none is found
+   * or this report didn't compute one. `activePhase` is per-checkout and
+   * survives `settle`, so on an IDLE checkout it names the last phase settled
+   * *here*; this is the repo-wide fact. `gatherStatus` defaults it to `null`
+   * (pure); `loadStatus` always computes it. Additive `--json` field.
+   */
+  lastSettledPhase: string | null;
+  /**
    * Deliberately narrowed to `{command, reason}` (phase 206), not the full
    * `NextAction` return: `nextAction()` now also carries a ranked
    * `legalMoves[]` (phase 206 T1), which is `cadence next`'s surface, not
@@ -133,6 +143,7 @@ export function gatherStatus(
   progress: ProgressFile | null,
   config: Pick<CadenceConfig, 'profile'> | null = null,
   driftStreak: ConductionDriftStreakResult | null = null,
+  lastSettledPhase: string | null = null,
 ): StatusReport {
   const { command, reason } = nextAction(state);
   const base: StatusReport = {
@@ -147,6 +158,7 @@ export function gatherStatus(
     tasks: [],
     acs: [],
     conductionDriftStreak: toDriftStreakStatus(driftStreak),
+    lastSettledPhase,
     next: { command, reason },
   };
   if (!draft) return base;
@@ -261,7 +273,17 @@ export function renderStatus(r: StatusReport): string {
   const out: string[] = [];
   out.push(`CADENCE — ${r.project}`);
   out.push(`  loop:  ${r.loopPosition}`);
-  if (r.activePhase) out.push(`  phase: ${r.activePhase}`);
+  // Phase 322 (T2, AC-2): on IDLE, `activePhase` is only the last phase settled
+  // in this checkout — not current — so name the repo's latest settled phase.
+  // When none is derivable (e.g. SUMMARYs predating `stateAtSettle`), keep the
+  // checkout-local value under an honest label rather than dropping it.
+  if (r.loopPosition !== 'IDLE') {
+    if (r.activePhase) out.push(`  phase: ${r.activePhase}`);
+  } else if (r.lastSettledPhase) {
+    out.push(`  last settled: ${r.lastSettledPhase}`);
+  } else if (r.activePhase) {
+    out.push(`  last phase in this checkout: ${r.activePhase}`);
+  }
   if (r.activeDraft) {
     const title = r.draftTitle ? ` — ${r.draftTitle}` : '';
     out.push(`  draft: ${r.activeDraft}${title}`);
@@ -330,5 +352,8 @@ export async function loadStatus(root: string): Promise<StatusReport> {
   // never throws (T2's doc comment) — no try/catch needed here, unlike the
   // config load above.
   const driftStreak = await computeConductionDriftStreak(root);
-  return gatherStatus(state, draft, progress, config, driftStreak);
+  // Phase 322 (T2, AC-2): best-effort and never throws (T1's contract), like
+  // the drift streak above.
+  const lastSettledPhase = await findLatestSettledPhase(root);
+  return gatherStatus(state, draft, progress, config, driftStreak, lastSettledPhase);
 }

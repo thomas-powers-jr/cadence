@@ -463,7 +463,7 @@ cadence status
 ```
 CADENCE — hello-cadence
   loop:  IDLE
-  phase: 01-add-greeting
+  last settled: 01-add-greeting
   profile: auto
 
 NEXT: cadence draft new <phase> <num> --title=…
