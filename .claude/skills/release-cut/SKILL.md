@@ -54,6 +54,13 @@ test covering them.
   historical and correct as-is; a hit describing *current* state (e.g.
   `DESIGN.md`'s "Current architecture (as of vX.Y.Z)" line, which slipped
   once already in the v1.43.0 cut) needs bumping to the new version.
+- Confirm every phase in the release has both its `### Phase N` heading in
+  `.cadence/ROADMAP.md` and its `- **Phase N**` bullet in
+  `.cadence/MILESTONES.md`, and that none still says `(in progress)`. Do not
+  rely on `cadence doctor`'s `roadmap-currency` check for this: it compares
+  only each file's newest entry against the newest phase directory and warns
+  past a 10-phase drift, so it cannot see a missing entry below either file's
+  newest one.
 - Note anything fixed (or anything left alone with its reason) in the
   release PR body and the handoff.
 

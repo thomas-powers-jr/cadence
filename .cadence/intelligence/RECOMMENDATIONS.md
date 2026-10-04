@@ -1650,3 +1650,22 @@ packages/core/src/doctor/run.ts (~line 1818) pushes the 'session' blocked axis w
 - next: cadence milestone propose
 
 Split from rec-20260926-005. During the phase 317 settle (2026-09-26) with CADENCE_HOST_CLI_BIN pointed at codex.exe, deep-verify completed on host-cli but code-review timed out at DEFAULT_TIMEOUT_MS (180000ms, packages/core/src/verify/host-cli-client.ts) and fell back to mock. CADENCE_HOST_CLI_TIMEOUT_MS (env or .env) already overrides it. Open question: raise the default for the code-review seam, make it per-seam, or only document the override.
+
+## rec-20261004-002 — bug: status/STATE.md/session banner report a stale active phase after phases settle elsewhere
+
+- status: accepted
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 40%
+- decay: fresh
+- areas: state
+- files: packages/core/src/state/simple.ts
+- assumptions: as-20261004-002 (validated), as-20261004-003 (validated)
+- evidence: as-20261004-002: settle.ts:1660-1664 nulls activeDraft/activeTask/tier and sets IDLE, never activePhase; grep of all src assignments -> only draft-new.ts:149 and draft-approve.ts:121 set it, nothing nulls it; only test asserting activePhase null (status.test.ts:54) is on a fresh emptyState, not post-settle -> validated.
+- evidence: as-20261004-003: SUMMARY.json present on main for 312,313,314,316,317,318,319; main state.json activePhase=311, revision 57, draftReadAt 2026-09-17; the only 31[2-9] strings in it are session.lastHandoff and a skillAudit.invoked entry, not loop fields -> validated. Unreproduced inferred risk (not an assumption row): if the primary checkout is left in DRAFT/BUILD while the phase settles in a worktree, after merge progress's BUILD branch reads the merged PROGRESS.json and would suggest 'settle run --auto' for an already-settled phase.
+- evidence: Root cause: as-20261004-002 + as-20261004-003 — settle never clears state.activePhase, and state.json is per-checkout, so status/STATE.md/SessionStart banner show the last phase settled in THAT checkout as if current; phases built in worktrees never update the primary's state. progress's IDLE recommendation is unaffected (next-free phase comes from phase dirs). Fix (no re-tracking of state.json, #177 stands): (1) when loopPosition is IDLE, status/STATE.md/banner derive 'latest settled phase' best-effort from committed *-SUMMARY.json (newest completedAt), labelled as such, instead of printing the stale activePhase as 'phase'; (2) progress/status in DRAFT/BUILD: if the active draft already has a SUMMARY.json, say it was settled elsewhere and suggest the reset path instead of 'settle run'. Note /cadence-progress runs the PATH cadence (global 1.67.1, npm latest 1.68.0), so code fixes reach it only after release + global reinstall.
+- next: cadence milestone propose
+
+settle resets loopPosition/activeDraft/activeTask/tier but leaves state.activePhase set; state.json is per-checkout and gitignored, and phases are built and settled in worktrees, so the primary checkout keeps reporting the last phase settled locally. Repro on main ec706481: cadence status -> 'phase: 311-...', STATE.md 'Active phase: 311-...', SessionStart banner 'Active phase: 311-...', while phases 312-319 are merged. cadence progress's recommendation is currently correct (IDLE; next-free phase 320 derived from phase dirs).

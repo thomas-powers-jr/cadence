@@ -1114,10 +1114,10 @@ changeset (example/test-only change, no published-package surface).*
   behavioral contributor to `runSkillAuditCheck`'s effective-required set with
   per-requirement provenance, and unresolvable enabled packs now hard-refuse at
   settle (rec-20260822-010, #468).
-- **Phase 292** — Packs slice 3 (in progress): union pack-contributed
+- **Phase 292** — Packs slice 3: union pack-contributed
   `gates[].add` deltas into `effectiveGateSet()`'s output at every real call
   site, reflect enabled packs in `cadence config explain`'s current-tier row, and
-  reject non-additive manifest shapes at parse time (rec-20260822-011).
+  reject non-additive manifest shapes at parse time (rec-20260822-011, #469).
 - **Phase 303** — Fixed two coverage-token tests (phases 300, 301) that hard-
   asserted a specific `.changeset/*.md` file exists, which a release's
   `changeset version` step would have permanently broken; extracted a shared
@@ -1155,6 +1155,31 @@ changeset (example/test-only change, no published-package surface).*
 - **Phase 313** — shipped the `systematic-debugging` skill, gated on the
   assumption ledger via `cadence assumption`, giving the ledger its first
   consumer (rec-20260918-002, #519).
+- **Phase 314** — both host adapters' hook shims now pass the hook
+  payload's `cwd` to the `cadence hook` subprocess, falling back to the
+  shim's own cwd when absent or missing, so hooks fired inside a worktree
+  land in that worktree's `.cadence/state.json` (rec-20260918-003, #524).
+- **Phase 316** — checkpoint handoff schema reconcile: `cadence handoff`
+  emits `cadence_handoff: 2` with a required `Open decisions` section, the
+  checkpoint validator selects its section schema by that version, and two
+  drift tests pin generator and validator together (#531).
+- **Phase 317** — hook blocks are delivered as per-event JSON decisions on
+  stdout with exit 0 instead of exit 2, which collapsed to a non-blocking 1
+  under `powershell.exe` on Windows; adds `doctor`'s `hook-transport` check
+  (rec-20260925-001, #541).
+- **Phase 318** — Claude Code hook routing now forwards subagent
+  `agentId`/`agentType`, making the subagent baseline, per-subagent edit
+  tracking, and the `SubagentStop` safety net reachable through the real
+  hook path (rec-20260926-001, #540).
+- **Phase 319** — the host-cli provider launches npm-installed host CLIs on
+  Windows without a shell, resolving the configured bin native-first
+  (`.com`/`.exe`, then npm `.cmd` launchers run with Node), so
+  `CADENCE_HOST_CLI_BIN=codex` no longer falls back to mock
+  (rec-20260926-005, #543).
+- **Phase 320** — successful settle prints a best-effort stderr notice when
+  the settled phase has no ROADMAP/MILESTONES entry, the `phase-build` and
+  `release-cut` checklists name both entries, and a record-integrity test
+  requires them for every settled phase from 314 on (rec-20261004-001).
 - **Phase 321** — retargeted the stale `brace-expansion` 5.x override to
   the range key `brace-expansion@^5.0.0` → `^5.0.11` (resolving 5.0.12) and
   time-boxed an operator-approved exception for the unpatched `braces`

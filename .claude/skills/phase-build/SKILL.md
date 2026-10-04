@@ -56,10 +56,21 @@ before it is recorded.
    pass catches real defects the per-task reviews miss (an ordering bug, doc
    prose describing a pre-fix algorithm, stale code comments) — do not skip
    it for "simple" phases.
-7. **Settle, one commit.** Run `cadence settle run --auto` — if it refuses,
+7. **Settle, one commit.** First write the phase's `### Phase N — <title>`
+   entry in `.cadence/ROADMAP.md` and its `- **Phase N** — <summary>` bullet
+   in `.cadence/MILESTONES.md`, in final form — no `(in progress)` marker
+   (the PR number may be absent until merge). Roadmap prose is never
+   auto-generated: a successful settle only prints a stderr notice naming a
+   missing entry. In this repo `roadmap-per-phase-entries.test.ts` requires
+   both entries for every settled phase (one whose directory holds a
+   `-SUMMARY.json`), so a missing entry turns the PR's CI red — and after a
+   refused settle has written its SUMMARY, the retry's `build-test-must-pass`
+   too. Then run
+   `cadence settle run --auto` — if it refuses,
    the gate is right until proven otherwise; fix the cause, don't reach for
    `--force`/`--allow-*`. Once it passes, stage everything together — source,
-   tests, docs, the `.changeset/*.md` for this phase (feature PRs carry their
+   tests, docs, the ROADMAP/MILESTONES entries, the `.changeset/*.md` for this
+   phase (feature PRs carry their
    own changeset, never deferred to the release PR), and the phase artifacts
    (`-DRAFT.md`, `-PROGRESS.json`, `-SUMMARY.*`, and `-SUMMARY-snapshot.*`
    if the phase produced any refused-attempt siblings — phase 247) —

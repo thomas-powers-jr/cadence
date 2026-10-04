@@ -14,6 +14,7 @@ import type {
 import { TaskStatusZ, defaultConfig } from '@thomas-powers-jr/cadence-types';
 import { nextAction } from '../progress.js';
 import { phaseNumber } from '../phases/collision.js';
+import { missingRoadmapEntries, type RoadmapEntryFile } from '../roadmap/phase-entry.js';
 import { assertSafePhaseSlug } from '../phases/id.js';
 import { assertNoPhaseCollision } from '../phases/guard.js';
 import { parseDraftMd } from '../parse/draft-parser.js';
@@ -1665,6 +1666,8 @@ async function finalizeAndCloseSettle(
   await backend.commit(state);
   io.out(`Settled ${draftId}\n`);
 
+  await noteMissingRoadmapEntries(cwd, activePhase, io);
+
   // Phase 174: the interactive GitHub-issue offer runs AFTER the state
   // commit, deliberately — an open prompt sitting between the SUMMARY write
   // and the commit would let a Ctrl-C strand the loop mid-BUILD despite a
@@ -1690,6 +1693,53 @@ async function finalizeAndCloseSettle(
   }
 
   return { exitCode: 0, data: { settled: draftId, acResults: acResultsWithEvidence } };
+}
+
+/**
+ * Phase 320 (T2, rec-20261004-001): after a successful settle, name on
+ * stderr each roadmap file that uses its phase convention but has no entry
+ * for the settled phase. Detection only — roadmap prose is never
+ * auto-generated (phase 259), so nothing is written. Best-effort observer:
+ * each file is read independently (absent/unreadable → null, so one bad file
+ * never hides the other's genuine miss), and the outer catch swallows every
+ * error so this can never throw, change the exit code, or touch stdout.
+ */
+async function noteMissingRoadmapEntries(
+  cwd: string,
+  activePhase: string,
+  io: CommandIO,
+): Promise<void> {
+  try {
+    const n = phaseNumber(activePhase);
+    if (n === null) return;
+    const readOrNull = async (file: RoadmapEntryFile): Promise<string | null> => {
+      try {
+        return await readFile(join(cwd, '.cadence', file), 'utf8');
+      } catch {
+        return null;
+      }
+    };
+    const missing = missingRoadmapEntries({
+      phaseNumber: n,
+      roadmapText: await readOrNull('ROADMAP.md'),
+      milestonesText: await readOrNull('MILESTONES.md'),
+    });
+    if (missing.length === 0) return;
+    const forms: string[] = [];
+    if (missing.includes('ROADMAP.md')) {
+      forms.push(`a "### Phase ${n} — <title>" heading to .cadence/ROADMAP.md`);
+    }
+    if (missing.includes('MILESTONES.md')) {
+      forms.push(`a "- **Phase ${n}** — <summary>" bullet to .cadence/MILESTONES.md`);
+    }
+    io.err(
+      `note: phase ${n} has no roadmap entry in ${missing.join(' and ')} — add ` +
+        `${forms.join(' and/or ')} before committing this settle ` +
+        `(roadmap prose is never auto-generated).\n`,
+    );
+  } catch {
+    // best-effort: a roadmap observation failure never affects settle.
+  }
 }
 
 /**
