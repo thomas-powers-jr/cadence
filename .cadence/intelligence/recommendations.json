@@ -975,12 +975,13 @@
       "affectedFiles": [],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260802-017"
+        "ev-20260802-017",
+        "ev-20261004-013"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-08-02T23:10:39.572Z",
-      "updatedAt": "2026-08-02T23:10:39.572Z"
+      "updatedAt": "2026-10-04T20:36:40.389Z"
     },
     {
       "id": "rec-20260802-006",
@@ -3063,12 +3064,13 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20261004-012"
+        "ev-20261004-012",
+        "ev-20261004-014"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-10-04T17:31:33.898Z",
-      "updatedAt": "2026-10-04T18:53:09.141Z"
+      "updatedAt": "2026-10-04T20:36:41.053Z"
     },
     {
       "id": "rec-20261004-007",
@@ -10600,11 +10602,11 @@
       ],
       "decisionIds": [],
       "convertedToPhaseId": "322-idle-status-names-the-latest-settled-phase",
-      "createdAt": "2026-10-04T14:53:36.584Z",
-      "updatedAt": "2026-10-04T19:03:15.001Z",
       "shippedRef": "phase 322 (322-01 settled 2026-10-04)",
       "archivedAt": "2026-10-04T19:03:15.001Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-04T14:53:36.584Z",
+      "updatedAt": "2026-10-04T19:03:15.001Z"
     }
   ]
 }
