@@ -193,7 +193,7 @@ function satisfiesRange(version, range) {
  * `unresolved-target` as long as ANY one of its targets' major lines
  * resolves somewhere in the lockfile, even if a different sibling target for
  * that same package matches nothing. Today's real committed config has such
- * a pair (`brace-expansion@5.0.6` and `brace-expansion@^2.0.0`); only the
+ * a pair (`brace-expansion@^5.0.0` and `brace-expansion@^2.0.0`); only the
  * first currently resolves, and the second is deliberately still not flagged
  * by this check for that reason — tightening this to per-target granularity
  * would report it and break CI (`lockfile-overrides-current-state.test.ts`

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "draftId": "321-01",
+  "completedAt": "2026-10-04T16:45:10.830Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Re-verified: diff limited to override + brace-expansion lockfile lines; check-lockfile-overrides.mjs exit 0; tests/docs 42 files pass; Opus review APPROVE (frozen-lockfile byte-identical under pnpm 9.12.0, mutation replay). Follow-up (not this phase): ^2.x floor 2.1.4 also below advisory fix — file rec on main."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Re-verified: phase321 + security-ci 56 pass; Opus review APPROVE (live audit via script's own functions: only braces high, allowed until 2026-11-18; 6 doc mutants all caught). Applied minors: multi-path wording in row/changeset/ROADMAP; test also asserts both unblock conditions and dev-only scope. Live script cannot spawn corepack on Windows — Linux CI is the gate run."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Changeset + ROADMAP/MILESTONES 321 entries; additive only (no removed lines); tests/docs 42 files pass; covered by whole-branch review."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 16,
+    "sessionSubagentSpawns": 4
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 3,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "4e3088c01a926a97397e24da8adf37b782c9f678a29705588da067f71f597aa1"
+  }
+}
