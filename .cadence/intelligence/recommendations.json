@@ -2966,6 +2966,38 @@
       "decisionIds": [],
       "createdAt": "2026-09-27T17:51:19.844Z",
       "updatedAt": "2026-09-27T17:51:19.844Z"
+    },
+    {
+      "id": "rec-20261004-002",
+      "title": "bug: status/STATE.md/session banner report a stale active phase after phases settle elsewhere",
+      "summary": "settle resets loopPosition/activeDraft/activeTask/tier but leaves state.activePhase set; state.json is per-checkout and gitignored, and phases are built and settled in worktrees, so the primary checkout keeps reporting the last phase settled locally. Repro on main ec706481: cadence status -> 'phase: 311-...', STATE.md 'Active phase: 311-...', SessionStart banner 'Active phase: 311-...', while phases 312-319 are merged. cadence progress's recommendation is currently correct (IDLE; next-free phase 320 derived from phase dirs).",
+      "source": "manual",
+      "status": "accepted",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "state"
+      ],
+      "affectedFiles": [
+        "packages/core/src/state/simple.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261004-004",
+        "ev-20261004-005",
+        "ev-20261004-007"
+      ],
+      "assumptionIds": [
+        "as-20261004-002",
+        "as-20261004-003"
+      ],
+      "decisionIds": [],
+      "createdAt": "2026-10-04T14:53:36.584Z",
+      "updatedAt": "2026-10-04T14:54:51.660Z"
     }
   ],
   "archived": [
@@ -10396,10 +10428,46 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "319-win32-host-cli-binary-resolution",
-      "createdAt": "2026-09-26T19:22:06.582Z",
-      "updatedAt": "2026-09-28T00:05:55.252Z",
       "shippedRef": "phase 319 (win32 host-cli binary resolution), PR pending",
       "archivedAt": "2026-09-28T00:05:55.252Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-26T19:22:06.582Z",
+      "updatedAt": "2026-09-28T00:05:55.252Z"
+    },
+    {
+      "id": "rec-20261004-001",
+      "title": "bug: ROADMAP.md/MILESTONES.md repeatedly fall behind settled phases",
+      "summary": "No step of the draft/build/settle loop reads or writes ROADMAP.md/MILESTONES.md; the only detector (doctor roadmap-currency, phase 259) warns only past a 10-phase drift and is never run at settle. Drift accumulates until a test trips, then gets hand-backfilled. Repro on main ec706481: ROADMAP last '### Phase' heading is 313 while phase dirs exist through 319 (314,316,317,318,319 missing); 292/303 still marked '(in progress)'.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.4,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "roadmap"
+      ],
+      "affectedFiles": [
+        ".claude/skills/phase-build/SKILL.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261004-001",
+        "ev-20261004-002",
+        "ev-20261004-003",
+        "ev-20261004-006"
+      ],
+      "assumptionIds": [
+        "as-20261004-001"
+      ],
+      "decisionIds": [],
+      "convertedToPhaseId": "320-settle-names-a-missing-roadmap-entry",
+      "createdAt": "2026-10-04T14:53:09.376Z",
+      "updatedAt": "2026-10-04T15:44:11.858Z",
+      "shippedRef": "phase 320 (settle names a missing roadmap entry), this commit",
+      "archivedAt": "2026-10-04T15:44:11.858Z",
       "archiveReason": "shipped"
     }
   ]

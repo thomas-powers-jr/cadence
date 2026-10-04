@@ -1,0 +1,44 @@
+{
+  "draftId": "320-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Re-verified in main thread: 15/15 tests (coverage disabled for single-file run), tsc + eslint clean; independent Opus review APPROVE; added lastIndex-leak and slice-heading tests from review minors.",
+      "touchedFiles": [
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/roadmap/phase-entry.ts",
+        "packages/core/tests/cli/settle-roadmap-notice.test.ts",
+        "packages/core/tests/docs/roadmap-per-phase-entries.test.ts",
+        "packages/core/tests/roadmap/phase-entry.test.ts"
+      ],
+      "updatedAt": "2026-10-04T15:12:02.644Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Re-verified in main thread: build + settle-roadmap-notice (6/6) + settle.test (15/15 combined); independent Opus review APPROVE; pinned refused-settle test to evidence-floor refusal per review; decimal-slug limitation recorded as As built.",
+      "touchedFiles": [
+        ".claude/skills/phase-build/SKILL.md",
+        ".claude/skills/release-cut/SKILL.md",
+        "docs/cli.md",
+        "docs/reference/commands.md",
+        ".changeset/roadmap-entry-at-settle.md",
+        "packages/core/tests/docs/roadmap-entry-checklist.test.ts"
+      ],
+      "updatedAt": "2026-10-04T15:20:16.075Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Re-verified: tests/docs 256 pass; Opus review CHANGES NEEDED fixed (320 As built no longer pre-claims as-designed; 317 phase-collision bypass, 316 amendment, 314 #523 detour added; As built + MILESTONES 292 assertions added); facts spot-checked vs 319 SUMMARY and 5363da21 body.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-04T15:23:25.520Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Re-verified: tests/docs + io + roadmap + notice 284 pass; Opus review CHANGES NEEDED fixed (per-phase test now requires settled phases only so mid-build suites stay green; staging-list assertion; doctor blind-spot wording; slice wording); notice example byte-checked by reviewer.",
+      "touchedFiles": [
+        "packages/core/tests/intelligence/store/io.test.ts"
+      ],
+      "updatedAt": "2026-10-04T15:30:17.317Z"
+    }
+  }
+}

@@ -866,6 +866,24 @@ The three modes are mutually exclusive.
 `--force` overrides `--auto`'s refusal when ACs are incomplete but does not
 bypass other gates. See [docs/concepts.md — The gate universe](../concepts.md#the-gate-universe).
 
+**Missing roadmap entry notice** — after a successful settle, `settle run`
+checks the number of the phase whose slice it just settled against `.cadence/ROADMAP.md` (`### Phase N`
+headings) and `.cadence/MILESTONES.md` (`- **Phase N**` bullets). When a file
+uses that convention but has no entry for this phase, one `note:` line on
+stderr names the phase, each missing file, and the expected heading or bullet
+form, so the entry can be added before the settle is committed:
+
+```
+note: phase 7 has no roadmap entry in ROADMAP.md and MILESTONES.md — add a "### Phase 7 — <title>" heading to .cadence/ROADMAP.md and/or a "- **Phase 7** — <summary>" bullet to .cadence/MILESTONES.md before committing this settle (roadmap prose is never auto-generated).
+```
+
+Roadmap prose is never auto-generated: the check only reads, never writes
+either file. Each file is judged on its own, and a file that is absent,
+unreadable, or uses no phase convention (such as the `cadence init` stub)
+contributes nothing. Best-effort: it never blocks or fails the settle, never
+writes to stdout, and is not a gate — it adds no `SUMMARY.json` field and no
+`gateBypasses` entry. A refused settle prints no notice. (Phase 320)
+
 **Exit codes** — exits non-zero when any gate refuses and the corresponding
 `--allow-*` flag is not supplied.
 

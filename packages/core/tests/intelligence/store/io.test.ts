@@ -127,13 +127,22 @@ describe("Phase 220 T8 (AC-5): this repo's real intelligence ledgers parse to a 
     expect(milestones.milestones.every((m) => m.id.startsWith('mil-'))).toBe(true);
   });
 
-  it('assumptions.json (absent in this repo) falls back to a valid empty ledger rather than throwing', async () => {
-    // This repo has never recorded a Praxis assumption on disk (ASSUMPTIONS.md
-    // exists from a prior render, but assumptions.json does not) — exercises
-    // readLedger's missing-file branch against a real repo layout rather than
-    // a synthetic fixture.
-    expect(existsSync(assumptionsPath(REPO_ROOT))).toBe(false);
-    expect(await readAssumptionLedger(REPO_ROOT)).toEqual(emptyAssumptionLedger());
+  it('assumptions.json, when absent, falls back to a valid empty ledger rather than throwing', async () => {
+    // Originally pinned against this repo, which had never recorded an
+    // assumption. Phase 320 committed the first real debugging trail
+    // (as-20261004-*, systematic-debugging skill), so the missing-file branch
+    // is now exercised against a fresh repo instead.
+    active = await tempRepo();
+    expect(existsSync(assumptionsPath(active.root))).toBe(false);
+    expect(await readAssumptionLedger(active.root)).toEqual(emptyAssumptionLedger());
+  });
+
+  it("this repo's real assumptions.json parses identically to its raw on-disk JSON", async () => {
+    const raw = await readFile(assumptionsPath(REPO_ROOT), 'utf8');
+    const assumptions = await readAssumptionLedger(REPO_ROOT);
+    expect(assumptions).toEqual(JSON.parse(raw));
+    expect(assumptions.assumptions.length).toBeGreaterThan(0);
+    expect(assumptions.assumptions.every((a) => a.id.startsWith('as-'))).toBe(true);
   });
 });
 
@@ -182,7 +191,7 @@ describe('Phase 220 T8 (AC-6): read -> write round-trip on real ledger data is i
     expect(secondBytes).toBe(firstBytes);
   });
 
-  it('assumptions: round-trip reproduces the read value (empty ledger, since this repo has none on disk), and a second write is byte-identical', async () => {
+  it('assumptions: round-trip reproduces the read value, and a second write is byte-identical', async () => {
     active = await tempRepo();
     const assumptions = await readAssumptionLedger(REPO_ROOT);
 

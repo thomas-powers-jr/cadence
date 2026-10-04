@@ -2732,6 +2732,55 @@
       "kind": "note",
       "summary": "Phase 317 settle 2026-09-26: code-review host-cli call timed out after 180000ms and fell back to mock while deep-verify (diffBytes 95114) completed.",
       "createdAt": "2026-09-27T17:51:19.844Z"
+    },
+    {
+      "id": "ev-20261004-001",
+      "recommendationId": "rec-20261004-001",
+      "kind": "note",
+      "summary": "Reproduction: on main ec706481, grep '^### Phase [0-9]+' .cadence/ROADMAP.md -> highest is 313 (line 3091); ls .cadence/phases -> 314,316,317,318,319 present with no ROADMAP entry. Phases 292 and 303 headings still say '(in progress)'. Phase 315 is not a gap (scoped, never built, #526).",
+      "createdAt": "2026-10-04T14:53:16.893Z"
+    },
+    {
+      "id": "ev-20261004-002",
+      "recommendationId": "rec-20261004-001",
+      "kind": "note",
+      "summary": "Prior recurrences, all fixed by hand-backfill: PR #321 (113-phase/6-week drift), PR #523 (backfill through 313, after phase 314 tripped phase271-record-integrity drift<=10), phase 303 inline patch. Related symptom-level recs still open: rec-20260811-005 (239-241 missing headings), rec-20260815-004 (271-280 gap). This anchor targets the cause, not another backfill.",
+      "createdAt": "2026-10-04T14:53:17.497Z"
+    },
+    {
+      "id": "ev-20261004-003",
+      "recommendationId": "rec-20261004-001",
+      "kind": "note",
+      "summary": "as-20261004-001: grep -rlE 'ROADMAP|MILESTONES' packages/core/src filtered to settle|build|draft|approve|dispatch|done|record -> no files; write calls to either file in all of src -> only init.ts:610-611 (stub); grep .claude/skills/*/SKILL.md -> no skill mentions either file -> validated.",
+      "createdAt": "2026-10-04T14:53:36.003Z"
+    },
+    {
+      "id": "ev-20261004-004",
+      "recommendationId": "rec-20261004-002",
+      "kind": "note",
+      "summary": "as-20261004-002: settle.ts:1660-1664 nulls activeDraft/activeTask/tier and sets IDLE, never activePhase; grep of all src assignments -> only draft-new.ts:149 and draft-approve.ts:121 set it, nothing nulls it; only test asserting activePhase null (status.test.ts:54) is on a fresh emptyState, not post-settle -> validated.",
+      "createdAt": "2026-10-04T14:54:04.251Z"
+    },
+    {
+      "id": "ev-20261004-005",
+      "recommendationId": "rec-20261004-002",
+      "kind": "note",
+      "summary": "as-20261004-003: SUMMARY.json present on main for 312,313,314,316,317,318,319; main state.json activePhase=311, revision 57, draftReadAt 2026-09-17; the only 31[2-9] strings in it are session.lastHandoff and a skillAudit.invoked entry, not loop fields -> validated. Unreproduced inferred risk (not an assumption row): if the primary checkout is left in DRAFT/BUILD while the phase settles in a worktree, after merge progress's BUILD branch reads the merged PROGRESS.json and would suggest 'settle run --auto' for an already-settled phase.",
+      "createdAt": "2026-10-04T14:54:31.856Z"
+    },
+    {
+      "id": "ev-20261004-006",
+      "recommendationId": "rec-20261004-001",
+      "kind": "note",
+      "summary": "Root cause: as-20261004-001 — no step of the loop (code or skill checklist) reads or writes ROADMAP.md/MILESTONES.md, and the only detector (doctor roadmap-currency, phase 259) is warn-only, runs only when doctor is invoked, and keys on a 10-phase max-drift that cannot see in-range gaps or stale '(in progress)' markers. Phase 259 records that roadmap prose must never be auto-generated, so the fix is detection at the right moment, not generation. Fix: (1) phase-build step 7 + release-cut doc-sync list the ROADMAP/MILESTONES entry (add heading, flip '(in progress)' to the PR) as part of the single settle commit; (2) settle prints a best-effort stderr notice when the settled phase number has no '### Phase N' heading in ROADMAP.md or no '- **Phase N**' bullet in MILESTONES.md (per-phase, never blocks, never writes); (3) one-off docs PR backfilling 314,316-319 and fixing 292/303 markers; later: opt-in roadmap-entry gate (engine.ts + docs/concepts.md together).",
+      "createdAt": "2026-10-04T14:54:49.942Z"
+    },
+    {
+      "id": "ev-20261004-007",
+      "recommendationId": "rec-20261004-002",
+      "kind": "note",
+      "summary": "Root cause: as-20261004-002 + as-20261004-003 — settle never clears state.activePhase, and state.json is per-checkout, so status/STATE.md/SessionStart banner show the last phase settled in THAT checkout as if current; phases built in worktrees never update the primary's state. progress's IDLE recommendation is unaffected (next-free phase comes from phase dirs). Fix (no re-tracking of state.json, #177 stands): (1) when loopPosition is IDLE, status/STATE.md/banner derive 'latest settled phase' best-effort from committed *-SUMMARY.json (newest completedAt), labelled as such, instead of printing the stale activePhase as 'phase'; (2) progress/status in DRAFT/BUILD: if the active draft already has a SUMMARY.json, say it was settled elsewhere and suggest the reset path instead of 'settle run'. Note /cadence-progress runs the PATH cadence (global 1.67.1, npm latest 1.68.0), so code fixes reach it only after release + global reinstall.",
+      "createdAt": "2026-10-04T14:54:50.516Z"
     }
   ]
 }

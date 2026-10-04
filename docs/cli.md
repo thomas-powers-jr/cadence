@@ -273,6 +273,17 @@ gate when the active profile would normally enforce it.
 For a full explanation of which gates fire in which profile × tier cell, see
 [docs/concepts.md — Gate matrix](concepts.md#the-gate-universe).
 
+### Missing roadmap entry notice
+
+After a successful settle, `settle run` prints one `note:` line on stderr when
+the phase whose slice it just settled has no `### Phase N` heading in `.cadence/ROADMAP.md` or no
+`- **Phase N**` bullet in `.cadence/MILESTONES.md`. The note names each missing
+file and the form to add, so you can write the entry before committing the
+settle — roadmap prose is never auto-generated. It is best-effort and only a
+notice: it never blocks the settle and never writes either file. A file that is
+absent, unreadable, or uses no phase convention (such as the `cadence init`
+stub) is skipped silently.
+
 ---
 
 ## status — inspect loop state

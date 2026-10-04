@@ -2920,7 +2920,7 @@ settle-time refusal for an enabled-but-unresolvable pack, per
 
 **As built (2026-08-22).** Shipped as designed. PR #468.
 
-### Phase 292 — Packs slice 3: tighten-only gate-profile deltas via `effectiveGateSet` (rec-20260822-011) *(in progress)*
+### Phase 292 — Packs slice 3: tighten-only gate-profile deltas via `effectiveGateSet` (rec-20260822-011) (#469)
 
 **Objective.** Make a pack's declared `gates[].add` deltas actually enforce:
 union pack-contributed gates into `effectiveGateSet()`'s output at every real
@@ -2930,7 +2930,14 @@ table stays raw, and regression-test that a non-additive manifest shape is
 rejected at parse time — completing Packs Slice 3 per `docs/packs-design.md`
 §4b/§7 and rec-20260822-011.
 
-### Phase 303 — Changeset-existence coverage tests survive release consumption (rec-20260916-002) *(in progress)*
+**As built (2026-08-23).** Shipped with two as-built DRAFT amendments from the
+whole-branch review: the `config explain` AC's assumed second current-tier
+rendering does not exist (the divergence surfaces via the
+`packs-augment-current-tier` warning instead), and T1–T3's `files:` lines were
+corrected after `cadence build task`'s boundary gate refused on real drift.
+PR #469.
+
+### Phase 303 — Changeset-existence coverage tests survive release consumption (rec-20260916-002) (#496)
 
 **Objective.** Phase 300's and phase 301's coverage-token tests each satisfied
 their meta-AC (under `coverageMode: assertion` + `coverageScheme:
@@ -2943,6 +2950,12 @@ the package, or — post-consumption — `packages/core/CHANGELOG.md` contains a
 discriminator string pinned per fix and verified (by live grep during
 drafting) to have zero pre-existing hits, so the fallback stays meaningful
 rather than hollow.
+
+**As built (2026-09-16).** Shipped with two as-built DRAFT notes: T2's literal
+"delete the changeset files" check could only half-simulate a release, so it
+was verified equivalently instead; and creating phase 303's own directory
+tripped `phase271-record-integrity`'s 10-phase drift bound, so this phase added
+its own ROADMAP/MILESTONES entries (not a 293–302 backfill). PR #496.
 
 ### Phase 304 — `profileRemediationHint` enumerates reachable cells via `effectiveGateSet`, packs-aware (#498)
 
@@ -3102,6 +3115,141 @@ not an engine-enforced refusal the way settle refuses a phase — that
 distinction is stated explicitly, not glossed.
 
 **As built (2026-09-18).** Shipped as designed. PR #519.
+
+### Phase 314 — Hook shim subprocess spawns pass through the payload's cwd (rec-20260918-003) (#524)
+
+**Objective.** Both host adapters' hook shims (`host-claude-code`,
+`host-codex`) spawned `cadence hook <event>` without an explicit `cwd`, so the
+child inherited the shim's own `process.cwd()` — observed live in phase 313,
+where a Skill-tool invocation inside a worktree was recorded into the primary
+checkout's `.cadence/state.json`, making `skillAudit.required` effectively
+unresumable inside a worktree without a manual `cadence hook skill-invoke`
+workaround. Both shims now extract `cwd` from the parsed stdin payload and pass
+it to `spawn()`, falling back to the shim's own `process.cwd()` when the field
+is absent or names a directory that no longer exists, and print a one-line
+stderr notice when the payload's `cwd` exists and differs from the shim's — the
+empirical signal for whether Claude Code's hook subprocess cwd follows a
+worktree, a question deliberately left open rather than settled from ambiguous
+documentation.
+
+**As built (2026-09-18).** Shipped as designed; the bug was hit and worked
+around live during this phase's own build via the documented
+`cadence hook skill-invoke` workaround. The phase's own new directory also
+tipped the pre-existing roadmap-currency drift test past its 10-phase
+threshold, resolved by the separate ROADMAP/MILESTONES backfill PR #523 —
+the drift pattern phase 320 later addressed. PR #524.
+
+### Phase 316 — Checkpoint handoff schema reconcile, version-gated (#531)
+
+**Objective.** Checkpoint arc Phase 1.5: the private `packages/checkpoint`
+validator required eight sections while `cadence handoff`'s generator emitted
+six, so every real SESSION doc failed validation (`SECTION_MISSING` on
+`Acceptance criteria touched` and `Open decisions`). Implemented the operator's
+D-BI hybrid as version-gating on the frontmatter `cadence_handoff:` field: the
+generator moves to `cadence_handoff: 2` and emits a required `## Open
+decisions` section; v1 docs validate against the frozen six-section list; v2
+docs and docs with no frontmatter validate against the new list; `Acceptance
+criteria touched` becomes optional; an unsupported version returns
+`HANDOFF_VERSION_UNSUPPORTED`. Two drift tests (renderer headers vs. the
+validator's v2 list, and an AC-id grammar corpus across core, types, and
+checkpoint) keep the two sides from diverging silently. Declared tier
+`complex` so `deep-verify` and `code-review` actually fire.
+
+**As built (2026-09-24).** Shipped as designed, with one build-time DRAFT
+amendment (T5 also allowlisted the new handoff doc in
+`npm-scope-sweep.test.ts`). A first settle attempt was
+refused by a mock-fallback `code-review` flagging `console.log` in a committed
+handoff doc; the re-run settled at tier complex with real `deep-verify` and
+`code-review` via Codex (host-cli). Per-task review fixed an AC-id regex gap
+(a stray closing `**` accepted by checkpoint but rejected by core and types)
+before settle. The version-downgrade vector and other Phase 3 preconditions are
+recorded in `docs/checkpoint/REPORT-checkpoint-phase-1.5.md`. PR #531.
+
+### Phase 317 — Hook blocks delivered as per-event JSON decisions on stdout, exit 0 (rec-20260925-001) (#541)
+
+**Objective.** Every `ok: false` a CADENCE hook handler returns is now
+delivered to the host as a per-event JSON decision on stdout with exit `0`
+(`dec-20260925-001`) — `PreToolUse` `permissionDecision: "deny"` and top-level
+`decision: "block"` for `Stop`/`SubagentStop` — replacing the
+`process.exitCode = 2` transport that checkpoint Phase 0.4a proved collapses to
+a non-blocking `1` on Windows when a hook is spawned through `powershell.exe`.
+Adds a `cadence doctor` `hook-transport` check, a Windows PowerShell
+full-chain fixture, and Codex relay tests. `SubagentStop`'s block shape is
+pinned by a direct unit test as a scope choice; Claude Code's real-host path
+became reachable with phase 318, and Codex's gap is tracked as
+rec-20260926-003.
+
+**As built (2026-09-26).** Shipped with as-built DRAFT notes (stale-scope test
+fixtures now built from the exported `STALE_NPM_SCOPE` sentinel; two docs still
+describing hook blocks as exit 2 corrected). `deep-verify` ran on host-cli
+(Codex); the in-loop `code-review` timed out and fell back to mock, recorded as
+skipped/abstained, so the code review of record is a manual Codex whole-branch
+review plus fresh-context Opus per-task reviews. Both `draft new` and `settle`
+ran with `--allow-phase-collision` — the only claimant was the stacked 318
+worktree, which inherited 317's phase directory through git history — a
+bypass recorded only in the merge commit body, not in `SUMMARY.json`. PR #541.
+
+### Phase 318 — Forward subagent `agentId`/`agentType` through Claude Code hook routing (rec-20260926-001) (#540)
+
+**Objective.** `host-toolkit`'s `routeHookEvent` extracted `agentId`/`agentType`
+from Claude Code's snake_case `agent_id`/`agent_type` but copied only
+`files`/`skill` into the translated stdin, so core's `cadence hook` (camelCase
+only) always saw `ctx.agentId === undefined` — silently disabling
+`handleSubagentStart`'s baseline snapshot and "do not redo" nudge, per-subagent
+`touchedFiles` tracking, and `handleSubagentResult`'s `SubagentStop` safety net
+in both `warn` and `block` mode. The adapter's translation step now copies both
+fields, and `host-claude-code` declares `agentIdentification: true`. Codex's
+agent-identity gap stays a separate recommendation (rec-20260926-003).
+
+**As built (2026-09-27).** Shipped as designed. Settled with all four ACs on
+executed evidence (assurance `mixed`; no AI gate in the gate set);
+independent review was a manual Codex whole-branch review plus Opus
+per-task reviews, both recorded in the phase directory. PR #540.
+
+### Phase 319 — host-cli launches npm-installed CLIs on Windows without a shell (rec-20260926-005) (#543)
+
+**Objective.** `host-cli-client.ts`'s `realSpawn` called `spawn(bin, args)`
+with no shell, so on win32 a bare `codex` (npm's `codex.cmd` launcher) failed
+`ENOENT` and `codex.cmd` threw `EINVAL`, both surfacing as a loud fallback to
+`mock` — the documented `CADENCE_HOST_CLI_BIN=codex` workflow never produced a
+real review on Windows. The configured bin is now resolved on win32 inside the
+real spawn seam only, launching an `.exe`/`.com` directly or running an npm
+`.cmd` launcher's JavaScript target with Node — never `shell: true` — while
+family inference, the self-invocation guard, and error messages keep using
+the configured bin.
+
+**As built (2026-09-27).** Shipped with an operator-approved AC-1 amendment:
+the T2 independent review proved a PATHEXT-ordered first match regressed the
+default `claude` bin versus pre-319 `spawn`, so resolution is two-pass
+(`.com`/`.exe` across every PATH directory first, then `.bat`/`.cmd` by PATH ×
+PATHEXT); the cwd and relative PATH entries are never searched, and non-npm
+launchers whose targets escape the shim directory are refused. Settled with
+`deep-verify` on real Codex via host-cli and `build-test-must-pass` bypassed
+via `--allow-failing-build` (recorded in the SUMMARY's gate provenance; the
+settle commit cites rec-20260927-003). PR #543.
+
+### Phase 320 — Settle names a missing roadmap entry (rec-20261004-001)
+
+**Objective.** Stop `.cadence/ROADMAP.md` and `.cadence/MILESTONES.md` from
+silently falling behind settled phases: no step of the loop read or wrote
+either file, and `cadence doctor`'s warn-only `roadmap-currency` check keys on
+a 10-phase max-drift that cannot see in-range gaps. Without auto-generating
+roadmap prose (phase 259), adds a best-effort, non-blocking stderr notice at
+successful settle naming the settled phase's missing entries, checklist lines
+in the `phase-build` and `release-cut` skills, a one-off backfill of phases 314
+and 316–320 plus the stale `(in progress)` markers on 292 and 303, and a repo
+record-integrity test requiring both entries for every on-disk phase numbered
+314 or higher.
+
+**As built (2026-10-04).** Shipped with as-built DRAFT notes: the
+MILESTONES.md `Phase 292` bullet's stale `(in progress)` marker was fixed too;
+the per-phase test requires entries only for settled phases (a directory
+holding a `-SUMMARY.json`), since requiring them from `draft new` onward would
+turn every mid-build re-verification red (independent review finding); the
+phase also committed its own diagnosis — the first `cadence assumption` rows —
+which retired a test premise that this repo had none; and decimal-slug
+phases (`23.1-x`) are checked as their integer phase, a recorded limitation
+since none exist today.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
