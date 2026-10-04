@@ -21,7 +21,7 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
   const packageJson = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8'));
   const lockfileText = readFileSync(LOCKFILE, 'utf8');
 
-  it("names the corrected patched-floor targets in package.json's pnpm.overrides (253-01/AC-1)", () => {
+  it("names the corrected patched-floor targets in package.json's pnpm.overrides (253-01/AC-1, 321-01/AC-1)", () => {
     const targets = extractOverrideTargets(packageJson);
 
     // fast-uri: retargeted to the real patched floor -- for real this time.
@@ -33,8 +33,15 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // silent-no-op stale key this very file exists to guard against. Phase 297
     // uses a RANGE key so it cannot rot the same way on the next bump.
     expect(targets).toContainEqual({ package: 'fast-uri', sourceVersion: '<3.1.6', range: '^3.1.6' });
-    // brace-expansion 5.x line: retargeted to the real patched floor.
-    expect(targets).toContainEqual({ package: 'brace-expansion', sourceVersion: '5.0.6', range: '^5.0.9' });
+    // brace-expansion 5.x line: retargeted to the real patched floor, as a
+    // RANGE key. Phase 253 pinned `brace-expansion@5.0.6: ^5.0.9`; once the
+    // tree moved to 5.0.9 that exact-version key matched nothing, and 5.0.9
+    // is itself still vulnerable (GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p,
+    // both fixed in >=5.0.11). Phase 321 keys the override on `^5.0.0` so it
+    // keeps binding every 5.x dependent across future bumps.
+    expect(targets).toContainEqual({ package: 'brace-expansion', sourceVersion: '^5.0.0', range: '^5.0.11' });
+    // The stale exact-version key is gone, not left alongside the new one.
+    expect(targets.filter((t: { package: string; sourceVersion: string }) => t.package === 'brace-expansion' && t.sourceVersion === '5.0.6')).toEqual([]);
     // brace-expansion 2.x line: its own new override, distinct from the 5.x
     // line's key — not an unversioned key that would wrongly force one line
     // toward the other's target. A caret range (major-capped), not an
@@ -64,7 +71,7 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     expect(targets).toContainEqual({ package: 'js-yaml', sourceVersion: '4.2.0', range: '^4.3.2' });
   });
 
-  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, and js-yaml satisfies its override target (253-01/AC-2, 298-01/AC-4)', () => {
+  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, and js-yaml satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1)', () => {
     const overrideTargets = extractOverrideTargets(packageJson);
     const lockfilePackages = parseLockfilePackages(lockfileText);
 
@@ -74,7 +81,7 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // motivated this test's "not just the first instance found" phrasing for
     // AC-2. Phase 260's vitest v4 bump (and its transitive vite/vitest dep
     // graph) dropped minimatch@9.x from the resolved graph entirely, so only
-    // the 5.x line remains today — a real, expected dependency-graph shift,
+    // the 5.x line remains (as of phase 321) — a real, expected dependency-graph shift,
     // not a regression (the `brace-expansion@^2.0.0` override in
     // package.json's pnpm.overrides stays in place regardless, ready to
     // cover a 2.x line again if one re-enters the graph later). The
@@ -89,5 +96,28 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
 
     expect(result.failures).toEqual([]);
     expect(result.ok).toBe(true);
+  });
+
+  it('every resolved brace-expansion 5.x instance in the real lockfile is at or above the patched floor 5.0.11 (321-01/AC-1)', () => {
+    // An explicit numeric floor check, independent of checkOverrideCoverage's
+    // own range logic: GHSA-qhr7-859c-m2p7 and GHSA-6j4f-fj2g-mc7p affect
+    // brace-expansion 5.x below 5.0.11.
+    const lockfilePackages = parseLockfilePackages(lockfileText);
+    const fiveX = lockfilePackages.filter(
+      (p: { package: string; version: string }) => p.package === 'brace-expansion' && p.version.split('.')[0] === '5',
+    );
+    expect(fiveX.length).toBeGreaterThanOrEqual(1);
+
+    const atOrAbove = (version: string, floor: [number, number, number]): boolean => {
+      const parts = version.split('.').slice(0, 3).map((part) => parseInt(part, 10) || 0);
+      for (let i = 0; i < 3; i += 1) {
+        const a = parts[i] ?? 0;
+        const b = floor[i] ?? 0;
+        if (a !== b) return a > b;
+      }
+      return true;
+    };
+    const belowFloor = fiveX.filter((p: { version: string }) => !atOrAbove(p.version, [5, 0, 11]));
+    expect(belowFloor).toEqual([]);
   });
 });

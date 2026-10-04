@@ -1180,6 +1180,12 @@ changeset (example/test-only change, no published-package surface).*
   the settled phase has no ROADMAP/MILESTONES entry, the `phase-build` and
   `release-cut` checklists name both entries, and a record-integrity test
   requires them for every settled phase from 314 on (rec-20261004-001).
+- **Phase 321** — retargeted the stale `brace-expansion` 5.x override to
+  the range key `brace-expansion@^5.0.0` → `^5.0.11` (resolving 5.0.12) and
+  time-boxed an operator-approved exception for the unpatched `braces`
+  advisory until 2026-11-18, unblocked by a patched `braces` or
+  `@changesets/cli` 3.x (GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p,
+  GHSA-vfj7-8cjw-p6xm).
 
 
 
