@@ -57,6 +57,7 @@ completion" only -- never as "no CodeQL findings."
 
 | Advisory ID | Package | Justification | Expiry |
 | --- | --- | --- | --- |
+| GHSA-vfj7-8cjw-p6xm | braces | Stack-exhaustion denial of service through deeply nested patterns. Reached only through dev tooling: every path starts at `@changesets/cli` 2.x (2.31.1) and ends at `micromatch@4.0.8` → `braces@3.0.3`, via several `@changesets/*` packages (e.g. `@changesets/config`, `@changesets/git`, and `@manypkg/get-packages@1.1.3` → `globby@11.1.0` → `fast-glob@3.3.3`). No production path (`pnpm why braces -r --prod` is empty), so no published CADENCE package ships it. No patched release exists (vulnerable `<= 3.0.3`, no first patched version). Unblock: a patched `braces` release, or adopting `@changesets/cli` 3.x (Dependabot #474), which drops `braces` from the tree. Operator-approved 2026-10-04 (phase 321). | 2026-11-18 |
 <!--
 To add a new exception, append a row above this comment, e.g.:
 

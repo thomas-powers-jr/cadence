@@ -3103,6 +3103,37 @@ distinction is stated explicitly, not glossed.
 
 **As built (2026-09-18).** Shipped as designed. PR #519.
 
+### Phase 321 — Pin brace-expansion past its advisories and time-box the unpatched braces exception
+
+**Objective.** Made the required `security-success` check green again after
+high-severity denial-of-service advisories left
+`scripts/check-audit-exceptions.mjs` failing PRs independent of their
+changes: `main`'s last Security run (2026-09-28) was green; Dependabot PR #545
+(2026-10-02) failed on `GHSA-qhr7-859c-m2p7` / `GHSA-6j4f-fj2g-mc7p`
+(`brace-expansion`, published 2026-09-29), and by PR #546 (phase 320,
+2026-10-04) the audit also reported `GHSA-vfj7-8cjw-p6xm` (`braces`,
+published 2026-09-18). All three are dev-only. The stale
+`"brace-expansion@5.0.6": "^5.0.9"` override, whose exact-version key
+matched nothing once the tree reached the still-vulnerable `5.0.9`, became
+the range key `"brace-expansion@^5.0.0": "^5.0.11"`, which cannot rot the
+same way. `braces` has no patched release, so it got an operator-approved,
+time-boxed exception row instead of a release-tooling major bump right
+before a release, and a doc test drives the gate's own `decideAdvisories`
+over the real table to prove `braces` is accepted until its expiry while
+both `brace-expansion` advisories still fail unless fixed.
+
+**As built (2026-10-04).** The override resolves `brace-expansion@5.0.12`
+under `minimatch@10.2.6`; the lockfile diff is limited to `brace-expansion`
+lines, and the `brace-expansion@^2.0.0` override is unchanged. The `braces`
+row (every path starts at `@changesets/cli` 2.x and ends at
+`micromatch@4.0.8` → `braces@3.0.3`) expires 2026-11-18;
+unblock is a patched `braces` release or adopting `@changesets/cli` 3.x
+(Dependabot #474), which drops `braces` from the tree. One drift from the
+plan: `scripts/check-lockfile-overrides.mjs`'s `checkOverrideCoverage` doc
+comment named the retired `brace-expansion@5.0.6` key as today's real
+committed config, so it was corrected to `brace-expansion@^5.0.0`
+(comment-only) and that file joined T1's file list.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
