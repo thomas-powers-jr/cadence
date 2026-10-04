@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.69.0] - 2026-10-04
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.69.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Changed
+
+- **Hook blocks are now delivered as a per-event JSON decision on stdout with exit 0, not exit code 2.** `powershell.exe -Command` collapses a hook's exit 2 into a non-blocking 1, so CADENCE's Stop and edit-time blocks silently stopped blocking when Claude Code ran hooks under PowerShell. `pre-tool-edit` now emits `hookSpecificOutput.permissionDecision: "deny"` and `session-stop` emits `{"decision":"block","reason":…}`. New `cadence doctor` check `hook-transport` (Claude Code only) reports the installed hook command's `shell` setting. (Phase `317`, #541.)
+- **On an IDLE checkout, `cadence status`, `.cadence/STATE.md` and the SessionStart banner no longer present a stale phase as current.** `settle` leaves `state.activePhase` set and `state.json` is per-checkout, so a primary checkout whose phases settle in worktrees kept naming an old phase. IDLE output now prints `last settled: <phase>` (the highest-numbered `.cadence/phases/` directory whose SUMMARY carries `stateAtSettle`), falling back to `last phase in this checkout: <activePhase>`; `status --json` keeps `activePhase` and adds `lastSettledPhase`. Non-IDLE output is unchanged. (Phase `322`, #548.)
+
+### Added
+
+- **`cadence settle run` names a missing ROADMAP/MILESTONES entry** for the phase it just settled, as a best-effort stderr `note:` that never blocks the settle or writes either file. The phase-build and release-cut checklists gained the matching step, and a doc test now requires both entries for every settled phase from 314 on. (Phase `320`, #546.)
+
+### Fixed
+
+- **Claude Code's subagent task-redundancy chain now receives agent identity.** The hook router forwarded only `files`/`skill` to `cadence hook`, so the SubagentStart baseline, per-subagent touched-file tracking and the SubagentStop safety net never ran. The Claude Code adapter now declares `agentIdentification: true`. (Phase `318`, #540.)
+- **The `host-cli` provider no longer falls back to `mock` on Windows when `CADENCE_HOST_CLI_BIN` names an npm-installed CLI such as `codex`.** A bare name now resolves without a shell: a native `.com`/`.exe` on PATH first, else an npm cmd-shim launcher whose JavaScript target is run via Node; other launcher shapes are refused loudly. (Phase `319`, #543.)
+
+### Security
+
+- **`brace-expansion` pinned past GHSA-qhr7-859c-m2p7 / GHSA-6j4f-fj2g-mc7p** via the range override `"brace-expansion@^5.0.0": "^5.0.11"`, replacing a stale exact-version key that had silently stopped matching. The unpatched `braces` advisory GHSA-vfj7-8cjw-p6xm (dev-only, via `@changesets/cli` 2.x) has an operator-approved exception expiring **2026-11-18**; the unblock is a patched `braces` or `@changesets/cli` 3.x (Dependabot #474). (Phase `321`, #547.)
+
 ## [1.68.0] - 2026-09-24
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.68.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
