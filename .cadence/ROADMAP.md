@@ -3228,7 +3228,7 @@ launchers whose targets escape the shim directory are refused. Settled with
 via `--allow-failing-build` (recorded in the SUMMARY's gate provenance; the
 settle commit cites rec-20260927-003). PR #543.
 
-### Phase 320 — Settle names a missing roadmap entry (rec-20261004-001)
+### Phase 320 — Settle names a missing roadmap entry (rec-20261004-001) (#546)
 
 **Objective.** Stop `.cadence/ROADMAP.md` and `.cadence/MILESTONES.md` from
 silently falling behind settled phases: no step of the loop read or wrote
@@ -3251,7 +3251,7 @@ which retired a test premise that this repo had none; and decimal-slug
 phases (`23.1-x`) are checked as their integer phase, a recorded limitation
 since none exist today.
 
-### Phase 321 — Pin brace-expansion past its advisories and time-box the unpatched braces exception
+### Phase 321 — Pin brace-expansion past its advisories and time-box the unpatched braces exception (#547)
 
 **Objective.** Made the required `security-success` check green again after
 high-severity denial-of-service advisories left
@@ -3281,6 +3281,43 @@ plan: `scripts/check-lockfile-overrides.mjs`'s `checkOverrideCoverage` doc
 comment named the retired `brace-expansion@5.0.6` key as today's real
 committed config, so it was corrected to `brace-expansion@^5.0.0`
 (comment-only) and that file joined T1's file list.
+
+### Phase 322 — Idle status, STATE.md and session banner name the latest settled phase (rec-20261004-002)
+
+**Objective.** Stop `cadence status`, `.cadence/STATE.md`, and the
+SessionStart hook banner from presenting a stale phase as current: `settle`
+returns the loop to IDLE but leaves `state.activePhase` set, and `state.json`
+is per-checkout and gitignored (#177) while phases are built and settled in
+worktrees, so the primary checkout kept naming the last phase settled *there*
+— on `main` at `ec706481` all three surfaces said
+`311-skill-audit-bypass-recorded-in-gatebypasses` while phases 312–319 had
+merged. Without re-tracking `state.json` or changing `activePhase`'s
+semantics or the `--json` contract, on an IDLE checkout STATE.md now reads
+`**Active phase:** (none — loop is IDLE)` and keeps the value under
+`**Last phase in this checkout:**`, while `status` and the banner name the
+latest **settled** phase, derived best-effort from the working-tree phase
+directories: the highest-numbered one whose `<id>-SUMMARY.json` carries
+`stateAtSettle`, which only a successful settle writes. `status --json`
+keeps `activePhase` and adds `lastSettledPhase`. Scope limit: only these
+three display surfaces change (the MCP `cadence_status` tool and
+`cadence://state` resource reuse them). `cadence handoff`'s `active_phase:`
+pre-fill, `cadence resume`, the MCP `cadence://state.json` resource,
+`cadence inspect`, and the intelligence context packet still surface the raw `activePhase`
+(rec-20261004-007); a checkout stranded in DRAFT/BUILD after
+its slice settled elsewhere (rec-20261004-005) and `cadence progress`'s
+IDLE path ignoring the milestone and recommendation ledgers
+(rec-20261004-006) are filed as follow-ups.
+
+**As built (2026-10-04).** Two refinements recorded as DRAFT As-built
+notes. The finder skips an unreadable phase directory and keeps scanning
+lower ones; only a missing `.cadence/phases/` yields null. And every
+SUMMARY from phases ≤ 195 in this repo, as from any consumer settle on core
+before 1.48.0 (#177), lacks `stateAtSettle`, so such histories yield "no
+information" rather than a wrong phase; for that case `status` prints
+`last phase in this checkout: <activePhase>` and the banner
+`Last phase in this checkout: <activePhase>` instead of dropping the value,
+matching STATE.md's new `**Last phase in this checkout:**` line. Every
+non-IDLE output is unchanged.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

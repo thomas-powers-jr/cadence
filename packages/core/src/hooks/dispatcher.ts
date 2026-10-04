@@ -2,6 +2,7 @@ import type { AbstractEvent, HookContext } from '@thomas-powers-jr/cadence-types
 import { SimpleStateBackend } from '../state/simple.js';
 import { loadConfig } from '../config/loader.js';
 import { getLogger, configureLoggerFromConfig } from '../logging/logger.js';
+import { findLatestSettledPhase } from '../phases/latest-settled.js';
 import {
   handleSessionStart,
   handleUserPrompt,
@@ -24,8 +25,18 @@ export class HookDispatcher {
     configureLoggerFromConfig(config);
     getLogger().child({ seam: 'hook' }).debug('dispatch', { event });
     switch (event) {
-      case 'session-start':
-        return handleSessionStart(ctx, state);
+      case 'session-start': {
+        // Phase 322 (T2, AC-4): best-effort — a failed lookup yields null
+        // (the banner then falls back to the checkout-local label, or
+        // nothing) and never fails the hook.
+        let lastSettledPhase: string | null = null;
+        try {
+          lastSettledPhase = await findLatestSettledPhase(this.repoRoot);
+        } catch {
+          lastSettledPhase = null;
+        }
+        return handleSessionStart(ctx, state, lastSettledPhase);
+      }
       case 'user-prompt':
         return handleUserPrompt(ctx, state, config, backend);
       case 'pre-tool-edit':

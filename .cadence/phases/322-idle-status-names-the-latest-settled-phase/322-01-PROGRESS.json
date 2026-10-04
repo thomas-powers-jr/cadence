@@ -1,0 +1,40 @@
+{
+  "draftId": "322-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Re-verified: 15/15 (added unreadable-dir skip test from review minor); eslint clean; finder returns 321-... on this repo; Opus review APPROVE (11/13 mutants caught; survivors = harmless isDirectory filter + now-pinned unreadable-dir case).",
+      "touchedFiles": [
+        "packages/core/src/hooks/dispatcher.ts",
+        "packages/core/src/hooks/handlers.ts",
+        "packages/core/src/render/state-md.ts",
+        "packages/core/src/status.ts",
+        "packages/core/tests/cli/status.test.ts",
+        "packages/core/tests/hooks/dispatcher.test.ts",
+        "packages/core/tests/render/state-md.test.ts",
+        "packages/core/tests/status.test.ts",
+        "packages/core/src/phases/latest-settled.ts",
+        "packages/core/tests/hooks/session-start-idle.test.ts",
+        "packages/core/tests/phases/latest-settled.test.ts"
+      ],
+      "updatedAt": "2026-10-04T17:37:24.552Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Re-verified: diff read; status/hooks/render tests pass; Opus review APPROVE (15/17 mutants; 2 survivors now pinned by SPEC null-activePhase tests); fallback label added per T1 review; dispatcher comment corrected.",
+      "touchedFiles": [
+        "docs/quickstart.md",
+        "docs/reference/commands.md",
+        ".changeset/idle-status-last-settled.md",
+        "packages/core/tests/docs/status-idle-display.test.ts"
+      ],
+      "updatedAt": "2026-10-04T17:50:01.518Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "commands.md status IDLE prose + doc test (5 asserts), ROADMAP/MILESTONES 322 + #546/#547 suffixes, changeset; quickstart.md stale IDLE example fixed (T2 review); MCP scope narrowed; tests/docs 45 files pass. Per-task review folded into whole-branch review.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-04T17:50:02.319Z"
+    }
+  }
+}

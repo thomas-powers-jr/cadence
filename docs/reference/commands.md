@@ -1002,6 +1002,35 @@ field only ever reports `ok` (a determinate streak, any length) or
 `indeterminate` (couldn't be assessed), never `warning`. `--json` carries it
 as a top-level `conductionDriftStreak` field.
 
+**IDLE checkouts** *(phase 322)* — `settle` returns the loop to `IDLE` but
+leaves `state.activePhase` set, and `state.json` is per-checkout and gitignored
+(Phase 196), so on an `IDLE` checkout `activePhase` is only the checkout-local
+value: the last phase settled *in this checkout*, possibly many phases behind
+work settled in sibling worktrees. On `IDLE` the text output therefore no
+longer prints `phase: <activePhase>`. It prints `last settled: <phase>` — the
+latest settled phase, derived best-effort from the `.cadence/phases/`
+directories in the working tree: the highest-numbered directory holding a
+`*-SUMMARY.json` that carries `stateAtSettle`, which only a successful settle
+writes (a refused settle's SUMMARY lacks it and never counts). Histories whose
+SUMMARY files predate `stateAtSettle` yield no settled phase; the output then
+falls back to `last phase in this checkout: <activePhase>`, and prints neither
+line when `activePhase` is unset too. The lookup never fails the command. Every
+non-`IDLE` loop position still prints `phase: <activePhase>` exactly as before.
+`--json` keeps `activePhase` unchanged at every loop position and adds a
+top-level `lastSettledPhase` field (string or `null`).
+
+The same relabelling applies to the other two places that show the phase on
+`IDLE`: `.cadence/STATE.md` renders `**Active phase:** (none — loop is IDLE)`
+followed by `**Last phase in this checkout:** <activePhase or (none)>`, and the
+SessionStart hook banner reads `Active phase: (none — loop is IDLE)` plus
+`Latest settled phase: <phase>` when one is found, else
+`Last phase in this checkout: <activePhase>`. The MCP `cadence_status` tool
+and `cadence://state` resource follow `status` and STATE.md. Not yet
+relabelled: `cadence handoff`'s pre-filled `active_phase:`, `cadence resume`,
+the MCP `cadence://state.json` resource (the raw file), `cadence inspect`, and
+the intelligence context packet still carry the raw `activePhase` (the MCP
+`cadence_handoff` and `cadence_resume` tools follow their CLI counterparts).
+
 #### status anomalies
 
 ```

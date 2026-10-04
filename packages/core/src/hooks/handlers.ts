@@ -101,12 +101,37 @@ function packResolver(
   };
 }
 
-export async function handleSessionStart(_ctx: HookContext, state: CadenceState): Promise<HookResult> {
+/**
+ * Phase 322 (T2, AC-4): on IDLE, `state.activePhase` is only the last phase
+ * settled in this checkout (it survives `settle`, and `state.json` is
+ * per-checkout), so the banner no longer presents it as active. The caller
+ * supplies `lastSettledPhase` — the repo-wide latest settled phase, derived
+ * best-effort from working-tree SUMMARY files — and the banner names it when
+ * known. When it is not (e.g. SUMMARYs predating `stateAtSettle`), the
+ * checkout-local value is kept under an honest label instead of dropped.
+ * Every non-IDLE banner is unchanged.
+ */
+function idlePhaseLines(state: CadenceState, lastSettledPhase: string | null): string[] {
+  const lines = ['Active phase: (none — loop is IDLE)'];
+  if (lastSettledPhase !== null) lines.push(`Latest settled phase: ${lastSettledPhase}`);
+  else if (state.activePhase) lines.push(`Last phase in this checkout: ${state.activePhase}`);
+  return lines;
+}
+
+export async function handleSessionStart(
+  _ctx: HookContext,
+  state: CadenceState,
+  lastSettledPhase: string | null = null,
+): Promise<HookResult> {
+  const phaseLines =
+    state.loopPosition === 'IDLE'
+      ? idlePhaseLines(state, lastSettledPhase)
+      : [`Active phase: ${state.activePhase ?? '(none)'}`];
   const lines = [
     'CADENCE session resumed.',
     `Project: ${state.project.name}`,
     `Loop position: ${state.loopPosition}`,
-    `Active phase: ${state.activePhase ?? '(none)'}`,
+    ...phaseLines,
     `Active draft: ${state.activeDraft ?? '(none)'}`,
   ];
   if (state.openDrafts.length > 0)
