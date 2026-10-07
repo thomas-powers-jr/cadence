@@ -48,6 +48,33 @@ Workflow reruns are safe after a successful publish. Before publishing, the job
 checks npm for the current package version; if every public package is already
 published, it skips the publish command and continues to tag/release verification.
 
+### Registry propagation
+
+After publishing, the release-integrity step polls `npm view <package> version`
+until npm reports the new version for every public package. It polls on a flat
+15 s interval for up to 40 attempts per package, so it waits at least about
+10 minutes before giving up. The budget is that long because the npm registry's
+edge serves package metadata with `Cache-Control: public, max-age=300`: for up
+to five minutes after a publish, npm can keep answering with the previous
+version. The pre-publish idempotency check reads the same metadata seconds
+before publishing, so that five-minute window can start before the publish
+does. The earlier budget of about 45 s lost this race on routine releases
+(v1.67.3, v1.68.0 and v1.69.0 all went red although every package had
+published). `npm view` already revalidates against the registry on every call,
+so no npm flag skips the stale edge copy; only time helps. The public packages
+are checked one after another in each round, so the step's wall time is longer
+than those 10 minutes of waiting.
+
+The step log shows one progress line per miss on stderr, naming the package,
+the version npm returned (or the reason `npm view` failed), the expected
+version, the attempt number and the seconds elapsed, so the log records when
+each package became visible. If npm still disagrees after the last attempt, the
+step fails and names the package, the last answer or `npm view` failure, and
+the elapsed time. Propagation has been waited out by then, so a red verify step
+after that budget is a real mismatch to investigate, not a propagation race.
+The pre-publish check keeps its fast 3-attempt budget and prints no progress
+lines.
+
 ## Repair
 
 If npm publish succeeds but the GitHub Release step fails, rerun the Release

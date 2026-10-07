@@ -9,17 +9,28 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const CADENCE_SCOPE = '@thomas-powers-jr/cadence-';
 const DEFAULT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-// Real incident, 2026-07-25: the v1.51.0 Release workflow run (30136637570)
-// failed its post-publish "verify registry" step because host-codex still
-// showed the OLD version on npm after only 3 quick retries (~1s + 2s of
-// backoff, ~3s total) — even though the publish had already succeeded; all
-// four packages were independently confirmed correctly live moments later.
-// npm's CDN can take longer than that to propagate a fresh publish to every
-// edge node. This budget is deliberately only used post-publish
-// (runReleaseIntegrity) — the pre-publish idempotency check
-// (verifyNpmPublished) keeps the fast default so a genuinely unpublished
-// package is still detected quickly.
-const POST_PUBLISH_VERIFY_ATTEMPTS = 10;
+// Real incidents: the post-publish "verify registry" step failed although the
+// publish had already succeeded and every package was live moments later.
+//   - 2026-07-25, v1.51.0 (Release run 30136637570): host-codex still showed the
+//     OLD version after 3 quick retries (~3s of backoff).
+//   - 2026-10-04, v1.69.0 (plus 1.67.3 and 1.68.0): a 10-attempt linear backoff
+//     (~45s total) still lost the race.
+// Cause: the npm registry edge serves the packument with `max-age=300`, so a
+// stale answer can persist for about five minutes after publish. `npm view`
+// already revalidates (`preferOnline: true` is hardcoded), so no cache flag
+// helps; the stale copy is the edge's, and only time fixes it. The pre-publish
+// `--verify-npm` check fetches the packument seconds before publish and can
+// warm that edge copy, so the 300s window may start before the publish does.
+// Hence a flat 15s poll for up to 40 attempts: (40 - 1) * 15s = 585s of
+// waiting, comfortably longer than the 300s edge cache. Wall time is longer
+// still, because spawnSync checks the packages one after another each round.
+// Each miss prints a progress line to stderr so the wait is visible in the
+// workflow log.
+// This budget is deliberately only used post-publish (runReleaseIntegrity).
+// The pre-publish idempotency check (verifyNpmPublished) keeps the fast
+// 3-attempt default so a genuinely unpublished package is detected quickly.
+export const POST_PUBLISH_VERIFY_ATTEMPTS = 40;
+export const POST_PUBLISH_VERIFY_INTERVAL_MS = 15_000;
 
 export function normalizeVersion(raw) {
   const version = String(raw ?? '').trim().replace(/^v/, '');
@@ -137,15 +148,16 @@ export function runCommand(command, args, options = {}) {
   return result.stdout.trim();
 }
 
-async function retry(label, fn, attempts = 3) {
+async function retry(label, fn, attempts = 3, { delay = (attempt) => 1000 * attempt, onFailure } = {}) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       return await fn();
     } catch (err) {
       lastError = err;
+      if (onFailure) onFailure(err, attempt);
       if (attempt === attempts) break;
-      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, delay(attempt)));
     }
   }
   throw new Error(`${label} failed after ${attempts} attempts: ${lastError?.message ?? lastError}`);
@@ -219,20 +231,65 @@ function upsertGitHubRelease(root, tag, title, notesFile, env) {
   return 'created';
 }
 
-async function verifyNpmPackages(packages, version, root, env, attempts = 3) {
+function collapseWhitespace(text) {
+  return String(text).replace(/\s+/g, ' ').trim();
+}
+
+// Progress lines must stay one line each and bounded: a real `npm view`
+// failure carries several lines (including "A complete log of this run can be
+// found in ..."), and the post-publish poll can print up to 40 of them per
+// package.
+const PROGRESS_REASON_MAX_CHARS = 200;
+
+function truncate(text, max) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function describeSeen(err) {
+  if (err.published !== undefined) return err.published || '<empty>';
+  return `error: ${truncate(collapseWhitespace(err.message), PROGRESS_REASON_MAX_CHARS)}`;
+}
+
+async function verifyNpmPackages(packages, version, root, env, { attempts = 3, delay, progress } = {}) {
   await Promise.all(
-    packages.map((pkg) =>
-      retry(
-        `npm view ${pkg.name}`,
-        async () => {
-          const published = runCommand('npm', ['view', pkg.name, 'version'], { cwd: root, env });
-          if (published !== version) {
-            throw new Error(`${pkg.name} is ${published} on npm, expected ${version}`);
-          }
-        },
-        attempts,
-      ),
-    ),
+    packages.map(async (pkg) => {
+      let startedAt;
+      const elapsedSeconds = () => Math.round((Date.now() - startedAt) / 1000);
+      try {
+        await retry(
+          `npm view ${pkg.name}`,
+          async () => {
+            startedAt ??= Date.now();
+            const published = runCommand('npm', ['view', pkg.name, 'version'], { cwd: root, env });
+            if (published !== version) {
+              const err = new Error(`${pkg.name} is ${published} on npm, expected ${version}`);
+              err.published = published;
+              throw err;
+            }
+          },
+          attempts,
+          {
+            ...(delay ? { delay } : {}),
+            ...(progress
+              ? {
+                  onFailure: (err, attempt) =>
+                    progress({
+                      pkg: pkg.name,
+                      seen: describeSeen(err),
+                      expected: version,
+                      attempt,
+                      attempts,
+                      elapsedSeconds: elapsedSeconds(),
+                    }),
+                }
+              : {}),
+          },
+        );
+      } catch (err) {
+        if (!progress) throw err;
+        throw new Error(`${err.message} (elapsed ${elapsedSeconds()}s since first attempt)`);
+      }
+    }),
   );
 }
 
@@ -290,7 +347,15 @@ export async function runReleaseIntegrity({ root = DEFAULT_ROOT, env = process.e
     writeFileSync(notesFile, plan.notes);
     assertRemoteTag(root, plan.tag, env);
     const action = upsertGitHubRelease(root, plan.tag, plan.tag, notesFile, env);
-    await verifyNpmPackages(plan.packages, plan.version, root, env, POST_PUBLISH_VERIFY_ATTEMPTS);
+    await verifyNpmPackages(plan.packages, plan.version, root, env, {
+      attempts: POST_PUBLISH_VERIFY_ATTEMPTS,
+      delay: () => POST_PUBLISH_VERIFY_INTERVAL_MS,
+      progress: ({ pkg, seen, expected, attempt, attempts, elapsedSeconds }) => {
+        process.stderr.write(
+          `release-integrity: ${pkg} saw ${seen}, expected ${expected} (attempt ${attempt}/${attempts}, elapsed ${elapsedSeconds}s)\n`,
+        );
+      },
+    });
     assertRemoteTag(root, plan.tag, env);
     const releaseUrl = verifyGitHubRelease(root, plan.tag, env);
     return { ...plan, action, releaseUrl };

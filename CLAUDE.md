@@ -511,10 +511,11 @@ the rule that prevents it — with the enforcement layer where one exists.
   only consumes them.
 - **The Release Re-Run.** `gh run rerun --failed` on the `Release` workflow
   after a red or ambiguous run. → That re-runs `pnpm -r publish` and fails
-  on already-published versions (the red is often an npm-CDN propagation
-  race). First verify reality independently — `npm view` all four packages,
-  `git ls-remote --tags`, `gh release view` — and only act on what is
-  actually missing.
+  on already-published versions. Since phase 323 the release-integrity step
+  waits out registry propagation itself (about 10 minutes of polling), so a
+  red there deserves investigation rather than a shrug. First verify reality
+  independently — `npm view` all five packages, `git ls-remote --tags`,
+  `gh release view` — and only act on what is actually missing.
 - **The Auto-Renumber.** Resolving a phase-number collision by silently
   picking a new number. → The guard's contract is refuse + suggest
   (`max(observed)+1`); the operator decides. Never bypass the local
