@@ -1,0 +1,42 @@
+{
+  "draftId": "325-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "9 new findChangelogEntries/synthesizeConsumedChangeset tests fail with 'is not a function'; 4 existing 303 tests pass",
+      "touchedFiles": [
+        "packages/core/tests/support/changeset-evidence.test.ts"
+      ],
+      "updatedAt": "2026-10-08T23:17:39.536Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Helpers implemented; 13/13 changeset-evidence tests, 7/7 phase324 tests with changeset present. Three-state check: (a) changeset rm + 2d20edf5 CHANGELOGs -> 7/7 pass; (b) changeset rm + main CHANGELOGs -> 3 fail (325-01/AC-2 matchCount 0, both 324-01/AC-4); (c) restored, git status clean of CHANGELOG/changeset",
+      "touchedFiles": [
+        "packages/core/tests/docs/phase324-audit-advisories.test.ts",
+        "packages/core/tests/support/changeset-evidence.ts"
+      ],
+      "updatedAt": "2026-10-08T23:20:01.447Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "ROADMAP Phase 325 + MILESTONES bullet added; rec-20261008-007 filed (recurrence guard); core tests/docs 47/47 files green",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-08T23:20:56.380Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "pnpm turbo run lint typecheck test build --force: 28/28 successful, 0 cached, exit 0 (log captured to file). One-off strict tsc --noEmit over changeset-evidence.ts, changeset-evidence.test.ts, phase324-audit-advisories.test.ts (+ imported scripts/*.mjs): 0 errors, --listFiles confirms inclusion",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-08T23:24:41.676Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  }
+}

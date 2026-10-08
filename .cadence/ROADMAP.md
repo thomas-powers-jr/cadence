@@ -3407,6 +3407,41 @@ moderate advisories, below the gate's high/critical threshold, are on record
 evidence ids colliding with PR #551's; they were renumbered to
 `ev-20261007-003`/`-004` before settle.
 
+### Phase 325 — Phase 324's changeset test survives release consumption (rec-20261008-006)
+
+**Objective.** Unblocked the v1.69.1 cut. Phase 324's `324-01 / AC-4` tests
+read `.changeset/audit-advisories-bump.md` directly, and a release's
+`changeset version` step deletes consumed changesets, so the first full
+pipeline on `release/v1.69.1` (local commit `2d20edf5`, 2026-10-08) failed
+`cadence-core#test` with ENOENT in both. Phase 303 fixed this bug class for
+phases 300/301 with `changesetEvidencePresent`; phase 324 did not use it,
+and that helper's "the CHANGELOG contains a discriminator" fallback could
+not carry 324's stronger "only cadence-core, as a patch" assertion anyway.
+Two pure helpers joined `packages/core/tests/support/changeset-evidence.ts`:
+`findChangelogEntries` finds the bullet entries of a changesets-generated
+`CHANGELOG.md` that contain a discriminator, with their version and change
+type, and `synthesizeConsumedChangeset` rebuilds a consumed changeset's
+`{ frontmatter, body }` from the published packages' CHANGELOGs. The AC-4
+block now reads the changeset while it exists and otherwise synthesizes the
+same shape from the five published packages' CHANGELOGs, so the two AC-4
+assertions run unchanged in both states and fail (empty frontmatter) when
+neither source carries the entry. Test-only, so no changeset (phase 303
+precedent), which also keeps the pending v1.69.1 bump valid after a rebase.
+Out of scope, deliberately: a repo-wide guard against tests that read
+`.changeset/*.md` without a fallback, filed as a recommendation.
+
+**As built (2026-10-08).** The discriminator is the changeset's sentence
+"Those overrides shape only this repository's lockfile and do not propagate
+to consumers": 0 hits in any package CHANGELOG on `main`, exactly one (core)
+on the release tree. Verified in three uncommitted states: changeset present
+(7/7), changeset deleted with the `2d20edf5` CHANGELOGs (7/7), and changeset
+deleted with `main`'s CHANGELOGs (both AC-4 tests and the new `325-01/AC-2`
+test fail on assertions, not ENOENT). The tasks ran inline rather than through
+per-task subagent dispatch; one fresh-context whole-branch review came back
+clean, and its one hardening nit (an empty discriminator matched every entry)
+was taken with a test. Settled with `--deep` through Codex (`host-cli`), all
+three ACs passing.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

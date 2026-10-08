@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { synthesizeConsumedChangeset } from '../support/changeset-evidence.js';
+import type { SynthesizedChangeset } from '../support/changeset-evidence.js';
 import {
   parseExceptionsTable,
   decideAdvisories,
@@ -109,9 +111,17 @@ describe('the three phase 324 advisories are fixed, not excepted (324-01 / AC-3)
 // It must release core alone as a patch, name all three advisory ids and the
 // new SDK range, and say plainly that the root `pnpm.overrides` pins shape
 // only this repository's lockfile.
+//
+// Phase 325 — a release's `changeset version` deletes the changeset after
+// writing its body into the released packages' CHANGELOG.md files. Once it is
+// gone, the same facts are read back from those CHANGELOGs: one frontmatter
+// line per package whose CHANGELOG carries the entry, under its change type.
 describe('the phase 324 changeset tells consumers what changed for them (324-01 / AC-4)', () => {
   const CHANGESET = join(ROOT, '.changeset', 'audit-advisories-bump.md');
-  const readChangeset = (): { frontmatter: string[]; body: string } => {
+  const PUBLISHED_PACKAGES = ['core', 'types', 'host-claude-code', 'host-codex', 'host-toolkit'];
+  const DISCRIMINATOR =
+    "Those overrides shape only this repository's lockfile and do not propagate to consumers";
+  const readChangesetFile = (): { frontmatter: string[]; body: string } => {
     const lines = readFileSync(CHANGESET, 'utf8').split(/\r?\n/);
     const open = lines.indexOf('---');
     const close = lines.indexOf('---', open + 1);
@@ -122,6 +132,27 @@ describe('the phase 324 changeset tells consumers what changed for them (324-01 
       body: lines.slice(close + 1).join('\n'),
     };
   };
+  const synthesizeFromChangelogs = (): SynthesizedChangeset =>
+    synthesizeConsumedChangeset(
+      PUBLISHED_PACKAGES.map((dir) => {
+        const packageDir = join(ROOT, 'packages', dir);
+        const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
+          name: string;
+        };
+        return { packageName: manifest.name, text: readFileSync(join(packageDir, 'CHANGELOG.md'), 'utf8') };
+      }),
+      DISCRIMINATOR,
+    );
+  const readChangeset = (): { frontmatter: string[]; body: string } =>
+    existsSync(CHANGESET) ? readChangesetFile() : synthesizeFromChangelogs();
+
+  it('resolves its evidence from the changeset or exactly one released CHANGELOG entry (325-01/AC-2)', () => {
+    if (existsSync(CHANGESET)) {
+      expect(readChangesetFile().body).toContain(DISCRIMINATOR);
+    } else {
+      expect(synthesizeFromChangelogs().matchCount).toBe(1);
+    }
+  });
 
   it('frontmatter names exactly one package line, cadence-core as a patch (324-01/AC-4)', () => {
     const { frontmatter } = readChangeset();
