@@ -17,11 +17,21 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..
 const PACKAGE_JSON = join(ROOT, 'package.json');
 const LOCKFILE = join(ROOT, 'pnpm-lock.yaml');
 
+const atOrAbove = (version: string, floor: [number, number, number]): boolean => {
+  const parts = version.split('.').slice(0, 3).map((part) => parseInt(part, 10) || 0);
+  for (let i = 0; i < 3; i += 1) {
+    const a = parts[i] ?? 0;
+    const b = floor[i] ?? 0;
+    if (a !== b) return a > b;
+  }
+  return true;
+};
+
 describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2)', () => {
   const packageJson = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8'));
   const lockfileText = readFileSync(LOCKFILE, 'utf8');
 
-  it("names the corrected patched-floor targets in package.json's pnpm.overrides (253-01/AC-1, 321-01/AC-1)", () => {
+  it("names the corrected patched-floor targets in package.json's pnpm.overrides (253-01/AC-1, 321-01/AC-1, 324-01/AC-1)", () => {
     const targets = extractOverrideTargets(packageJson);
 
     // fast-uri: retargeted to the real patched floor -- for real this time.
@@ -69,9 +79,16 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // already reports it satisfied against today's resolved instances, so this
     // is purely a too-low target floor, not a stale-key problem (298-01/AC-1, AC-4).
     expect(targets).toContainEqual({ package: 'js-yaml', sourceVersion: '4.2.0', range: '^4.3.2' });
+    // proxy-addr: GHSA-jqcg-44mw-7w3h (critical, IP spoofing via IPv4-mapped
+    // addresses) affects >=1.1.0 <2.0.8. express@5.2.1 declares `^2.0.7`, so a
+    // plain install keeps the locked 2.0.7; the range key moves it to 2.0.8.
+    expect(targets).toContainEqual({ package: 'proxy-addr', sourceVersion: '<2.0.8', range: '^2.0.8' });
+    // source-map-js: GHSA-68fv-2mgg-jv7q (high, event-loop DoS) affects <1.2.2;
+    // dev-only, via @vitest/coverage-v8 -> magicast and vite -> postcss.
+    expect(targets).toContainEqual({ package: 'source-map-js', sourceVersion: '<1.2.2', range: '^1.2.2' });
   });
 
-  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, and js-yaml satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1)', () => {
+  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, js-yaml, proxy-addr and source-map-js satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1)', () => {
     const overrideTargets = extractOverrideTargets(packageJson);
     const lockfilePackages = parseLockfilePackages(lockfileText);
 
@@ -108,16 +125,22 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     );
     expect(fiveX.length).toBeGreaterThanOrEqual(1);
 
-    const atOrAbove = (version: string, floor: [number, number, number]): boolean => {
-      const parts = version.split('.').slice(0, 3).map((part) => parseInt(part, 10) || 0);
-      for (let i = 0; i < 3; i += 1) {
-        const a = parts[i] ?? 0;
-        const b = floor[i] ?? 0;
-        if (a !== b) return a > b;
-      }
-      return true;
-    };
     const belowFloor = fiveX.filter((p: { version: string }) => !atOrAbove(p.version, [5, 0, 11]));
     expect(belowFloor).toEqual([]);
+  });
+
+  it('every resolved proxy-addr instance is at or above 2.0.8 and every source-map-js instance at or above 1.2.2 (324-01/AC-1)', () => {
+    // Explicit numeric floor checks, independent of checkOverrideCoverage's own
+    // range logic: GHSA-jqcg-44mw-7w3h affects proxy-addr <2.0.8 and
+    // GHSA-68fv-2mgg-jv7q affects source-map-js <1.2.2.
+    const lockfilePackages = parseLockfilePackages(lockfileText);
+
+    const proxyAddr = lockfilePackages.filter((p: { package: string }) => p.package === 'proxy-addr');
+    expect(proxyAddr.length).toBeGreaterThanOrEqual(1);
+    expect(proxyAddr.filter((p: { version: string }) => !atOrAbove(p.version, [2, 0, 8]))).toEqual([]);
+
+    const sourceMapJs = lockfilePackages.filter((p: { package: string }) => p.package === 'source-map-js');
+    expect(sourceMapJs.length).toBeGreaterThanOrEqual(1);
+    expect(sourceMapJs.filter((p: { version: string }) => !atOrAbove(p.version, [1, 2, 2]))).toEqual([]);
   });
 });

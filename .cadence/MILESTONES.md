@@ -1193,6 +1193,12 @@ changeset (example/test-only change, no published-package surface).*
   (derived from working-tree SUMMARY files carrying `stateAtSettle`), falling
   back to that label; `status --json` keeps `activePhase` and adds
   `lastSettledPhase` (rec-20261004-002).
+- **Phase 324** — fixed, rather than excepted, the three advisories that
+  turned the required `security-success` check red: cadence-core's
+  `@modelcontextprotocol/sdk` range moved to `^1.31.0` (resolving 1.32.1) and
+  range-keyed overrides pin `proxy-addr` to `^2.0.8` and `source-map-js` to
+  `^1.2.2` in this repository's lockfile (GHSA-6qxp-vccf-f47h,
+  GHSA-jqcg-44mw-7w3h, GHSA-68fv-2mgg-jv7q, rec-20261007-001).
 
 
 
