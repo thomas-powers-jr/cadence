@@ -1205,6 +1205,12 @@ changeset (example/test-only change, no published-package surface).*
   range-keyed overrides pin `proxy-addr` to `^2.0.8` and `source-map-js` to
   `^1.2.2` in this repository's lockfile (GHSA-6qxp-vccf-f47h,
   GHSA-jqcg-44mw-7w3h, GHSA-68fv-2mgg-jv7q, rec-20261007-001).
+- **Phase 325** — phase 324's changeset test no longer breaks on release
+  day: once `changeset version` consumes the changeset, its "only
+  cadence-core, as a patch" and body assertions read the same facts back
+  from the published packages' CHANGELOGs through two new pure test helpers,
+  `findChangelogEntries` and `synthesizeConsumedChangeset`
+  (rec-20261008-006).
 
 
 

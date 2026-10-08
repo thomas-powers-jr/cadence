@@ -1780,3 +1780,19 @@ On 2026-10-07 corepack pnpm@11.13.0 audit --json listed GHSA-vfj7-8cjw-p6xm brac
 - next: cadence milestone propose
 
 Third occurrence on diffs that cannot touch it: PR #538 (markdown-only, 2026-09-26 handoff), PR #551 (phase 323, run 37700912139, 2026-10-07) and PR #553 (handoff doc only, run 37713434071, 2026-10-08) all failed only the macos-latest/Node22 leg with 'Test timed out in 20000ms' in tests/cli/milestone.test.ts > cadence milestone > accept then illegal re-accept exits 1; defer works; list --json parses. Ubuntu and Windows green each time; a one-shot re-run of the failed job went green for #551. Same class as rec-20260918-004 (debugging-skill-walkthrough.test.ts): one it() spawning several real CLI child processes against vitest.shared.ts's 20 s global timeout on a loaded macOS runner. The pr-land flake protocol ('re-run once') now costs ~10 min per PR and is being applied blind. Options: split the it() into one CLI spawn per test; share one spawned CLI across the asserts via a fixture; or measure the per-spawn cost on macOS and decide whether the runner, not the test, is the problem. Do not add a per-test timeout (The Per-Test Band-Aid).
+
+## rec-20261008-007 — Guard against tests that readFileSync a .changeset/*.md with no post-consumption fallback (phase 303 fixed the class, phase 324 reintroduced it)
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: tests, release
+- files: packages/core/tests/support/changeset-evidence.ts
+- evidence: Phase 303 (#496) and phase 325 both fixed the same defect class; the 324 instance surfaced only when release/v1.69.1's full pipeline failed cadence-core#test (ENOENT .changeset/audit-advisories-bump.md)
+- next: cadence milestone propose
+
+changeset version deletes consumed changesets, so any test that reads .changeset/<name>.md directly goes red on the next release. Phase 303 fixed two (300/301) with changesetEvidencePresent; phase 324 added a third that blocked the v1.69.1 cut and needed phase 325. Candidate guard: a doc test that scans packages/*/tests for '.changeset' path joins and requires each to go through tests/support/changeset-evidence.ts (changesetEvidencePresent or synthesizeConsumedChangeset), or a DRAFT/review checklist line for phases that add a changeset test.

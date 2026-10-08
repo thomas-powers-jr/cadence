@@ -2893,6 +2893,20 @@
       "kind": "note",
       "summary": "run 37713434071 (PR #553, doc-only diff): macos-latest test leg FAIL tests/cli/milestone.test.ts accept/re-accept, Test timed out in 20000ms; ubuntu 6m18s and windows 15m42s green",
       "createdAt": "2026-10-08T01:50:06.507Z"
+    },
+    {
+      "id": "ev-20261008-006",
+      "recommendationId": "rec-20261008-006",
+      "kind": "note",
+      "summary": "pnpm turbo run lint typecheck test build --force on release/v1.69.1: 27/28, cadence-core#test failed, 1 failed file (phase324-audit-advisories.test.ts, 2 tests, ENOENT .changeset/audit-advisories-bump.md)",
+      "createdAt": "2026-10-08T23:11:21.503Z"
+    },
+    {
+      "id": "ev-20261008-007",
+      "recommendationId": "rec-20261008-007",
+      "kind": "note",
+      "summary": "Phase 303 (#496) and phase 325 both fixed the same defect class; the 324 instance surfaced only when release/v1.69.1's full pipeline failed cadence-core#test (ENOENT .changeset/audit-advisories-bump.md)",
+      "createdAt": "2026-10-08T23:20:39.618Z"
     }
   ]
 }

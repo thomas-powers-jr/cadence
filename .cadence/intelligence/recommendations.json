@@ -3189,6 +3189,34 @@
       "decisionIds": [],
       "createdAt": "2026-10-08T01:50:06.507Z",
       "updatedAt": "2026-10-08T01:50:06.507Z"
+    },
+    {
+      "id": "rec-20261008-007",
+      "title": "Guard against tests that readFileSync a .changeset/*.md with no post-consumption fallback (phase 303 fixed the class, phase 324 reintroduced it)",
+      "summary": "changeset version deletes consumed changesets, so any test that reads .changeset/<name>.md directly goes red on the next release. Phase 303 fixed two (300/301) with changesetEvidencePresent; phase 324 added a third that blocked the v1.69.1 cut and needed phase 325. Candidate guard: a doc test that scans packages/*/tests for '.changeset' path joins and requires each to go through tests/support/changeset-evidence.ts (changesetEvidencePresent or synthesizeConsumedChangeset), or a DRAFT/review checklist line for phases that add a changeset test.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "tests",
+        "release"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/support/changeset-evidence.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261008-007"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-08T23:20:39.618Z",
+      "updatedAt": "2026-10-08T23:20:39.618Z"
     }
   ],
   "archived": [
@@ -10830,6 +10858,38 @@
       "archiveReason": "shipped",
       "createdAt": "2026-10-07T23:50:39.857Z",
       "updatedAt": "2026-10-08T00:30:27.935Z"
+    },
+    {
+      "id": "rec-20261008-006",
+      "title": "phase 324's AC-4 changeset test reads .changeset/audit-advisories-bump.md directly, so the v1.69.1 changeset version step turns it red",
+      "summary": "tests/docs/phase324-audit-advisories.test.ts's '324-01 / AC-4' describe readFileSync's the changeset, which changeset version deletes on release day. The v1.69.1 cut (release/v1.69.1, local commit 2d20edf5) failed cadence-core#test with ENOENT in both AC-4 tests. Phase 303 fixed this bug class with tests/support/changeset-evidence.ts; 324 did not use it. Fix: keep the changeset-file assertions while the file exists, and after consumption assert the same facts against packages/core/CHANGELOG.md (body strings under the release heading, core-only).",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "tests",
+        "release"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/docs/phase324-audit-advisories.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261008-006"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "325-phase-324-s-changeset-test-survives-release-consumption",
+      "createdAt": "2026-10-08T23:11:21.503Z",
+      "updatedAt": "2026-10-08T23:35:17.674Z",
+      "shippedRef": "phase 325 settled 2026-10-08 on fix/325-changeset-test-survives-release",
+      "archivedAt": "2026-10-08T23:35:17.674Z",
+      "archiveReason": "shipped"
     }
   ]
 }
