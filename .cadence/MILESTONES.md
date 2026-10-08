@@ -1199,6 +1199,12 @@ changeset (example/test-only change, no published-package surface).*
   `max-age=300` packument cache, and logs one stderr progress line per miss;
   the `release-cut` skill now treats a red verify step as a real signal and
   names all five published packages (rec-20260802-005).
+- **Phase 324** — fixed, rather than excepted, the three advisories that
+  turned the required `security-success` check red: cadence-core's
+  `@modelcontextprotocol/sdk` range moved to `^1.31.0` (resolving 1.32.1) and
+  range-keyed overrides pin `proxy-addr` to `^2.0.8` and `source-map-js` to
+  `^1.2.2` in this repository's lockfile (GHSA-6qxp-vccf-f47h,
+  GHSA-jqcg-44mw-7w3h, GHSA-68fv-2mgg-jv7q, rec-20261007-001).
 
 
 

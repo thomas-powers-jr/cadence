@@ -1716,3 +1716,51 @@ progressService passes only nextPhaseNumber to nextAction in IDLE, never the led
 - next: cadence milestone propose
 
 Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never clears state.activePhase and state.json is per-checkout, so in a primary checkout whose phases settle in worktrees, 'cadence handoff' pre-fills active_phase with the last phase settled locally (render-session.ts), and resume, the MCP surface and the intelligence context packet (render-context.ts, backend/cadence.ts) report the same stale value. Candidate fix: apply the same IDLE treatment (label as checkout-local; derive the latest settled phase via findLatestSettledPhase) to each surface, without changing activePhase's semantics or JSON contracts.
+
+## rec-20261007-002 — docs overclaim that only ci-success is required on main: CLAUDE.md (3 passages), pr-land skill and docs/release.md omit security-success and codeql-success
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: docs, ci
+- files: CLAUDE.md, .claude/skills/pr-land/SKILL.md, docs/release.md
+- evidence: PR #551 showed mergeStateStatus BLOCKED with ci-success green and security-success red (2026-10-07); required contexts confirmed via gh api
+- next: cadence milestone propose
+
+Branch protection on main requires ci-success, security-success AND codeql-success (gh api repos/.../branches/main/protection, 2026-10-07; docs/security/audit-exceptions.md already says so since rec-20260807-002). But CLAUDE.md says 'the ci-success check is required' in the 'Land via branch + PR' workflow item, the CI bullet under 'Enforcement layers', and 'The Direct Push' failure mode; .claude/skills/pr-land/SKILL.md line ~8 says 'main requires the ci-success check'; docs/release.md line ~28 says merge 'so the required ci-success check is green'. The 323 session relied on that and expected PR #551 to be mergeable with a red security-success. Fix all five passages (phrase as an addition: ci-success alongside security-success and codeql-success from security.yml/codeql.yml) and pin them with a doc-content test. Small doc phase; kept out of phase 324 so that phase stays the minimal change that unblocks merges.
+
+## rec-20261008-002 — 13 moderate advisories in pnpm audit, several on consumer-reachable paths (hono via the MCP SDK, qs via express) and two override floors already behind (fast-uri, ip-address)
+
+- status: candidate
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security
+- files: package.json, pnpm-lock.yaml
+- evidence: phase 324 T1 review, 2026-10-07: audit metadata counts moderate=13, high=1 (braces), critical=0 after the bump
+- next: cadence milestone propose
+
+The audit gate checks high/critical only, so these do not block CI, but on 2026-10-07 corepack pnpm@11.13.0 audit reported 13 moderate advisories: hono 4.13.1 (5 advisories, patched >=4.13.7; production path via @modelcontextprotocol/sdk -> @hono/node-server), qs 6.15.3 (via express, production path), fast-uri 3.1.7 (patched >=3.1.8; the pnpm override floor is ^3.1.6), ip-address 10.4.0 (patched >=10.7.1; override floor ^10.3.1), vitest/@vitest/mocker 4.1.10 (patched >=4.1.11, dev-only). Decide whether to raise the existing override floors and add hono/qs floors in one dependency-hygiene phase, and whether the gate should start reporting moderate advisories on production paths.
+
+## rec-20261008-004 — braces: audit metadata says patched >=3.0.4 but no such release exists (latest 3.0.3); re-check before the phase 321 exception expires 2026-11-18
+
+- status: candidate
+- ready: needs-evidence
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, ci
+- files: docs/security/audit-exceptions.md, packages/core/tests/docs/phase321-brace-advisories.test.ts
+- evidence: npm view braces version = 3.0.3, time.modified 2024-09-18; npm view braces@3.0.4 -> E404 (2026-10-07, phase 324 whole-branch review)
+- next: cadence milestone propose
+
+On 2026-10-07 corepack pnpm@11.13.0 audit --json listed GHSA-vfj7-8cjw-p6xm braces as vulnerable <=3.0.3 with patched_versions >=3.0.4. That is a range, not a release: npm view braces shows latest 3.0.3, last modified 2024-09-18, and braces@3.0.4 returns E404. So docs/security/audit-exceptions.md's row (phase 321: 'No patched release exists') and phase321-brace-advisories.test.ts remain correct, and an override braces@<3.0.4 -> ^3.0.4 cannot resolve today. Watch item: before the row's 2026-11-18 expiry, re-check npm; if 3.0.4 ships, replace the exception row with a range-keyed override and retarget the 321 test together; if not, the remaining unblock is @changesets/cli 3.x (Dependabot #474) or a re-justified, time-boxed renewal naming why the fix slipped.

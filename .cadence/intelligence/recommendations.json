@@ -3073,9 +3073,129 @@
       "decisionIds": [],
       "createdAt": "2026-10-04T17:31:34.618Z",
       "updatedAt": "2026-10-04T18:53:08.820Z"
+    },
+    {
+      "id": "rec-20261007-002",
+      "title": "docs overclaim that only ci-success is required on main: CLAUDE.md (3 passages), pr-land skill and docs/release.md omit security-success and codeql-success",
+      "summary": "Branch protection on main requires ci-success, security-success AND codeql-success (gh api repos/.../branches/main/protection, 2026-10-07; docs/security/audit-exceptions.md already says so since rec-20260807-002). But CLAUDE.md says 'the ci-success check is required' in the 'Land via branch + PR' workflow item, the CI bullet under 'Enforcement layers', and 'The Direct Push' failure mode; .claude/skills/pr-land/SKILL.md line ~8 says 'main requires the ci-success check'; docs/release.md line ~28 says merge 'so the required ci-success check is green'. The 323 session relied on that and expected PR #551 to be mergeable with a red security-success. Fix all five passages (phrase as an addition: ci-success alongside security-success and codeql-success from security.yml/codeql.yml) and pin them with a doc-content test. Small doc phase; kept out of phase 324 so that phase stays the minimal change that unblocks merges.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "ci"
+      ],
+      "affectedFiles": [
+        "CLAUDE.md",
+        ".claude/skills/pr-land/SKILL.md",
+        "docs/release.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261007-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-07T23:58:52.973Z",
+      "updatedAt": "2026-10-07T23:58:52.973Z"
+    },
+    {
+      "id": "rec-20261008-002",
+      "title": "13 moderate advisories in pnpm audit, several on consumer-reachable paths (hono via the MCP SDK, qs via express) and two override floors already behind (fast-uri, ip-address)",
+      "summary": "The audit gate checks high/critical only, so these do not block CI, but on 2026-10-07 corepack pnpm@11.13.0 audit reported 13 moderate advisories: hono 4.13.1 (5 advisories, patched >=4.13.7; production path via @modelcontextprotocol/sdk -> @hono/node-server), qs 6.15.3 (via express, production path), fast-uri 3.1.7 (patched >=3.1.8; the pnpm override floor is ^3.1.6), ip-address 10.4.0 (patched >=10.7.1; override floor ^10.3.1), vitest/@vitest/mocker 4.1.10 (patched >=4.1.11, dev-only). Decide whether to raise the existing override floors and add hono/qs floors in one dependency-hygiene phase, and whether the gate should start reporting moderate advisories on production paths.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security"
+      ],
+      "affectedFiles": [
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261008-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-08T00:10:53.121Z",
+      "updatedAt": "2026-10-08T00:10:53.121Z"
+    },
+    {
+      "id": "rec-20261008-004",
+      "title": "braces: audit metadata says patched >=3.0.4 but no such release exists (latest 3.0.3); re-check before the phase 321 exception expires 2026-11-18",
+      "summary": "On 2026-10-07 corepack pnpm@11.13.0 audit --json listed GHSA-vfj7-8cjw-p6xm braces as vulnerable <=3.0.3 with patched_versions >=3.0.4. That is a range, not a release: npm view braces shows latest 3.0.3, last modified 2024-09-18, and braces@3.0.4 returns E404. So docs/security/audit-exceptions.md's row (phase 321: 'No patched release exists') and phase321-brace-advisories.test.ts remain correct, and an override braces@<3.0.4 -> ^3.0.4 cannot resolve today. Watch item: before the row's 2026-11-18 expiry, re-check npm; if 3.0.4 ships, replace the exception row with a range-keyed override and retarget the 321 test together; if not, the remaining unblock is @changesets/cli 3.x (Dependabot #474) or a re-justified, time-boxed renewal naming why the fix slipped.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "packages/core/tests/docs/phase321-brace-advisories.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261008-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-08T00:26:12.573Z",
+      "updatedAt": "2026-10-08T00:26:12.573Z"
     }
   ],
   "archived": [
+    {
+      "id": "rec-20260802-005",
+      "title": "release-integrity's 10-attempt (~45s) verify budget insufficient for first-ever publish under a new npm scope",
+      "summary": "v1.54.0's release (npm scope rename, phase 250) published all 5 packages successfully with provenance, and the git tag + GitHub Release were both created correctly, but the Release workflow's post-publish 'verify registry' step failed -- release-integrity.mjs's POST_PUBLISH_VERIFY_ATTEMPTS=10 (~45s linear backoff, added in phase 218 for routine version-bump propagation lag) wasn't enough for a brand-new scope's CDN entries, which took several more minutes to resolve. Nothing was actually broken (independently verified via npm view/git ls-remote/gh release view once propagation completed) -- same 'red run, real publish' pattern phase 218 fixed, just at a longer timescale than that fix's budget covers. Consider either an adaptive/longer retry budget specifically for a package's first-ever publish (detectable via the pre-publish 404 the script already observes), or documenting this as an expected-slower case in release-cut's known-flake protocol. Don't blanket-extend the budget for routine releases -- 45s was fine per phase 218.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "release",
+        "ci"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260802-017",
+        "ev-20261004-013",
+        "ev-20261007-001",
+        "ev-20261007-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "323-post-publish-npm-verification-outlasts-registry-cache-propagation",
+      "createdAt": "2026-08-02T23:10:39.572Z",
+      "updatedAt": "2026-10-07T23:11:20.804Z",
+      "shippedRef": "phase 323 settled 2026-10-07 on fix/323-release-verify-budget",
+      "archivedAt": "2026-10-07T23:11:20.804Z",
+      "archiveReason": "shipped"
+    },
     {
       "id": "rec-20260611-002",
       "title": "draft new next-free hint mangles the task-number slot for phases >= 100",
@@ -10582,36 +10702,104 @@
       "updatedAt": "2026-10-04T19:03:15.001Z"
     },
     {
-      "id": "rec-20260802-005",
-      "title": "release-integrity's 10-attempt (~45s) verify budget insufficient for first-ever publish under a new npm scope",
-      "summary": "v1.54.0's release (npm scope rename, phase 250) published all 5 packages successfully with provenance, and the git tag + GitHub Release were both created correctly, but the Release workflow's post-publish 'verify registry' step failed -- release-integrity.mjs's POST_PUBLISH_VERIFY_ATTEMPTS=10 (~45s linear backoff, added in phase 218 for routine version-bump propagation lag) wasn't enough for a brand-new scope's CDN entries, which took several more minutes to resolve. Nothing was actually broken (independently verified via npm view/git ls-remote/gh release view once propagation completed) -- same 'red run, real publish' pattern phase 218 fixed, just at a longer timescale than that fix's budget covers. Consider either an adaptive/longer retry budget specifically for a package's first-ever publish (detectable via the pre-publish 404 the script already observes), or documenting this as an expected-slower case in release-cut's known-flake protocol. Don't blanket-extend the budget for routine releases -- 45s was fine per phase 218.",
+      "id": "rec-20261008-003",
+      "title": "braces now has a patched release (>=3.0.4): replace the phase 321 exception row with an override and update the row's test",
+      "summary": "The live pnpm audit on 2026-10-07 reports GHSA-vfj7-8cjw-p6xm braces as vulnerable <=3.0.3, patched >=3.0.4. docs/security/audit-exceptions.md's row (phase 321, expires 2026-11-18) still says 'No patched release exists', and packages/core/tests/docs/phase321-brace-advisories.test.ts:67 pins the phrase 'no patched release'. Fix together: add a range-keyed override braces@<3.0.4 -> ^3.0.4 (pattern of phases 253/297/321/324), refresh the lockfile, drop the exception row, and retarget the 321 test so the doc and test stay truthful. This also removes the 2026-11-18 expiry pressure independently of @changesets/cli 3.x (#474).",
       "source": "manual",
-      "status": "shipped",
-      "readiness": "needs-evidence",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
       "priority": "medium",
       "leverageScore": 5,
       "riskScore": 5,
       "confidence": 0.7,
       "decayState": "fresh",
       "affectedAreas": [
-        "release",
+        "security",
         "ci"
       ],
-      "affectedFiles": [],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "package.json",
+        "pnpm-lock.yaml",
+        "packages/core/tests/docs/phase321-brace-advisories.test.ts"
+      ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260802-017",
-        "ev-20261004-013",
-        "ev-20261007-001",
-        "ev-20261007-002"
+        "ev-20261008-003"
       ],
       "assumptionIds": [],
       "decisionIds": [],
-      "convertedToPhaseId": "323-post-publish-npm-verification-outlasts-registry-cache-propagation",
-      "createdAt": "2026-08-02T23:10:39.572Z",
-      "updatedAt": "2026-10-07T23:11:20.804Z",
-      "shippedRef": "phase 323 settled 2026-10-07 on fix/323-release-verify-budget",
-      "archivedAt": "2026-10-07T23:11:20.804Z",
+      "archivedAt": "2026-10-08T00:11:31.171Z",
+      "archiveReason": "manual",
+      "createdAt": "2026-10-08T00:11:19.407Z",
+      "updatedAt": "2026-10-08T00:11:31.171Z"
+    },
+    {
+      "id": "rec-20261008-001",
+      "title": "braces now has a patched release (>=3.0.4): replace the phase 321 exception row with an override and update the row's test",
+      "summary": "The live pnpm audit on 2026-10-07 reports GHSA-vfj7-8cjw-p6xm braces as vulnerable <=3.0.3, patched >=3.0.4. docs/security/audit-exceptions.md's row (phase 321, expires 2026-11-18) still says 'No patched release exists', and packages/core/tests/docs/phase321-brace-advisories.test.ts:67 pins the phrase 'no patched release'. Fix together: add a range-keyed override braces@<3.0.4 -> ^3.0.4 (pattern of phases 253/297/321/324), refresh the lockfile, drop the exception row, and retarget the 321 test (or supersede it) so the doc and test stay truthful. This also removes the 2026-11-18 expiry pressure independently of @changesets/cli 3.x (#474).",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "package.json",
+        "pnpm-lock.yaml",
+        "packages/core/tests/docs/phase321-brace-advisories.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261008-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "archivedAt": "2026-10-08T00:26:10.768Z",
+      "archiveReason": "manual",
+      "createdAt": "2026-10-08T00:10:52.319Z",
+      "updatedAt": "2026-10-08T00:26:10.768Z"
+    },
+    {
+      "id": "rec-20261007-001",
+      "title": "security-success red: proxy-addr (critical), @modelcontextprotocol/sdk and source-map-js (high) advisories undocumented; MCP SDK is a cadence-core production dependency",
+      "summary": "Published after main's last green Security run (2026-10-05). pnpm audit on 2026-10-07: GHSA-jqcg-44mw-7w3h proxy-addr <2.0.8 (critical, IP spoofing via IPv4-mapped addresses) and GHSA-6qxp-vccf-f47h @modelcontextprotocol/sdk >=1.12.0 <1.31.0 (high, OAuth client) both reach the published surface through cadence-core's production dependency @modelcontextprotocol/sdk ^1.29.0 (resolving 1.30.0) -> express 5.2.1 -> proxy-addr 2.0.7; GHSA-68fv-2mgg-jv7q source-map-js <1.2.2 (high, event-loop DoS) is dev-only via @vitest/coverage-v8 -> magicast and vite -> postcss. Patched releases exist for all three (proxy-addr 2.0.8, sdk 1.31.0+, source-map-js 1.2.2), so fix by bumping, not by exception rows. security-success is a required check on main, so every PR (first seen: #551, phase 323) is blocked until this lands.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "critical",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci",
+        "mcp"
+      ],
+      "affectedFiles": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "packages/core/package.json"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261007-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "324-bump-mcp-sdk-proxy-addr-and-source-map-js-past-audit-advisories",
+      "createdAt": "2026-10-07T23:50:39.857Z",
+      "updatedAt": "2026-10-08T00:30:27.935Z",
+      "shippedRef": "phase 324 settled 2026-10-07 on fix/324-audit-advisories-bump",
+      "archivedAt": "2026-10-08T00:30:27.935Z",
       "archiveReason": "shipped"
     }
   ]

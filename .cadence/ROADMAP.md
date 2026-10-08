@@ -3363,6 +3363,49 @@ red verify step deserves investigation), and the same test pins it. The
 skill's step 6 row for packages missing on npm now distinguishes a run that
 completed its full poll (`attempt 40/40` in the log: the gap is real) from
 one that stopped earlier.
+### Phase 324 — Bump MCP SDK, proxy-addr and source-map-js past audit advisories (rec-20261007-001)
+
+**Objective.** Made the required `security-success` check green again by
+fixing rather than excepting. Three advisories published after `main`'s last
+green Security run (2026-10-05) failed `scripts/check-audit-exceptions.mjs`
+on every PR, first on PR #551 (phase 323, 2026-10-07): `GHSA-jqcg-44mw-7w3h`
+(`proxy-addr <2.0.8`, critical, IP spoofing), `GHSA-6qxp-vccf-f47h`
+(`@modelcontextprotocol/sdk >=1.12.0 <1.31.0`, high, OAuth client token
+leak) and `GHSA-68fv-2mgg-jv7q` (`source-map-js <1.2.2`, high, event-loop
+denial of service). Unlike phase 321's dev-only cases, two reach the
+published surface: cadence-core's production dependency on the MCP SDK
+(`^1.29.0`, resolving 1.30.0) is itself affected and pulls `express@5.2.1` →
+`proxy-addr@2.0.7`; core uses only the SDK's stdio transport, so neither is
+reachable through CADENCE, but both shipped in every consumer's install.
+`source-map-js` is dev-only (`@vitest/coverage-v8` → `magicast`, `vite` →
+`postcss`). Patched releases exist for all three, so core's SDK range moved
+to `^1.31.0` and the range-keyed overrides `proxy-addr@<2.0.8` → `^2.0.8`
+and `source-map-js@<1.2.2` → `^1.2.2` joined `pnpm.overrides` in the
+phase 253/297/321 pattern; no exception row was added, and a doc test drives
+the gate's own `decideAdvisories` to prove none covers the three ids. The
+overrides shape only this repository's lockfile and do not propagate to
+consumers, who get the patched SDK through core's new range and the patched
+`proxy-addr` when their install re-resolves `express`'s `^2.0.7`; the
+changeset says so. Out of scope, deliberately: `@changesets/cli` 3.x
+(Dependabot #474, the `braces` exception's unblock), and the stale "only
+`ci-success` is required" wording in CLAUDE.md, the `pr-land` skill and
+`docs/release.md`, filed as rec-20261007-002.
+
+**As built (2026-10-07).** The lockfile moved only the SDK (to 1.32.1),
+`proxy-addr` (to 2.0.8) and `source-map-js` (to 1.2.2); nothing else
+re-resolved, and SDK 1.32.1 needed no source changes. The live CI-equivalent
+audit after the bump reports only the excepted `braces` advisory
+(`GHSA-vfj7-8cjw-p6xm`). Two review findings were filed rather than folded
+in. The audit's advisory metadata now lists `>=3.0.4` as `braces`' patched
+range, but no 3.0.4 is published (npm latest 3.0.3, last modified
+2024-09-18, checked 2026-10-07), so phase 321's "no patched release" row
+stands; rec-20261008-004 is the re-check before that row's 2026-11-18 expiry
+(rec-20261008-001 and its duplicate -003, which took the range for a
+release, are archived). And 13
+moderate advisories, below the gate's high/critical threshold, are on record
+(rec-20261008-002). The whole-branch review also found this branch's two
+evidence ids colliding with PR #551's; they were renumbered to
+`ev-20261007-003`/`-004` before settle.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

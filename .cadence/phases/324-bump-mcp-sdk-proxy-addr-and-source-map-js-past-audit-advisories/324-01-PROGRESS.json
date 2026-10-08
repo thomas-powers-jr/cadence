@@ -1,0 +1,25 @@
+{
+  "draftId": "324-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "package.json",
+        "packages/core/package.json",
+        "packages/core/tests/docs/lockfile-overrides-current-state.test.ts",
+        "pnpm-lock.yaml",
+        "packages/core/tests/docs/phase324-audit-advisories.test.ts"
+      ],
+      "updatedAt": "2026-10-08T00:10:50.717Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        ".changeset/audit-advisories-bump.md"
+      ],
+      "updatedAt": "2026-10-08T00:27:36.024Z"
+    }
+  }
+}
