@@ -3160,6 +3160,35 @@
       "decisionIds": [],
       "createdAt": "2026-10-08T00:26:12.573Z",
       "updatedAt": "2026-10-08T00:26:12.573Z"
+    },
+    {
+      "id": "rec-20261008-005",
+      "title": "tests/cli/milestone.test.ts 'accept then illegal re-accept' times out (20 s) on macOS CI on unrelated PRs (#538, #551, #553): split or root-cause the CLI-spawn cost",
+      "summary": "Third occurrence on diffs that cannot touch it: PR #538 (markdown-only, 2026-09-26 handoff), PR #551 (phase 323, run 37700912139, 2026-10-07) and PR #553 (handoff doc only, run 37713434071, 2026-10-08) all failed only the macos-latest/Node22 leg with 'Test timed out in 20000ms' in tests/cli/milestone.test.ts > cadence milestone > accept then illegal re-accept exits 1; defer works; list --json parses. Ubuntu and Windows green each time; a one-shot re-run of the failed job went green for #551. Same class as rec-20260918-004 (debugging-skill-walkthrough.test.ts): one it() spawning several real CLI child processes against vitest.shared.ts's 20 s global timeout on a loaded macOS runner. The pr-land flake protocol ('re-run once') now costs ~10 min per PR and is being applied blind. Options: split the it() into one CLI spawn per test; share one spawned CLI across the asserts via a fixture; or measure the per-spawn cost on macOS and decide whether the runner, not the test, is the problem. Do not add a per-test timeout (The Per-Test Band-Aid).",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "ci",
+        "tests"
+      ],
+      "affectedFiles": [
+        "packages/core/tests/cli/milestone.test.ts",
+        "vitest.shared.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261008-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-08T01:50:06.507Z",
+      "updatedAt": "2026-10-08T01:50:06.507Z"
     }
   ],
   "archived": [
@@ -3190,11 +3219,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "323-post-publish-npm-verification-outlasts-registry-cache-propagation",
-      "createdAt": "2026-08-02T23:10:39.572Z",
-      "updatedAt": "2026-10-07T23:11:20.804Z",
       "shippedRef": "phase 323 settled 2026-10-07 on fix/323-release-verify-budget",
       "archivedAt": "2026-10-07T23:11:20.804Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-08-02T23:10:39.572Z",
+      "updatedAt": "2026-10-07T23:11:20.804Z"
     },
     {
       "id": "rec-20260611-002",
@@ -10796,11 +10825,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "324-bump-mcp-sdk-proxy-addr-and-source-map-js-past-audit-advisories",
-      "createdAt": "2026-10-07T23:50:39.857Z",
-      "updatedAt": "2026-10-08T00:30:27.935Z",
       "shippedRef": "phase 324 settled 2026-10-07 on fix/324-audit-advisories-bump",
       "archivedAt": "2026-10-08T00:30:27.935Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-07T23:50:39.857Z",
+      "updatedAt": "2026-10-08T00:30:27.935Z"
     }
   ]
 }

@@ -1764,3 +1764,19 @@ The audit gate checks high/critical only, so these do not block CI, but on 2026-
 - next: cadence milestone propose
 
 On 2026-10-07 corepack pnpm@11.13.0 audit --json listed GHSA-vfj7-8cjw-p6xm braces as vulnerable <=3.0.3 with patched_versions >=3.0.4. That is a range, not a release: npm view braces shows latest 3.0.3, last modified 2024-09-18, and braces@3.0.4 returns E404. So docs/security/audit-exceptions.md's row (phase 321: 'No patched release exists') and phase321-brace-advisories.test.ts remain correct, and an override braces@<3.0.4 -> ^3.0.4 cannot resolve today. Watch item: before the row's 2026-11-18 expiry, re-check npm; if 3.0.4 ships, replace the exception row with a range-keyed override and retarget the 321 test together; if not, the remaining unblock is @changesets/cli 3.x (Dependabot #474) or a re-justified, time-boxed renewal naming why the fix slipped.
+
+## rec-20261008-005 — tests/cli/milestone.test.ts 'accept then illegal re-accept' times out (20 s) on macOS CI on unrelated PRs (#538, #551, #553): split or root-cause the CLI-spawn cost
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: ci, tests
+- files: packages/core/tests/cli/milestone.test.ts, vitest.shared.ts
+- evidence: run 37713434071 (PR #553, doc-only diff): macos-latest test leg FAIL tests/cli/milestone.test.ts accept/re-accept, Test timed out in 20000ms; ubuntu 6m18s and windows 15m42s green
+- next: cadence milestone propose
+
+Third occurrence on diffs that cannot touch it: PR #538 (markdown-only, 2026-09-26 handoff), PR #551 (phase 323, run 37700912139, 2026-10-07) and PR #553 (handoff doc only, run 37713434071, 2026-10-08) all failed only the macos-latest/Node22 leg with 'Test timed out in 20000ms' in tests/cli/milestone.test.ts > cadence milestone > accept then illegal re-accept exits 1; defer works; list --json parses. Ubuntu and Windows green each time; a one-shot re-run of the failed job went green for #551. Same class as rec-20260918-004 (debugging-skill-walkthrough.test.ts): one it() spawning several real CLI child processes against vitest.shared.ts's 20 s global timeout on a loaded macOS runner. The pr-land flake protocol ('re-run once') now costs ~10 min per PR and is being applied blind. Options: split the it() into one CLI spawn per test; share one spawned CLI across the asserts via a fixture; or measure the per-spawn cost on macOS and decide whether the runner, not the test, is the problem. Do not add a per-test timeout (The Per-Test Band-Aid).
