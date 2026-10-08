@@ -2830,6 +2830,48 @@
       "kind": "note",
       "summary": "Operator clarification (2026-10-04): the '/cadence-progress is stale' report meant the stale phase line (an IDLE checkout naming an old phase as current), which phase 322 fixed and v1.69.0 shipped. It did not mean progress ignoring the milestone/recommendation ledgers, so this rec is not the reported bug; it stays a low-priority raw idea on its own merits.",
       "createdAt": "2026-10-04T20:36:41.053Z"
+    },
+    {
+      "id": "ev-20261007-003",
+      "recommendationId": "rec-20261007-001",
+      "kind": "note",
+      "summary": "PR #551 Security run 37700912102 (2026-10-07): check-audit-exceptions FAIL for GHSA-68fv-2mgg-jv7q, GHSA-jqcg-44mw-7w3h, GHSA-6qxp-vccf-f47h; branch protection required contexts = ci-success, security-success, codeql-success (gh api, 2026-10-07)",
+      "createdAt": "2026-10-07T23:50:39.857Z"
+    },
+    {
+      "id": "ev-20261007-004",
+      "recommendationId": "rec-20261007-002",
+      "kind": "note",
+      "summary": "PR #551 showed mergeStateStatus BLOCKED with ci-success green and security-success red (2026-10-07); required contexts confirmed via gh api",
+      "createdAt": "2026-10-07T23:58:52.973Z"
+    },
+    {
+      "id": "ev-20261008-001",
+      "recommendationId": "rec-20261008-001",
+      "kind": "note",
+      "summary": "corepack pnpm@11.13.0 audit --json on 2026-10-07 (phase 324 T1 and its review): braces patched >=3.0.4",
+      "createdAt": "2026-10-08T00:10:52.319Z"
+    },
+    {
+      "id": "ev-20261008-002",
+      "recommendationId": "rec-20261008-002",
+      "kind": "note",
+      "summary": "phase 324 T1 review, 2026-10-07: audit metadata counts moderate=13, high=1 (braces), critical=0 after the bump",
+      "createdAt": "2026-10-08T00:10:53.121Z"
+    },
+    {
+      "id": "ev-20261008-003",
+      "recommendationId": "rec-20261008-003",
+      "kind": "note",
+      "summary": "corepack pnpm@11.13.0 audit --json on 2026-10-07 (phase 324 T1 and its review): braces patched >=3.0.4",
+      "createdAt": "2026-10-08T00:11:19.407Z"
+    },
+    {
+      "id": "ev-20261008-004",
+      "recommendationId": "rec-20261008-004",
+      "kind": "note",
+      "summary": "npm view braces version = 3.0.3, time.modified 2024-09-18; npm view braces@3.0.4 -> E404 (2026-10-07, phase 324 whole-branch review)",
+      "createdAt": "2026-10-08T00:26:12.573Z"
     }
   ]
 }
