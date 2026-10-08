@@ -1,0 +1,25 @@
+{
+  "draftId": "323-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "packages/core/tests/scripts/release-integrity.test.ts",
+        "scripts/release-integrity.mjs"
+      ],
+      "updatedAt": "2026-10-07T22:48:09.620Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        ".claude/skills/release-cut/SKILL.md",
+        "docs/release.md",
+        ".changeset/release-verify-budget.md",
+        "packages/core/tests/docs/release-verify-budget.test.ts"
+      ],
+      "updatedAt": "2026-10-07T22:58:31.897Z"
+    }
+  }
+}

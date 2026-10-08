@@ -23,9 +23,9 @@ release PR, and firing the Release workflow. Neither happens on a generic
 ## 2 — Version bump (lockstep)
 
 - On a release branch: `pnpm changeset:version`.
-- Verify **all four published packages** (`core`, `types`,
-  `host-claude-code`, `host-codex`) moved to the identical new version and
-  `testkit` did not. Anything else is a stop-and-investigate.
+- Verify **all five published packages** (`core`, `types`,
+  `host-claude-code`, `host-codex`, `host-toolkit`) moved to the identical new
+  version and `testkit` did not. Anything else is a stop-and-investigate.
 - Update the version line near the top of `CLAUDE.md` to the new version
   string. The doc-sync pre-commit hook aborts the commit otherwise, and
   `packages/core/tests/docs/doc-sync-hook.test.ts` re-asserts it in CI.
@@ -76,28 +76,35 @@ test covering them.
   the manual `Release` workflow
   (`gh workflow run Release` / `.github/workflows/release.yml`).
 - **Never `gh run rerun --failed` on the Release workflow.** It re-runs
-  `pnpm -r publish` and fails on already-published versions; a red
-  release-integrity step is often just an npm-CDN propagation race.
+  `pnpm -r publish` and fails on already-published versions. The
+  release-integrity step now waits out registry propagation itself (about 10
+  minutes of polling, one progress line per miss in the run log), so a red
+  release-integrity step deserves investigation; verify what actually landed
+  by hand (step 6) before touching anything.
 
 ## 6 — Verify independently (never trust the workflow's own report)
 
-Run all three, regardless of what the workflow says:
+Run every check below, regardless of what the workflow says:
 
 ```bash
 npm view @thomas-powers-jr/cadence-core version
 npm view @thomas-powers-jr/cadence-types version
 npm view @thomas-powers-jr/cadence-host-claude-code version
 npm view @thomas-powers-jr/cadence-host-codex version
+npm view @thomas-powers-jr/cadence-host-toolkit version
 git ls-remote --tags origin | grep vX.Y.Z
 gh release view vX.Y.Z
 ```
 
 Decision table on a red/ambiguous run: check what is *actually* missing.
-All four on npm + tag + release page present → the run's red was cosmetic;
+All five on npm + tag + release page present → the run's red was cosmetic;
 done. Packages on npm but tag/release missing → create only the missing
 artifact by hand (`git tag -a` + push, `gh release create`). Some packages
-missing on npm → wait out propagation (minutes), re-check before touching
-anything; only then consider a targeted republish.
+missing on npm → if the release-integrity step ran its full poll (its log
+shows `attempt 40/40`), propagation is already over: treat the gap as real and
+read the publish step's log for a failed `pnpm -r publish` before a targeted
+republish. If the run stopped before that step, wait out the five-minute
+registry edge cache, re-check, and only then consider a targeted republish.
 
 ## 7 — Close the loop
 

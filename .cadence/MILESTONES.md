@@ -1193,6 +1193,12 @@ changeset (example/test-only change, no published-package surface).*
   (derived from working-tree SUMMARY files carrying `stateAtSettle`), falling
   back to that label; `status --json` keeps `activePhase` and adds
   `lastSettledPhase` (rec-20261004-002).
+- **Phase 323** — the Release workflow's post-publish npm verification now
+  polls on a flat 15 s interval for up to 40 attempts (at least about 10
+  minutes) instead of about 45 s, outlasting the registry edge's
+  `max-age=300` packument cache, and logs one stderr progress line per miss;
+  the `release-cut` skill now treats a red verify step as a real signal and
+  names all five published packages (rec-20260802-005).
 - **Phase 324** — fixed, rather than excepted, the three advisories that
   turned the required `security-success` check red: cadence-core's
   `@modelcontextprotocol/sdk` range moved to `^1.31.0` (resolving 1.32.1) and

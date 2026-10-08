@@ -2872,6 +2872,20 @@
       "kind": "note",
       "summary": "npm view braces version = 3.0.3, time.modified 2024-09-18; npm view braces@3.0.4 -> E404 (2026-10-07, phase 324 whole-branch review)",
       "createdAt": "2026-10-08T00:26:12.573Z"
+    },
+    {
+      "id": "ev-20261007-001",
+      "recommendationId": "rec-20260802-005",
+      "kind": "note",
+      "summary": "Root-cause evidence (2026-10-07): registry.npmjs.org serves packuments with 'Cache-Control: public, max-age=300' (observed via curl, CF-Cache-Status HIT, Age 188), and npm's prefer-online defaults to false, so a packument fetched once is reused from npm's local cache for up to 5 min without a network round-trip. In the v1.69.0 Release run (37231218286) the pre-publish idempotency check ('--verify-npm', step 8, 20:21:02) fetched cadence-core@1.68.0 seconds before publish; the post-publish verify (step 10, 20:21:26 -> 20:22:17) then ran 'npm view' 10 times in ~50 s and every answer was 1.68.0. Both the ~45 s linear budget and the cache-honouring 'npm view' call are at fault: the budget must outlast max-age=300 plus CDN propagation, and the post-publish poll must bypass the local cache (--prefer-online).",
+      "createdAt": "2026-10-07T22:27:39.571Z"
+    },
+    {
+      "id": "ev-20261007-002",
+      "recommendationId": "rec-20260802-005",
+      "kind": "note",
+      "summary": "Correction to ev-20261007-001 (2026-10-07, independent review): the 'npm local cache' half of that note is wrong. npm's view command hardcodes preferOnline: true (npm 11.19.0 lib/commands/view.js:41,135; npm 10.9.2, bundled with Node 22 on the runner, lines 43,137), so every post-publish 'npm view' already revalidated against the registry and '--prefer-online' changes nothing. The stale answers came from the registry's Cloudflare edge, which caches packuments for max-age=300 (CF-Cache-Status HIT, Age 188 observed); the pre-publish --verify-npm fetch may warm that edge copy. The timing fits: core became visible ~180 s after the 20:22:17 failure, just inside 20:21:02 + 300 s. Also overriding the rec's own 'do not blanket-extend the budget' caution: runs 35926962120 (1.67.3), 36057230234 (1.68.0) and 37231218286 (1.69.0) all failed with 'cadence-core is <previous> on npm ... failed after 10 attempts', so routine releases need a budget that outlasts the 5-minute edge cache.",
+      "createdAt": "2026-10-07T22:39:49.921Z"
     }
   ]
 }

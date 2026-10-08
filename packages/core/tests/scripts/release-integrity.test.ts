@@ -61,6 +61,23 @@ function flakyNpmView(version: string, failuresBeforeSuccess: number) {
 }
 
 /**
+ * npm view <pkg> version handler that answers with a STALE version (exit 0, the
+ * old version on stdout - what a lagging registry edge does) for the first
+ * `staleAnswersBeforeSuccess` calls per package, then the new version.
+ */
+function staleNpmView(oldVersion: string, newVersion: string, staleAnswersBeforeSuccess: number) {
+  const counts = new Map<string, number>();
+  return (pkgName: string) => {
+    const n = (counts.get(pkgName) ?? 0) + 1;
+    counts.set(pkgName, n);
+    if (n <= staleAnswersBeforeSuccess) {
+      return { status: 0, stdout: oldVersion, stderr: '' };
+    }
+    return { status: 0, stdout: newVersion, stderr: '' };
+  };
+}
+
+/**
  * Drives vitest's fake timers forward until `promise` settles, without ever
  * sleeping for a real retry-backoff delay. A single big
  * `vi.advanceTimersByTimeAsync` call is not enough here: `verifyNpmPackages`
@@ -70,7 +87,11 @@ function flakyNpmView(version: string, failuresBeforeSuccess: number) {
  * `setTimeout`) so that real I/O actually gets a turn to complete between
  * fake-timer advances.
  */
-async function advanceTimersUntilSettled(promise: Promise<unknown>, maxIterations = 500) {
+async function advanceTimersUntilSettled(
+  promise: Promise<unknown>,
+  maxIterations = 500,
+  stepMs = 1000,
+) {
   let settled = false;
   promise.then(
     () => {
@@ -81,7 +102,7 @@ async function advanceTimersUntilSettled(promise: Promise<unknown>, maxIteration
     },
   );
   for (let i = 0; i < maxIterations && !settled; i += 1) {
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(stepMs);
     await new Promise((resolve) => realSetTimeout(resolve, 5));
   }
 }
@@ -212,6 +233,9 @@ describe('npm verification retry budget (post-publish vs pre-publish)', () => {
     const version = '9.9.1';
     const tag = `v${version}`;
     const root = tempRoot();
+    // Phase 323 made the post-publish path print a progress line per miss;
+    // keep those out of the vitest output without weakening this test.
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
       writePackage(root, 'core', { name: '@thomas-powers-jr/cadence-core', version });
       writeCoreChangelog(root, version);
@@ -240,6 +264,7 @@ describe('npm verification retry budget (post-publish vs pre-publish)', () => {
       );
       expect(npmViewCalls.length).toBe(5);
     } finally {
+      stderrSpy.mockRestore();
       rmSync(root, { recursive: true, force: true });
     }
   });
@@ -272,6 +297,243 @@ describe('npm verification retry budget (post-publish vs pre-publish)', () => {
         ([command, args]) => command === 'npm' && Array.isArray(args) && args[0] === 'view',
       );
       expect(npmViewCalls.length).toBe(3);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('323-01 patient post-publish npm verification', () => {
+  const OLD = '9.9.0';
+  const POST_ATTEMPTS = 40;
+  const POST_INTERVAL = 15_000;
+  const CORE = '@thomas-powers-jr/cadence-core';
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    mockSpawnSync.mockReset();
+  });
+
+  /** Installs a spawnSync mock; returns the Date.now() recorded on every `npm view` call. */
+  function installSpawn(
+    version: string,
+    npmView: (pkgName: string, callIndex: number) => { status: number; stdout: string; stderr: string },
+    withGitGh: boolean,
+  ) {
+    const times: number[] = [];
+    const gitGh = gitGhAlwaysSucceed(`v${version}`);
+    mockSpawnSync.mockImplementation(((command: string, args: readonly string[] = []) => {
+      if (command === 'npm' && args[0] === 'view') {
+        times.push(Date.now());
+        return npmView(String(args[1]), times.length) as never;
+      }
+      if (withGitGh) {
+        const handled = gitGh(command, args);
+        if (handled) return handled as never;
+      }
+      throw new Error(`unexpected spawnSync call in test: ${command} ${args.join(' ')}`);
+    }) as typeof spawnSync);
+    return times;
+  }
+
+  function gaps(times: number[]) {
+    return times.slice(1).map((t, i) => t - (times[i] as number));
+  }
+
+  it('323-01/AC-1: exports a 40 x 15s budget that outlasts the 300s edge cache', () => {
+    expect(script.POST_PUBLISH_VERIFY_ATTEMPTS).toBe(POST_ATTEMPTS);
+    expect(script.POST_PUBLISH_VERIFY_INTERVAL_MS).toBe(POST_INTERVAL);
+    expect(
+      (script.POST_PUBLISH_VERIFY_ATTEMPTS - 1) * script.POST_PUBLISH_VERIFY_INTERVAL_MS,
+    ).toBeGreaterThanOrEqual(585_000);
+  });
+
+  it('323-01/AC-1: post-publish succeeds after 25 stale registry answers (26 npm view calls)', async () => {
+    const version = '9.9.3';
+    const root = tempRoot();
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      writePackage(root, 'core', { name: CORE, version });
+      writeCoreChangelog(root, version);
+      const npmView = staleNpmView(OLD, version, 25);
+      installSpawn(version, (name) => npmView(name), true);
+
+      vi.useFakeTimers();
+      const p = script.runReleaseIntegrity({ root, env: {}, dryRun: false });
+      await advanceTimersUntilSettled(p, 500, POST_INTERVAL);
+      const result = await p;
+
+      expect(result.version).toBe(version);
+      const calls = mockSpawnSync.mock.calls.filter(
+        ([command, args]) => command === 'npm' && Array.isArray(args) && args[0] === 'view',
+      );
+      expect(calls.length).toBe(26);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('323-01/AC-1: post-publish gives up only after 40 calls, 15s apart, naming stale, expected and elapsed', async () => {
+    const version = '9.9.4';
+    const root = tempRoot();
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      writePackage(root, 'core', { name: CORE, version });
+      writeCoreChangelog(root, version);
+      const npmView = staleNpmView(OLD, version, Number.POSITIVE_INFINITY);
+      const times = installSpawn(version, (name) => npmView(name), true);
+
+      vi.useFakeTimers();
+      const p = script.runReleaseIntegrity({ root, env: {}, dryRun: false });
+      const settled = p.then(
+        () => undefined,
+        (e: Error) => e,
+      );
+      await advanceTimersUntilSettled(p, 500, POST_INTERVAL);
+      const err = (await settled) as Error;
+
+      expect(err).toBeInstanceOf(Error);
+      expect(err.message).toMatch(/failed after 40 attempts/);
+      expect(times.length).toBe(POST_ATTEMPTS);
+      expect(gaps(times).every((g) => g === POST_INTERVAL)).toBe(true);
+      expect(err.message).toContain(CORE);
+      expect(err.message).toContain(OLD);
+      expect(err.message).toContain(version);
+      expect(err.message).toMatch(/\b585s\b/);
+      // The release-cut skill tells operators to look for the last attempt's
+      // line in the run log, so the final miss must be reported too.
+      const progress = stderrSpy.mock.calls.map(([chunk]) => String(chunk));
+      expect(progress.length).toBe(POST_ATTEMPTS);
+      expect(progress[progress.length - 1]).toContain(`attempt ${POST_ATTEMPTS}/${POST_ATTEMPTS}`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('323-01/AC-2: pre-publish verifyNpmPublished still makes exactly 3 calls, 1s then 2s apart, silently', async () => {
+    const version = '9.9.5';
+    const root = tempRoot();
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    try {
+      writePackage(root, 'core', { name: CORE, version });
+      writeCoreChangelog(root, version);
+      const npmView = staleNpmView(OLD, version, Number.POSITIVE_INFINITY);
+      const times = installSpawn(version, (name) => npmView(name), false);
+
+      vi.useFakeTimers();
+      const p = script.verifyNpmPublished({ root, env: {} });
+      const assertion = expect(p).rejects.toThrow(/failed after 3 attempts/);
+      await advanceTimersUntilSettled(p);
+      await assertion;
+
+      expect(times.length).toBe(3);
+      expect(gaps(times)).toEqual([1000, 2000]);
+      const npmCalls = mockSpawnSync.mock.calls.filter(([command]) => command === 'npm');
+      for (const call of npmCalls) {
+        expect(call[1]).toEqual(['view', CORE, 'version']);
+      }
+      expect(stderrSpy).not.toHaveBeenCalled();
+      expect(stdoutSpy).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('323-01/AC-3: post-publish writes one single-line stderr progress line per miss and nothing to stdout', async () => {
+    const version = '9.9.6';
+    const root = tempRoot();
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    try {
+      writePackage(root, 'core', { name: CORE, version });
+      writeCoreChangelog(root, version);
+      // call 1: stale answer; call 2: multi-line failure; call 3: success.
+      installSpawn(
+        version,
+        (_name, i) => {
+          if (i === 1) return { status: 0, stdout: OLD, stderr: '' };
+          if (i === 2) {
+            return { status: 1, stdout: '', stderr: 'npm ERR! first line\nnpm ERR! second line\n\n' };
+          }
+          return { status: 0, stdout: version, stderr: '' };
+        },
+        true,
+      );
+
+      vi.useFakeTimers();
+      const p = script.runReleaseIntegrity({ root, env: {}, dryRun: false });
+      await advanceTimersUntilSettled(p, 500, POST_INTERVAL);
+      await p;
+
+      // Exactly one stderr write per miss and nothing else on stderr.
+      expect(stderrSpy).toHaveBeenCalledTimes(2);
+      const lines = stderrSpy.mock.calls
+        .map(([chunk]) => String(chunk))
+        .filter((c) => c.startsWith('release-integrity:'));
+      expect(lines.length).toBe(2);
+      for (const line of lines) {
+        expect(line).toMatch(/^[^\n]*\n$/);
+        expect(line).toContain(CORE);
+        expect(line).toContain(version);
+        expect(line).toMatch(/attempt \d+\/40/);
+        expect(line).toMatch(/elapsed \d+s/);
+      }
+      expect(lines[0]).toContain(OLD);
+      expect(lines[0]).toContain('attempt 1/40');
+      expect(lines[0]).toContain('elapsed 0s');
+      expect(lines[1]).toContain('attempt 2/40');
+      expect(lines[1]).toContain('elapsed 15s');
+      expect(lines[1]).toContain('saw error: ');
+      expect(lines[1]).toContain('npm ERR! first line npm ERR! second line');
+
+      // runReleaseIntegrity itself never writes stdout; main() owns the --json
+      // document. A loop over stdout calls would pass vacuously, so assert the
+      // spy directly.
+      expect(stdoutSpy).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('323-01/AC-3: a progress line labels an empty answer <empty> and truncates a long npm failure reason', async () => {
+    const version = '9.9.7';
+    const root = tempRoot();
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      writePackage(root, 'core', { name: CORE, version });
+      writeCoreChangelog(root, version);
+      const longFailure = Array.from({ length: 30 }, (_, i) => `npm error line ${i} of a long multi-line failure`).join(
+        '\n',
+      );
+      expect(longFailure.length).toBeGreaterThan(600);
+      // call 1: empty stdout, exit 0; call 2: long multi-line failure; call 3: success.
+      installSpawn(
+        version,
+        (_name, i) => {
+          if (i === 1) return { status: 0, stdout: '', stderr: '' };
+          if (i === 2) return { status: 1, stdout: '', stderr: longFailure };
+          return { status: 0, stdout: version, stderr: '' };
+        },
+        true,
+      );
+
+      vi.useFakeTimers();
+      const p = script.runReleaseIntegrity({ root, env: {}, dryRun: false });
+      await advanceTimersUntilSettled(p, 500, POST_INTERVAL);
+      await p;
+
+      expect(stderrSpy).toHaveBeenCalledTimes(2);
+      const lines = stderrSpy.mock.calls.map(([chunk]) => String(chunk));
+      expect(lines[0]).toContain(`${CORE} saw <empty>, expected ${version}`);
+      expect(lines[1]).toMatch(/^[^\n]*\n$/);
+      expect(lines[1]).toContain('saw error: ');
+      expect(lines[1]).toContain('…');
+      const reason = (lines[1] as string).slice((lines[1] as string).indexOf('saw error: ') + 'saw error: '.length);
+      const reasonBody = reason.slice(0, reason.indexOf(', expected '));
+      expect(reasonBody.length).toBeLessThanOrEqual(200);
+      expect(lines[1]).not.toContain('line 29 of a long');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

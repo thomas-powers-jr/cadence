@@ -3319,6 +3319,50 @@ information" rather than a wrong phase; for that case `status` prints
 matching STATE.md's new `**Last phase in this checkout:**` line. Every
 non-IDLE output is unchanged.
 
+### Phase 323 — Post-publish npm verification outlasts registry cache propagation (rec-20260802-005)
+
+**Objective.** Make the Release workflow's post-publish "verify registry"
+step a real signal again. The last five `Release` runs, v1.67.3, v1.68.0 and
+v1.69.0 among them, went red in `scripts/release-integrity.mjs`'s
+post-publish `verifyNpmPackages` (`@thomas-powers-jr/cadence-core is
+<previous> on npm, expected <new> … failed after 10 attempts`) although
+publish, tag and GitHub Release had all succeeded, so every release was
+verified by hand. Phase 218's budget, 10 attempts with a `1000 * attempt`
+linear backoff, waited about 45 s, while the registry's Cloudflare edge
+serves packuments with `Cache-Control: public, max-age=300`; the pre-publish
+`--verify-npm` check can warm that edge copy seconds before publish, and on
+the v1.69.0 run `cadence-core` became visible about 180 s after the failure.
+The corrected diagnosis (ev-20261007-002) rules out a client fix:
+`--prefer-online` was considered and rejected because `npm view` already
+hardcodes `preferOnline: true` and so revalidates on every call; the stale
+copy is the edge's, and only time helps. The post-publish poll now runs on a
+flat 15 s interval for up to 40 attempts (`(40 - 1) * 15 s` = 585 s of
+waiting, past `max-age=300`), exported as `POST_PUBLISH_VERIFY_ATTEMPTS` and
+`POST_PUBLISH_VERIFY_INTERVAL_MS`, and writes one `release-integrity:` stderr
+progress line per miss naming the package, the version seen, the expected
+version, `attempt <n>/40` and the elapsed seconds; the final error adds the
+elapsed seconds too. The pre-publish check keeps its 3-attempt fast fail
+with no progress lines. `docs/release.md` describes the budget, and the
+`release-cut` skill stops calling a red verify step a propagation race and
+names all five published packages, `host-toolkit` included.
+`.github/workflows/release.yml` is unchanged; its stale "three public
+packages" comment is left as a follow-up.
+
+**As built (2026-10-07).** Per-task review fixes: a progress line labels an
+`npm view` failure as `error: <reason>`, with the reason's whitespace
+collapsed to one line and truncated to 200 characters, so a multi-line npm
+error cannot flood the run log across 40 attempts; an empty `npm view`
+answer prints `<empty>` rather than a blank. The pre-publish path
+(`verifyNpmPublished`) is untouched: same 3 attempts, same backoff, same
+`npm view` arguments, no progress lines. A doc-content test computes the
+documented minutes from the script's exports, so the prose cannot drift
+from the code. The whole-branch review found `CLAUDE.md`'s "The Release
+Re-Run" entry still excusing a red run as "often an npm-CDN propagation
+race" and naming four packages; it now matches the skill (five packages, a
+red verify step deserves investigation), and the same test pins it. The
+skill's step 6 row for packages missing on npm now distinguishes a run that
+completed its full poll (`attempt 40/40` in the log: the gap is real) from
+one that stopped earlier.
 ### Phase 324 — Bump MCP SDK, proxy-addr and source-map-js past audit advisories (rec-20261007-001)
 
 **Objective.** Made the required `security-success` check green again by
