@@ -2907,6 +2907,13 @@
       "kind": "note",
       "summary": "Phase 303 (#496) and phase 325 both fixed the same defect class; the 324 instance surfaced only when release/v1.69.1's full pipeline failed cadence-core#test (ENOENT .changeset/audit-advisories-bump.md)",
       "createdAt": "2026-10-08T23:20:39.618Z"
+    },
+    {
+      "id": "ev-20261009-001",
+      "recommendationId": "rec-20261009-001",
+      "kind": "note",
+      "summary": "SESSION-2026-10-09-v1691-released.md frontmatter git_branch: chore/session-handoff-2026-10-08-v1 while git branch --show-current printed chore/session-handoff-2026-10-08-v1.69.1 (2026-10-09)",
+      "createdAt": "2026-10-09T00:54:38.083Z"
     }
   ]
 }
