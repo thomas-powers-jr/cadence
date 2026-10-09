@@ -3217,6 +3217,33 @@
       "decisionIds": [],
       "createdAt": "2026-10-08T23:20:39.618Z",
       "updatedAt": "2026-10-08T23:20:39.618Z"
+    },
+    {
+      "id": "rec-20261009-001",
+      "title": "cadence handoff truncates a branch name at its first '.' (release/v1.69.1 -> release/v1), so the SESSION doc's git_branch and State block name the wrong branch",
+      "summary": "packages/core/src/handoff/git-facts.ts:41 parses the branch from 'git status --short --branch' with /^## (?:No commits yet on )?([^.\\s]+)/, which stops at the first '.' to drop the '...origin/x' upstream suffix. Any branch containing a dot is truncated: chore/session-handoff-2026-10-08-v1.69.1 rendered as chore/session-handoff-2026-10-08-v1, and every release/vX.Y.Z branch would too. Fix: split on the literal '...' (or use rev-parse --abbrev-ref HEAD, as candidates.ts and remote-freshness.ts already do), with a test for a dotted branch name with and without an upstream.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "handoff"
+      ],
+      "affectedFiles": [
+        "packages/core/src/handoff/git-facts.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261009-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-09T00:54:38.083Z",
+      "updatedAt": "2026-10-09T00:54:38.083Z"
     }
   ],
   "archived": [
@@ -10885,11 +10912,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "325-phase-324-s-changeset-test-survives-release-consumption",
-      "createdAt": "2026-10-08T23:11:21.503Z",
-      "updatedAt": "2026-10-08T23:35:17.674Z",
       "shippedRef": "phase 325 settled 2026-10-08 on fix/325-changeset-test-survives-release",
       "archivedAt": "2026-10-08T23:35:17.674Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-08T23:11:21.503Z",
+      "updatedAt": "2026-10-08T23:35:17.674Z"
     }
   ]
 }

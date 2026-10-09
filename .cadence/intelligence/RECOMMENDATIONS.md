@@ -1796,3 +1796,19 @@ Third occurrence on diffs that cannot touch it: PR #538 (markdown-only, 2026-09-
 - next: cadence milestone propose
 
 changeset version deletes consumed changesets, so any test that reads .changeset/<name>.md directly goes red on the next release. Phase 303 fixed two (300/301) with changesetEvidencePresent; phase 324 added a third that blocked the v1.69.1 cut and needed phase 325. Candidate guard: a doc test that scans packages/*/tests for '.changeset' path joins and requires each to go through tests/support/changeset-evidence.ts (changesetEvidencePresent or synthesizeConsumedChangeset), or a DRAFT/review checklist line for phases that add a changeset test.
+
+## rec-20261009-001 — cadence handoff truncates a branch name at its first '.' (release/v1.69.1 -> release/v1), so the SESSION doc's git_branch and State block name the wrong branch
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: handoff
+- files: packages/core/src/handoff/git-facts.ts
+- evidence: SESSION-2026-10-09-v1691-released.md frontmatter git_branch: chore/session-handoff-2026-10-08-v1 while git branch --show-current printed chore/session-handoff-2026-10-08-v1.69.1 (2026-10-09)
+- next: cadence milestone propose
+
+packages/core/src/handoff/git-facts.ts:41 parses the branch from 'git status --short --branch' with /^## (?:No commits yet on )?([^.\s]+)/, which stops at the first '.' to drop the '...origin/x' upstream suffix. Any branch containing a dot is truncated: chore/session-handoff-2026-10-08-v1.69.1 rendered as chore/session-handoff-2026-10-08-v1, and every release/vX.Y.Z branch would too. Fix: split on the literal '...' (or use rev-parse --abbrev-ref HEAD, as candidates.ts and remote-freshness.ts already do), with a test for a dotted branch name with and without an upstream.
