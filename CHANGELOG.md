@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.69.1] - 2026-10-08
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.69.1`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Fixed
+
+- **The Release workflow's post-publish npm verification now outlasts the registry's cache propagation.** The "Create GitHub Release and verify registry" step polls on a flat 15 s interval for up to 40 attempts (about 10 minutes) instead of giving up after about 45 s, which the registry edge's five-minute `max-age=300` packument cache had turned red on the last five releases although every package published. Each miss prints one `release-integrity:` progress line to stderr (package, returned and expected version, attempt, elapsed seconds). The pre-publish `--verify-npm` idempotency check is unchanged. (Phase `323`, #551.)
+
+### Security
+
+- **cadence-core's `@modelcontextprotocol/sdk` dependency moves from `^1.29.0` to `^1.31.0`** (resolving 1.32.1), past GHSA-6qxp-vccf-f47h (high, an OAuth client token leak). The SDK's `express` 5.2.1 → `proxy-addr` path carried GHSA-jqcg-44mw-7w3h (critical); a fresh install resolves the patched `proxy-addr` 2.0.8, but an existing consumer lockfile keeps 2.0.7 until it is refreshed (for example `pnpm update proxy-addr`). Neither the OAuth client nor the SDK's HTTP server is reachable through CADENCE, which uses only the stdio transport. This repository's lockfile is additionally pinned past `proxy-addr` and the dev-only `source-map-js` GHSA-68fv-2mgg-jv7q via range-keyed `pnpm.overrides`; no exception rows were added. (Phase `324`, #552.)
+
 ## [1.69.0] - 2026-10-04
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.69.0`. Per-package bumps managed by changesets, lockstep across all five published packages.

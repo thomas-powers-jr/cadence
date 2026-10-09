@@ -1,5 +1,20 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.69.1
+
+### Patch Changes
+
+- d6f5c5f: Security: move cadence-core's `@modelcontextprotocol/sdk` dependency past its OAuth client advisory, and pin this repository's lockfile past two more. Three advisories published after `main`'s last green `Security` run (2026-10-05) failed the required `security-success` check on every PR. All three are fixed by version bumps; none gets an exception row in `docs/security/audit-exceptions.md`.
+
+  - `GHSA-6qxp-vccf-f47h` (high, `@modelcontextprotocol/sdk` `>=1.12.0 <1.31.0`, an OAuth client token leak). cadence-core's production dependency moves from `^1.29.0` to `^1.31.0`, which resolves 1.32.1. CADENCE uses only the SDK's stdio transport, so the OAuth client is not reachable through CADENCE itself, but it shipped in every consumer's install. No source change was needed for the new SDK.
+  - `GHSA-jqcg-44mw-7w3h` (critical, `proxy-addr` `>=1.1.0 <2.0.8`, IP spoofing via IPv4-mapped addresses). It reaches consumers through the SDK's `express` 5.2.1 → `proxy-addr`. `express` declares `proxy-addr ^2.0.7`, so a fresh install resolves the patched 2.0.8, but upgrading cadence-core alone does not move it: an existing lockfile keeps `proxy-addr` 2.0.7 until the consumer refreshes it (for example `pnpm update proxy-addr`, or regenerating the lockfile). CADENCE does not run the SDK's HTTP server, so it is not reachable through CADENCE itself.
+  - `GHSA-68fv-2mgg-jv7q` (high, `source-map-js` `<1.2.2`, an event-loop denial of service). Dev-only: it reaches this repository only through `@vitest/coverage-v8` and `vite`, and no published CADENCE package ships it.
+
+  This repository's own lockfile additionally pins `proxy-addr >=2.0.8` and `source-map-js >=1.2.2` through the range-keyed `pnpm.overrides` entries `"proxy-addr@<2.0.8": "^2.0.8"` and `"source-map-js@<1.2.2": "^1.2.2"`. Those overrides shape only this repository's lockfile and do not propagate to consumers: a consumer gets the patched SDK through cadence-core's new range, and the patched `proxy-addr` only when its own install re-resolves it. Doc tests pin the new floors against the committed `package.json`, `packages/core/package.json` and `pnpm-lock.yaml`, and drive `scripts/check-audit-exceptions.mjs`'s own decision logic to prove no exception row covers any of the three advisories.
+
+- 0160f4d: The Release workflow's "Create GitHub Release and verify registry" step now polls npm on a flat 15 s interval for up to 40 attempts, at least about 10 minutes of waiting, instead of giving up after about 45 s (phase 323, rec-20260802-005). The npm registry's edge caches package metadata for five minutes (`max-age=300`), so the old budget turned routine releases red although every package had published. Each miss prints one `release-integrity:` progress line to stderr naming the package, the version npm returned, the expected version, the attempt number and the elapsed seconds, so the run log shows when each package became visible; the final error also reports the elapsed time. The pre-publish idempotency check (`--verify-npm`) is unchanged: 3 quick attempts and no progress lines. A red verify step is now a real signal to investigate, not a propagation race.
+  - @thomas-powers-jr/cadence-types@1.69.1
+
 ## 1.69.0
 
 ### Minor Changes
