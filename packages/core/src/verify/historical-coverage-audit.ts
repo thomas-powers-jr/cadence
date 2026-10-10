@@ -231,7 +231,7 @@ function errMessage(err: unknown): string {
  * order is not guaranteed to be identical across platforms (this repo's CI
  * matrix includes Windows), and this audit is meant to be reproducible.
  */
-function walkFilesWithSuffix(dir: string, suffix: string): string[] {
+export function walkFilesWithSuffix(dir: string, suffix: string): string[] {
   const out: string[] = [];
   let entries: Dirent[];
   try {

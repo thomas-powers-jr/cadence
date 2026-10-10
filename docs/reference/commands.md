@@ -44,6 +44,7 @@ Two CLIs are documented here:
   - [agent-prompt](#agent-prompt)
   - [verify](#verify)
   - [retro](#retro)
+  - [assurance](#assurance)
   - [summary](#summary)
 - [cadence-host-claude-code](#cadence-host-claude-code)
   - [install](#install)
@@ -107,6 +108,7 @@ agent-prompt
 dispatch
 verify
 retro
+assurance
 summary
 <!-- cadence:commands:end -->
 
@@ -2886,6 +2888,197 @@ is read-only throughout: it never writes to `.cadence/state.json`,
 `MISMATCH` or a load/parse/schema error), including when the entire corpus
 is `NO_HASH` and when zero `*-SUMMARY.json` files are found at all. Exits
 `1` if any file failed, no matter how many others passed.
+
+---
+
+### assurance
+
+```
+Usage: cadence assurance [options] [command]
+
+Corpus-wide view of how strongly settled slices were verified (read-only)
+```
+
+**Subcommands**
+
+| Subcommand | Synopsis |
+|---|---|
+| `report` | Roll up every SUMMARY.json: record categories, stored vs re-derived grades, gate firing counts, provider mix, bypasses and evidence tally |
+
+---
+
+#### assurance report
+
+```
+Usage: cadence assurance report [options]
+
+Roll up every SUMMARY.json: record categories, stored vs re-derived grades, gate
+firing counts, provider mix, bypasses and evidence tally
+```
+
+**Options**
+
+| Option | Description |
+|---|---|
+| `--json` | Emit the report object as JSON instead of rendered text |
+| `--since <phase>` | Only count records whose phase number is at least `<phase>` |
+| `-h, --help` | Display help for command |
+
+**Behavior** (phase 327, rec-20261010-002) — a read-only rollup of how
+strongly every settled slice was verified, computed fresh on each run from
+the `assurance` blocks and gate provenance already stored in each
+`SUMMARY.json`. It walks `.cadence/phases/**` for every `<id>-SUMMARY.json`
+(a refused attempt's `-SUMMARY-snapshot.json` sibling is not a record),
+parses each against `SummaryZ`, and prints a Markdown report — or, with
+`--json`, the report object itself as pretty-printed JSON on stdout. The
+rendered text is built only from that object, so every number it prints is
+a field of the `--json` output. The corpus is found from the current
+working directory, not the git top level, so run it from the repository
+root: with no `.cadence/phases/` there, the report is empty, a stderr note
+says why, and the command still exits `0`. The command never writes: no `SUMMARY.json`, ledger,
+`.cadence/state.json` or `STATE.md` is touched, and stored grades are never
+backfilled or rewritten.
+
+Every file lands in exactly one of these places, checked in this order:
+
+| Category | Rule | Counted in |
+|---|---|---|
+| unreadable | not valid JSON, does not match `SummaryZ`, not inside a phase directory, inside a phase directory whose name has no leading number, or could not be read | `totals.unreadable` and the `unreadable` list (repo-relative, forward-slash path plus the reason) |
+| refused | any `gates[]` entry has `status: 'refused'` (written only when a gate halts the settle) | `totals.refused` and the `refused` list |
+| graded | a stored `assurance` block | `categories.graded` |
+| gradable but never graded | gate provenance (a non-empty `gates[]`) but no `assurance` block — the settle that wrote it did not derive an assurance record | `categories.neverGraded` |
+| un-gradable | no gate provenance at all, so nothing records which gates ran (gate provenance is first written at phase 140, `140-summary-gate-provenance`) | `categories.unGradable` |
+
+Unreadable and refused records are excluded from every other count: the
+three categories, both grade distributions, the delta, the gate rows,
+`provenanceRecords`, the provider mix, `recordsWithBypasses` and the
+evidence tally. The three categories sum to `totals.settled`, and settled +
+refused + unreadable sums to `totals.files`. Each category reports its
+count, its first and last phase number (`null` when it is empty), and the
+reason for the classification. `categories.neverGraded.afterFirstGraded`
+lists, by id, the never-graded records whose phase number is at or after
+the first graded phase in the window — records that could have been graded
+and were not.
+
+**Grades.** For graded records only, `grades.stored` counts each grade
+level as written in the stored `assurance.overall`, and `grades.rederived`
+counts the grade today's `deriveAssuranceRecord` rule gives when it is
+applied to that record's stored `gates`, `acResults`, `gateBypasses` and
+`deepVerify`. `grades.delta` lists every graded record whose re-derived
+grade differs from its stored one. Never-graded and un-gradable records get
+no re-derived grade; their inputs predate fields the rule reads. Read a
+delta entry as a reason to look, not as proof the stored grade is wrong:
+settle drops off-ladder ACs (structurally unobservable ones) before it
+derives the grade, and the stored `acResults` may not carry enough for a
+re-derivation to reproduce that exclusion exactly. Records written before
+phase 263 also carry no `providerSelection`, so the re-derivation cannot
+tell a real provider's gate call that had nothing to judge (an empty diff)
+from one that did.
+
+**Gates.** `gates[]` has one row for every gate name in `GateZ`, in enum
+order, counted per record over `provenanceRecords` (the settled records with
+gate provenance): a record counts once per gate, as `ran` if any of its
+`gates[]` entries for that gate ran, otherwise as `skipped` if it has one,
+and as `notRecorded` if its `gates[]` has no entry for it, so each row sums
+to `provenanceRecords`. Some gates are
+never written to a `SUMMARY.json`'s `gates[]` (for example `approve` and
+`plan-review`, which fire before settle), so a row that is entirely not
+recorded says nothing about whether that gate ran.
+
+**Provider mix, bypasses and evidence.** `providerSelection` counts gate
+entries, not records, across settled records: each entry carrying a
+`providerSelection` value adds one to that value; entries without one
+(every record before phase 263) add nothing. `recordsWithBypasses` counts
+settled records with at least one `gateBypasses` entry. `evidenceTally` is
+the sum of each graded record's stored `assurance.evidenceTally`, not a
+recount of `acResults`.
+
+**Window.** `--since <phase>` keeps only records whose phase number (the
+leading integer of the phase directory name) is at least `<phase>`,
+compared numerically, so `--since 283` excludes phase 99 and includes phase
+1000. Every count, `totals.files` included, covers only the window. An
+unreadable file is windowed by its phase directory's leading number when it
+has one; one whose directory has no leading number, or that sits directly
+in `.cadence/phases/` with no phase directory, cannot be placed and is
+always listed. The JSON keeps the same keys, gate rows, grade levels and
+`providerSelection` values in every window, each present at `0` when
+nothing in the window carries it.
+
+**Determinism.** The same corpus gives byte-identical text and JSON on
+every run and every platform. One caveat: the `reason` of an unreadable
+file quotes the parser's or the operating system's error message, whose
+wording can change between Node.js versions. There is no clock read and no locale
+formatting, and every path is repo-relative, including the one inside the
+`reason` of a file that could not be read (the operating system's absolute
+path in that error is replaced with the repo-relative one). Every list
+(`afterFirstGraded`, `delta`, `refused`, `unreadable`) is sorted by phase
+number, then by repo-relative path; an unreadable file that has no phase
+number sorts after every numbered one.
+
+**JSON shape** (`--json`) — one leaf key path per line: `a.b` is a nested
+key, `a[].b` is a key of each item of the list `a`. The type and meaning
+follow the path.
+
+<!-- cadence:assurance-report-schema:start -->
+```text
+schemaVersion                                  number         Version of this shape; 1 for the shape documented here
+window.since                                   number|null    The --since value, or null when every phase is counted
+totals.files                                   number         SUMMARY.json files in the window: settled + refused + unreadable
+totals.settled                                 number         Readable records with no refused gate entry
+totals.refused                                 number         Readable records with a gate entry whose status is refused
+totals.unreadable                              number         Files that could not be read or parsed
+categories.unGradable.count                    number         Settled records with no gate provenance
+categories.unGradable.firstPhase               number|null    Lowest phase number in the category, null when empty
+categories.unGradable.lastPhase                number|null    Highest phase number in the category, null when empty
+categories.unGradable.reason                   string         Why records land in this category
+categories.neverGraded.count                   number         Settled records with gate provenance but no assurance block
+categories.neverGraded.firstPhase              number|null    Lowest phase number in the category, null when empty
+categories.neverGraded.lastPhase               number|null    Highest phase number in the category, null when empty
+categories.neverGraded.reason                  string         Why records land in this category
+categories.neverGraded.afterFirstGraded[].id   string         Record id of a never-graded record at or after the first graded phase
+categories.neverGraded.afterFirstGraded[].path string         Its repo-relative, forward-slash SUMMARY.json path
+categories.graded.count                        number         Settled records with a stored assurance block
+categories.graded.firstPhase                   number|null    Lowest phase number in the category, null when empty
+categories.graded.lastPhase                    number|null    Highest phase number in the category, null when empty
+categories.graded.reason                       string         Why records land in this category
+grades.stored.strong                           number         Graded records whose stored grade is strong
+grades.stored.mixed                            number         Graded records whose stored grade is mixed
+grades.stored.weak                             number         Graded records whose stored grade is weak
+grades.stored.unverified                       number         Graded records whose stored grade is unverified
+grades.rederived.strong                        number         Graded records the current rule grades strong
+grades.rederived.mixed                         number         Graded records the current rule grades mixed
+grades.rederived.weak                          number         Graded records the current rule grades weak
+grades.rederived.unverified                    number         Graded records the current rule grades unverified
+grades.delta[].id                              string         Record id of a graded record whose re-derived grade differs
+grades.delta[].path                            string         Its repo-relative, forward-slash SUMMARY.json path
+grades.delta[].stored                          string         The stored grade
+grades.delta[].rederived                       string         The grade under the current rule
+provenanceRecords                              number         Settled records with gate provenance; the total of every gate row
+gates[].gate                                   string         Gate name, one row per GateZ value in enum order
+gates[].ran                                    number         Records with at least one gates[] entry for this gate whose status is ran
+gates[].skipped                                number         Records with gates[] entries for this gate, none of them ran
+gates[].notRecorded                            number         Records with gate provenance but no entry for this gate
+providerSelection.configured                   number         Gate entries whose providerSelection is configured
+providerSelection.fallback                     number         Gate entries whose providerSelection is fallback
+providerSelection.empty-diff                   number         Gate entries whose providerSelection is empty-diff
+recordsWithBypasses                            number         Settled records with at least one gateBypasses entry
+evidenceTally.ai-verified                      number         Sum of graded records' stored ai-verified AC counts
+evidenceTally.executed                         number         Sum of graded records' stored executed AC counts
+evidenceTally.assertion                        number         Sum of graded records' stored assertion AC counts
+evidenceTally.mention                          number         Sum of graded records' stored mention AC counts
+evidenceTally.unverified                       number         Sum of graded records' stored unverified AC counts
+refused[].id                                   string         Record id of a refused settle
+refused[].path                                 string         Its repo-relative, forward-slash SUMMARY.json path
+unreadable[].path                              string         Repo-relative, forward-slash path of an unreadable file
+unreadable[].reason                            string         Why it could not be used
+```
+<!-- cadence:assurance-report-schema:end -->
+
+**Exit codes** — exits `0` on a successful report, including when some
+files are unreadable or some settles were refused (both are part of the
+report, not a failure). Exits `1` when `--since` is not a non-negative
+integer within JavaScript's safe-integer range (with a stderr message
+naming the bad value) or on an unexpected error.
 
 ---
 

@@ -3270,6 +3270,97 @@
       "decisionIds": [],
       "createdAt": "2026-10-10T00:34:06.878Z",
       "updatedAt": "2026-10-10T00:34:06.878Z"
+    },
+    {
+      "id": "rec-20261010-003",
+      "title": "Consolidate the three SUMMARY.json corpus walkers into one exported walker",
+      "summary": "Three separate recursive walkers enumerate .cadence/phases SUMMARY files: summary.ts walkSummaryFiles (summary verify-all), doctor/run.ts walkSummaryFilePaths (async), and historical-coverage-audit.ts walkFilesWithSuffix. Phase 327 exports the last one and uses it for assurance report; migrate the other two onto it so ordering, snapshot exclusion, and unreadable-directory tolerance are defined once.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "cli",
+        "doctor",
+        "verify"
+      ],
+      "affectedFiles": [
+        "packages/core/src/cli/commands/summary.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/verify/historical-coverage-audit.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261010-assurance-report",
+      "createdAt": "2026-10-10T16:05:39.063Z",
+      "updatedAt": "2026-10-10T16:05:39.063Z"
+    },
+    {
+      "id": "rec-20261010-004",
+      "title": "Generated docs/evidence/assurance.md from cadence assurance report, with a staleness check that survives new settles",
+      "summary": "The evidence write-up and README want a current assurance snapshot. Generate docs/evidence/assurance.md from cadence assurance report rather than hand-maintaining it. Open design question: a naive doc-sync test that fails when the page is stale fails on every future settle (each settle adds a record), so the check must be scoped (e.g. regenerated in the release phase, or pinned to a named commit) rather than asserting live-corpus equality.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "assurance",
+        "docs",
+        "reporting"
+      ],
+      "affectedFiles": [
+        "docs/evidence/assurance.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261010-assurance-report",
+      "createdAt": "2026-10-10T16:05:40.357Z",
+      "updatedAt": "2026-10-10T16:05:40.357Z"
+    },
+    {
+      "id": "rec-20261010-005",
+      "title": "Code-review finding (medium): A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON se…",
+      "summary": "medium finding at packages/core/src/services/assurance-report.ts:104: A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.",
+      "source": "review",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packages/core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/assurance-report.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261010-1748",
+      "sourceFindingId": "564dc5e8a1b2af5997501e6d6926e4ef6a89e921355f87f9a2209a94b871c4fe",
+      "createdAt": "2026-10-10T17:48:34.912Z",
+      "updatedAt": "2026-10-10T17:48:34.912Z"
     }
   ],
   "archived": [
@@ -10972,10 +11063,49 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "326-docs-name-all-three-required-checks",
-      "createdAt": "2026-10-07T23:58:52.973Z",
-      "updatedAt": "2026-10-10T00:43:09.126Z",
       "shippedRef": "phase 326 settled 2026-10-09 on docs/326-required-checks",
       "archivedAt": "2026-10-10T00:43:09.126Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-07T23:58:52.973Z",
+      "updatedAt": "2026-10-10T00:43:09.126Z"
+    },
+    {
+      "id": "rec-20261010-002",
+      "title": "cadence assurance report: corpus-wide assurance rollup as a command",
+      "summary": "No command rolls the per-phase SUMMARY.json assurance accounts up into a portfolio view. Add cadence assurance report (rendered text by default, --json for the machine shape, --since <phase> numeric window): record count split into three named categories (un-gradable: no gate provenance; gradable-but-never-graded: provenance but no assurance block; graded), grade distribution stored vs re-derived under the current deriveAssuranceRecord rule with the per-record delta (graded records only), per-gate ran/skipped/not-recorded counts, providerSelection mix, bypass count, evidence tally, refused-settle count, and unreadable files as their own category. Read-only by construction; deterministic output.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "assurance",
+        "cli",
+        "reporting"
+      ],
+      "affectedFiles": [
+        "packages/core/src/cli/commands/assurance.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261010-001",
+        "dec-20261010-002",
+        "dec-20261010-003",
+        "dec-20261010-004"
+      ],
+      "convertedToPhaseId": "327-assurance-report",
+      "scoutId": "scout-20261010-assurance-report",
+      "createdAt": "2026-10-10T16:05:24.394Z",
+      "updatedAt": "2026-10-10T17:48:34.936Z",
+      "shippedRef": "phase 327 settled 2026-10-10 on feat/assurance-report-phase-327",
+      "archivedAt": "2026-10-10T17:48:34.936Z",
       "archiveReason": "shipped"
     }
   ]
