@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "window": {
+    "since": null
+  },
+  "totals": {
+    "files": 338,
+    "settled": 338,
+    "refused": 0,
+    "unreadable": 0
+  },
+  "categories": {
+    "unGradable": {
+      "count": 155,
+      "firstPhase": 2,
+      "lastPhase": 139,
+      "reason": "no gate provenance: the record has no gates[] entries, so nothing says which gates ran"
+    },
+    "neverGraded": {
+      "count": 96,
+      "firstPhase": 140,
+      "lastPhase": 243,
+      "reason": "gate provenance but no assurance block: the settle that wrote it did not derive an assurance record",
+      "afterFirstGraded": [
+        {
+          "id": "238-01",
+          "path": ".cadence/phases/238-drop-node20-support/238-01-SUMMARY.json"
+        },
+        {
+          "id": "239-01",
+          "path": ".cadence/phases/239-coverage-phase-scoping/239-01-SUMMARY.json"
+        },
+        {
+          "id": "240-01",
+          "path": ".cadence/phases/240-doctor-multi-seam-readiness/240-01-SUMMARY.json"
+        },
+        {
+          "id": "243-01",
+          "path": ".cadence/phases/243-untitled/243-01-SUMMARY.json"
+        }
+      ]
+    },
+    "graded": {
+      "count": 87,
+      "firstPhase": 235,
+      "lastPhase": 327,
+      "reason": "stored assurance block present"
+    }
+  },
+  "grades": {
+    "stored": {
+      "strong": 11,
+      "mixed": 74,
+      "weak": 0,
+      "unverified": 2
+    },
+    "rederived": {
+      "strong": 9,
+      "mixed": 76,
+      "weak": 0,
+      "unverified": 2
+    },
+    "delta": [
+      {
+        "id": "272-01",
+        "path": ".cadence/phases/272-assurance-record-correctness/272-01-SUMMARY.json",
+        "stored": "strong",
+        "rederived": "mixed"
+      },
+      {
+        "id": "282-01",
+        "path": ".cadence/phases/282-coverage-scanner-determinism/282-01-SUMMARY.json",
+        "stored": "strong",
+        "rederived": "mixed"
+      }
+    ]
+  },
+  "provenanceRecords": 183,
+  "gates": [
+    {
+      "gate": "coherence-check",
+      "ran": 0,
+      "skipped": 0,
+      "notRecorded": 183
+    },
+    {
+      "gate": "structural-verifier",
+      "ran": 183,
+      "skipped": 0,
+      "notRecorded": 0
+    },
+    {
+      "gate": "boundary-scan",
+      "ran": 14,
+      "skipped": 153,
+      "notRecorded": 16
+    },
+    {
+      "gate": "build-test-must-pass",
+      "ran": 155,
+      "skipped": 28,
+      "notRecorded": 0
+    },
+    {
+      "gate": "draft-read",
+      "ran": 60,
+      "skipped": 123,
+      "notRecorded": 0
+    },
+    {
+      "gate": "test-coverage",
+      "ran": 168,
+      "skipped": 15,
+      "notRecorded": 0
+    },
+    {
+      "gate": "anomaly-notify",
+      "ran": 0,
+      "skipped": 0,
+      "notRecorded": 183
+    },
+    {
+      "gate": "task-verify-required",
+      "ran": 117,
+      "skipped": 13,
+      "notRecorded": 53
+    },
+    {
+      "gate": "approve",
+      "ran": 0,
+      "skipped": 0,
+      "notRecorded": 183
+    },
+    {
+      "gate": "per-task-verify",
+      "ran": 0,
+      "skipped": 0,
+      "notRecorded": 183
+    },
+    {
+      "gate": "code-review",
+      "ran": 16,
+      "skipped": 167,
+      "notRecorded": 0
+    },
+    {
+      "gate": "deep-verify",
+      "ran": 20,
+      "skipped": 163,
+      "notRecorded": 0
+    },
+    {
+      "gate": "interactive-verdict",
+      "ran": 4,
+      "skipped": 179,
+      "notRecorded": 0
+    },
+    {
+      "gate": "plan-review",
+      "ran": 0,
+      "skipped": 0,
+      "notRecorded": 183
+    },
+    {
+      "gate": "security-audit",
+      "ran": 3,
+      "skipped": 180,
+      "notRecorded": 0
+    }
+  ],
+  "providerSelection": {
+    "configured": 10,
+    "fallback": 3,
+    "empty-diff": 0
+  },
+  "recordsWithBypasses": 18,
+  "evidenceTally": {
+    "ai-verified": 83,
+    "executed": 319,
+    "assertion": 0,
+    "mention": 0,
+    "unverified": 20
+  },
+  "refused": [],
+  "unreadable": []
+}
