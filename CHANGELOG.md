@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.70.0] - 2026-10-10
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.70.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **`cadence assurance report` rolls every phase's assurance record up into one corpus-wide picture.** It is read-only and never rewrites a SUMMARY. Each readable settled record lands in one of three named categories with the phase range each spans: un-gradable (no gate provenance), gradable but never graded (gate provenance but no `assurance` block) and graded; refused settles and unreadable files are reported as their own categories, and an unreadable file never fails the command. For graded records it shows the stored grade distribution, the distribution re-derived under the current assurance rule and every record whose grade differs, plus per-gate ran / skipped / not-recorded counts, the provider-selection mix, the bypass count and the stored evidence tally. `--json` prints the report object (with a `schemaVersion`) the text is derived from; `--since <phase>` restricts the counts to records at or after that phase. (Phase `327`, #559.)
+
 ## [1.69.1] - 2026-10-08
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.69.1`. Per-package bumps managed by changesets, lockstep across all five published packages.
