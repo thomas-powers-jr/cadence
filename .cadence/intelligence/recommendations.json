@@ -3387,9 +3387,42 @@
       ],
       "assumptionIds": [],
       "decisionIds": [],
+      "scoutId": "scout-20261010-assurance-report",
       "createdAt": "2026-10-10T18:29:27.720Z",
-      "updatedAt": "2026-10-10T18:29:27.720Z",
-      "scoutId": "scout-20261010-assurance-report"
+      "updatedAt": "2026-10-10T18:29:27.720Z"
+    },
+    {
+      "id": "rec-20261010-007",
+      "title": "Land Dependabot #474 (@changesets/cli 3.x): drop the two pnpm.overrides keys it leaves dead, before the braces exception expires 2026-11-18",
+      "summary": "After '@dependabot rebase' (2026-10-10), #474 (@changesets/cli 2.31.1 -> 3.0.2) is red on audit (security-success) and on cadence-core tests. Single root cause: changesets 3.x no longer pulls read-yaml-file or js-yaml, so the pnpm.overrides keys \"read-yaml-file@1.1.0\": \"^2.1.0\" and \"js-yaml@4.2.0\": \"^4.3.2\" resolve nothing; scripts/check-lockfile-overrides.mjs (audit job) and tests/docs/lockfile-overrides-current-state.test.ts both fail with reason unresolved-target, by design. Fix as its own phase on a fresh branch (not commits on Dependabot's branch): bump @changesets/cli to 3.x, delete both keys, regenerate pnpm-lock.yaml, update the current-state test's package list (it names js-yaml) and any check-lockfile-overrides fixtures, confirm braces is gone from the tree (pnpm why braces -r) and retire the GHSA-vfj7-8cjw-p6xm exception row in docs/security/audit-exceptions.md, then close #474 as superseded. Also confirm changesets 3.x 'changeset version' still produces the lockstep fixed-group bump and CHANGELOG shape release-integrity.mjs parses (## x.y.z). Unblocks every release after 2026-11-18.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "dependencies",
+        "release"
+      ],
+      "affectedFiles": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "scripts/check-lockfile-overrides.mjs",
+        "packages/core/tests/docs/lockfile-overrides-current-state.test.ts",
+        "docs/security/audit-exceptions.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-007"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-10T23:24:48.980Z",
+      "updatedAt": "2026-10-10T23:24:48.980Z"
     }
   ],
   "archived": [
