@@ -21,7 +21,7 @@ Continues `SESSION-2026-10-09-v1691-released.md`, the newest handoff on `main`. 
 ## TL;DR for the next session
 - **Phase 327 is merged**: `cadence assurance report` landed as `7264b428` (PR #559, squash), all required checks green on Ubuntu/macOS/Windows. A `minor` changeset is pending release.
 - Settle ran **real** review gates through Codex (`CADENCE_HOST_CLI_BIN=codex`, worktree local build): deep-verify `observedProvider: host-cli` passed 10/10 ACs `ai-verified`; code-review host-cli (`configured`) left one medium finding open, auto-filed as `rec-20261010-005`. Phase 327's own grade is `strong`. No gate bypasses.
-- This branch (`chore/session-handoff-2026-10-10-phase-327`) carries this doc plus `rec-20261010-006` (assurance floors, D-BV). Land it via PR; it is ledger + handoff only.
+- This branch (`chore/session-handoff-2026-10-10-phase-327`, PR #560, open) carries this doc, `rec-20261010-006` (assurance floors, D-BV) and, at the operator's request, the truncation of `.cadence/handoff/` to the newest 10 SESSION docs (the repo's `handoff.retain: 10`). It is ledger + handoff only, with no source change; merging needs the operator's OK.
 - Gate on this branch: `pnpm turbo run lint typecheck test build` 28/28 tasks, core 483 test files passed / 1 skipped (cache hits from an identical-source forced run earlier the same day; CI on #559 ran it fresh on all three OSes).
 - Next work options: `rec-20261010-003` (walker consolidation, `ready-for-cadence-spec`), `rec-20261010-005` (reject non-finite phase numbers, a small fix but `needs-decision`), or Arc B's evidence write-up, which can now cite `cadence assurance report` directly.
 - **Where to resume:** this doc and its `lastHandoff` stamp exist only on this branch / in the `327-assurance-report` worktree until the handoff PR merges. The primary checkout (`C:\Users\softw\projects\cadence`) is still on PR #558's branch with its own `state.json` pointing at an older handoff (`rec-20260813-005`: `resume` can serve a stale-but-existing pointer), so open this file by path rather than trusting `cadence resume` there.
@@ -204,7 +204,7 @@ d6f5c5f6 fix(security): bump MCP SDK, proxy-addr and source-map-js past audit ad
 - **code-review sends the diff uncapped; deep-verify caps at 256 KB keeping the start.** A large file in a task's `files:` swamps the review. Phase 327 gzipped its fixture for this (operator decision). Cost: gitleaks and `npm-scope-sweep.test.ts` can't read inside the `.gz` (its content duplicates `.cadence/phases`, which they do scan).
 - **Post-approve DRAFT edits (As-built notes) trip the draft-read gate.** Re-read and `cadence draft approve <phase> <num>` again (refreshes `draftReadAt` only, task records untouched). Phase 327's first settle was refused this way; no `--allow-stale-draft` was used.
 - **Settle auto-files open code-review findings as recs** — dedup before filing one by hand.
-- **`cadence handoff` auto-prunes old tracked `SESSION-*.md` files** (11 this time). They were restored with `git restore`; CLAUDE.md says handoff sweeps happen only in deliberate housekeeping PRs. Check `git status` after scaffolding.
+- **`cadence handoff` auto-prunes tracked `SESSION-*.md` files beyond `handoff.retain` (10)** and stages nothing, so the deletions show up as unstaged `D` lines. This session first restored them (CLAUDE.md: sweeps belong in deliberate housekeeping), then the operator asked for the truncation, so PR #560 deletes the 11 docs dated 2026-08-21 … 2026-09-26 (`SESSION-2026-08-21.md` through `SESSION-2026-09-26-317-settled-pr541.md`). They stay in git history; a few historical records (`.cadence/intelligence/evidence.json`, phase 316/317 artifacts, `docs/checkpoint/*`, `docs/handoffs/HANDOFF-checkpoint-arc-phase-{2,3}.md`) still cite them by name. Always check `git status` after scaffolding a handoff.
 - **`gh pr merge --delete-branch` from a worktree switches that worktree to `main`.** Harmless here, but re-check the branch before the next commit.
 - Running `cadence assurance report` from a subdirectory prints a stderr note and an empty report; run it from the repo root.
 
@@ -214,7 +214,7 @@ d6f5c5f6 fix(security): bump MCP SDK, proxy-addr and source-map-js past audit ad
 - PR #558 (the phase 326 session handoff, from the primary checkout's branch) is still open; merge or close is the operator's call.
 
 ## Next action
-Land this branch's PR (`chore(cadence): session handoff -- phase 327 merged (2026-10-10)`) after its three required checks pass; merging needs the operator's explicit OK. After it merges, the `.claude/worktrees/327-assurance-report` worktree is idle and can be removed. Then pick the next phase with `cadence recommend`; the ready-for-spec one from this session is `rec-20261010-003`.
+Land PR #560 (`chore(cadence): session handoff -- phase 327 merged (2026-10-10)`) after its three required checks pass; merging needs the operator's explicit OK. After it merges, the `.claude/worktrees/327-assurance-report` worktree is idle and can be removed. Then pick the next phase with `cadence recommend`; the ready-for-spec one from this session is `rec-20261010-003`.
 
 ## Conventions reaffirmed / decisions made
 - Corpus numbers in tests come from a frozen fixture, never the live `.cadence/phases` tree (it grows with every settle).
