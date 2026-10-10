@@ -1,0 +1,73 @@
+# Assurance report
+
+Window: every phase
+Files: 338 (settled 338, refused 0, unreadable 0)
+
+## Settled records by category
+
+- Un-gradable: 155 (phases 2–139) — no gate provenance: the record has no gates[] entries, so nothing says which gates ran
+- Gradable but never graded: 96 (phases 140–243) — gate provenance but no assurance block: the settle that wrote it did not derive an assurance record
+  - at or after the first graded phase: 238-01, 239-01, 240-01, 243-01
+- Graded: 87 (phases 235–327) — stored assurance block present
+
+## Grades of graded records
+
+| Grade | Stored | Re-derived |
+|---|---|---|
+| strong | 11 | 9 |
+| mixed | 74 | 76 |
+| weak | 0 | 0 |
+| unverified | 2 | 2 |
+
+Re-derived applies today's assurance rule to each graded record's stored inputs; the files themselves are never rewritten.
+Records whose grade changes under the current rule:
+- 272-01: strong → mixed (.cadence/phases/272-assurance-record-correctness/272-01-SUMMARY.json)
+- 282-01: strong → mixed (.cadence/phases/282-coverage-scanner-determinism/282-01-SUMMARY.json)
+
+## Gates (over 183 settled records with gate provenance)
+
+| Gate | Ran | Skipped | Not recorded |
+|---|---|---|---|
+| coherence-check | 0 | 0 | 183 |
+| structural-verifier | 183 | 0 | 0 |
+| boundary-scan | 14 | 153 | 16 |
+| build-test-must-pass | 155 | 28 | 0 |
+| draft-read | 60 | 123 | 0 |
+| test-coverage | 168 | 15 | 0 |
+| anomaly-notify | 0 | 0 | 183 |
+| task-verify-required | 117 | 13 | 53 |
+| approve | 0 | 0 | 183 |
+| per-task-verify | 0 | 0 | 183 |
+| code-review | 16 | 167 | 0 |
+| deep-verify | 20 | 163 | 0 |
+| interactive-verdict | 4 | 179 | 0 |
+| plan-review | 0 | 0 | 183 |
+| security-audit | 3 | 180 | 0 |
+
+Not recorded means the SUMMARY's gates[] has no entry for that gate. Some gates are never written there (they fire before settle, such as approve and plan-review, or are excluded from settle provenance), so a fully not-recorded row says nothing about whether the gate ran.
+
+## Provider selection (gate entries)
+
+- configured: 10
+- fallback: 3
+- empty-diff: 0
+
+## Bypasses
+
+- settled records with gate bypasses: 18
+
+## Evidence tally (stored, over graded records)
+
+- ai-verified: 83
+- executed: 319
+- assertion: 0
+- mention: 0
+- unverified: 20
+
+## Refused settles (0)
+
+- none
+
+## Unreadable files (0)
+
+- none
