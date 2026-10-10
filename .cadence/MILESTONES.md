@@ -1218,6 +1218,13 @@ changeset (example/test-only change, no published-package surface).*
   required, and a doc-content test parses the recorded list from
   `docs/security/audit-exceptions.md` and guards the six files against the
   drift (rec-20261007-002).
+- **Phase 327** — new read-only `cadence assurance report` rolls every
+  `SUMMARY.json` up into un-gradable, gradable-but-never-graded and graded
+  records (plus refused and unreadable), stored vs re-derived grades with
+  the per-record delta, per-gate ran / skipped / not-recorded counts, the
+  provider mix, bypasses and the evidence tally, as text or `--json`, with
+  `--since <phase>`; at `7d96650` that is 155 / 96 / 86 of 337 records, and
+  `272-01` and `282-01` re-derive strong → mixed (rec-20261010-002).
 
 
 

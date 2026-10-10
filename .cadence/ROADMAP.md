@@ -3480,6 +3480,47 @@ comment. The same stale "once both checks are actually registered" sentence
 in `docs/security/audit-exceptions.md` stays, because the test parses that
 file; it is filed as rec-20261009-002.
 
+### Phase 327 — `cadence assurance report`: corpus-wide assurance rollup (rec-20261010-002)
+
+**Objective.** Every settled slice's `SUMMARY.json` carries an account of
+how strongly it was verified, but no command rolled those accounts up, so
+every portfolio number to date came from a one-off script. The new
+read-only `cadence assurance report` (a top-level noun, dec-20261010-001)
+walks `.cadence/phases` with phase 261's `walkFilesWithSuffix`, now
+exported, and prints the corpus as text, or with `--json` as a
+`schemaVersion` 1 shape the text is derived from, optionally windowed with
+a numeric `--since <phase>`. Every readable settled record falls into one
+of three named categories: un-gradable (no gate provenance, which first
+appears at phase 140), gradable but never graded (provenance, no
+`assurance` block) and graded. A gate-refused settle and an unreadable file
+are their own categories, listed by id or path, and an unreadable file
+never fails the report. Measured at `7d96650` (2026-10-10), the corpus is
+337 records: 155 un-gradable (phases 2–139), 96 never graded (phases
+140–243, including `238-01`, `239-01`, `240-01` and `243-01`, after the
+first graded phase 235) and 86 graded (phases 235–326). For graded records
+only (dec-20261010-002) it shows the stored grades, the grades re-derived
+under today's `deriveAssuranceRecord`, and the delta, without rewriting any
+file: stored strong 10 / mixed 74 / unverified 2 become 8 / 76 / 2, as
+`272-01` and `282-01` move strong → mixed. Per-gate ran / skipped / not
+recorded counts, over the 182 records with provenance, put numbers on the
+gaps: `boundary-scan` ran 13, skipped 153 and is not recorded in 16, and
+`security-audit` ran in 3 of 182. The provider mix, bypass count and
+evidence tally round it out. Tests pin every number against a frozen copy
+of the 337 records at `7d96650`
+(`tests/fixtures/assurance-corpus/corpus-7d96650.json.gz`, built from
+`git show` blobs with each record's text verbatim), never the live tree,
+which grows with every settle. The fixture is gzipped (1 MB of JSON, 147 KB
+compressed) because settle's code-review gate sends the whole phase diff
+uncapped and deep-verify's 256 KB cap would otherwise have cut the test
+files that sort after it; as a binary file it shows in the diff as one
+line. The report
+is descriptive only, with no doctor check, floor or refusal path
+(dec-20261010-003), and the generated `docs/evidence/assurance.md` page is
+not built here (dec-20261010-004). Out of scope, deliberately and filed:
+moving the `summary.ts` and `doctor/run.ts` SUMMARY walkers onto the
+exported one (rec-20261010-003), and that generated evidence page with a
+staleness check that survives new settles (rec-20261010-004).
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

@@ -1106,6 +1106,42 @@
       "status": "active",
       "decidedAt": "2026-09-26T03:07:13.402Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261010-001",
+      "recommendationId": "rec-20261010-002",
+      "title": "D-BT: the corpus rollup is a new top-level noun, cadence assurance report",
+      "rationale": "The assurance record is its own concept (phase 233 named it; phase 283 made it honest), and a top-level noun leaves room for a later per-phase 'assurance explain <phase>'. Rejected: 'summary report' (summary is per-artifact integrity, not assurance) and 'verify assurance' (verify runs checks; this only reads). 'assurance' collides with nothing in packages/core/src/cli/commands/ at 7d96650.",
+      "status": "active",
+      "decidedAt": "2026-10-10T16:05:56.869Z",
+      "supersedes": []
+    },
+    {
+      "id": "dec-20261010-002",
+      "recommendationId": "rec-20261010-002",
+      "title": "D-BU: report stored grades, re-derived grades, and the delta -- for the 86 graded records only",
+      "rationale": "Option 3. The stored distribution is what the artifacts say; the re-derived distribution is what the current deriveAssuranceRecord rule says; the per-record delta is how far the honesty work moved history, shown without rewriting any file (report-never-rewrite; consistent with dec-20260816-008 and dec-20260822-006, no backfill). Measured at 7d96650: 2 records move, 272-01 and 282-01, strong->mixed, matching phase 283's drift report. The 96 gradable-but-never-graded records get a count and a reason only, never a re-derived grade: their inputs predate fields the rule reads (providerSelection, bypass/deepVerify inputs), so a computed 'weak' there is a schema artifact, not a grade. Caveat recorded in the report: settle filters off-ladder ACs before deriving (settle.ts), which stored acResults may not let a re-derivation reproduce exactly.",
+      "status": "active",
+      "decidedAt": "2026-10-10T16:05:58.138Z",
+      "supersedes": []
+    },
+    {
+      "id": "dec-20261010-003",
+      "recommendationId": "rec-20261010-002",
+      "title": "D-BV: assurance report ships descriptive only -- no floors, no doctor check",
+      "rationale": "A doctor check warning when the strong ratio over the last N settles falls below a floor, or when security-audit hasn't run in N phases, would make the report prescriptive. That is assurance floors, a separate decision with its own threshold-setting problem (cf. dec-20260813-003's refusal to invent an unmeasured threshold). Phase 327 adds no doctor check and no refusal path.",
+      "status": "active",
+      "decidedAt": "2026-10-10T16:05:59.465Z",
+      "supersedes": []
+    },
+    {
+      "id": "dec-20261010-004",
+      "recommendationId": "rec-20261010-002",
+      "title": "D-BW: the generated docs/evidence/assurance.md page is filed (rec-20261010-004), not built in phase 327",
+      "rationale": "A staleness test asserting the page equals the live corpus fails on every future settle, because each settle adds a SUMMARY record. Phase 327's own tests pin a frozen fixture corpus for the same reason. The generator and a staleness check that survives new settles need their own design pass; filed as rec-20261010-004. No README change in phase 327.",
+      "status": "active",
+      "decidedAt": "2026-10-10T16:06:00.716Z",
+      "supersedes": []
     }
   ]
 }

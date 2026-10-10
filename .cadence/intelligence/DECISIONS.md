@@ -793,6 +793,34 @@ Of D-BO's three options, (a) nothing is insufficient -- operators need some sign
 
 dec-20260926-001 correctly established that Codex's SubagentStop inertness is declared and loudly notified today, unlike Claude Code's silent bug -- that remains true and is not reversed here. What's corrected: dec-20260926-001's framing implied the gap was permanent/by-design because Codex's protocol didn't document agent identity fields for SubagentStop. A fresh fetch of developers.openai.com/codex/hooks.md (2026-09-26) shows Codex's CURRENT docs DO document agent_id/agent_type as SubagentStop input fields (evidence ev- attached to rec-20260926-001). host-codex/src/capabilities.ts's agentIdentification:false declaration and its comment citing 'the phase-65 spike's documented Codex hook stdin fields... don't include one' are now based on stale information. The correct framing: Codex's degrade is currently declared and loud (correct behavior, no regression), but the capability gap itself is closable with a small follow-up (extract agent_id/agent_type in host-codex's shim.ts, matching Claude Code's needed fix, then flip agentIdentification to true) -- it is not an intentional, permanent design choice the way it was previously framed. Filed as a follow-up recommendation, not built in phase 317 (transport-only scope).
 
+### dec-20261010-001 — D-BT: the corpus rollup is a new top-level noun, cadence assurance report
+
+- recommendation: rec-20261010-002
+- decided: 2026-10-10T16:05:56.869Z
+
+The assurance record is its own concept (phase 233 named it; phase 283 made it honest), and a top-level noun leaves room for a later per-phase 'assurance explain <phase>'. Rejected: 'summary report' (summary is per-artifact integrity, not assurance) and 'verify assurance' (verify runs checks; this only reads). 'assurance' collides with nothing in packages/core/src/cli/commands/ at 7d96650.
+
+### dec-20261010-002 — D-BU: report stored grades, re-derived grades, and the delta -- for the 86 graded records only
+
+- recommendation: rec-20261010-002
+- decided: 2026-10-10T16:05:58.138Z
+
+Option 3. The stored distribution is what the artifacts say; the re-derived distribution is what the current deriveAssuranceRecord rule says; the per-record delta is how far the honesty work moved history, shown without rewriting any file (report-never-rewrite; consistent with dec-20260816-008 and dec-20260822-006, no backfill). Measured at 7d96650: 2 records move, 272-01 and 282-01, strong->mixed, matching phase 283's drift report. The 96 gradable-but-never-graded records get a count and a reason only, never a re-derived grade: their inputs predate fields the rule reads (providerSelection, bypass/deepVerify inputs), so a computed 'weak' there is a schema artifact, not a grade. Caveat recorded in the report: settle filters off-ladder ACs before deriving (settle.ts), which stored acResults may not let a re-derivation reproduce exactly.
+
+### dec-20261010-003 — D-BV: assurance report ships descriptive only -- no floors, no doctor check
+
+- recommendation: rec-20261010-002
+- decided: 2026-10-10T16:05:59.465Z
+
+A doctor check warning when the strong ratio over the last N settles falls below a floor, or when security-audit hasn't run in N phases, would make the report prescriptive. That is assurance floors, a separate decision with its own threshold-setting problem (cf. dec-20260813-003's refusal to invent an unmeasured threshold). Phase 327 adds no doctor check and no refusal path.
+
+### dec-20261010-004 — D-BW: the generated docs/evidence/assurance.md page is filed (rec-20261010-004), not built in phase 327
+
+- recommendation: rec-20261010-002
+- decided: 2026-10-10T16:06:00.716Z
+
+A staleness test asserting the page equals the live corpus fails on every future settle, because each settle adds a SUMMARY record. Phase 327's own tests pin a frozen fixture corpus for the same reason. The generator and a staleness check that survives new settles need their own design pass; filed as rec-20261010-004. No README change in phase 327.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
