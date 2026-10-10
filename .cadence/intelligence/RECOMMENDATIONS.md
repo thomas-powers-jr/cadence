@@ -1876,3 +1876,19 @@ The evidence write-up and README want a current assurance snapshot. Generate doc
 - next: cadence milestone propose
 
 medium finding at packages/core/src/services/assurance-report.ts:104: A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.
+
+## rec-20261010-006 — Assurance floors: a doctor check that warns when recent settles fall below a strong-grade or security-audit floor
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: assurance, doctor
+- files: packages/core/src/doctor/run.ts
+- evidence: Measured 2026-10-10 with cadence assurance report at 7264b428: security-audit ran in 3 of 183 settled records with gate provenance; strong is 11 of 87 graded records stored (9 re-derived). D-BV of HANDOFF-assurance-report: filed, not built, in phase 327.
+- next: cadence milestone propose
+
+cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A prescriptive follow-up would add a doctor check that warns when the share of strong grades over the last N settled slices falls below a floor, or when a gate such as security-audit has not run in the last N settles. Needs a decision on N and the floors before any code; dec-20260813-003 is the precedent against inventing an unmeasured threshold, so the first step is measuring with assurance report --since.

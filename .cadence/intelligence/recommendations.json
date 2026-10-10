@@ -3361,6 +3361,35 @@
       "sourceFindingId": "564dc5e8a1b2af5997501e6d6926e4ef6a89e921355f87f9a2209a94b871c4fe",
       "createdAt": "2026-10-10T17:48:34.912Z",
       "updatedAt": "2026-10-10T17:48:34.912Z"
+    },
+    {
+      "id": "rec-20261010-006",
+      "title": "Assurance floors: a doctor check that warns when recent settles fall below a strong-grade or security-audit floor",
+      "summary": "cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A prescriptive follow-up would add a doctor check that warns when the share of strong grades over the last N settled slices falls below a floor, or when a gate such as security-audit has not run in the last N settles. Needs a decision on N and the floors before any code; dec-20260813-003 is the precedent against inventing an unmeasured threshold, so the first step is measuring with assurance report --since.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "assurance",
+        "doctor"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-006"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-10T18:29:27.720Z",
+      "updatedAt": "2026-10-10T18:29:27.720Z",
+      "scoutId": "scout-20261010-assurance-report"
     }
   ],
   "archived": [
@@ -11101,12 +11130,12 @@
         "dec-20261010-004"
       ],
       "convertedToPhaseId": "327-assurance-report",
-      "scoutId": "scout-20261010-assurance-report",
-      "createdAt": "2026-10-10T16:05:24.394Z",
-      "updatedAt": "2026-10-10T17:48:34.936Z",
       "shippedRef": "phase 327 settled 2026-10-10 on feat/assurance-report-phase-327",
+      "scoutId": "scout-20261010-assurance-report",
       "archivedAt": "2026-10-10T17:48:34.936Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-10T16:05:24.394Z",
+      "updatedAt": "2026-10-10T17:48:34.936Z"
     }
   ]
 }

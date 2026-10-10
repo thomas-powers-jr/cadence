@@ -2957,6 +2957,13 @@
       "summary": "phase 327-assurance-report, draft 327-01, SUMMARY contentHash 7fc556ea20257d6e960ef64ac01461ef916c93229faf5528c504487f2e29946b — medium finding at packages/core/src/services/assurance-report.ts:104: A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.",
       "path": ".cadence/phases/327-assurance-report/327-01-SUMMARY.json",
       "createdAt": "2026-10-10T17:48:34.912Z"
+    },
+    {
+      "id": "ev-20261010-006",
+      "recommendationId": "rec-20261010-006",
+      "kind": "note",
+      "summary": "Measured 2026-10-10 with cadence assurance report at 7264b428: security-audit ran in 3 of 183 settled records with gate provenance; strong is 11 of 87 graded records stored (9 re-derived). D-BV of HANDOFF-assurance-report: filed, not built, in phase 327.",
+      "createdAt": "2026-10-10T18:29:27.720Z"
     }
   ]
 }
