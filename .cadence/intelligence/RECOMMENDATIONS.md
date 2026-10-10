@@ -1828,3 +1828,67 @@ Found by phase 326's independent docs review. audit-exceptions.md (the 'What blo
 - next: cadence milestone propose
 
 Found by phase 326's independent review. .githooks/pre-push lines 4-5 justify the hook with 'GitHub Free private repos get neither branch protection nor rulesets, so the failing CI blocks main intent is enforced client-side here.' main has had branch protection for months: required_status_checks.contexts is ci-success, security-success and codeql-success, enforce_admins on (gh api, 2026-10-09; recorded in docs/security/audit-exceptions.md). Reword the comment so the hook is a fast local backstop to server-side protection, not its substitute. Comment-only; check that no doc test pins the old wording. Outside phase 326's Boundaries, which kept the fix to the passages naming ci-success as the only required check.
+
+## rec-20261010-003 — Consolidate the three SUMMARY.json corpus walkers into one exported walker
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: cli, doctor, verify
+- files: packages/core/src/cli/commands/summary.ts, packages/core/src/doctor/run.ts, packages/core/src/verify/historical-coverage-audit.ts
+- evidence: Measured 2026-10-10 at 7d96650: summary.ts:120, doctor/run.ts:1991, historical-coverage-audit.ts:234 (private until phase 327). Split out of phase 327 by operator decision; filed rather than done in-phase to keep that phase one logical change.
+- next: cadence milestone propose
+
+Three separate recursive walkers enumerate .cadence/phases SUMMARY files: summary.ts walkSummaryFiles (summary verify-all), doctor/run.ts walkSummaryFilePaths (async), and historical-coverage-audit.ts walkFilesWithSuffix. Phase 327 exports the last one and uses it for assurance report; migrate the other two onto it so ordering, snapshot exclusion, and unreadable-directory tolerance are defined once.
+
+## rec-20261010-004 — Generated docs/evidence/assurance.md from cadence assurance report, with a staleness check that survives new settles
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: assurance, docs, reporting
+- files: docs/evidence/assurance.md
+- evidence: D-BW of HANDOFF-assurance-report (2026-10-10): filed, not built in phase 327, because live-corpus-equality staleness tests break on the next settle (the same reason phase 327 pins tests to a frozen fixture corpus).
+- next: cadence milestone propose
+
+The evidence write-up and README want a current assurance snapshot. Generate docs/evidence/assurance.md from cadence assurance report rather than hand-maintaining it. Open design question: a naive doc-sync test that fails when the page is stale fails on every future settle (each settle adds a record), so the check must be scoped (e.g. regenerated in the release phase, or pinned to a named commit) rather than asserting live-corpus equality.
+
+## rec-20261010-005 — Code-review finding (medium): A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON se…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/core
+- files: packages/core/src/services/assurance-report.ts
+- evidence: phase 327-assurance-report, draft 327-01, SUMMARY contentHash 7fc556ea20257d6e960ef64ac01461ef916c93229faf5528c504487f2e29946b — medium finding at packages/core/src/services/assurance-report.ts:104: A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.
+- next: cadence milestone propose
+
+medium finding at packages/core/src/services/assurance-report.ts:104: A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.
+
+## rec-20261010-006 — Assurance floors: a doctor check that warns when recent settles fall below a strong-grade or security-audit floor
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: assurance, doctor
+- files: packages/core/src/doctor/run.ts
+- evidence: Measured 2026-10-10 with cadence assurance report at 7264b428: security-audit ran in 3 of 183 settled records with gate provenance; strong is 11 of 87 graded records stored (9 re-derived). D-BV of HANDOFF-assurance-report: filed, not built, in phase 327.
+- next: cadence milestone propose
+
+cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A prescriptive follow-up would add a doctor check that warns when the share of strong grades over the last N settled slices falls below a floor, or when a gate such as security-audit has not run in the last N settles. Needs a decision on N and the floors before any code; dec-20260813-003 is the precedent against inventing an unmeasured threshold, so the first step is measuring with assurance report --since.

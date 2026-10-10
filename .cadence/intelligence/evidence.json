@@ -2928,6 +2928,42 @@
       "kind": "note",
       "summary": "phase 326 whole-branch review M3: .githooks/pre-push:4 claims no branch protection; gh api shows three required contexts + enforce_admins (2026-10-09)",
       "createdAt": "2026-10-10T00:34:06.878Z"
+    },
+    {
+      "id": "ev-20261010-002",
+      "recommendationId": "rec-20261010-002",
+      "kind": "note",
+      "summary": "337 SUMMARY.json records at 7d96650 (2026-10-10) split three ways: 155 un-gradable (no gate provenance, phases <140; provenance lands at 140-summary-gate-provenance), 96 gradable-but-never-graded (provenance, no assurance block; phases 140-234 plus 238/239/240/243), 86 graded (235-326). Re-deriving the 86 under the current rule moves 2 (272-01, 282-01: strong->mixed). Every portfolio number to date (0/121 boundary-scan Aug, 32/39 mixed Aug, strong->mixed drift post-283) was a one-off script, never a command.",
+      "createdAt": "2026-10-10T16:05:24.394Z"
+    },
+    {
+      "id": "ev-20261010-003",
+      "recommendationId": "rec-20261010-003",
+      "kind": "note",
+      "summary": "Measured 2026-10-10 at 7d96650: summary.ts:120, doctor/run.ts:1991, historical-coverage-audit.ts:234 (private until phase 327). Split out of phase 327 by operator decision; filed rather than done in-phase to keep that phase one logical change.",
+      "createdAt": "2026-10-10T16:05:39.063Z"
+    },
+    {
+      "id": "ev-20261010-004",
+      "recommendationId": "rec-20261010-004",
+      "kind": "note",
+      "summary": "D-BW of HANDOFF-assurance-report (2026-10-10): filed, not built in phase 327, because live-corpus-equality staleness tests break on the next settle (the same reason phase 327 pins tests to a frozen fixture corpus).",
+      "createdAt": "2026-10-10T16:05:40.357Z"
+    },
+    {
+      "id": "ev-20261010-005",
+      "recommendationId": "rec-20261010-005",
+      "kind": "cadence-artifact",
+      "summary": "phase 327-assurance-report, draft 327-01, SUMMARY contentHash 7fc556ea20257d6e960ef64ac01461ef916c93229faf5528c504487f2e29946b — medium finding at packages/core/src/services/assurance-report.ts:104: A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.",
+      "path": ".cadence/phases/327-assurance-report/327-01-SUMMARY.json",
+      "createdAt": "2026-10-10T17:48:34.912Z"
+    },
+    {
+      "id": "ev-20261010-006",
+      "recommendationId": "rec-20261010-006",
+      "kind": "note",
+      "summary": "Measured 2026-10-10 with cadence assurance report at 7264b428: security-audit ran in 3 of 183 settled records with gate provenance; strong is 11 of 87 graded records stored (9 re-derived). D-BV of HANDOFF-assurance-report: filed, not built, in phase 327.",
+      "createdAt": "2026-10-10T18:29:27.720Z"
     }
   ]
 }

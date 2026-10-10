@@ -1,0 +1,23 @@
+{
+  "bypasses": [],
+  "roughTasks": [],
+  "findings": {
+    "codeReview": {
+      "packages/core/src/services/assurance-report.ts": [
+        {
+          "severity": "medium",
+          "message": "A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.",
+          "line": 104,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-6",
+            "tier": "executable"
+          },
+          "id": "564dc5e8a1b2af5997501e6d6926e4ef6a89e921355f87f9a2209a94b871c4fe",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 2,
+  "draftId": "327-01",
+  "completedAt": "2026-10-10T17:48:34.887Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-8",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-9",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-10",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Loader + exported walker; independent review clean (2 minor fixed: read-failure seam test, file-directly-under-phases case). Verified: loader+audit tests 9+12 pass, typecheck, eslint.",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Frozen fixture (337 verbatim blobs at 7d96650, reviewer re-verified byte-for-byte) + pure computeAssuranceReport. Reviewer independently recomputed every AC-1..AC-4 number. Important finding fixed: unreadable list now sorted by phase number then path (test added). Verified: services+cli tests 24 pass, typecheck, eslint.",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Renderer + assurance report CLI. Review: Important fixed (fs read-error reason no longer leaks the absolute path; test throws a Node-shaped error with the path); minors fixed (sentinel-number AC-5 test, mutation-checked against a renderer printing delta.length; JSON-escaped root check; --since rejects unsafe integers). Verified: 34 phase tests pass, eslint, typecheck; live run reproduces CMD-B.",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "Docs + schema doc test by a dispatched subagent; main thread corrected two passages written against pre-fix code (unreadable sort, read-error path) and, after independent review, documented the cwd note, multi-entry gate rule and stray-file windowing, and pinned the options table rows. Verified: tests/docs 49+ files pass incl. cli-reference and exit-codes.",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "ROADMAP/MILESTONES entries + minor changeset by a dispatched subagent; independent review re-verified every number against the live report. summary verify-all: 337 checked, 100 MATCH, 237 NO_HASH, 0 failed.",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "standard"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Computation partitions the parsed frozen 337-record fixture as specified; service tests assert counts, ranges, IDs, sums, and numeric boundaries.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Graded records are re-derived after SummaryZ parsing; fixture test asserts both distributions and exactly 272-01/282-01 strong→mixed.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Per-record gate aggregation, entry-based provider counts, bypasses, and stored evidence tally are implemented and pinned by fixture tests.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Numeric phase filtering and safe non-negative --since validation are implemented; tests cover 283 totals, 99/1000 ordering, and invalid values.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Report pre-seeds enum rows and schemaVersion; renderer uses report fields. Tests compare window shapes, documented schema paths, and rendered numeric tokens.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Loader converts JSON/schema/read failures to repo-relative unreadable entries and continues; CLI test confirms exit 0 with remaining records.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Records and unreadables are phase/path sorted, rendering is pure, and absolute read paths are replaced. Tests cover shuffled input and byte-identical output.",
+      "provider": "host-cli"
+    },
+    "AC-8": {
+      "pass": true,
+      "reason": "Command only reads corpus files, and the linked CLI test hashes .cadence before and after text and JSON report runs.",
+      "provider": "host-cli"
+    },
+    "AC-9": {
+      "pass": true,
+      "reason": "Commands docs add the drift marker, assurance/report options, and marked schema; docs tests validate command content and real report key paths.",
+      "provider": "host-cli"
+    },
+    "AC-10": {
+      "pass": true,
+      "reason": "Any refused gate is classified before settlement and excluded from all rollups; synthetic and frozen-fixture tests verify refusal behavior and zero fixture refusals.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 87525,
+    "truncated": false,
+    "filesCount": 15,
+    "provider": "host-cli"
+  },
+  "codeReview": {
+    "packages/core/src/services/assurance-report.ts": [
+      {
+        "severity": "medium",
+        "message": "A huge digit-prefixed phase dir yields `Infinity`; text prints it while JSON serializes boundaries as `null`. Reject non-finite phase numbers as unreadable.",
+        "line": 104,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-6",
+          "tier": "executable"
+        },
+        "id": "564dc5e8a1b2af5997501e6d6926e4ef6a89e921355f87f9a2209a94b871c4fe",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 58,
+    "sessionSubagentSpawns": 2
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 10,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "7fc556ea20257d6e960ef64ac01461ef916c93229faf5528c504487f2e29946b"
+  }
+}

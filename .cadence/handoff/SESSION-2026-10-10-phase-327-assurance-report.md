@@ -1,51 +1,61 @@
 ---
-cadence_handoff: 1
-generated_at: 2026-09-18T03:50:55.619Z
-label: pc-transfer-2026-09-18
+cadence_handoff: 2
+generated_at: 2026-10-10T18:31:43.174Z
+label: phase-327-assurance-report
 loop_position: IDLE
-active_phase: 311-skill-audit-bypass-recorded-in-gatebypasses
+active_phase: 327-assurance-report
 active_draft: 
 tier: 
-git_branch: main
+git_branch: chore/session-handoff-2026-10-10-phase-327
 git_dirty: true
-git_head: 9ea76157
+git_head: 7264b428
 git_ahead: 0
 git_behind: 0
 context_packet: .cadence/intelligence/context/handoff.json
 ---
 
-# Session Handoff — 2026-09-18 (pc-transfer-2026-09-18)
+# Session Handoff — 2026-10-10 (phase-327-assurance-report)
+
+Continues `SESSION-2026-10-09-v1691-released.md`, the newest handoff on `main`. The phase 326 handoff is on the still-open PR #558, not on `main`. Source brief for this session: `docs/handoffs/HANDOFF-assurance-report.md` (untracked in the primary checkout, never committed).
 
 ## TL;DR for the next session
-- **This is a clean handoff for a PC transfer, not a stuck/mid-work one.** Everything from today's session is already merged into `main` via two normal PRs (#519, #520) — nothing is stashed, WIP-committed, or sitting only on this machine. `git pull origin main` on the new PC gets you everything.
-- **expansion-arc-1 is complete**: phases 311, 312, and 313 all shipped (`ccd5572f`/#515, `18d2bf78`/#516, `648dd37b`/#519). Phase 313 shipped a `systematic-debugging` skill gated on the CADENCE assumption ledger.
-- **Loop is IDLE, no active draft, no open phase worktrees.** `cadence progress` recommends `cadence draft new` for phase 314.
-- **Two fresh recommendations from this session are strong phase-314 candidates**: `rec-20260918-003` (the Skill tool's invocation telemetry writes to the wrong `.cadence/state.json` when invoked from inside a worktree — will recur on the next worktree-isolated `phase-build`) and `rec-20260918-004` (a subprocess-heavy test observed one transient CI timeout on macOS, recorded not fixed).
-- **Nothing machine-specific needs to travel with you** except two loose ends noted below (stray branches, a suspicious untracked file) that are local to this PC and don't affect the new one.
+- **Phase 327 is merged**: `cadence assurance report` landed as `7264b428` (PR #559, squash), all required checks green on Ubuntu/macOS/Windows. A `minor` changeset is pending release.
+- Settle ran **real** review gates through Codex (`CADENCE_HOST_CLI_BIN=codex`, worktree local build): deep-verify `observedProvider: host-cli` passed 10/10 ACs `ai-verified`; code-review host-cli (`configured`) left one medium finding open, auto-filed as `rec-20261010-005`. Phase 327's own grade is `strong`. No gate bypasses.
+- This branch (`chore/session-handoff-2026-10-10-phase-327`, PR #560, open) carries this doc, `rec-20261010-006` (assurance floors, D-BV) and, at the operator's request, the truncation of `.cadence/handoff/` to the newest 10 SESSION docs (the repo's `handoff.retain: 10`). It is ledger + handoff only, with no source change; merging needs the operator's OK.
+- Gate on this branch: `pnpm turbo run lint typecheck test build` 28/28 tasks, core 483 test files passed / 1 skipped (cache hits from an identical-source forced run earlier the same day; CI on #559 ran it fresh on all three OSes).
+- Next work options: `rec-20261010-003` (walker consolidation, `ready-for-cadence-spec`), `rec-20261010-005` (reject non-finite phase numbers, a small fix but `needs-decision`), or Arc B's evidence write-up, which can now cite `cadence assurance report` directly.
+- **Where to resume:** this doc and its `lastHandoff` stamp exist only on this branch / in the `327-assurance-report` worktree until the handoff PR merges. The primary checkout (`C:\Users\softw\projects\cadence`) is still on PR #558's branch with its own `state.json` pointing at an older handoff (`rec-20260813-005`: `resume` can serve a stale-but-existing pointer), so open this file by path rather than trusting `cadence resume` there.
 
 ## State on handoff   ·  pre-filled — verify, don't retype
-- Branch `main` (dirty), 0 ahead / 0 behind origin
-- HEAD `9ea76157`
+- Branch `chore/session-handoff-2026-10-10-phase-327` (dirty), 0 ahead / 0 behind origin
+- HEAD `7264b428`
 - Recent commits:
 ```
-9ea76157 docs(cadence): session handoff for 2026-09-18 (phase 313 shipped, expansion-arc-1 complete) (#520)
-648dd37b feat: systematic-debugging skill gated on the assumption ledger (phase 313) (#519)
-18d2bf78 feat: cadence/core-skills declares phase-build as a required skill (phase 312) (#516)
-ccd5572f fix: --allow-skill-audit-miss records the bypass in SUMMARY.gateBypasses (phase 311) (#515)
-2857642f chore(cadence): file expansion-arc-1 preflight findings (rec-20260917-003/-004) (#514)
-a9743257 chore(release): v1.67.2 -- DRAFT CRLF frontmatter, resume stale-handoff pointer, codex-hooks completeness (#513)
-8f265f94 fix: DRAFT frontmatter parser rejects CRLF line endings (phase 310) (#TBD) (#512)
-0abed4d2 docs(cadence): refresh v1.67.1 handoff machine facts after #507 merged (#508)
+7264b428 feat: cadence assurance report, a corpus-wide assurance rollup (phase 327) (#559)
+7d96650e docs: name all three required status checks on main (phase 326) (#557)
+061b5f69 chore(cadence): session handoff -- phase 325 merged, v1.69.1 released (2026-10-09) (#556)
+847ad7d9 chore(release): v1.69.1 -- release verify budget, MCP SDK / proxy-addr / source-map-js advisories (#555)
+4c4b4c87 fix: phase 324's changeset test survives release consumption (phase 325) (#554)
+d0d761ea chore(cadence): session handoff -- phases 324 and 323 merged (2026-10-08) (#553)
+0160f4d2 fix(release): post-publish npm verification outlasts registry cache propagation (phase 323) (#551)
+d6f5c5f6 fix(security): bump MCP SDK, proxy-addr and source-map-js past audit advisories (phase 324) (#552)
 ```
-- Loop: IDLE · phase 311-skill-audit-bypass-recorded-in-gatebypasses · tier (none)
+- Uncommitted (diff --stat):
+```
+.cadence/intelligence/RECOMMENDATIONS.md   | 16 +++++++++++++
+ .cadence/intelligence/evidence.json        |  7 ++++++
+ .cadence/intelligence/recommendations.json | 37 ++++++++++++++++++++++++++----
+ 3 files changed, 56 insertions(+), 4 deletions(-)
+```
+- Loop: IDLE · phase 327-assurance-report · tier (none)
 
 ## CADENCE context   ·  pre-filled from `cadence context handoff`
 - Top recommendations:
   - rec-20260907-002 — packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/ (candidate/ready-for-cadence-spec)
   - rec-20260917-008 — docs/reference/config.md overclaims skill-audit: says it enforces skills were invoked 'during a phase', which the checkout-scoped invoked list does not support (candidate/ready-for-cadence-spec)
-  - rec-20260801-001 — docs/reference/commands.md config edit section lists only 5 fields; EDITABLE_FIELDS has 8 (candidate/ready-for-cadence-spec)
-  - rec-20260809-003 — vitest.shared.ts's Windows-timeout comment cites the now-fixed dispatcher cap test (candidate/ready-for-cadence-spec)
-  - rec-20260811-005 — ROADMAP.md missing ### Phase N entries for phases 239-241 (exist on disk, never landed under those headings) (candidate/ready-for-cadence-spec)
+  - rec-20260918-005 — DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error (candidate/ready-for-cadence-spec)
+  - rec-20260918-006 — draft-mutate.ts's add-ac/add-task splice regexes are \n-only, so a CRLF draft now fails with a different misleading error post-phase-310 (candidate/ready-for-cadence-spec)
+  - rec-20260918-007 — spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts (candidate/ready-for-cadence-spec)
 - Open assumptions:
   - (none)
 - Active decisions:
@@ -156,41 +166,73 @@ a9743257 chore(release): v1.67.2 -- DRAFT CRLF frontmatter, resume stale-handoff
   - dec-20260915-001 — rec-20260907-004's hono/fast-uri premise is discharged; current audit failure is a fresh js-yaml advisory
   - dec-20260915-003 — Inline gitleaks:allow comments do not retroactively suppress historical commits -- .gitleaksignore fingerprints are also required
   - dec-20260916-001 — Correction to dec-20260822-020: doctor's reachability scan is pack-aware since phase 302, not the deferred exception
+  - dec-20260918-001 — D-BF-adjacent: classifyTier's minTasks floor is not wired into the coherence gate
+  - dec-20260918-002 — Phase 315: per-phase skill-invocation scoping via a timestamped invocations map, watermarked against draftReadAt
+  - dec-20260918-003 — Phase 315: invocations map needs no cap; SKILL_AUDIT_CAP=100 on invoked is unaffected
+  - dec-20260918-004 — Phase 315 reaffirms D-BE/D-BF: tightening skill-audit will legitimately refuse more phases; build phase 315 itself via phase-build in a fresh worktree
+  - dec-20260918-005 — Phase 315: no backfill of historical SUMMARY.json/state.json records under the temporal fix
+  - dec-20260925-001 — D-BN: hook blocks transport via per-event JSON decision on stdout, exit 0 -- not exit code 2
+  - dec-20260926-001 — Correction to rec-20260926-001: bug is Claude-Code-specific, Codex's SubagentStop inertness is a declared, self-reported gap
+  - dec-20260926-002 — D-BP: doctor states the hook-shell transport rule, does not claim to measure the resolved shell
+  - dec-20260926-003 — D-BO: doctor reports the posture now (b); a settle-time anomaly (c) is filed, not built, in this phase
+  - dec-20260926-004 — Correction to dec-20260926-001: Codex's agentIdentification:false is now stale documentation, not a permanent protocol gap
+  - dec-20261010-001 — D-BT: the corpus rollup is a new top-level noun, cadence assurance report
+  - dec-20261010-002 — D-BU: report stored grades, re-derived grades, and the delta -- for the 86 graded records only
+  - dec-20261010-003 — D-BV: assurance report ships descriptive only -- no floors, no doctor check
+  - dec-20261010-004 — D-BW: the generated docs/evidence/assurance.md page is filed (rec-20261010-004), not built in phase 327
 - Files in play:
   - `packages/core/tsconfig.json` — affected by rec-20260907-002 packages/core/tsconfig.json includes only src/**/*, so no repo command ever typechecks tests/
   - `docs/reference/config.md` — affected by rec-20260917-008 docs/reference/config.md overclaims skill-audit: says it enforces skills were invoked 'during a phase', which the checkout-scoped invoked list does not support
-  - `docs/reference/commands.md` — affected by rec-20260801-001 docs/reference/commands.md config edit section lists only 5 fields; EDITABLE_FIELDS has 8
-  - `packages/core/src/config-edit/fields.ts` — affected by rec-20260801-001 docs/reference/commands.md config edit section lists only 5 fields; EDITABLE_FIELDS has 8
-  - `vitest.shared.ts` — affected by rec-20260809-003 vitest.shared.ts's Windows-timeout comment cites the now-fixed dispatcher cap test
-  - `.cadence/ROADMAP.md` — affected by rec-20260811-005 ROADMAP.md missing ### Phase N entries for phases 239-241 (exist on disk, never landed under those headings)
+  - `packages/core/src/parse/draft-parser.ts` — affected by rec-20260918-005 DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error
+  - `packages/core/src/parse/draft-mutate.ts` — affected by rec-20260918-006 draft-mutate.ts's add-ac/add-task splice regexes are \n-only, so a CRLF draft now fails with a different misleading error post-phase-310
+  - `packages/core/src/parse/spec-parser.ts` — affected by rec-20260918-007 spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts
+  - `packages/core/src/parse/ui-spec-parser.ts` — affected by rec-20260918-007 spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts
 
 ## What landed this session
-
-This session had two parts: finishing phase 313, then this PC-transfer handoff.
-
-**Phase 313** (`.claude/skills/systematic-debugging/SKILL.md`, PR #519, `648dd37b`) — resumed a prior session's WIP checkpoint that had done the real engineering but never recorded task outcomes; re-verified every task independently, restated AC-6 (telemetry-proves-invocation → discoverability, since the only recorded invocation of the name came from the Superpowers plugin's namespaced copy, not this file), added missing AC-5 coverage, ran two independent whole-branch reviews (the first caught a real AC-4 coverage gap — only the false-alarm conclusion branch was tested, not the root-cause-found branch the AC also names — fixed by covering both), settled with zero gate bypasses, and merged on explicit operator consent.
-
-**Live process gap found during settle**, filed as `rec-20260918-003`: invoking a Skill tool from inside a worktree records the invocation into the *primary checkout's* `.cadence/state.json`, not the worktree's own — worked around via `cadence hook skill-invoke` (a legitimate manual event-dispatch seam, not a bypass, since the invocation was genuinely real).
-
-**Session handoff for phase 313** (PR #520, `9ea76157`) — its first CI run hit a transient macOS timeout in the new subprocess-heavy test file; confirmed as a flake (single leg, docs-only diff, clean re-run of identical code) per this repo's documented flake protocol, re-ran once, went green. Filed `rec-20260918-004` recording the flake risk before merging.
-
-**This doc** — a PC-transfer handoff, scaffolded with `cadence handoff`, requested explicitly so a session on a different machine can resume with full context.
+- **`7264b428` — feat: cadence assurance report (phase 327, PR #559).** New read-only `cadence assurance report [--json] [--since <phase>]`:
+  - three categories with phase boundaries (un-gradable = no gate provenance; gradable-but-never-graded = provenance, no `assurance` block; graded), refused and unreadable as their own categories;
+  - stored vs re-derived grades and the per-record delta (graded records only);
+  - per-gate ran / skipped / not-recorded; provider mix (gate entries); bypasses; stored evidence tally.
+  - Files: `packages/core/src/services/assurance-report.ts` (loader + pure `computeAssuranceReport`), `src/parse/render-assurance-report.ts`, `src/cli/commands/assurance.ts`; `walkFilesWithSuffix` in `verify/historical-coverage-audit.ts` is now exported (no new walker); `docs/reference/commands.md` `### assurance` with the JSON schema between `cadence:assurance-report-schema` markers (doc test pins it).
+  - Tests pin every number to a frozen, gzipped corpus `packages/core/tests/fixtures/assurance-corpus/corpus-7d96650.json.gz` (337 verbatim SUMMARY blobs at 7d96650).
+- **Measured at 7d96650 (337 records):** 155 un-gradable (phases 2–139) / 96 never graded (140–243; `238-01`, `239-01`, `240-01`, `243-01` sit after the first graded phase 235, all `schemaVersion` 1) / 86 graded (235–326). Stored strong 10 / mixed 74 / unverified 2; re-derived 8 / 76 / 2; delta `272-01`, `282-01` strong → mixed. `boundary-scan` 13 ran / 153 skipped / 16 not recorded; `security-audit` 3 of 182. After phase 327: 338 records, 87 graded.
+- **Ledger:** `rec-20261010-002` shipped (the phase's rec); decisions `dec-20261010-001` (D-BT, top-level noun) … `-004` (D-BW, evidence page filed not built); filed `rec-20261010-003` (consolidate the three SUMMARY walkers), `rec-20261010-004` (generated `docs/evidence/assurance.md` with a settle-proof staleness check), `rec-20261010-005` (auto-filed by settle: non-finite phase number), and on this branch `rec-20261010-006` (assurance floors doctor check, needs-decision).
 
 ## Carry-forward gotchas
+- **The handoff brief's AC-1 was wrong**: 155 + 86 ≠ 337. The operator accepted the three-category split; any write-up must use 155 / 96 / 86.
+- **Settle review diff only sees tracked or intent-to-add files** (`git/diff.ts` `collectPhaseDiff`): `git add -N` new phase files before `settle run`, or deep-verify/code-review never see them.
+- **code-review sends the diff uncapped; deep-verify caps at 256 KB keeping the start.** A large file in a task's `files:` swamps the review. Phase 327 gzipped its fixture for this (operator decision). Cost: gitleaks and `npm-scope-sweep.test.ts` can't read inside the `.gz` (its content duplicates `.cadence/phases`, which they do scan).
+- **Post-approve DRAFT edits (As-built notes) trip the draft-read gate.** Re-read and `cadence draft approve <phase> <num>` again (refreshes `draftReadAt` only, task records untouched). Phase 327's first settle was refused this way; no `--allow-stale-draft` was used.
+- **Settle auto-files open code-review findings as recs** — dedup before filing one by hand.
+- **`cadence handoff` auto-prunes tracked `SESSION-*.md` files beyond `handoff.retain` (10)** and stages nothing, so the deletions show up as unstaged `D` lines. This session first restored them (CLAUDE.md: sweeps belong in deliberate housekeeping), then the operator asked for the truncation, so PR #560 deletes the 11 docs dated 2026-08-21 … 2026-09-26 (`SESSION-2026-08-21.md` through `SESSION-2026-09-26-317-settled-pr541.md`). They stay in git history; a few historical records (`.cadence/intelligence/evidence.json`, phase 316/317 artifacts, `docs/checkpoint/*`, `docs/handoffs/HANDOFF-checkpoint-arc-phase-{2,3}.md`) still cite them by name. Always check `git status` after scaffolding a handoff.
+- **`gh pr merge --delete-branch` from a worktree switches that worktree to `main`.** Harmless here, but re-check the branch before the next commit.
+- Running `cadence assurance report` from a subdirectory prints a stderr note and an empty report; run it from the repo root.
 
-- **On the new PC**: run `pnpm install --frozen-lockfile && pnpm build` after cloning/pulling — `node_modules` and `.cadence/state.json` are both gitignored and won't transfer. `cadence onboard` if `.cadence/state.json` is missing.
-- **The Skill tool's invocation telemetry is not worktree-aware** (see `rec-20260918-003`). If a `skillAudit.required` pack gate refuses inside a worktree despite having genuinely invoked the required skill, that's why — fix via `echo '{"skill":"<name>"}' | node packages/core/bin/cadence.cjs hook skill-invoke` run from inside the worktree, not `--allow-skill-audit-miss`.
-- **`recommendation promote --ref` on a shipped rec can never be corrected** — `rec-20260918-002`'s ref still reads "(PR pending)" even though PR #519 merged; pre-existing, known ledger limitation, not new.
-- **`git worktree remove` can fail with "Result too large" on Windows** when the worktree's `node_modules` has pnpm's nested `.pnpm` junctions — the git-level registration is actually removed despite the error; clean the leftover directory with `cmd /c "rmdir /s /q <path>"` (PowerShell's `Remove-Item -Recurse -Force` also fails on the same junctions).
-- **`state.json` in the primary checkout may still name a stale `activePhase`** (currently `311-skill-audit-bypass-recorded-in-gatebypasses`) — harmless, phases built in worktrees have private state; clears on the next `draft new`.
-- **Local-machine-only, do not try to carry these to the new PC**:
-  - Stray local+remote branch `docs/session-handoff-2026-09-18` — predates this session, holds an orphaned unmerged handoff commit now fully superseded by PR #520. Safe to delete but not done yet (branch deletion wasn't requested).
-  - Local branch `worktree-313-systematic-debugging-skill` — leftover from the now-removed phase-313 worktree.
-  - An untracked file, `docs/handoffs/McAfee_Installer_ecode_q7SJ3DAahoEU4gdALnc7pKD8DHpF9bpRukDtUm-xjvI_key_affid_885_akey.exe` (6.65MB), sitting in the working tree, predating this session's work, never touched/committed. Looks like a stray affiliate-bundled installer with no business in a `docs/` folder — worth the operator's own look on this machine, but it is untracked and will not appear on the new PC regardless.
-- Standing gotchas from the prior arc (still true): single-file `pnpm --filter ... test -- <path>` runs report nonzero exit even when every test passes (global coverage threshold on a subset — read the test summary, not the exit code); concurrent vitest runs race on `packages/core/coverage/.tmp`; `turbo` may replay a cached green in ~2s (use `--force` to confirm a real run); backticks in `recommendation add --summary` get shell-substituted away.
+## Open decisions
+- `rec-20261010-006` (assurance floors): whether to add a prescriptive doctor check, and with which N and floors. Operator decides; measure with `cadence assurance report --since <phase>` first (dec-20260813-003: no invented thresholds).
+- `rec-20261010-004` (generated evidence page): how a staleness check survives every new settle. Operator decides.
+- PR #558 (the phase 326 session handoff, from the primary checkout's branch) is still open; merge or close is the operator's call.
 
 ## Next action
+Land PR #560 (`chore(cadence): session handoff -- phase 327 merged (2026-10-10)`) after its three required checks pass; merging needs the operator's explicit OK. After it merges, the `.claude/worktrees/327-assurance-report` worktree is idle and can be removed. Then pick the next phase with `cadence recommend`; the ready-for-spec one from this session is `rec-20261010-003`.
 
-On the new PC: clone/pull `main` (`9ea76157`), `pnpm install --frozen-lockfile && pnpm build`, then `cadence resume` to replay this doc and confirm live state before doing anything else.
+## Conventions reaffirmed / decisions made
+- Corpus numbers in tests come from a frozen fixture, never the live `.cadence/phases` tree (it grows with every settle).
+- Report, never rewrite: re-derived grades are shown beside stored ones; no SUMMARY.json is backfilled (dec-20260816-008, dec-20260822-006, dec-20261010-002).
+- Never-graded records get a count and a reason, not a hypothetical grade (operator, 2026-10-10).
+- Settle-refusal marker is a gate entry with `status: 'refused'`, not the absence of `stateAtSettle` (which starts at phase 196).
 
-No active draft. `cadence progress` will recommend `cadence draft new` for phase 314. Best-evidenced candidate: `rec-20260918-003` (Skill tool telemetry is not worktree-aware) — it was hit live this session and will recur on every future worktree-isolated `phase-build` resume against a pack with `skillAudit.required` until root-caused and fixed. Otherwise pull the next candidate from `cadence recommend`.
+## Quick resume commands
+The primary checkout carries uncommitted files that predate this session (`.claude/commands/*` edits and new `cadence-dispatch.md` / `cadence-next.md` / `cadence-recommend.md`, `.claude/settings.json` plus a `.bak`, `.cadence/intelligence/RECOMMEND.md` / `recommend.json`, a deleted `.claude/scheduled_tasks.lock`, untracked `docs/handoffs/HANDOFF-assurance-report.md`). They are not this session's work: don't sweep or commit them, and check `git status` before switching branches there.
+
+```bash
+git fetch origin --prune
+git status --short --branch        # expect the pre-existing dirt above; switch only if safe
+git switch main && git pull origin main
+git config core.hooksPath .githooks
+pnpm install && pnpm build
+node packages/core/bin/cadence.cjs progress
+node packages/core/bin/cadence.cjs assurance report            # the new rollup; run from the repo root
+node packages/core/bin/cadence.cjs recommendation show rec-20261010-005
+node packages/core/bin/cadence.cjs recommend
+```

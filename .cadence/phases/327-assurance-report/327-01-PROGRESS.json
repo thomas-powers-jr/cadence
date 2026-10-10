@@ -1,0 +1,62 @@
+{
+  "draftId": "327-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Loader + exported walker; independent review clean (2 minor fixed: read-failure seam test, file-directly-under-phases case). Verified: loader+audit tests 9+12 pass, typecheck, eslint.",
+      "touchedFiles": [
+        "packages/core/src/cli/register.ts",
+        "packages/core/src/verify/historical-coverage-audit.ts",
+        "packages/core/tests/docs/npm-scope-sweep.test.ts",
+        "packages/core/tests/fixtures/assurance-corpus/corpus-7d96650.json",
+        "packages/core/src/cli/commands/assurance.ts",
+        "packages/core/src/parse/render-assurance-report.ts",
+        "packages/core/src/services/assurance-report.ts",
+        "packages/core/tests/cli/assurance.test.ts",
+        "packages/core/tests/services/assurance-report-loader.test.ts",
+        "packages/core/tests/services/assurance-report.test.ts"
+      ],
+      "updatedAt": "2026-10-10T16:38:00.633Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Frozen fixture (337 verbatim blobs at 7d96650, reviewer re-verified byte-for-byte) + pure computeAssuranceReport. Reviewer independently recomputed every AC-1..AC-4 number. Important finding fixed: unreadable list now sorted by phase number then path (test added). Verified: services+cli tests 24 pass, typecheck, eslint.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-10T16:40:16.638Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Renderer + assurance report CLI. Review: Important fixed (fs read-error reason no longer leaks the absolute path; test throws a Node-shaped error with the path); minors fixed (sentinel-number AC-5 test, mutation-checked against a renderer printing delta.length; JSON-escaped root check; --since rejects unsafe integers). Verified: 34 phase tests pass, eslint, typecheck; live run reproduces CMD-B.",
+      "touchedFiles": [
+        "docs/reference/commands.md",
+        ".changeset/assurance-report.md",
+        "packages/core/tests/docs/assurance-report-docs.test.ts"
+      ],
+      "updatedAt": "2026-10-10T16:44:27.299Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Docs + schema doc test by a dispatched subagent; main thread corrected two passages written against pre-fix code (unreadable sort, read-error path) and, after independent review, documented the cwd note, multi-entry gate rule and stray-file windowing, and pinned the options table rows. Verified: tests/docs 49+ files pass incl. cli-reference and exit-codes.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-10T17:04:26.587Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "standard"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "ROADMAP/MILESTONES entries + minor changeset by a dispatched subagent; independent review re-verified every number against the live report. summary verify-all: 337 checked, 100 MATCH, 237 NO_HASH, 0 failed.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-10T17:04:28.066Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "standard"
+    }
+  }
+}
