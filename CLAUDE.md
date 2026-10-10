@@ -196,13 +196,16 @@ session to do the same. The shape of a healthy session:
    audit-trail replacement. Operator-owned, not hook-enforced. Supersedes
    the prior two-commit split (feature commit, then a separate settle
    commit) as of 2026-07-22.
-7. **Land via branch + PR, squash-merged.** `main` is branch-protected: the
-   `ci-success` check is required and `enforce_admins` is on, so even the
-   owner cannot push a red commit directly. Conventional-commit subjects
-   carrying the phase id, e.g. `feat: wave-based subagent dispatch (phase
-   159) (#149)`. One logical change per PR. Feature PRs add their own
-   `.changeset/*.md` — do not defer changesets to the release PR (that
-   slipped once and cost the release phase five retroactive changesets).
+7. **Land via branch + PR, squash-merged.** `main` is branch-protected:
+   three status checks are required — `ci-success` (ci.yml),
+   `security-success` (security.yml) and `codeql-success` (codeql.yml) — and
+   `enforce_admins` is on, so even the owner cannot push a red commit
+   directly, and a red security or CodeQL run blocks the merge just as a red
+   test leg does. Conventional-commit subjects carrying the phase id, e.g.
+   `feat: wave-based subagent dispatch (phase 159) (#149)`. One logical
+   change per PR. Feature PRs add their own `.changeset/*.md` — do not
+   defer changesets to the release PR (that slipped once and cost the
+   release phase five retroactive changesets).
 8. **End with a handoff.** Before a session closes meaningful work, write a
    `cadence handoff` doc: TL;DR, what landed, carry-forward gotchas, next
    action. Assume the next reader is a fresh session with zero context.
@@ -259,8 +262,12 @@ mock fallback's pass as one.
   `packages/core/tests/docs/doc-sync-hook.test.ts` re-asserts the invariant
   in CI. The pre-push hook re-checks it as a backstop.
 - **CI** (`.github/workflows/ci.yml`): the same four-command pipeline on
-  Ubuntu + macOS + Windows on Node 22, aggregated into the required
-  `ci-success` check.
+  Ubuntu + macOS + Windows on Node 22, aggregated into the `ci-success`
+  check. It is one of three required checks on `main`, alongside
+  `security-success` (`.github/workflows/security.yml`: secret scan,
+  `pnpm audit` and the lockfile-overrides check) and `codeql-success`
+  (`.github/workflows/codeql.yml`); the record is
+  `docs/security/audit-exceptions.md`.
 - **Doc-content tests** (`packages/core/tests/docs/*.test.ts` + host
   packages): executable assertions that named docs match code truth — the
   command reference vs the registered CLI command set, slash-command counts
@@ -475,9 +482,10 @@ the rule that prevents it — with the enforcement layer where one exists.
 ### Git and process
 
 - **The Direct Push.** Pushing to `main` because the change is "trivial". →
-  Branch protection requires `ci-success` and applies to admins too; a
-  direct-push hole once let an OS-specific CI red sit undetected for six
-  phases. Branch + PR, always. *(Enforced: GitHub branch protection.)*
+  Branch protection requires `ci-success`, `security-success` and
+  `codeql-success`, and applies to admins too; a direct-push hole once let
+  an OS-specific CI red sit undetected for six phases. Branch + PR, always.
+  *(Enforced: GitHub branch protection.)*
 - **The Wrong-Checkout Commit.** Committing to the primary checkout when the
   work belongs to a worktree (or vice versa) — a subagent has done exactly
   this. → Verify `git rev-parse --show-toplevel` and the branch before

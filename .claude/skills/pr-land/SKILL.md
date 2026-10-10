@@ -1,13 +1,15 @@
 ---
 name: pr-land
-description: Land a branch through cadence's protected-main pipeline — local preflight, commit hygiene, push, PR, ci-success babysitting with the known-flake protocol, consent-gated squash merge, and post-merge sync. Use when work is ready to land, the user says "land this", "open a PR", "merge when green", or a PR is sitting on CI.
+description: Land a branch through cadence's protected-main pipeline — local preflight, commit hygiene, push, PR, babysitting the three required checks (ci-success, security-success, codeql-success), the known-flake protocol for test legs, consent-gated squash merge, and post-merge sync. Use when work is ready to land, the user says "land this", "open a PR", "merge when green", or a PR is sitting on CI.
 ---
 
 # PR land (protected main)
 
-`main` requires the `ci-success` check and `enforce_admins` is on — there is
-no direct-push path, for anyone. Everything lands branch → PR → green →
-squash merge.
+`main` requires three status checks — `ci-success` (ci.yml),
+`security-success` (security.yml) and `codeql-success` (codeql.yml) — and
+`enforce_admins` is on, so there is no direct-push path, for anyone, and a
+red security or CodeQL run blocks the merge as surely as a red test leg.
+Everything lands branch → PR → green → squash merge.
 
 ## 1 — Preflight locally (cheaper than a CI round-trip)
 

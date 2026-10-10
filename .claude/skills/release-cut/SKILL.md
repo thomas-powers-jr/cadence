@@ -67,8 +67,9 @@ test covering them.
 ## 4 — Release PR
 
 - Subject: `chore(release): vX.Y.Z -- <one-line bundle summary>`.
-- Land it via the `pr-land` skill (protected main; `ci-success` required;
-  merge only on explicit operator consent).
+- Land it via the `pr-land` skill (protected main; `ci-success`,
+  `security-success` and `codeql-success` all required; merge only on
+  explicit operator consent).
 
 ## 5 — Publish (operator-triggered, never automatic)
 
