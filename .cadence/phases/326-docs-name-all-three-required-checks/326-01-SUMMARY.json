@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 2,
+  "draftId": "326-01",
+  "completedAt": "2026-10-10T00:43:09.116Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Implementer subagent; red on 13 assertions pre-fix (re-run in main thread). Opus review: hollow AC-4 'required' check and list-blind guard fixed; both reviewer probes now fail the test (mutation-checked, files restored byte-identical). Strict one-off tsc + eslint clean."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Inline. Three CLAUDE.md passages name all three checks; reflowed per Opus review; security-success description includes the lockfile-overrides check. AC-2/AC-5 pass."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Inline. pr-land description + opening paragraph, release-cut step 4, release.md step 5. AC-3/AC-5 pass; release-verify-budget and roadmap-entry-checklist pass."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "Inline. Comment-only (git diff -U0 non-# lines: none). Also fixed the second stale 'once actually registered' sentence in codeql.yml found by review. AC-4 + security-ci.test.ts pass."
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "ROADMAP ### Phase 326 + MILESTONES bullet; phase271-record-integrity, roadmap-per-phase-entries, roadmap-entry-checklist pass."
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "pnpm turbo run lint typecheck test build --force: 28/28, 0 cached; core 479 files passed, 1 skipped. First attempt crashed on a shared coverage dir while reviewers ran vitest concurrently; re-run alone was green."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Anchored parser requires exactly one quoted contexts list, validates 2+ including ci-success, checks each against workflow job keys, and documents gh api re-verification.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Each of the three targeted CLAUDE.md passages is sliced, asserts all parsed names, and rejects both specified ci-success-only phrases.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Tests cover pr-land description/opening, release-cut step 4, and release step 5; each asserts parsed names and rejects the listed stale wording.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Direct job-adjacent comment blocks reject stale phrases, require every contexts-clause name, the required-check-on-main claim, and audit-exceptions link; existing assertions remain compatible.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Raw-text pure guard is CRLF-safe, detects missing names, has required synthetic fixtures, additionally splits list/YAML comments, and is scoped only to the six specified files.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 15021,
+    "truncated": false,
+    "filesCount": 9,
+    "provider": "host-cli"
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 40,
+    "sessionSubagentSpawns": 5
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 5,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "5eeffd6581be26e2bb6a2366209e316fb8ed4ac4638693585509919479d61ad2"
+  }
+}

@@ -2914,6 +2914,20 @@
       "kind": "note",
       "summary": "SESSION-2026-10-09-v1691-released.md frontmatter git_branch: chore/session-handoff-2026-10-08-v1 while git branch --show-current printed chore/session-handoff-2026-10-08-v1.69.1 (2026-10-09)",
       "createdAt": "2026-10-09T00:54:38.083Z"
+    },
+    {
+      "id": "ev-20261009-002",
+      "recommendationId": "rec-20261009-002",
+      "kind": "note",
+      "summary": "phase 326 T2-T4 review: audit-exceptions.md:51-52 future-tense registration sentence contradicts lines 28-32",
+      "createdAt": "2026-10-09T02:32:41.373Z"
+    },
+    {
+      "id": "ev-20261010-001",
+      "recommendationId": "rec-20261010-001",
+      "kind": "note",
+      "summary": "phase 326 whole-branch review M3: .githooks/pre-push:4 claims no branch protection; gh api shows three required contexts + enforce_admins (2026-10-09)",
+      "createdAt": "2026-10-10T00:34:06.878Z"
     }
   ]
 }

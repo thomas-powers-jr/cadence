@@ -123,14 +123,12 @@ jobs:
             sbom.cdx.json
             licenses.json
 
-  # Single stable status context, intended for branch protection and
-  # mirroring ci.yml's ci-success pattern -- but not yet wired in: as of this
-  # writing, main's required_status_checks.contexts is exactly
-  # ["ci-success"]. Registering security-success (and codeql-success) as
-  # required contexts is a separate, manual, post-merge operator step (see
-  # this phase's DRAFT, T5) that can only happen once this PR has merged and
-  # both jobs have reported at least once on main. Until then, this job
-  # reports on every push/PR/schedule but blocks nothing. sbom is
+  # Single stable status context for branch protection, mirroring ci.yml's
+  # ci-success pattern. security-success is one of main's three required
+  # status checks -- required_status_checks.contexts is ci-success,
+  # security-success and codeql-success (registered 2026-08-07,
+  # rec-20260807-002; the record is docs/security/audit-exceptions.md) -- so
+  # a red security-success blocks every merge to main. sbom is
   # deliberately excluded from needs -- it's a compliance-artifact
   # generation step (network fetch), not a security verdict; see this file's
   # header comment and the phase 255 DRAFT's Boundaries.

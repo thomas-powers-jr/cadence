@@ -25,7 +25,8 @@ the job exits green.
    `pnpm test`.
 3. Run `pnpm changeset:version`.
 4. Commit the version bump, changelogs, and release narrative updates.
-5. Merge through a PR so the required `ci-success` check is green on `main`.
+5. Merge through a PR so all three required checks (`ci-success`,
+   `security-success` and `codeql-success`) are green on `main`.
 
 The workflow uses `packages/core/package.json` as the canonical version and checks
 that every non-private `@thomas-powers-jr/cadence-*` package under `packages/` has the

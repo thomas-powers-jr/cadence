@@ -3442,6 +3442,44 @@ clean, and its one hardening nit (an empty discriminator matched every entry)
 was taken with a test. Settled with `--deep` through Codex (`host-cli`), all
 three ACs passing.
 
+### Phase 326 — Docs name all three required status checks on main (rec-20261007-002)
+
+**Objective.** `main`'s branch protection has required `ci-success`,
+`security-success` and `codeql-success` since rec-20260807-002 (2026-08-07),
+and `docs/security/audit-exceptions.md` records that list, but nine
+operator-facing passages still said or implied that only `ci-success` is
+required: three in CLAUDE.md (the "Land via branch + PR" workflow item, the
+"CI" enforcement bullet and "The Direct Push"), the `pr-land` skill's
+description and opening paragraph, the `release-cut` skill's step 4,
+`docs/release.md`'s step 5, and the comments above the `security-success`
+and `codeql-success` aggregator jobs, which still said the job "blocks
+nothing". The phase 323 session trusted that wording and expected a PR with
+a red `security-success` to be mergeable. All nine now name the three
+checks, and a second stale sentence in the codeql.yml comment ("once
+codeql-success is actually registered") was fixed too. A new doc-content
+test, `tests/docs/required-checks.test.ts`, parses the list from
+`audit-exceptions.md` (anchored, exactly one match, at least two names),
+checks one way that each name is a real workflow job, asserts every passage
+(the workflow comments by their "`<job>` is one of main's … required status
+checks" claim and the names inside their contexts clause), and runs a
+CRLF-safe guard over the six files that splits on blank lines, bare `#`
+comment lines and list-item starts, and refuses any chunk naming
+`ci-success` as required without the others. Each of those splits was added
+after an independent review planted a stale sentence the coarser split
+missed; the original workflow-comment drift itself is pinned by the
+workflow-comment assertions, not the guard (DRAFT as-built item 5). A resumed session's fresh whole-branch review then found that the
+AC-2 tests asserted only through helpers, which the assertion-mode coverage
+gate does not credit; each passage test now asserts in its own `it()` body.
+The canonical list is deliberately not derived from the workflows'
+`*-success` job names: those jobs existed for weeks before they were
+registered, which is how the drift started. Docs, skills, workflow comments
+and a test only, so no changeset (phase 325 precedent). Out of scope,
+deliberately: history that mentions `ci-success` (DESIGN.md, CHANGELOGs,
+`docs/handoffs/*`), `ci.yml`, and `release.yml`'s "three public packages"
+comment. The same stale "once both checks are actually registered" sentence
+in `docs/security/audit-exceptions.md` stays, because the test parses that
+file; it is filed as rec-20261009-002.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

@@ -3075,36 +3075,6 @@
       "updatedAt": "2026-10-04T18:53:08.820Z"
     },
     {
-      "id": "rec-20261007-002",
-      "title": "docs overclaim that only ci-success is required on main: CLAUDE.md (3 passages), pr-land skill and docs/release.md omit security-success and codeql-success",
-      "summary": "Branch protection on main requires ci-success, security-success AND codeql-success (gh api repos/.../branches/main/protection, 2026-10-07; docs/security/audit-exceptions.md already says so since rec-20260807-002). But CLAUDE.md says 'the ci-success check is required' in the 'Land via branch + PR' workflow item, the CI bullet under 'Enforcement layers', and 'The Direct Push' failure mode; .claude/skills/pr-land/SKILL.md line ~8 says 'main requires the ci-success check'; docs/release.md line ~28 says merge 'so the required ci-success check is green'. The 323 session relied on that and expected PR #551 to be mergeable with a red security-success. Fix all five passages (phrase as an addition: ci-success alongside security-success and codeql-success from security.yml/codeql.yml) and pin them with a doc-content test. Small doc phase; kept out of phase 324 so that phase stays the minimal change that unblocks merges.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "docs",
-        "ci"
-      ],
-      "affectedFiles": [
-        "CLAUDE.md",
-        ".claude/skills/pr-land/SKILL.md",
-        "docs/release.md"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261007-004"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-10-07T23:58:52.973Z",
-      "updatedAt": "2026-10-07T23:58:52.973Z"
-    },
-    {
       "id": "rec-20261008-002",
       "title": "13 moderate advisories in pnpm audit, several on consumer-reachable paths (hono via the MCP SDK, qs via express) and two override floors already behind (fast-uri, ip-address)",
       "summary": "The audit gate checks high/critical only, so these do not block CI, but on 2026-10-07 corepack pnpm@11.13.0 audit reported 13 moderate advisories: hono 4.13.1 (5 advisories, patched >=4.13.7; production path via @modelcontextprotocol/sdk -> @hono/node-server), qs 6.15.3 (via express, production path), fast-uri 3.1.7 (patched >=3.1.8; the pnpm override floor is ^3.1.6), ip-address 10.4.0 (patched >=10.7.1; override floor ^10.3.1), vitest/@vitest/mocker 4.1.10 (patched >=4.1.11, dev-only). Decide whether to raise the existing override floors and add hono/qs floors in one dependency-hygiene phase, and whether the gate should start reporting moderate advisories on production paths.",
@@ -3244,6 +3214,62 @@
       "decisionIds": [],
       "createdAt": "2026-10-09T00:54:38.083Z",
       "updatedAt": "2026-10-09T00:54:38.083Z"
+    },
+    {
+      "id": "rec-20261009-002",
+      "title": "docs/security/audit-exceptions.md still says 'Once both checks are actually registered as required' although security-success and codeql-success were registered on 2026-08-07",
+      "summary": "Found by phase 326's independent docs review. audit-exceptions.md (the 'What blocks a merge' section, ~line 51) keeps a future-tense sentence: 'Once both checks are actually registered as required, a PR will still be able to merge with codeql-success green while CodeQL has open findings.' Both checks have been required since rec-20260807-002 (2026-08-07), which the same section states a few lines above. Phase 326 fixed the identical sentence in codeql.yml but its DRAFT Boundaries kept audit-exceptions.md untouched, because required-checks.test.ts parses the required-check list from it. Reword to present tense ('Even though codeql-success is required, a PR can still merge with codeql-success green while CodeQL has open findings') and keep the contexts line byte-stable so the 326 parse still matches exactly once.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261009-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-09T02:32:41.373Z",
+      "updatedAt": "2026-10-09T02:32:41.373Z"
+    },
+    {
+      "id": "rec-20261010-001",
+      "title": ".githooks/pre-push header comment says GitHub Free private repos get no branch protection, but main is protected (three required checks, enforce_admins)",
+      "summary": "Found by phase 326's independent review. .githooks/pre-push lines 4-5 justify the hook with 'GitHub Free private repos get neither branch protection nor rulesets, so the failing CI blocks main intent is enforced client-side here.' main has had branch protection for months: required_status_checks.contexts is ci-success, security-success and codeql-success, enforce_admins on (gh api, 2026-10-09; recorded in docs/security/audit-exceptions.md). Reword the comment so the hook is a fast local backstop to server-side protection, not its substitute. Comment-only; check that no doc test pins the old wording. Outside phase 326's Boundaries, which kept the fix to the passages naming ci-success as the only required check.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "ci"
+      ],
+      "affectedFiles": [
+        ".githooks/pre-push"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261010-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-10T00:34:06.878Z",
+      "updatedAt": "2026-10-10T00:34:06.878Z"
     }
   ],
   "archived": [
@@ -10917,6 +10943,40 @@
       "archiveReason": "shipped",
       "createdAt": "2026-10-08T23:11:21.503Z",
       "updatedAt": "2026-10-08T23:35:17.674Z"
+    },
+    {
+      "id": "rec-20261007-002",
+      "title": "docs overclaim that only ci-success is required on main: CLAUDE.md (3 passages), pr-land skill and docs/release.md omit security-success and codeql-success",
+      "summary": "Branch protection on main requires ci-success, security-success AND codeql-success (gh api repos/.../branches/main/protection, 2026-10-07; docs/security/audit-exceptions.md already says so since rec-20260807-002). But CLAUDE.md says 'the ci-success check is required' in the 'Land via branch + PR' workflow item, the CI bullet under 'Enforcement layers', and 'The Direct Push' failure mode; .claude/skills/pr-land/SKILL.md line ~8 says 'main requires the ci-success check'; docs/release.md line ~28 says merge 'so the required ci-success check is green'. The 323 session relied on that and expected PR #551 to be mergeable with a red security-success. Fix all five passages (phrase as an addition: ci-success alongside security-success and codeql-success from security.yml/codeql.yml) and pin them with a doc-content test. Small doc phase; kept out of phase 324 so that phase stays the minimal change that unblocks merges.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "ci"
+      ],
+      "affectedFiles": [
+        "CLAUDE.md",
+        ".claude/skills/pr-land/SKILL.md",
+        "docs/release.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261007-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "326-docs-name-all-three-required-checks",
+      "createdAt": "2026-10-07T23:58:52.973Z",
+      "updatedAt": "2026-10-10T00:43:09.126Z",
+      "shippedRef": "phase 326 settled 2026-10-09 on docs/326-required-checks",
+      "archivedAt": "2026-10-10T00:43:09.126Z",
+      "archiveReason": "shipped"
     }
   ]
 }

@@ -1717,22 +1717,6 @@ progressService passes only nextPhaseNumber to nextAction in IDLE, never the led
 
 Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never clears state.activePhase and state.json is per-checkout, so in a primary checkout whose phases settle in worktrees, 'cadence handoff' pre-fills active_phase with the last phase settled locally (render-session.ts), and resume, the MCP surface and the intelligence context packet (render-context.ts, backend/cadence.ts) report the same stale value. Candidate fix: apply the same IDLE treatment (label as checkout-local; derive the latest settled phase via findLatestSettledPhase) to each surface, without changing activePhase's semantics or JSON contracts.
 
-## rec-20261007-002 — docs overclaim that only ci-success is required on main: CLAUDE.md (3 passages), pr-land skill and docs/release.md omit security-success and codeql-success
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: docs, ci
-- files: CLAUDE.md, .claude/skills/pr-land/SKILL.md, docs/release.md
-- evidence: PR #551 showed mergeStateStatus BLOCKED with ci-success green and security-success red (2026-10-07); required contexts confirmed via gh api
-- next: cadence milestone propose
-
-Branch protection on main requires ci-success, security-success AND codeql-success (gh api repos/.../branches/main/protection, 2026-10-07; docs/security/audit-exceptions.md already says so since rec-20260807-002). But CLAUDE.md says 'the ci-success check is required' in the 'Land via branch + PR' workflow item, the CI bullet under 'Enforcement layers', and 'The Direct Push' failure mode; .claude/skills/pr-land/SKILL.md line ~8 says 'main requires the ci-success check'; docs/release.md line ~28 says merge 'so the required ci-success check is green'. The 323 session relied on that and expected PR #551 to be mergeable with a red security-success. Fix all five passages (phrase as an addition: ci-success alongside security-success and codeql-success from security.yml/codeql.yml) and pin them with a doc-content test. Small doc phase; kept out of phase 324 so that phase stays the minimal change that unblocks merges.
-
 ## rec-20261008-002 — 13 moderate advisories in pnpm audit, several on consumer-reachable paths (hono via the MCP SDK, qs via express) and two override floors already behind (fast-uri, ip-address)
 
 - status: candidate
@@ -1812,3 +1796,35 @@ changeset version deletes consumed changesets, so any test that reads .changeset
 - next: cadence milestone propose
 
 packages/core/src/handoff/git-facts.ts:41 parses the branch from 'git status --short --branch' with /^## (?:No commits yet on )?([^.\s]+)/, which stops at the first '.' to drop the '...origin/x' upstream suffix. Any branch containing a dot is truncated: chore/session-handoff-2026-10-08-v1.69.1 rendered as chore/session-handoff-2026-10-08-v1, and every release/vX.Y.Z branch would too. Fix: split on the literal '...' (or use rev-parse --abbrev-ref HEAD, as candidates.ts and remote-freshness.ts already do), with a test for a dotted branch name with and without an upstream.
+
+## rec-20261009-002 — docs/security/audit-exceptions.md still says 'Once both checks are actually registered as required' although security-success and codeql-success were registered on 2026-08-07
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: docs, ci
+- files: docs/security/audit-exceptions.md
+- evidence: phase 326 T2-T4 review: audit-exceptions.md:51-52 future-tense registration sentence contradicts lines 28-32
+- next: cadence milestone propose
+
+Found by phase 326's independent docs review. audit-exceptions.md (the 'What blocks a merge' section, ~line 51) keeps a future-tense sentence: 'Once both checks are actually registered as required, a PR will still be able to merge with codeql-success green while CodeQL has open findings.' Both checks have been required since rec-20260807-002 (2026-08-07), which the same section states a few lines above. Phase 326 fixed the identical sentence in codeql.yml but its DRAFT Boundaries kept audit-exceptions.md untouched, because required-checks.test.ts parses the required-check list from it. Reword to present tense ('Even though codeql-success is required, a PR can still merge with codeql-success green while CodeQL has open findings') and keep the contexts line byte-stable so the 326 parse still matches exactly once.
+
+## rec-20261010-001 — .githooks/pre-push header comment says GitHub Free private repos get no branch protection, but main is protected (three required checks, enforce_admins)
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: docs, ci
+- files: .githooks/pre-push
+- evidence: phase 326 whole-branch review M3: .githooks/pre-push:4 claims no branch protection; gh api shows three required contexts + enforce_admins (2026-10-09)
+- next: cadence milestone propose
+
+Found by phase 326's independent review. .githooks/pre-push lines 4-5 justify the hook with 'GitHub Free private repos get neither branch protection nor rulesets, so the failing CI blocks main intent is enforced client-side here.' main has had branch protection for months: required_status_checks.contexts is ci-success, security-success and codeql-success, enforce_admins on (gh api, 2026-10-09; recorded in docs/security/audit-exceptions.md). Reword the comment so the hook is a fast local backstop to server-side protection, not its substitute. Comment-only; check that no doc test pins the old wording. Outside phase 326's Boundaries, which kept the fix to the passages naming ci-success as the only required check.

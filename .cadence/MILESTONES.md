@@ -1211,6 +1211,13 @@ changeset (example/test-only change, no published-package surface).*
   from the published packages' CHANGELOGs through two new pure test helpers,
   `findChangelogEntries` and `synthesizeConsumedChangeset`
   (rec-20261008-006).
+- **Phase 326** — the operator docs now name all three required status
+  checks on `main` (`ci-success`, `security-success`, `codeql-success`):
+  CLAUDE.md, the `pr-land` and `release-cut` skills, `docs/release.md` and
+  the two workflow aggregator comments no longer say only `ci-success` is
+  required, and a doc-content test parses the recorded list from
+  `docs/security/audit-exceptions.md` and guards the six files against the
+  drift (rec-20261007-002).
 
 
 
