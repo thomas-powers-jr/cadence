@@ -19,11 +19,11 @@ context_packet: .cadence/intelligence/context/handoff.json
 Continues `SESSION-2026-10-10-v1-70-0-released.md` (resumed via `cadence resume --pick 1`).
 
 ## TL;DR for the next session
-- **Phase 328 shipped** (#565, squash `a34b222a`): the docs site's Dependabot alerts went from 26 (1 critical astro RCE, 10 high) to **1 moderate**, and the required `security-success` check now also audits `website/pnpm-lock.yaml`. `rec-20260802-006` → shipped. Not released (no changeset; nothing published changed).
+- **Phase 328 shipped** (#565, squash `a34b222a`): the docs site's Dependabot alerts went from 24 (1 critical astro RCE, 10 high) to **1 moderate**, and the required `security-success` check now also audits `website/pnpm-lock.yaml`. `rec-20260802-006` → shipped. Not released (no changeset; nothing published changed).
 - **Checkpoint Arc A Phase 2 is unblocked**: D-BJ/D-BR/D-BS filed as `dec-20261013-001..003` and the operator's `docs/handoffs/HANDOFF-checkpoint-phase-2.md` committed (#564, `54651321`). Its phase number is no longer 328 — next free is **329**.
 - **New PC is set up** (user `Thomas`): global cadence 1.70.0, codex logged in, `.env`/`.env.local` written, doctor shows real verification wired. Stale BUILD-on-314 `state.json` replaced via `cadence onboard`.
 - `main` = `origin/main` = `a34b222a`, loop IDLE, last settled 328. Full gate on `main` green on Windows: `pnpm turbo run lint typecheck test build` 28/28, core 484 test files passed.
-- **Next action:** pick among (a) root-lockfile moderates `rec-20261008-002` (now 13 alerts, +2 new today), (b) `rec-20261010-007` (#474 changesets 3.x, **hard deadline 2026-11-18**), (c) checkpoint Phase 2 — see "Next action"; (a) and (b) touch the same root override block, so sequence them.
+- **Next action:** pick among (a) root-lockfile moderates `rec-20261008-002` (13 Dependabot alerts, unchanged today), (b) `rec-20261010-007` (#474 changesets 3.x, **hard deadline 2026-11-18**), (c) checkpoint Phase 2 — see "Next action"; (a) and (b) touch the same root override block, so sequence them.
 
 ## State on handoff   ·  pre-filled — verify, don't retype
 - Branch `chore/session-handoff-2026-10-13` (dirty), 0 ahead / 0 behind origin
@@ -205,7 +205,7 @@ Phase 328 (`328-01`, standard tier, from `rec-20260802-006`), built with the pha
 - Settle: 6/6 ACs `executed`, no `gateBypasses`, assurance `mixed`. **No AI review gate ran** — code-review/deep-verify/security-audit are not in the standard×standard cell; independent review came from per-task + whole-branch reviewer subagents (all: no Critical/Important).
 - Filed from the whole-branch review: `rec-20261013-001` (scripts' CLI wiring untested — Quiet Fallback risk), `rec-20261013-002` (braces exception row's root-only justification now spans both lockfiles).
 - Closed Dependabot #485 as superseded by #565 (operator-approved).
-- Live Dependabot after merge: `website/pnpm-lock.yaml` 1 medium (the expected `GHSA-rj75-hqrm-r3gf`); root `pnpm-lock.yaml` **13 medium** (was 11 this morning — 2 new, untriaged).
+- Live Dependabot after merge: `website/pnpm-lock.yaml` 1 medium (the expected `GHSA-rj75-hqrm-r3gf`); root `pnpm-lock.yaml` **13 medium** (unchanged from this morning; phase 328 did not touch the root lockfile).
 
 Setup / housekeeping (no commits): pulled 32 commits (`9c302913` → `c52e19c4`); rebuilt; installed global CLIs; wrote `.env`/`.env.local`; `git config core.hooksPath .githooks`; renamed stale `state.json` (BUILD on already-shipped 314) aside and bootstrapped IDLE via `cadence onboard --skip-host-wire` (operator ran the delete).
 
@@ -222,6 +222,7 @@ Setup / housekeeping (no commits): pulled 32 commits (`9c302913` → `c52e19c4`)
 - **`cadence intelligence audit` reports 366 orphan links** (decisions/evidence → archived recs); doctor's archive-aware `orphaned-evidence` check passes. Likely the audit not reading the archive. Not filed yet.
 - Local-only in the primary (do not stage): `.agents/`, `.cadence/state.json.stale-314-2026-10-13` (safe to delete), `docs/handoffs/HANDOFF-demo-progressive-disclosure.md`, `docs/handoffs/cadence-audit-20260724-handoff.md`, `docs/tutorial-rebuild-brief.md`, deleted `.claude/scheduled_tasks.lock`.
 - Stale sibling worktree `.claude/worktrees/315-skill-invocation-phase-scoping` at `9c302913` (pre-PC-transfer, 34 commits behind `a34b222a`). Its own `SESSION-2026-09-18.md` is resumable but almost certainly stale; operator to decide keep/remove.
+- **Miscount in merged records (not corrected in place):** this morning's Dependabot list had **13 root / 24 website** alerts (37 total). Phase 328's DRAFT Objective, its squash commit message and #565's body say "26 in website" and "the 11 root-lockfile moderates" — wrong; 26 is pnpm audit's advisory count (1/12/11/2), a different number. The settled DRAFT was deliberately not edited. Root did not change on 2026-10-13.
 - `origin/feat/kernel-assurance-v2` keeps fast-forwarding to `main` (seen again at `54651321`, `a34b222a`); something else tracks it.
 
 ## Open decisions
@@ -231,7 +232,7 @@ Setup / housekeeping (no commits): pulled 32 commits (`9c302913` → `c52e19c4`)
 - Whether to file recs for: handoff pruning deleting untracked docs; doctor `worktree-phases` false positive; `intelligence audit` archive blindness.
 
 ## Next action
-**Action:** with the operator, choose the next unit. Default recommendation: `rec-20261010-007` (Dependabot #474) first because of its hard 2026-11-18 deadline, then `rec-20261008-002` (re-measure the 13 root moderates first — 2 are new), then checkpoint Phase 2 (phase number from `cadence progress`, tier `complex`, fresh worktree, `.env` files copied in).
+**Action:** with the operator, choose the next unit. Default recommendation: `rec-20261010-007` (Dependabot #474) first because of its hard 2026-11-18 deadline, then `rec-20261008-002` (re-measure the 13 root moderates first), then checkpoint Phase 2 (phase number from `cadence progress`, tier `complex`, fresh worktree, `.env` files copied in).
 
 **Verify before acting:**
 - `git log origin/main --oneline -1` shows `a34b222a` (#565) or this handoff's PR on top; if it moved further, read `git log --oneline a34b222a..origin/main` first.
@@ -248,7 +249,11 @@ Setup / housekeeping (no commits): pulled 32 commits (`9c302913` → `c52e19c4`)
 ## Quick resume commands
 ```powershell
 Set-Location C:\Users\Thomas\Documents\Projects\cadence
-git fetch origin --prune; git switch main; git pull --ff-only
+git fetch origin --prune
+# If this handoff's PR (branch chore/session-handoff-2026-10-13) is NOT merged yet,
+# stay on that branch instead of switching to main -- otherwise this SESSION doc
+# leaves the disk and `cadence resume` falls back to the 2026-10-10 handoff.
+git switch main; git pull --ff-only
 git config core.hooksPath .githooks
 pnpm install; pnpm build
 node packages/core/bin/cadence.cjs resume
