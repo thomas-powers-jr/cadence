@@ -18,7 +18,7 @@
     "changeset:version": "changeset version"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.1",
+    "@changesets/cli": "^3.0.3",
     "@types/node": "^22.20.1",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.67.0",
@@ -35,8 +35,6 @@
     "overrides": {
       "brace-expansion@^5.0.0": "^5.0.11",
       "brace-expansion@^2.0.0": "^2.1.4",
-      "read-yaml-file@1.1.0": "^2.1.0",
-      "js-yaml@4.2.0": "^4.3.2",
       "fast-uri@<3.1.6": "^3.1.6",
       "ip-address@^10.0.0": "^10.3.1",
       "vite@^6.0.0 || ^7.0.0 || ^8.0.0": "^7.3.5",

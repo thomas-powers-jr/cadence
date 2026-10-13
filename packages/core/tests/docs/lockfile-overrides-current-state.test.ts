@@ -73,12 +73,13 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // future-drift-resistance reason (a future second ip-address major
     // entering the graph would otherwise silently repeat the collapse).
     expect(targets).toContainEqual({ package: 'ip-address', sourceVersion: '^10.0.0', range: '^10.3.1' });
-    // js-yaml: floor raised past CVE-2026-84375 (GHSA-2883-xcg3-v3hh, high),
-    // which affects 4.0.0-4.3.1 and is fixed in 4.3.2. The source-version key
-    // (js-yaml@4.2.0) is unchanged from phase 253/260 — check-lockfile-overrides.mjs
-    // already reports it satisfied against today's resolved instances, so this
-    // is purely a too-low target floor, not a stale-key problem (298-01/AC-1, AC-4).
-    expect(targets).toContainEqual({ package: 'js-yaml', sourceVersion: '4.2.0', range: '^4.3.2' });
+    // js-yaml and read-yaml-file: their keys (`js-yaml@4.2.0: ^4.3.2`, phase
+    // 298's floor past GHSA-2883-xcg3-v3hh, and `read-yaml-file@1.1.0: ^2.1.0`)
+    // were removed in phase 329. @changesets/cli 3.x no longer pulls either
+    // package, so both keys matched nothing and check-lockfile-overrides.mjs
+    // reported them as unresolved-target. A dead key is exactly the silent
+    // no-op this file guards against, so it is deleted, not kept "just in case".
+    expect(targets.filter((t: { package: string }) => t.package === 'js-yaml' || t.package === 'read-yaml-file')).toEqual([]);
     // proxy-addr: GHSA-jqcg-44mw-7w3h (critical, IP spoofing via IPv4-mapped
     // addresses) affects >=1.1.0 <2.0.8. express@5.2.1 declares `^2.0.7`, so a
     // plain install keeps the locked 2.0.7; the range key moves it to 2.0.8.
@@ -88,7 +89,7 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     expect(targets).toContainEqual({ package: 'source-map-js', sourceVersion: '<1.2.2', range: '^1.2.2' });
   });
 
-  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, js-yaml, proxy-addr and source-map-js satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1)', () => {
+  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, proxy-addr and source-map-js satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1)', () => {
     const overrideTargets = extractOverrideTargets(packageJson);
     const lockfilePackages = parseLockfilePackages(lockfileText);
 

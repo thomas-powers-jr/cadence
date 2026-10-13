@@ -4,7 +4,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   parseExceptionsTable,
-  isExpired,
   decideAdvisories,
   extractHighSeverityAdvisories,
 } from '../../../../scripts/check-audit-exceptions.mjs';
@@ -24,7 +23,7 @@ const AUDIT_EXCEPTIONS_MD = join(
 
 const BRACES_ID = 'GHSA-vfj7-8cjw-p6xm';
 const BRACE_EXPANSION_IDS = ['GHSA-qhr7-859c-m2p7', 'GHSA-6j4f-fj2g-mc7p'];
-const LATEST_ALLOWED_EXPIRY = '2026-11-18';
+// The retired exception's old expiry was 2026-11-18; these dates sit either side of it.
 const BEFORE_EXPIRY = new Date('2026-10-04');
 const AFTER_EXPIRY = new Date('2026-11-19');
 
@@ -41,34 +40,24 @@ const AUDIT_JSON = {
   },
 };
 
-// Phase 321 — the braces advisory has no patched release, so it is excepted
-// with a firm expiry and a named unblock condition; the two brace-expansion
+// Phase 321 excepted the braces advisory (no patched release) with an expiry
+// of 2026-11-18 and a named unblock: `@changesets/cli` 3.x (Dependabot #474).
+// Phase 329 met that unblock — changesets 3.x drops braces from the tree — so
+// the exception row is retired, as phase 260 and 297 retired theirs, and these
+// assertions are superseded to pin the retired state. The two brace-expansion
 // advisories are fixed by the pnpm override and must never be excepted.
 // Qualifier and AC id kept apart in this comment (see security-ci.test.ts's
 // 253-01 / AC-5 note): the coverage scanner records only the first
 // qualified occurrence per token per file, which must be the asserting it().
-describe('audit exceptions doc — braces excepted, brace-expansion fixed (321-01 / AC-2)', () => {
+describe('audit exceptions doc — braces exception retired, brace-expansion fixed (321-01 / AC-2, superseded by 329-01 / AC-2)', () => {
   const md = readFileSync(AUDIT_EXCEPTIONS_MD, 'utf8');
   const rows = parseExceptionsTable(md);
 
-  it('excepts GHSA-vfj7-8cjw-p6xm for braces with a firm, unexpired expiry and a named unblock condition (321-01/AC-2)', () => {
-    const row = rows.find((r) => r.id === BRACES_ID);
-    expect(row).toBeDefined();
-    expect(row?.package).toBe('braces');
-
-    const expiry = row?.expiry ?? '';
-    expect(expiry).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(expiry <= LATEST_ALLOWED_EXPIRY).toBe(true);
-    expect(isExpired(expiry, BEFORE_EXPIRY)).toBe(false);
-
-    const justification = row?.justification ?? '';
-    expect(justification).toContain('@changesets/cli');
-    expect(justification).toContain('#474');
-    expect(justification.toLowerCase()).toContain('no patched release');
-    // Both unblock conditions, and the dev-only scope the exception rests on.
-    expect(justification).toMatch(/patched `braces` release/);
-    expect(justification).toContain('`@changesets/cli` 3.x');
-    expect(justification).toContain('pnpm why braces -r --prod');
+  it('no longer excepts GHSA-vfj7-8cjw-p6xm: the row was retired once @changesets/cli 3.x dropped braces, before its 2026-11-18 expiry (321-01/AC-2)', () => {
+    expect(rows.find((r) => r.id === BRACES_ID)).toBeUndefined();
+    expect(rows.find((r) => r.package === 'braces')).toBeUndefined();
+    // Non-vacuity: the table itself is still present (empty is healthy).
+    expect(md).toContain('| Advisory ID | Package | Justification | Expiry |');
   });
 
   it('has no exception row for either brace-expansion advisory (321-01/AC-2)', () => {
@@ -79,35 +68,34 @@ describe('audit exceptions doc — braces excepted, brace-expansion fixed (321-0
 });
 
 // Phase 321 — the CI gate's own decision logic, run against the real parsed
-// table: braces is accepted by its exception until the expiry lapses, while
-// brace-expansion fails regardless (it must be fixed, not tolerated).
-describe('check-audit-exceptions decision over the real table (321-01 / AC-3)', () => {
+// table. Phase 321 accepted braces by its exception until the expiry; since
+// phase 329 retired that row, a reappearing braces advisory fails as not
+// listed on any date, exactly like brace-expansion (fixed, not tolerated).
+describe('check-audit-exceptions decision over the real table (321-01 / AC-3, superseded by 329-01 / AC-2)', () => {
   const rows = parseExceptionsTable(readFileSync(AUDIT_EXCEPTIONS_MD, 'utf8'));
   const advisories = extractHighSeverityAdvisories(AUDIT_JSON);
 
-  it('accepts braces and fails both brace-expansion advisories before the expiry (321-01/AC-3)', () => {
+  it('fails braces and both brace-expansion advisories as not listed before the old expiry (321-01/AC-3)', () => {
     expect(advisories).toHaveLength(3);
     expect(advisories.every((a) => a.severity === 'high')).toBe(true);
 
     const decision = decideAdvisories(advisories, rows, BEFORE_EXPIRY);
 
     expect(decision.ok).toBe(false);
-    expect(decision.allowed.map((a) => a.id)).toEqual([BRACES_ID]);
-    expect(decision.allowed[0]?.package).toBe('braces');
-    expect(decision.failures.map((f) => f.id).sort()).toEqual([...BRACE_EXPANSION_IDS].sort());
+    expect(decision.allowed).toHaveLength(0);
+    expect(decision.failures.map((f) => f.id).sort()).toEqual([BRACES_ID, ...BRACE_EXPANSION_IDS].sort());
     for (const failure of decision.failures) {
-      expect(failure.package).toBe('brace-expansion');
       expect(failure.reason).toMatch(/not listed/);
     }
   });
 
-  it('fails braces too once its exception has expired (321-01/AC-3)', () => {
+  it('still fails all three after the old expiry date, with no exception left to lapse (321-01/AC-3)', () => {
     const decision = decideAdvisories(advisories, rows, AFTER_EXPIRY);
 
     expect(decision.ok).toBe(false);
     expect(decision.allowed).toHaveLength(0);
     expect(decision.failures.map((f) => f.id).sort()).toEqual([BRACES_ID, ...BRACE_EXPANSION_IDS].sort());
     const bracesFailure = decision.failures.find((f) => f.id === BRACES_ID);
-    expect(bracesFailure?.reason).toMatch(/expired/);
+    expect(bracesFailure?.reason).toMatch(/not listed/);
   });
 });

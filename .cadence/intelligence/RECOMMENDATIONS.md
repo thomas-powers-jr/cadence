@@ -1716,22 +1716,6 @@ Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never 
 
 The audit gate checks high/critical only, so these do not block CI, but on 2026-10-07 corepack pnpm@11.13.0 audit reported 13 moderate advisories: hono 4.13.1 (5 advisories, patched >=4.13.7; production path via @modelcontextprotocol/sdk -> @hono/node-server), qs 6.15.3 (via express, production path), fast-uri 3.1.7 (patched >=3.1.8; the pnpm override floor is ^3.1.6), ip-address 10.4.0 (patched >=10.7.1; override floor ^10.3.1), vitest/@vitest/mocker 4.1.10 (patched >=4.1.11, dev-only). Decide whether to raise the existing override floors and add hono/qs floors in one dependency-hygiene phase, and whether the gate should start reporting moderate advisories on production paths.
 
-## rec-20261008-004 — braces: audit metadata says patched >=3.0.4 but no such release exists (latest 3.0.3); re-check before the phase 321 exception expires 2026-11-18
-
-- status: candidate
-- ready: needs-evidence
-- priority: low
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: security, ci
-- files: docs/security/audit-exceptions.md, packages/core/tests/docs/phase321-brace-advisories.test.ts
-- evidence: npm view braces version = 3.0.3, time.modified 2024-09-18; npm view braces@3.0.4 -> E404 (2026-10-07, phase 324 whole-branch review)
-- next: cadence milestone propose
-
-On 2026-10-07 corepack pnpm@11.13.0 audit --json listed GHSA-vfj7-8cjw-p6xm braces as vulnerable <=3.0.3 with patched_versions >=3.0.4. That is a range, not a release: npm view braces shows latest 3.0.3, last modified 2024-09-18, and braces@3.0.4 returns E404. So docs/security/audit-exceptions.md's row (phase 321: 'No patched release exists') and phase321-brace-advisories.test.ts remain correct, and an override braces@<3.0.4 -> ^3.0.4 cannot resolve today. Watch item: before the row's 2026-11-18 expiry, re-check npm; if 3.0.4 ships, replace the exception row with a range-keyed override and retarget the 321 test together; if not, the remaining unblock is @changesets/cli 3.x (Dependabot #474) or a re-justified, time-boxed renewal naming why the fix slipped.
-
 ## rec-20261008-005 — tests/cli/milestone.test.ts 'accept then illegal re-accept' times out (20 s) on macOS CI on unrelated PRs (#538, #551, #553): split or root-cause the CLI-spawn cost
 
 - status: candidate
@@ -1876,22 +1860,6 @@ medium finding at packages/core/src/services/assurance-report.ts:104: A huge dig
 
 cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A prescriptive follow-up would add a doctor check that warns when the share of strong grades over the last N settled slices falls below a floor, or when a gate such as security-audit has not run in the last N settles. Needs a decision on N and the floors before any code; dec-20260813-003 is the precedent against inventing an unmeasured threshold, so the first step is measuring with assurance report --since.
 
-## rec-20261010-007 — Land Dependabot #474 (@changesets/cli 3.x): drop the two pnpm.overrides keys it leaves dead, before the braces exception expires 2026-11-18
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: security, dependencies, release
-- files: package.json, pnpm-lock.yaml, scripts/check-lockfile-overrides.mjs, packages/core/tests/docs/lockfile-overrides-current-state.test.ts, docs/security/audit-exceptions.md
-- evidence: PR #474 head 32c910c9 after rebase: audit run 38093374407 (check-lockfile-overrides: 2 unresolved override targets, read-yaml-file and js-yaml); test run 38093374434 (ubuntu + macos: lockfile-overrides-current-state.test.ts:114 expected [] got the same two unresolved-target entries; macos also a 20s timeout in debugging-skill-walkthrough.test.ts, the known rec-20260918-004 flake). Related: rec-20261008-004 (braces exception, expires 2026-11-18).
-- next: cadence milestone propose
-
-After '@dependabot rebase' (2026-10-10), #474 (@changesets/cli 2.31.1 -> 3.0.2) is red on audit (security-success) and on cadence-core tests. Single root cause: changesets 3.x no longer pulls read-yaml-file or js-yaml, so the pnpm.overrides keys "read-yaml-file@1.1.0": "^2.1.0" and "js-yaml@4.2.0": "^4.3.2" resolve nothing; scripts/check-lockfile-overrides.mjs (audit job) and tests/docs/lockfile-overrides-current-state.test.ts both fail with reason unresolved-target, by design. Fix as its own phase on a fresh branch (not commits on Dependabot's branch): bump @changesets/cli to 3.x, delete both keys, regenerate pnpm-lock.yaml, update the current-state test's package list (it names js-yaml) and any check-lockfile-overrides fixtures, confirm braces is gone from the tree (pnpm why braces -r) and retire the GHSA-vfj7-8cjw-p6xm exception row in docs/security/audit-exceptions.md, then close #474 as superseded. Also confirm changesets 3.x 'changeset version' still produces the lockstep fixed-group bump and CHANGELOG shape release-integrity.mjs parses (## x.y.z). Unblocks every release after 2026-11-18.
-
 ## rec-20261013-001 — Audit scripts' CLI entries are untested: dropping projectDir from main() would silently re-check the root in the website CI step
 
 - status: candidate
@@ -1907,19 +1875,3 @@ After '@dependabot rebase' (2026-10-10), #474 (@changesets/cli 2.31.1 -> 3.0.2) 
 - next: cadence milestone propose
 
 Phase 328 gave scripts/check-audit-exceptions.mjs and scripts/check-lockfile-overrides.mjs an optional project-directory argument (resolveProjectDir). Its pure resolver is unit-tested (328-01/AC-3) and security.yml's step strings are pinned (328-01/AC-4), but the CLI entry blocks that pass the resolved directory into main() are not exercised by any test. A later edit calling main() without projectDir would make the 'website' CI steps silently audit the repo root again and report green -- the Quiet Fallback the phase forbids -- with no test failing. Fix: extract a testable cli(argv, deps) wrapper (pure core / impure shell) or spawn the scripts in a test with a fixture project dir, asserting the audited/override-checked directory is the named one.
-
-## rec-20261013-002 — The braces audit-exception row's root-only justification now also applies to website/'s lockfile
-
-- status: candidate
-- ready: needs-decision
-- priority: low
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: security, ci
-- files: docs/security/audit-exceptions.md, scripts/check-audit-exceptions.mjs
-- evidence: Phase 328 whole-branch review Minor #6 (2026-10-13): one-table design covers both lockfiles; braces row text names only root paths.
-- next: cadence milestone propose
-
-Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.

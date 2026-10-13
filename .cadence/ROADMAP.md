@@ -3571,6 +3571,40 @@ checks both lockfiles against the one table. `check-audit-exceptions.mjs`
 still cannot run end to end on Windows (rec-20261004-003), so the PR's Linux
 `audit` job is the run of record for the two new steps.
 
+### Phase 329 — Adopt changesets 3.x and retire the braces audit exception (rec-20261010-007)
+
+**Objective.** Landed the substance of Dependabot #474 on a fresh branch
+before the `braces` exception (`GHSA-vfj7-8cjw-p6xm`, phase 321) expired on
+2026-11-18. After `@dependabot rebase`, #474 was red on `security-success`
+and on core tests for a single reason. `@changesets/cli` 3.x no longer pulls
+`read-yaml-file` or `js-yaml`, so the `pnpm.overrides` keys
+`read-yaml-file@1.1.0` and `js-yaml@4.2.0` resolved nothing, and
+`check-lockfile-overrides.mjs` reported them as `unresolved-target`, by
+design. The phase bumps the root devDependency to `^3.0.3`, deletes both dead
+keys, regenerates `pnpm-lock.yaml`, and retires the braces exception row,
+because 3.x drops `braces` from the tree. That empties the exceptions table,
+the healthy state per the phase 260/297 precedent. Root devDependency only:
+no published package changes and no changeset. Out of scope: the root
+lockfile's 13 moderates (rec-20261008-002), Node and pnpm `engines`, and
+every override key the checker does not flag.
+
+**As built (2026-10-13).** After the bump, `pnpm why` finds no `braces`,
+`js-yaml` or `read-yaml-file` anywhere. The overrides checker passes with 7/7
+targets satisfied, and `pnpm audit` shows only the 13 known moderates. A
+throwaway `changeset version` under 3.0.3 bumped the five fixed-group
+packages in lockstep and left testkit alone, and `extractChangelogEntry`
+parsed the new heading. 3.x does write `No changes in this release.` under
+fixed-group packages that have no changesets of their own, where 2.x left the
+heading empty. The new `phase329-changesets-3x.test.ts` pins the manifest,
+the lockfile, the retired row and the unchanged `.changeset/config.json`
+(no removed-in-3.x `prettier` key, `@changesets/cli/changelog` resolvable).
+The phase 321/324/328 tests that pinned the braces row, or used a non-empty
+table as an anti-vacuity guard, were superseded to assert the retired state
+against the table's column header rather than deleted. 3.0.3 also declares
+`engines.pnpm >=10.0.0` against the pinned `pnpm@9.12.0`. With no
+`engine-strict` this is a warning only, so it was left. The now-moot
+rec-20261008-004 and rec-20261013-002 are archived.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

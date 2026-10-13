@@ -1233,6 +1233,12 @@ changeset (example/test-only change, no published-package surface).*
   against the one exceptions table, with no new install or job; the one
   remaining moderate (`GHSA-rj75-hqrm-r3gf`) needs a cross-major bump and is
   left (rec-20260802-006).
+- **Phase 329** — adopted `@changesets/cli` 3.x (Dependabot #474's
+  substance, on a fresh branch), deleted the two override keys it left dead
+  (`read-yaml-file`, `js-yaml`), and retired the `braces` audit exception
+  before its 2026-11-18 expiry now that 3.x drops `braces` from the tree,
+  leaving the exceptions table empty; `changeset version` was proven to keep
+  the five-package lockstep bump (rec-20261010-007).
 
 
 
