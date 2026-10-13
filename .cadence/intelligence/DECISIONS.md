@@ -821,6 +821,24 @@ A doctor check warning when the strong ratio over the last N settles falls below
 
 A staleness test asserting the page equals the live corpus fails on every future settle, because each settle adds a SUMMARY record. Phase 327's own tests pin a frozen fixture corpus for the same reason. The generator and a staleness check that survives new settles need their own design pass; filed as rec-20261010-004. No README change in phase 327.
 
+### dec-20261013-001 — D-BJ: checkpoint sensor threshold is a percentage with absolute-token fallback; state records both units
+
+- decided: 2026-10-13T16:17:05.798Z
+
+REPORT-checkpoint-phase-0.4a section 6 measured both units in the statusline payload. used_percentage is an integer at ~10k-token resolution on a 1M window, null before the first turn, and 0 or null after a reset. The sensor reads used_percentage when non-null and otherwise computes the percentage from current_usage / context_window_size; null and a post-reset 0 both classify as unknown. The state file records used_percentage and the absolute counts. Threshold evaluation is out of Phase 2 scope; its unit is percentage. This narrows the Phase 2 handoff's config-names-its-unit wording to percentage, by operator choice on 2026-10-13.
+
+### dec-20261013-002 — D-BR: packages/checkpoint depends on cadence-core for atomicWriteText; no copy, no extraction
+
+- decided: 2026-10-13T16:17:06.182Z
+
+Reuse the existing temp-file + rename writer at core/src/state/atomic-write.ts; never hand-roll a second atomic writer. Phase 1 isolated checkpoint from core to keep the validator grammar from coupling to core. A runtime dependency on a stable I/O primitive is a different kind of coupling and does not break that isolation. Copying is disqualified; extracting to cadence-types is rejected because types is pure data with no I/O.
+
+### dec-20261013-003 — D-BS: checkpoint state file lives at .cadence/checkpoint/, project-keyed
+
+- decided: 2026-10-13T16:17:06.567Z
+
+Project-keyed per M4, because /clear assigns a new session_id. Inside .cadence/ it sits beside the other loop state. Phase 2 AC-7 must show that cadence doctor, summary verify-all and the boundary scanner do not flag the file; if one does, the DRAFT records a finding rather than moving the file.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
