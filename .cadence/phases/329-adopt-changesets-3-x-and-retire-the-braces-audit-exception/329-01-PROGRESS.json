@@ -1,0 +1,32 @@
+{
+  "draftId": "329-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "docs/security/audit-exceptions.md",
+        "package.json",
+        "packages/core/tests/docs/lockfile-overrides-current-state.test.ts",
+        "packages/core/tests/docs/phase321-brace-advisories.test.ts",
+        "packages/core/tests/docs/phase324-audit-advisories.test.ts",
+        "packages/core/tests/docs/phase328-website-advisories.test.ts",
+        "pnpm-lock.yaml",
+        "packages/core/tests/docs/phase329-changesets-3x.test.ts"
+      ],
+      "updatedAt": "2026-10-13T19:13:50.005Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-13T19:13:50.556Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-13T19:13:51.127Z"
+    }
+  }
+}

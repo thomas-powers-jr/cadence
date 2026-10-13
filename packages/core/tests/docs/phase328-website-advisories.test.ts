@@ -109,7 +109,9 @@ describe('website high/critical advisories are fixed, not excepted (328-01 / AC-
   const advisories = extractHighSeverityAdvisories(AUDIT_JSON);
 
   it('has no exception row for any of the 13 website advisories (328-01/AC-1)', () => {
-    expect(rows.length).toBeGreaterThanOrEqual(1);
+    // Non-vacuity: the table is still present. It may be empty -- phase 329
+    // retired its last row, and an empty table is the healthy state.
+    expect(readFileSync(AUDIT_EXCEPTIONS_MD, 'utf8')).toContain('| Advisory ID | Package | Justification | Expiry |');
     for (const [id] of ADVISORIES) {
       expect(rows.find((r: { id: string }) => r.id === id)).toBeUndefined();
     }

@@ -82,7 +82,9 @@ describe('the three phase 324 advisories are fixed, not excepted (324-01 / AC-3)
   const advisories = extractHighSeverityAdvisories(AUDIT_JSON);
 
   it('has no exception row for the proxy-addr, @modelcontextprotocol/sdk or source-map-js advisories (324-01/AC-3)', () => {
-    expect(rows.length).toBeGreaterThanOrEqual(1);
+    // Non-vacuity: the table is still present. It may be empty -- phase 329
+    // retired its last row, and an empty table is the healthy state.
+    expect(readFileSync(AUDIT_EXCEPTIONS_MD, 'utf8')).toContain('| Advisory ID | Package | Justification | Expiry |');
     for (const id of PHASE_324_IDS) {
       expect(rows.find((r) => r.id === id)).toBeUndefined();
     }
