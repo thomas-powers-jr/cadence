@@ -2964,6 +2964,13 @@
       "kind": "note",
       "summary": "Measured 2026-10-10 with cadence assurance report at 7264b428: security-audit ran in 3 of 183 settled records with gate provenance; strong is 11 of 87 graded records stored (9 re-derived). D-BV of HANDOFF-assurance-report: filed, not built, in phase 327.",
       "createdAt": "2026-10-10T18:29:27.720Z"
+    },
+    {
+      "id": "ev-20261010-007",
+      "recommendationId": "rec-20261010-007",
+      "kind": "note",
+      "summary": "PR #474 head 32c910c9 after rebase: audit run 38093374407 (check-lockfile-overrides: 2 unresolved override targets, read-yaml-file and js-yaml); test run 38093374434 (ubuntu + macos: lockfile-overrides-current-state.test.ts:114 expected [] got the same two unresolved-target entries; macos also a 20s timeout in debugging-skill-walkthrough.test.ts, the known rec-20260918-004 flake). Related: rec-20261008-004 (braces exception, expires 2026-11-18).",
+      "createdAt": "2026-10-10T23:24:48.980Z"
     }
   ]
 }

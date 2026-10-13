@@ -1892,3 +1892,19 @@ medium finding at packages/core/src/services/assurance-report.ts:104: A huge dig
 - next: cadence milestone propose
 
 cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A prescriptive follow-up would add a doctor check that warns when the share of strong grades over the last N settled slices falls below a floor, or when a gate such as security-audit has not run in the last N settles. Needs a decision on N and the floors before any code; dec-20260813-003 is the precedent against inventing an unmeasured threshold, so the first step is measuring with assurance report --since.
+
+## rec-20261010-007 — Land Dependabot #474 (@changesets/cli 3.x): drop the two pnpm.overrides keys it leaves dead, before the braces exception expires 2026-11-18
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, dependencies, release
+- files: package.json, pnpm-lock.yaml, scripts/check-lockfile-overrides.mjs, packages/core/tests/docs/lockfile-overrides-current-state.test.ts, docs/security/audit-exceptions.md
+- evidence: PR #474 head 32c910c9 after rebase: audit run 38093374407 (check-lockfile-overrides: 2 unresolved override targets, read-yaml-file and js-yaml); test run 38093374434 (ubuntu + macos: lockfile-overrides-current-state.test.ts:114 expected [] got the same two unresolved-target entries; macos also a 20s timeout in debugging-skill-walkthrough.test.ts, the known rec-20260918-004 flake). Related: rec-20261008-004 (braces exception, expires 2026-11-18).
+- next: cadence milestone propose
+
+After '@dependabot rebase' (2026-10-10), #474 (@changesets/cli 2.31.1 -> 3.0.2) is red on audit (security-success) and on cadence-core tests. Single root cause: changesets 3.x no longer pulls read-yaml-file or js-yaml, so the pnpm.overrides keys "read-yaml-file@1.1.0": "^2.1.0" and "js-yaml@4.2.0": "^4.3.2" resolve nothing; scripts/check-lockfile-overrides.mjs (audit job) and tests/docs/lockfile-overrides-current-state.test.ts both fail with reason unresolved-target, by design. Fix as its own phase on a fresh branch (not commits on Dependabot's branch): bump @changesets/cli to 3.x, delete both keys, regenerate pnpm-lock.yaml, update the current-state test's package list (it names js-yaml) and any check-lockfile-overrides fixtures, confirm braces is gone from the tree (pnpm why braces -r) and retire the GHSA-vfj7-8cjw-p6xm exception row in docs/security/audit-exceptions.md, then close #474 as superseded. Also confirm changesets 3.x 'changeset version' still produces the lockstep fixed-group bump and CHANGELOG shape release-integrity.mjs parses (## x.y.z). Unblocks every release after 2026-11-18.
