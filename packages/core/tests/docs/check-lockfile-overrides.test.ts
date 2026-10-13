@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { changesetEvidencePresent } from '../support/changeset-evidence.js';
 
@@ -387,5 +387,77 @@ describe('check-lockfile-overrides pure logic (253-01, AC-3)', () => {
         discriminator: 'unresolved-target',
       }),
     ).toBe(true);
+  });
+});
+
+// 328-01, AC-3 (phase 328) — both audit scripts take an optional project
+// directory (`website` for the docs site, its own pnpm project) resolved by a
+// pure `resolveProjectDir(arg, repoRoot, exists)`. `exists` is injected so
+// these tests touch no real filesystem state; every expected path and every
+// fake-`exists` key is built with the same node:path calls the resolver uses,
+// so the assertions hold on win32 and posix alike.
+const auditScript = await import('../../../../scripts/check-audit-exceptions.mjs');
+
+describe("resolveProjectDir — the audit scripts' project-directory argument (328-01 / AC-3)", () => {
+  const repoRoot = resolve('/fake-repo');
+  const websiteDir = resolve(repoRoot, 'website');
+  const existing = (paths: string[]) => {
+    const set = new Set(paths);
+    return (path: string): boolean => set.has(path);
+  };
+
+  it('returns the repo root unchanged when no argument is given (328-01/AC-3)', () => {
+    const neverCalled = (): boolean => {
+      throw new Error('exists() must not be consulted for the default root');
+    };
+    expect(script.resolveProjectDir(undefined, repoRoot, neverCalled)).toBe(repoRoot);
+    expect(script.resolveProjectDir('', repoRoot, neverCalled)).toBe(repoRoot);
+  });
+
+  it('resolves `website` to <repoRoot>/website, relative to the repo root rather than the cwd (328-01/AC-3)', () => {
+    const exists = existing([websiteDir, join(websiteDir, 'pnpm-lock.yaml')]);
+    expect(script.resolveProjectDir('website', repoRoot, exists)).toBe(websiteDir);
+  });
+
+  it('refuses a directory that does not exist, naming it and the missing pnpm-lock.yaml, with no fallback to the root (328-01/AC-3)', () => {
+    const missingDir = resolve(repoRoot, 'no-such-dir');
+    // The root itself is a valid project here, so a silent fallback would
+    // return it instead of throwing.
+    const exists = existing([repoRoot, join(repoRoot, 'pnpm-lock.yaml')]);
+    let thrown: unknown;
+    try {
+      script.resolveProjectDir('no-such-dir', repoRoot, exists);
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    const message = (thrown as Error).message;
+    expect(message).toContain(missingDir);
+    expect(message).toContain(join(missingDir, 'pnpm-lock.yaml'));
+    expect(message).toMatch(/does not exist/);
+    expect(message).toMatch(/"website"/); // the suggested fix names a real project directory
+  });
+
+  it('refuses an existing directory that has no pnpm-lock.yaml, naming the missing file (328-01/AC-3)', () => {
+    const docsDir = resolve(repoRoot, 'docs');
+    const exists = existing([docsDir, repoRoot, join(repoRoot, 'pnpm-lock.yaml')]);
+    expect(() => script.resolveProjectDir('docs', repoRoot, exists)).toThrow(join(docsDir, 'pnpm-lock.yaml'));
+    expect(() => script.resolveProjectDir('docs', repoRoot, exists)).toThrow(/does not exist/);
+  });
+
+  it('refuses a path that escapes the repo root (328-01/AC-3)', () => {
+    const outside = resolve(repoRoot, '..', 'elsewhere');
+    const exists = existing([outside, join(outside, 'pnpm-lock.yaml')]);
+    expect(() => script.resolveProjectDir('../elsewhere', repoRoot, exists)).toThrow(/outside the repo root/);
+    // A directory whose name merely starts with `..` is inside the root.
+    const dotted = resolve(repoRoot, '..cache');
+    expect(script.resolveProjectDir('..cache', repoRoot, existing([dotted, join(dotted, 'pnpm-lock.yaml')]))).toBe(
+      dotted,
+    );
+  });
+
+  it('is one shared function: check-audit-exceptions.mjs exposes the same resolveProjectDir (328-01/AC-3)', () => {
+    expect(typeof script.resolveProjectDir).toBe('function');
+    expect(auditScript.resolveProjectDir).toBe(script.resolveProjectDir);
   });
 });

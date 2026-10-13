@@ -7,10 +7,19 @@
 // extractHighSeverityAdvisories) is exported and unit-tested in
 // packages/core/tests/docs/security-ci.test.ts; main() is the thin,
 // impure shell that runs `pnpm audit` and prints the result.
-import { readFileSync } from 'node:fs';
+//
+// An optional project-directory argument (e.g. `website`, the docs site's
+// own pnpm project) runs the audit there instead of at the repo root. The
+// exceptions table is always read from the repo root — there is one table
+// for every audited lockfile. The argument is resolved by resolveProjectDir,
+// shared with scripts/check-lockfile-overrides.mjs and re-exported here.
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveProjectDir } from './check-lockfile-overrides.mjs';
+
+export { resolveProjectDir };
 
 const DEFAULT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const HIGH_SEVERITIES = new Set(['high', 'critical']);
@@ -194,10 +203,13 @@ function runPnpmAudit(cwd) {
   }
 }
 
-async function main(root = DEFAULT_ROOT) {
+// `projectDir` is where `pnpm audit` runs (its lockfile is what gets
+// audited); `repoRoot` is where the one exceptions table lives. With no
+// project-directory argument both are the repo root, as before.
+async function main(projectDir = DEFAULT_ROOT, repoRoot = DEFAULT_ROOT) {
   let auditJson;
   try {
-    auditJson = runPnpmAudit(root);
+    auditJson = runPnpmAudit(projectDir);
   } catch (err) {
     process.stderr.write(`check-audit-exceptions: failed to run pnpm audit: ${err.message}\n`);
     process.exitCode = 1;
@@ -224,7 +236,7 @@ async function main(root = DEFAULT_ROOT) {
     return;
   }
 
-  const exceptionsPath = join(root, 'docs', 'security', 'audit-exceptions.md');
+  const exceptionsPath = join(repoRoot, 'docs', 'security', 'audit-exceptions.md');
   const exceptions = parseExceptionsTable(readFileSync(exceptionsPath, 'utf8'));
   const decision = decideAdvisories(advisories, exceptions);
 
@@ -253,8 +265,20 @@ async function main(root = DEFAULT_ROOT) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
+  // Optional project directory (e.g. `website`), resolved against the repo
+  // root before pnpm audit is spawned. A bad one refuses with exit 1 and
+  // nothing on stdout — never a fallback to the root.
+  let projectDir;
+  try {
+    projectDir = resolveProjectDir(process.argv[2], DEFAULT_ROOT, existsSync);
+  } catch (err) {
     process.stderr.write(`check-audit-exceptions: ${err.message}\n`);
     process.exitCode = 1;
-  });
+  }
+  if (projectDir !== undefined) {
+    main(projectDir, DEFAULT_ROOT).catch((err) => {
+      process.stderr.write(`check-audit-exceptions: ${err.message}\n`);
+      process.exitCode = 1;
+    });
+  }
 }

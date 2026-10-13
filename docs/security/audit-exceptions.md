@@ -8,6 +8,13 @@ audit` under 9.12.0 hits npm's retired legacy audit endpoint (410 Gone —
 pnpm/pnpm#11265; see the script's own comments for detail) — and cross-checks
 any high or critical advisory it reports against the table below.
 
+The `audit` job checks two lockfiles: the repo root's `pnpm-lock.yaml`, and
+`website/pnpm-lock.yaml` (the docs site is its own pnpm project). It runs
+`scripts/check-audit-exceptions.mjs` and `scripts/check-lockfile-overrides.mjs`
+once with no argument for the root and once more with `website`. Both passes
+are decided against the one exceptions table below, which always lives at the
+repo root, so an exception row covers an advisory in either lockfile.
+
 **Policy:** any high or critical advisory that is not listed in the table
 below, or that is listed but whose `Expiry` date has passed, fails CI. To
 accept a specific advisory temporarily, add a row with a justification and a

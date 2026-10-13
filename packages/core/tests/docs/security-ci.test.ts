@@ -182,6 +182,52 @@ describe('security workflow — audit job invokes the lockfile-overrides detecto
   });
 });
 
+// 328-01, AC-4 (phase 328) — website/ is its own pnpm project with its own
+// lockfile, so the audit job runs both checks a second time against it, as
+// two more steps in the same job, after the two root steps, reusing the one
+// install (both scripts read only the lockfile and manifest). Anchored `run:`
+// regexes tell the root and website invocations apart.
+describe('security workflow — audit job also checks the website lockfile', () => {
+  const yml = readFileSync(SECURITY_YML, 'utf8');
+  const auditJobStart = yml.indexOf('\n  audit:');
+  const auditJobEnd = yml.indexOf('\n  sbom:', auditJobStart);
+  const auditJob = yml.slice(auditJobStart, auditJobEnd);
+  const stepIndex = (pattern: RegExp): number => auditJob.search(pattern);
+
+  const rootAudit = /run: node scripts\/check-audit-exceptions\.mjs[ \t]*$/m;
+  const rootOverrides = /run: node scripts\/check-lockfile-overrides\.mjs[ \t]*$/m;
+  const websiteAudit = /run: node scripts\/check-audit-exceptions\.mjs website[ \t]*$/m;
+  const websiteOverrides = /run: node scripts\/check-lockfile-overrides\.mjs website[ \t]*$/m;
+
+  it('runs both checks against website/ after the two root steps, in the same order (328-01/AC-4)', () => {
+    expect(auditJobStart).toBeGreaterThan(-1);
+    expect(auditJobEnd).toBeGreaterThan(-1);
+    const order = [rootAudit, rootOverrides, websiteAudit, websiteOverrides].map(stepIndex);
+    for (const idx of order) expect(idx).toBeGreaterThan(-1);
+    expect(order[0]!).toBeLessThan(order[1]!);
+    expect(order[1]!).toBeLessThan(order[2]!);
+    expect(order[2]!).toBeLessThan(order[3]!);
+    expect(auditJob.match(/run: node scripts\/check-audit-exceptions\.mjs website/g) ?? []).toHaveLength(1);
+    expect(auditJob.match(/run: node scripts\/check-lockfile-overrides\.mjs website/g) ?? []).toHaveLength(1);
+  });
+
+  it('adds the website steps without a second pnpm install or a new job (328-01/AC-4)', () => {
+    const installIdx = auditJob.indexOf('pnpm install --frozen-lockfile');
+    expect(auditJob.match(/pnpm install/g) ?? []).toHaveLength(1);
+    expect(installIdx).toBeGreaterThan(-1);
+    expect(stepIndex(websiteAudit)).toBeGreaterThan(installIdx);
+    // No new job: each website invocation occurs exactly once in the whole
+    // workflow, and that one occurrence is inside the audit job's slice.
+    for (const command of [
+      'node scripts/check-audit-exceptions.mjs website',
+      'node scripts/check-lockfile-overrides.mjs website',
+    ]) {
+      expect(yml.split(command).length - 1).toBe(1);
+      expect(auditJob.split(command).length - 1).toBe(1);
+    }
+  });
+});
+
 // AC-3 (phase 182) — the documented exceptions allowlist must exist with the
 // columns the audit job's script relies on to cross-check advisories.
 describe('audit exceptions doc', () => {

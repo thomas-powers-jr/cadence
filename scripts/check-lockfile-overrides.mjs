@@ -16,11 +16,54 @@
 // mirroring scripts/check-audit-exceptions.mjs's pure/impure split. This is
 // pure file-parsing (package.json + pnpm-lock.yaml already on disk after
 // `pnpm install`), so no subprocess is needed.
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DEFAULT_ROOT = fileURLToPath(new URL('..', import.meta.url));
+
+/**
+ * Resolves the optional project-directory CLI argument shared by this script
+ * and scripts/check-audit-exceptions.mjs (which imports it from here).
+ * `website/` is its own pnpm project with its own lockfile, so the CI `audit`
+ * job runs both checks once against the repo root (no argument) and once
+ * against `website`. Pure: `exists(path)` is injected and is the only way
+ * this function observes the filesystem.
+ *
+ *   - no argument (undefined or '') -> `repoRoot`, unchanged and unchecked,
+ *     so a bare invocation behaves exactly as it did before the argument
+ *     existed;
+ *   - otherwise the argument is resolved against `repoRoot` (never the
+ *     process cwd) and must name a directory inside the repo that contains
+ *     a `pnpm-lock.yaml`.
+ *
+ * Anything else throws, naming the directory and the missing file — there is
+ * deliberately no fallback to the repo root, which would silently audit the
+ * wrong lockfile and report green.
+ */
+export function resolveProjectDir(arg, repoRoot, exists) {
+  if (arg === undefined || arg === null || arg === '') return repoRoot;
+
+  const dir = resolve(repoRoot, String(arg));
+  const lockfile = join(dir, 'pnpm-lock.yaml');
+  const suggestion =
+    'pass a project directory relative to the repo root that has its own pnpm-lock.yaml ' +
+    '(e.g. "website"), or no argument to check the repo root';
+
+  const rel = relative(repoRoot, dir);
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error(`project directory "${arg}" resolves to ${dir}, which is outside the repo root ${repoRoot}; ${suggestion}`);
+  }
+  if (!exists(dir)) {
+    throw new Error(
+      `project directory "${arg}" (${dir}) does not exist, so ${lockfile} does not exist either; ${suggestion}`,
+    );
+  }
+  if (!exists(lockfile)) {
+    throw new Error(`project directory "${arg}" (${dir}) has no lockfile: ${lockfile} does not exist; ${suggestion}`);
+  }
+  return dir;
+}
 
 /**
  * Reads a *parsed* package.json object's `pnpm.overrides` map (keys of the
@@ -325,8 +368,20 @@ async function main(root = DEFAULT_ROOT) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
+  // Optional project directory (e.g. `website`), resolved against the repo
+  // root before anything is read. A bad one refuses with exit 1 and nothing
+  // on stdout — never a fallback to the root.
+  let projectDir;
+  try {
+    projectDir = resolveProjectDir(process.argv[2], DEFAULT_ROOT, existsSync);
+  } catch (err) {
     process.stderr.write(`check-lockfile-overrides: ${err.message}\n`);
     process.exitCode = 1;
-  });
+  }
+  if (projectDir !== undefined) {
+    main(projectDir).catch((err) => {
+      process.stderr.write(`check-lockfile-overrides: ${err.message}\n`);
+      process.exitCode = 1;
+    });
+  }
 }

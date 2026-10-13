@@ -13,13 +13,22 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "astro": "^7.2.2",
-    "@astrojs/starlight": "^0.41.7"
+    "@astrojs/starlight": "^0.41.11",
+    "astro": "^7.3.8"
   },
   "devDependencies": {
-    "starlight-typedoc": "^0.23.0",
-    "typedoc": "^0.28.19",
-    "typedoc-plugin-markdown": "^4.12.0",
+    "starlight-typedoc": "^0.23.1",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.1",
     "vitest": "^4.1.10"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion@^5.0.0": "^5.0.12",
+      "http-cache-semantics@^4.0.0": "^4.3.0",
+      "js-yaml@^4.0.0": "^4.3.2",
+      "postcss-selector-parser@^6.0.0": "^6.1.3",
+      "smol-toml@^1.0.0": "^1.9.0"
+    }
   }
 }

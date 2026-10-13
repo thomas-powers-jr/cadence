@@ -7,7 +7,8 @@ name: Security
 # schedule in codeql.yml and is out of scope here.
 #
 # Jobs today: secret-scan (gitleaks), audit (pnpm audit vs. the documented
-# exceptions allowlist, plus a pnpm.overrides lockfile-coverage check), sbom
+# exceptions allowlist, plus a pnpm.overrides lockfile-coverage check, run
+# against both the root lockfile and website/'s own lockfile), sbom
 # (CycloneDX SBOM + license inventory), plus security-success (aggregator
 # status context for branch protection, not a fourth concern -- see its own
 # comment below). Keep new jobs additive, one per concern.
@@ -54,6 +55,15 @@ jobs:
   # See docs/security/audit-exceptions.md for the audit-exceptions policy,
   # scripts/check-audit-exceptions.mjs for that check, and
   # scripts/check-lockfile-overrides.mjs for the override-coverage check.
+  #
+  # Both checks run twice: once against the repo root, then once against
+  # website/ (the docs site is its own pnpm project with its own
+  # pnpm-lock.yaml and pnpm.overrides, which nothing audited before phase
+  # 328 -- rec-20260802-006). Neither needs website/'s node_modules: pnpm
+  # audit reads the lockfile and queries the registry, and the override
+  # check reads the lockfile and manifest. So the website pass reuses this
+  # job's single install and adds steps, not a job. The exceptions table
+  # stays single, at the repo root, and covers both lockfiles.
   audit:
     runs-on: ubuntu-latest
     steps:
@@ -81,6 +91,15 @@ jobs:
 
       - name: Check pnpm.overrides targets against the resolved lockfile
         run: node scripts/check-lockfile-overrides.mjs
+
+      # The same two checks against website/'s own lockfile. The argument is
+      # resolved against the repo root; a missing directory or lockfile
+      # fails the step rather than silently re-checking the root.
+      - name: Check website pnpm audit against documented exceptions
+        run: node scripts/check-audit-exceptions.mjs website
+
+      - name: Check website pnpm.overrides targets against its resolved lockfile
+        run: node scripts/check-lockfile-overrides.mjs website
 
   # Generates a CycloneDX SBOM (full dependency graph/component inventory)
   # and a license inventory grouped by license type, uploaded as workflow
@@ -137,7 +156,8 @@ jobs:
   # secret-scan or audit genuinely found a problem (a leaked credential, an
   # undocumented high/critical pnpm audit advisory, or a pnpm.overrides
   # target that no longer covers every resolved instance of that package in
-  # pnpm-lock.yaml -- see scripts/check-lockfile-overrides.mjs).
+  # pnpm-lock.yaml -- see scripts/check-lockfile-overrides.mjs -- in either
+  # the root lockfile or website/pnpm-lock.yaml).
   # codeql-success is different in kind -- it only confirms the CodeQL
   # analyze job completed, not that it found nothing; see codeql.yml's
   # codeql-success comment for the full honest-scope note

@@ -3521,6 +3521,56 @@ moving the `summary.ts` and `doctor/run.ts` SUMMARY walkers onto the
 exported one (rec-20261010-003), and that generated evidence page with a
 staleness check that survives new settles (rec-20261010-004).
 
+### Phase 328 — Fix website dependency advisories and audit the website lockfile in CI (rec-20260802-006)
+
+**Objective.** Cleared the docs site's dependency advisories and closed the CI
+gap that let them accumulate. `website/` is its own pnpm project with its own
+`pnpm-lock.yaml`, but the required `security-success` check's `audit` job ran
+`scripts/check-audit-exceptions.mjs` and `scripts/check-lockfile-overrides.mjs`
+against the repo root only, so nothing ever audited it. Measured on
+2026-10-13 with the gate's own pinned audit, run in `website/`, the site's
+tree carried 1 critical (`GHSA-26w7-cxv4-gfx2`, astro, remote code execution
+through AVIF image optimization), 12 high, 11 moderate and 2 low advisories;
+the gate would have reported 13 failures. Every one has a release outside its
+vulnerable range, so the fix is an in-range refresh plus range-keyed
+per-major-line overrides in `website/package.json` (the phase 253/321/324
+pattern), and no exception row was added; a doc test drives the gate's own
+`decideAdvisories` to prove none covers the 13 ids. Both scripts gain an
+optional project-directory argument, resolved by a pure `resolveProjectDir`
+that refuses a missing, lockfile-less or out-of-repo directory rather than
+falling back to the root, and the `audit` job runs each once more against
+`website/`. Neither check needs `website/`'s `node_modules` (`pnpm audit`
+reads the lockfile and queries the registry; the override check reads the
+lockfile and manifest), so this adds two steps, not an install or a job.
+The exceptions table stays single, at the repo root. `website/` is not published and the
+scripts are repo tooling, so no published package changes and no changeset is
+due (phase 326 precedent). Out of scope, deliberately: the root lockfile's
+moderate advisories (rec-20261008-002, the next phase), `@changesets/cli` 3.x
+(rec-20261010-007), a `@astrojs/starlight` 0.42 minor bump, `vitest` 5 and
+the `docs.yml` action-pin drift (rec-20260805-001).
+
+**As built (2026-10-13).** An in-range `pnpm update` (pnpm 9.12.0) moved
+astro to 7.3.8, `@astrojs/starlight` to 0.41.11 (0.42 not taken), typedoc,
+typedoc-plugin-markdown and starlight-typedoc, and vitest to 4.1.11; five
+overrides, each keyed to the single major line the lockfile holds, cover
+`brace-expansion`, `http-cache-semantics`, `js-yaml`,
+`postcss-selector-parser` and `smol-toml`. The vitest specifier stayed at
+`^4.1.10` because phase 260's test pins one identical specifier across every
+workspace including `website/`. The website audit went from 1 critical / 12
+high / 11 moderate / 2 low to 0 / 0 / 1 / 0. The one remaining advisory is
+the moderate `GHSA-rj75-hqrm-r3gf` (`postcss-selector-parser <7.1.6`), patched
+only in a major above the tree's 6.x line and reached through
+`@expressive-code/core` → `postcss-nested`; it is left for a later
+starlight/expressive-code bump rather than forced by a cross-major override.
+`resolveProjectDir` lives in `check-lockfile-overrides.mjs` and is re-exported
+by `check-audit-exceptions.mjs`; with no argument both behave as before, and
+`check-audit-exceptions.mjs` always reads the exceptions table from the repo
+root. `security.yml`'s `audit` job gained the two `website` steps with no new
+install or job, and `docs/security/audit-exceptions.md` now says the job
+checks both lockfiles against the one table. `check-audit-exceptions.mjs`
+still cannot run end to end on Windows (rec-20261004-003), so the PR's Linux
+`audit` job is the run of record for the two new steps.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
