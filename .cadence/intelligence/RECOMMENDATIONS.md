@@ -530,23 +530,6 @@ cadence intelligence audit reports 20 orphan decisions and 125 orphan evidence e
 
 Phase 248 fixed code-review/security-audit: a bypassed verifier throw (--allow-verifier-failure equivalents) now records an honest SUMMARY.gates[] status:'skipped' entry instead of a bare status:'ran' with empty identity. deep-verify.ts (packages/core/src/gates/deep-verify.ts) has the structurally identical bug: on a bypassed throw it already sets flags.verifierFailure = { message, provider }, but registry.ts's runSettleGates dispatch loop has no branch that reads verifierFailure — so it falls through to the same generic status:'ran' with empty identity that phase 248 fixed for the other two gates. Deliberately NOT folded into phase 248 (rec-20260801-004 scoped to code-review/security-audit only per its own files: list) and NOT a copy-paste fix: verifierFailure is load-bearing for notify/collect.ts's anomaly emission and SUMMARY.gateBypasses (hardcoded to attribute failures to 'deep-verify' — which is actually correct for this gate, unlike the false-attribution risk that made phase 248 use a distinct reviewVerifierFailure field instead of reusing verifierFailure). So the registry.ts fix here can consume the existing verifierFailure flag directly, but the new branch's interaction with the anomaly-emission pipeline (does printing a loud stderr notice AND recording gates[] status:'skipped' double-count with the existing anomaly/gateBypasses record for the same event?) needs its own scoping pass before drafting, not an assumption that phase 248's exact pattern transfers unchanged.
 
-## rec-20260802-006 — Extend security audit CI coverage to website/ workspace
-
-- status: candidate
-- ready: needs-decision
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: security, ci, website
-- files: docs/security/audit-exceptions.md, .github/workflows/security.yml, scripts/check-audit-exceptions.mjs, website/pnpm-lock.yaml
-- evidence: Dependabot alert sweep 2026-08-02: 38 open alerts total, 30 of which (all high/moderate/low in website/) have zero CI enforcement per the exceptions doc's documented scope; PR #364 fixed 2 of the 7 website high-severity alerts
-- evidence: Confirmed still valid 2026-08-21 (HANDOFF-verifier-honesty-verify-premises.md Phase L sweep, scout-20260821-verifier-honesty): .github/workflows/security.yml's audit job runs pnpm audit at repo root; root pnpm-workspace.yaml lists only packages: - 'packages/*' -- website/ is not a workspace member and carries its own separate website/pnpm-lock.yaml + website/pnpm-workspace.yaml, structurally invisible to the root-scoped audit. No other workflow scans website/ for security issues. Readiness/priority unchanged (needs-decision/high) -- genuine live gap.
-- next: cadence milestone propose
-
-docs/security/audit-exceptions.md's own text documents that the audit CI job (scripts/check-audit-exceptions.mjs, .github/workflows/security.yml) only scans the packages/* workspace's root pnpm-lock.yaml -- website/ has a fully separate pnpm-workspace.yaml + pnpm-lock.yaml that is never audited at all. Confirmed via live GitHub Dependabot alerts on 2026-08-02: 7 high-severity alerts (astro SSRF #19, brace-expansion #26, js-yaml #27, linkify-it #34, postcss #39, sharp #36, svgo #35) plus 23 moderate/low alerts exist ONLY in website's lockfile and would never fail CI even if left unpatched indefinitely, unlike the same-severity packages/* advisories which are forced into a time-boxed exception table or a real fix. Two of the seven (brace-expansion, js-yaml) were fixed in PR #364 by re-resolving already-permitted transitive versions; the other five need their own patched-version research.
-
 ## rec-20260803-001 — No CLI path corrects a shippedRef on an already-shipped recommendation
 
 - status: candidate
@@ -1908,3 +1891,35 @@ cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A p
 - next: cadence milestone propose
 
 After '@dependabot rebase' (2026-10-10), #474 (@changesets/cli 2.31.1 -> 3.0.2) is red on audit (security-success) and on cadence-core tests. Single root cause: changesets 3.x no longer pulls read-yaml-file or js-yaml, so the pnpm.overrides keys "read-yaml-file@1.1.0": "^2.1.0" and "js-yaml@4.2.0": "^4.3.2" resolve nothing; scripts/check-lockfile-overrides.mjs (audit job) and tests/docs/lockfile-overrides-current-state.test.ts both fail with reason unresolved-target, by design. Fix as its own phase on a fresh branch (not commits on Dependabot's branch): bump @changesets/cli to 3.x, delete both keys, regenerate pnpm-lock.yaml, update the current-state test's package list (it names js-yaml) and any check-lockfile-overrides fixtures, confirm braces is gone from the tree (pnpm why braces -r) and retire the GHSA-vfj7-8cjw-p6xm exception row in docs/security/audit-exceptions.md, then close #474 as superseded. Also confirm changesets 3.x 'changeset version' still produces the lockstep fixed-group bump and CHANGELOG shape release-integrity.mjs parses (## x.y.z). Unblocks every release after 2026-11-18.
+
+## rec-20261013-001 — Audit scripts' CLI entries are untested: dropping projectDir from main() would silently re-check the root in the website CI step
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, ci, tests
+- files: scripts/check-audit-exceptions.mjs, scripts/check-lockfile-overrides.mjs, packages/core/tests/docs/check-lockfile-overrides.test.ts
+- evidence: Phase 328 whole-branch review Minor #1 (2026-10-13): entry blocks at check-audit-exceptions.mjs ~267-284 and check-lockfile-overrides.mjs ~370-387 have no test; behaviour verified correct by manual CLI runs only.
+- next: cadence milestone propose
+
+Phase 328 gave scripts/check-audit-exceptions.mjs and scripts/check-lockfile-overrides.mjs an optional project-directory argument (resolveProjectDir). Its pure resolver is unit-tested (328-01/AC-3) and security.yml's step strings are pinned (328-01/AC-4), but the CLI entry blocks that pass the resolved directory into main() are not exercised by any test. A later edit calling main() without projectDir would make the 'website' CI steps silently audit the repo root again and report green -- the Quiet Fallback the phase forbids -- with no test failing. Fix: extract a testable cli(argv, deps) wrapper (pure core / impure shell) or spawn the scripts in a test with a fixture project dir, asserting the audited/override-checked directory is the named one.
+
+## rec-20261013-002 — The braces audit-exception row's root-only justification now also applies to website/'s lockfile
+
+- status: candidate
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, ci
+- files: docs/security/audit-exceptions.md, scripts/check-audit-exceptions.mjs
+- evidence: Phase 328 whole-branch review Minor #6 (2026-10-13): one-table design covers both lockfiles; braces row text names only root paths.
+- next: cadence milestone propose
+
+Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.

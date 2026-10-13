@@ -2971,6 +2971,20 @@
       "kind": "note",
       "summary": "PR #474 head 32c910c9 after rebase: audit run 38093374407 (check-lockfile-overrides: 2 unresolved override targets, read-yaml-file and js-yaml); test run 38093374434 (ubuntu + macos: lockfile-overrides-current-state.test.ts:114 expected [] got the same two unresolved-target entries; macos also a 20s timeout in debugging-skill-walkthrough.test.ts, the known rec-20260918-004 flake). Related: rec-20261008-004 (braces exception, expires 2026-11-18).",
       "createdAt": "2026-10-10T23:24:48.980Z"
+    },
+    {
+      "id": "ev-20261013-001",
+      "recommendationId": "rec-20261013-001",
+      "kind": "note",
+      "summary": "Phase 328 whole-branch review Minor #1 (2026-10-13): entry blocks at check-audit-exceptions.mjs ~267-284 and check-lockfile-overrides.mjs ~370-387 have no test; behaviour verified correct by manual CLI runs only.",
+      "createdAt": "2026-10-13T18:12:19.352Z"
+    },
+    {
+      "id": "ev-20261013-002",
+      "recommendationId": "rec-20261013-002",
+      "kind": "note",
+      "summary": "Phase 328 whole-branch review Minor #6 (2026-10-13): one-table design covers both lockfiles; braces row text names only root paths.",
+      "createdAt": "2026-10-13T18:12:20.706Z"
     }
   ]
 }

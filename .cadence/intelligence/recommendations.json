@@ -957,39 +957,6 @@
       "updatedAt": "2026-08-02T04:09:25.988Z"
     },
     {
-      "id": "rec-20260802-006",
-      "title": "Extend security audit CI coverage to website/ workspace",
-      "summary": "docs/security/audit-exceptions.md's own text documents that the audit CI job (scripts/check-audit-exceptions.mjs, .github/workflows/security.yml) only scans the packages/* workspace's root pnpm-lock.yaml -- website/ has a fully separate pnpm-workspace.yaml + pnpm-lock.yaml that is never audited at all. Confirmed via live GitHub Dependabot alerts on 2026-08-02: 7 high-severity alerts (astro SSRF #19, brace-expansion #26, js-yaml #27, linkify-it #34, postcss #39, sharp #36, svgo #35) plus 23 moderate/low alerts exist ONLY in website's lockfile and would never fail CI even if left unpatched indefinitely, unlike the same-severity packages/* advisories which are forced into a time-boxed exception table or a real fix. Two of the seven (brace-expansion, js-yaml) were fixed in PR #364 by re-resolving already-permitted transitive versions; the other five need their own patched-version research.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "security",
-        "ci",
-        "website"
-      ],
-      "affectedFiles": [
-        "docs/security/audit-exceptions.md",
-        ".github/workflows/security.yml",
-        "scripts/check-audit-exceptions.mjs",
-        "website/pnpm-lock.yaml"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260802-018",
-        "ev-20260822-006"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-08-02T23:33:26.220Z",
-      "updatedAt": "2026-08-22T00:21:41.104Z"
-    },
-    {
       "id": "rec-20260803-001",
       "title": "No CLI path corrects a shippedRef on an already-shipped recommendation",
       "summary": "recommendation promote is refused for terminal-status recs, so a --ref recorded at settle time as a placeholder (e.g. 'PR pending') can never be corrected once the PR merges. Observed on rec-20260801-004 (phase 248, PR #358 merged) and rec-20260712-006 (phase 249 merged), both still reading 'PR pending' at v1.54.0. The doctor recommendation-shipped-drift check covers the settle-pending waypoint but not a stale ref on an already-shipped rec. Options to weigh: a narrow 'recommendation ref set <id> --ref' command; allowing --ref on promote for a shipped→shipped no-op transition; or having settle record the branch/PR automatically at the settle-pending → shipped step so a placeholder is never minted. Cosmetic per-instance, but it accumulates once per shipped phase and silently degrades the ledger's own provenance.",
@@ -3423,6 +3390,66 @@
       "decisionIds": [],
       "createdAt": "2026-10-10T23:24:48.980Z",
       "updatedAt": "2026-10-10T23:24:48.980Z"
+    },
+    {
+      "id": "rec-20261013-001",
+      "title": "Audit scripts' CLI entries are untested: dropping projectDir from main() would silently re-check the root in the website CI step",
+      "summary": "Phase 328 gave scripts/check-audit-exceptions.mjs and scripts/check-lockfile-overrides.mjs an optional project-directory argument (resolveProjectDir). Its pure resolver is unit-tested (328-01/AC-3) and security.yml's step strings are pinned (328-01/AC-4), but the CLI entry blocks that pass the resolved directory into main() are not exercised by any test. A later edit calling main() without projectDir would make the 'website' CI steps silently audit the repo root again and report green -- the Quiet Fallback the phase forbids -- with no test failing. Fix: extract a testable cli(argv, deps) wrapper (pure core / impure shell) or spawn the scripts in a test with a fixture project dir, asserting the audited/override-checked directory is the named one.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci",
+        "tests"
+      ],
+      "affectedFiles": [
+        "scripts/check-audit-exceptions.mjs",
+        "scripts/check-lockfile-overrides.mjs",
+        "packages/core/tests/docs/check-lockfile-overrides.test.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261013-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-13T18:12:19.352Z",
+      "updatedAt": "2026-10-13T18:12:19.352Z"
+    },
+    {
+      "id": "rec-20261013-002",
+      "title": "The braces audit-exception row's root-only justification now also applies to website/'s lockfile",
+      "summary": "Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "scripts/check-audit-exceptions.mjs"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261013-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-13T18:12:20.706Z",
+      "updatedAt": "2026-10-13T18:12:20.706Z"
     }
   ],
   "archived": [
@@ -11169,6 +11196,43 @@
       "archiveReason": "shipped",
       "createdAt": "2026-10-10T16:05:24.394Z",
       "updatedAt": "2026-10-10T17:48:34.936Z"
+    },
+    {
+      "id": "rec-20260802-006",
+      "title": "Extend security audit CI coverage to website/ workspace",
+      "summary": "docs/security/audit-exceptions.md's own text documents that the audit CI job (scripts/check-audit-exceptions.mjs, .github/workflows/security.yml) only scans the packages/* workspace's root pnpm-lock.yaml -- website/ has a fully separate pnpm-workspace.yaml + pnpm-lock.yaml that is never audited at all. Confirmed via live GitHub Dependabot alerts on 2026-08-02: 7 high-severity alerts (astro SSRF #19, brace-expansion #26, js-yaml #27, linkify-it #34, postcss #39, sharp #36, svgo #35) plus 23 moderate/low alerts exist ONLY in website's lockfile and would never fail CI even if left unpatched indefinitely, unlike the same-severity packages/* advisories which are forced into a time-boxed exception table or a real fix. Two of the seven (brace-expansion, js-yaml) were fixed in PR #364 by re-resolving already-permitted transitive versions; the other five need their own patched-version research.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci",
+        "website"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        ".github/workflows/security.yml",
+        "scripts/check-audit-exceptions.mjs",
+        "website/pnpm-lock.yaml"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260802-018",
+        "ev-20260822-006"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "328-fix-website-dependency-advisories-and-audit-the-website-lockfile-in-ci",
+      "createdAt": "2026-08-02T23:33:26.220Z",
+      "updatedAt": "2026-10-13T18:16:24.035Z",
+      "shippedRef": "phase 328 (328-01): security.yml audit job now audits website/pnpm-lock.yaml; website high/critical advisories fixed",
+      "archivedAt": "2026-10-13T18:16:24.035Z",
+      "archiveReason": "shipped"
     }
   ]
 }

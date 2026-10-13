@@ -1,0 +1,34 @@
+{
+  "draftId": "328-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        "website/package.json",
+        "website/pnpm-lock.yaml",
+        "packages/core/tests/docs/phase328-website-advisories.test.ts"
+      ],
+      "updatedAt": "2026-10-13T17:43:44.069Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [
+        ".github/workflows/security.yml",
+        "docs/security/audit-exceptions.md",
+        "packages/core/tests/docs/check-lockfile-overrides.test.ts",
+        "packages/core/tests/docs/security-ci.test.ts",
+        "scripts/check-audit-exceptions.mjs",
+        "scripts/check-lockfile-overrides.mjs"
+      ],
+      "updatedAt": "2026-10-13T17:54:39.780Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-13T17:56:45.084Z"
+    }
+  }
+}

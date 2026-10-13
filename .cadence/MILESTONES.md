@@ -1225,6 +1225,14 @@ changeset (example/test-only change, no published-package surface).*
   provider mix, bypasses and the evidence tally, as text or `--json`, with
   `--since <phase>`; at `7d96650` that is 155 / 96 / 86 of 337 records, and
   `272-01` and `282-01` re-derive strong → mixed (rec-20261010-002).
+- **Phase 328** — fixed, rather than excepted, the docs site's dependency
+  advisories (1 critical, 12 high, 11 moderate and 2 low in
+  `website/pnpm-lock.yaml`, now 0 / 0 / 1 / 0) with an in-range refresh and
+  five per-major-line overrides, and both audit scripts now take an optional
+  project directory so the `audit` job also checks `website/`'s lockfile
+  against the one exceptions table, with no new install or job; the one
+  remaining moderate (`GHSA-rj75-hqrm-r3gf`) needs a cross-major bump and is
+  left (rec-20260802-006).
 
 
 
