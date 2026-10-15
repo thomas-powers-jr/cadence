@@ -3605,6 +3605,42 @@ against the table's column header rather than deleted. 3.0.3 also declares
 `engine-strict` this is a warning only, so it was left. The now-moot
 rec-20261008-004 and rec-20261013-002 are archived.
 
+### Phase 330 — Raise override floors past the 13 root moderate advisories (rec-20261008-002)
+
+**Objective.** Cleared the 13 moderate advisories `pnpm audit` reported
+against the root `pnpm-lock.yaml`, re-measured on 2026-10-15: hono 4.13.1
+(4), ip-address 10.4.0 (4), qs 6.15.3 (2), fast-uri 3.1.7, vitest 4.1.10 and
+`@vitest/mocker` 4.1.10, with nothing high or critical, so the
+`security-success` gate never saw them. Eleven of the 13 (hono, qs,
+ip-address and fast-uri) sit on cadence-core's production path through
+`@modelcontextprotocol/sdk`; only the vitest pair is dev-only. The fix is durable
+`pnpm.overrides` floors in the private root `package.json`, each a caret
+range at the strictest patched version the audit names, rather than a bare
+lockfile refresh that could drift back. Two new keys (`hono@<4.13.7`,
+`qs@<6.16.0`), the fast-uri key moved from `<3.1.6` to `<3.1.8`, the
+`ip-address@^10.0.0` target raised to `^10.7.1`, and two dev-only keys
+(`vitest@<4.1.11`, `@vitest/coverage-v8@<4.1.11`). No published package
+changes and no changeset. Out of scope: whether the audit gate should start
+reporting moderates on production paths (split out as rec-20261015-001), the
+website lockfile's one remaining moderate, and vitest 5.x.
+
+**As built (2026-10-15).** A first probe bumped only the root `vitest` and
+`@vitest/coverage-v8` devDependencies; that left a duplicate 4.1.10 for the
+six workspace packages declaring `^4.1.10`, so vitest went through overrides
+too and every published manifest stayed untouched. After `pnpm install` the
+lockfile resolves a single hono 4.13.13 (including the `@hono/node-server`
+peer path), qs 6.16.1, ip-address 10.7.4, fast-uri 3.1.8 and a single
+vitest / `@vitest/mocker` / `@vitest/coverage-v8` 4.1.12. The overrides
+checker passes 11/11 targets and `pnpm audit` reports 0 vulnerabilities of
+any severity. The new `phase330-root-moderate-advisories.test.ts` pins the
+override targets, the floors per resolved instance, a single distinct
+vitest-family version, and the unchanged published specifiers. Against
+`origin/main`'s manifest and lockfile its AC-1 test and AC-2 floor test
+failed first; the single-version test and the AC-3 preservation check pass
+on both trees by design. The fast-uri and ip-address assertions in
+`lockfile-overrides-current-state.test.ts` were superseded with comments,
+not deleted.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

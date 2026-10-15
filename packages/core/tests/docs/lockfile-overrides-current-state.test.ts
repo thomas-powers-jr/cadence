@@ -42,7 +42,11 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // pinned key `fast-uri@3.1.2` then matched nothing at all, so it was the
     // silent-no-op stale key this very file exists to guard against. Phase 297
     // uses a RANGE key so it cannot rot the same way on the next bump.
-    expect(targets).toContainEqual({ package: 'fast-uri', sourceVersion: '<3.1.6', range: '^3.1.6' });
+    // Phase 330 supersedes phase 297's `<3.1.6: ^3.1.6`: 3.1.7 then carried a
+    // moderate advisory patched in >=3.1.8, so the key and target both move
+    // to 3.1.8 (phase330-root-moderate-advisories.test.ts pins the full set).
+    expect(targets).toContainEqual({ package: 'fast-uri', sourceVersion: '<3.1.8', range: '^3.1.8' });
+    expect(targets.filter((t: { package: string; sourceVersion: string }) => t.package === 'fast-uri' && t.sourceVersion === '<3.1.6')).toEqual([]);
     // brace-expansion 5.x line: retargeted to the real patched floor, as a
     // RANGE key. Phase 253 pinned `brace-expansion@5.0.6: ^5.0.9`; once the
     // tree moved to 5.0.9 that exact-version key matched nothing, and 5.0.9
@@ -72,7 +76,11 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     // caret range is applied here too, proactively, for the same
     // future-drift-resistance reason (a future second ip-address major
     // entering the graph would otherwise silently repeat the collapse).
-    expect(targets).toContainEqual({ package: 'ip-address', sourceVersion: '^10.0.0', range: '^10.3.1' });
+    // Phase 330 raises the target from `^10.3.1` to `^10.7.1`: `pnpm audit`
+    // reported four moderate entries against 10.4.0 with two patched floors
+    // (>=10.5.1 and >=10.7.1); the floor takes the stricter. The key
+    // itself (`^10.0.0`) is unchanged.
+    expect(targets).toContainEqual({ package: 'ip-address', sourceVersion: '^10.0.0', range: '^10.7.1' });
     // js-yaml and read-yaml-file: their keys (`js-yaml@4.2.0: ^4.3.2`, phase
     // 298's floor past GHSA-2883-xcg3-v3hh, and `read-yaml-file@1.1.0: ^2.1.0`)
     // were removed in phase 329. @changesets/cli 3.x no longer pulls either
@@ -89,7 +97,7 @@ describe('lockfile overrides — real, current repo state (253-01, AC-1 and AC-2
     expect(targets).toContainEqual({ package: 'source-map-js', sourceVersion: '<1.2.2', range: '^1.2.2' });
   });
 
-  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, proxy-addr and source-map-js satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1)', () => {
+  it('every resolved instance of fast-uri, brace-expansion (both lines), ip-address, proxy-addr, source-map-js, hono, qs, vitest and @vitest/coverage-v8 satisfies its override target (253-01/AC-2, 298-01/AC-4, 321-01/AC-1, 330-01/AC-2)', () => {
     const overrideTargets = extractOverrideTargets(packageJson);
     const lockfilePackages = parseLockfilePackages(lockfileText);
 

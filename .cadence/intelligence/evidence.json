@@ -2985,6 +2985,13 @@
       "kind": "note",
       "summary": "Phase 328 whole-branch review Minor #6 (2026-10-13): one-table design covers both lockfiles; braces row text names only root paths.",
       "createdAt": "2026-10-13T18:12:20.706Z"
+    },
+    {
+      "id": "ev-20261015-001",
+      "recommendationId": "rec-20261015-001",
+      "kind": "note",
+      "summary": "2026-10-15: pnpm audit reported 13 moderate / 0 high root advisories (hono x4, ip-address x4, qs x2, fast-uri, vitest, @vitest/mocker); the security-success check was green throughout because the gate checks high/critical only.",
+      "createdAt": "2026-10-15T15:52:11.152Z"
     }
   ]
 }
