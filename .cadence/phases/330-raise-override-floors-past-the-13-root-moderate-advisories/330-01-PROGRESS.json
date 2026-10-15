@@ -1,0 +1,22 @@
+{
+  "draftId": "330-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "phase330-root-moderate-advisories.test.ts: AC-1/AC-2 shown red against origin/main package.json+lockfile (2 of 4 failed: hono target missing, hono below floor), green after T2; independent review: 0 Critical/Important, minors fixed (parsed-target caret check, parser comment, AC-3 filtered to published). Full turbo lint/typecheck/test/build 28/28.",
+      "touchedFiles": [
+        "package.json",
+        "packages/core/tests/docs/lockfile-overrides-current-state.test.ts",
+        "pnpm-lock.yaml",
+        "packages/core/tests/docs/phase330-root-moderate-advisories.test.ts"
+      ],
+      "updatedAt": "2026-10-15T16:11:12.397Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Root pnpm.overrides floors (hono, qs, fast-uri, ip-address, vitest, @vitest/coverage-v8) + pnpm install; single version per floor package; check-lockfile-overrides 11/11; pnpm audit root 13 moderate -> 0; pnpm install --frozen-lockfile accepts; current-state test superseded with comments. Independent review: 0 Critical/Important, title minor fixed. Full turbo 28/28.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-15T16:11:13.065Z"
+    }
+  }
+}

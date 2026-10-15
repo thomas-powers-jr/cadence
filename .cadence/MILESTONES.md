@@ -1239,6 +1239,13 @@ changeset (example/test-only change, no published-package surface).*
   before its 2026-11-18 expiry now that 3.x drops `braces` from the tree,
   leaving the exceptions table empty; `changeset version` was proven to keep
   the five-package lockstep bump (rec-20261010-007).
+- **Phase 330** — cleared the root lockfile's 13 moderate advisories (11 of
+  them — hono, qs, ip-address, fast-uri — on cadence-core's production path
+  via the MCP SDK, plus the dev-only vitest pair) with caret `pnpm.overrides` floors at each
+  advisory's strictest patched version in the private root manifest, taking
+  root `pnpm audit` from 13 moderate to 0 with no published package change;
+  the gate-severity question split out as rec-20261015-001
+  (rec-20261008-002).
 
 
 

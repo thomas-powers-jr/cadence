@@ -1700,22 +1700,6 @@ progressService passes only nextPhaseNumber to nextAction in IDLE, never the led
 
 Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never clears state.activePhase and state.json is per-checkout, so in a primary checkout whose phases settle in worktrees, 'cadence handoff' pre-fills active_phase with the last phase settled locally (render-session.ts), and resume, the MCP surface and the intelligence context packet (render-context.ts, backend/cadence.ts) report the same stale value. Candidate fix: apply the same IDLE treatment (label as checkout-local; derive the latest settled phase via findLatestSettledPhase) to each surface, without changing activePhase's semantics or JSON contracts.
 
-## rec-20261008-002 — 13 moderate advisories in pnpm audit, several on consumer-reachable paths (hono via the MCP SDK, qs via express) and two override floors already behind (fast-uri, ip-address)
-
-- status: candidate
-- ready: needs-decision
-- priority: low
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: security
-- files: package.json, pnpm-lock.yaml
-- evidence: phase 324 T1 review, 2026-10-07: audit metadata counts moderate=13, high=1 (braces), critical=0 after the bump
-- next: cadence milestone propose
-
-The audit gate checks high/critical only, so these do not block CI, but on 2026-10-07 corepack pnpm@11.13.0 audit reported 13 moderate advisories: hono 4.13.1 (5 advisories, patched >=4.13.7; production path via @modelcontextprotocol/sdk -> @hono/node-server), qs 6.15.3 (via express, production path), fast-uri 3.1.7 (patched >=3.1.8; the pnpm override floor is ^3.1.6), ip-address 10.4.0 (patched >=10.7.1; override floor ^10.3.1), vitest/@vitest/mocker 4.1.10 (patched >=4.1.11, dev-only). Decide whether to raise the existing override floors and add hono/qs floors in one dependency-hygiene phase, and whether the gate should start reporting moderate advisories on production paths.
-
 ## rec-20261008-005 — tests/cli/milestone.test.ts 'accept then illegal re-accept' times out (20 s) on macOS CI on unrelated PRs (#538, #551, #553): split or root-cause the CLI-spawn cost
 
 - status: candidate
@@ -1875,3 +1859,19 @@ cadence assurance report (phase 327) is descriptive only (dec-20261010-003). A p
 - next: cadence milestone propose
 
 Phase 328 gave scripts/check-audit-exceptions.mjs and scripts/check-lockfile-overrides.mjs an optional project-directory argument (resolveProjectDir). Its pure resolver is unit-tested (328-01/AC-3) and security.yml's step strings are pinned (328-01/AC-4), but the CLI entry blocks that pass the resolved directory into main() are not exercised by any test. A later edit calling main() without projectDir would make the 'website' CI steps silently audit the repo root again and report green -- the Quiet Fallback the phase forbids -- with no test failing. Fix: extract a testable cli(argv, deps) wrapper (pure core / impure shell) or spawn the scripts in a test with a fixture project dir, asserting the audited/override-checked directory is the named one.
+
+## rec-20261015-001 — Decide whether the security audit gate should report or fail on moderate advisories reachable from published packages' production paths
+
+- status: candidate
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, dependencies, ci
+- files: scripts/check-audit-exceptions.mjs, .github/workflows/security.yml, docs/security/audit-exceptions.md
+- evidence: 2026-10-15: pnpm audit reported 13 moderate / 0 high root advisories (hono x4, ip-address x4, qs x2, fast-uri, vitest, @vitest/mocker); the security-success check was green throughout because the gate checks high/critical only.
+- next: cadence milestone propose
+
+scripts/check-audit-exceptions.mjs fails only on high/critical advisories, so the 13 root moderates rec-20261008-002 named accumulated since at least 2026-10-07 with no CI signal, 11 of them (hono, qs, ip-address and fast-uri) on cadence-core's production path via @modelcontextprotocol/sdk and only the vitest pair dev-only; phase 330 clears them with override floors but leaves the gate unchanged, so the next production-path moderate will be equally silent. Decide among: (a) keep high/critical only (record as dropped, not deferred, in DESIGN.md or a decision); (b) report moderates as a non-failing notice in the audit job; (c) fail on moderates reachable from a published package's production dependency path while leaving dev-only moderates as notices. Note that root pnpm.overrides do not reach npm consumers, so any gate here governs this repo's lockfile, not consumer installs. Split out of rec-20261008-002 by phase 330, which answered only its floor-raising half.
