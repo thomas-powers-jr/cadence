@@ -3641,6 +3641,59 @@ on both trees by design. The fast-uri and ip-address assertions in
 `lockfile-overrides-current-state.test.ts` were superseded with comments,
 not deleted.
 
+### Phase 331 — Checkpoint statusline sensor and state store (checkpoint Arc A Phase 2)
+
+**Objective.** Built checkpoint Arc A Phase 2
+(`docs/handoffs/HANDOFF-checkpoint-phase-2.md`): the sensor and the state
+store. Nothing in it can block, inject, or gate.
+
+- **The sensor.** `checkpoint statusline [--] <inner argv>` buffers Claude
+  Code's statusline JSON and records a reading to
+  `<project>/.cadence/checkpoint/reading.json` through core's
+  `atomicWriteText`. Core gained that one public export (D-BR,
+  dec-20261013-002), and checkpoint now depends on core at runtime.
+- **The reading.** It keeps raw `used_percentage` plus the absolute token
+  counts (D-BJ). `null`, absent, and `0` all classify as unknown, and no
+  fallback percentage is computed (deferred to Phase 3 by operator choice).
+- **Project resolution.** The project is the nearest `.cadence/` above
+  `workspace.current_dir` (D-BS as interpreted by the operator on
+  2026-10-15). The user-level `~/.cadence` / `CADENCE_HOME` store is
+  excluded by realpath.
+- **Pass-through.** The inner statusline is spawned with no shell, its
+  stdout passes through byte for byte, and its exit code is forwarded.
+- **The state store.** `state.ts` accepts CMD-C's seven edges and rejects
+  the other 29 ordered pairs of the six states, each with a reason.
+  `idle → armed` also refuses an unknown reading. `state.json` is written
+  only by `transitionStore`, and nothing outside tests calls it.
+- **The installer.** `checkpoint statusline-install --settings <path>`
+  wraps an existing `statusLine` command by splicing one string token. It
+  refuses non-UTF-8 files, shell syntax, and (on win32) first tokens that
+  do not resolve to an `.exe`.
+
+**Measured.** On win32, the wrapper's stdout was byte-identical (62 bytes:
+SGR escapes, multibyte UTF-8, LF, no trailing newline) both through Git
+Bash and through `powershell.exe -NoProfile -Command`, with and without
+`--`. PowerShell 5.1 neither re-encoded the output nor stripped `--`. It
+did collapse an inner exit code of 3 to 1 unless the command ends with
+`; exit $LASTEXITCODE`. `cadence doctor` and `cadence summary verify-all`
+output, and the boundary scan's filtering, were identical with and without
+the new state files. Every task got an independent review: the reviews
+caught a win32 corrupt-store-as-idle bug, an alias bypass of the
+`~/.cadence` exclusion, and lossy UTF-8 transcoding in the installer. The
+full record is in `docs/checkpoint/REPORT-checkpoint-phase-2.md`.
+
+**Settled past code review.** `code-review` (host-cli) did not converge:
+it reached 7 attempts against a limit of 3. Each of the five real
+(host-cli) reviews before the last raised new findings, and all were fixed.
+One attempt was a mock fallback after a codex timeout. The settle used
+`--allow-code-review-failure`. The operator authorized finding 6 (Windows
+ACL loss in core's `atomicWriteText`, `rec-20261016-001`). The flag also
+went past finding 7 (inner stdout buffered until exit, now a Phase 3
+precondition), which was not authorized beforehand; the operator kept the
+settle and had it recorded. The SUMMARY records the bypassed review as a
+plain `ran` and grades the phase `strong`. That is a core recording gap,
+filed as `rec-20261016-002`, so read the phase as `mixed`.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

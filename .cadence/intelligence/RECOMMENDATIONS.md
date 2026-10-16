@@ -1875,3 +1875,35 @@ Phase 328 gave scripts/check-audit-exceptions.mjs and scripts/check-lockfile-ove
 - next: cadence milestone propose
 
 scripts/check-audit-exceptions.mjs fails only on high/critical advisories, so the 13 root moderates rec-20261008-002 named accumulated since at least 2026-10-07 with no CI signal, 11 of them (hono, qs, ip-address and fast-uri) on cadence-core's production path via @modelcontextprotocol/sdk and only the vitest pair dev-only; phase 330 clears them with override floors but leaves the gate unchanged, so the next production-path moderate will be equally silent. Decide among: (a) keep high/critical only (record as dropped, not deferred, in DESIGN.md or a decision); (b) report moderates as a non-failing notice in the audit job; (c) fail on moderates reachable from a published package's production dependency path while leaving dev-only moderates as notices. Note that root pnpm.overrides do not reach npm consumers, so any gate here governs this repo's lockfile, not consumer installs. Split out of rec-20261008-002 by phase 330, which answered only its floor-raising half.
+
+## rec-20261016-001 — atomicWriteText loses a file's explicit ACL on Windows: temp-then-rename inherits the directory's security descriptor
+
+- status: candidate
+- ready: needs-evidence
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: core, state, windows
+- files: packages/core/src/state/atomic-write.ts
+- evidence: phase 331 code-review finding 6 (331-01-CODE-REVIEW.json); 28 atomicWriteText call sites in packages/core/src; zero ACL handling in packages/ (grep icacls|Get-Acl|securityDescriptor empty); not reachable via any published code path today
+- next: cadence milestone propose
+
+atomicWrite (packages/core/src/state/atomic-write.ts) creates the temp sibling with writeFile, which inherits the parent directory's descriptor, then renames it over the target; on NTFS the renamed file keeps the temp file's descriptor, so any non-inherited ACE on the original is lost. Affects all 28 core call sites, not only the phase-331 installer that surfaced it. Fix shape for the phase: on win32, either preserve (read the target's descriptor before the write, reapply after rename) or refuse when the target carries non-inherited ACEs - decide there. Found by code-review HIGH #6 in phase 331; reasoned from NTFS semantics, not yet measured with a probe.
+
+## rec-20261016-002 — A code-review findings bypass is persisted as a clean pass: SUMMARY records status 'ran' with no gateBypasses entry, so assurance grades it 'strong'
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: core, gates, assurance
+- files: packages/core/src/gates/registry.ts, packages/core/src/gates/code-review.ts, packages/core/src/gates/assurance-record.ts
+- evidence: phase 331 settle 2026-10-16T16:44:59Z: 331-01-SUMMARY.json has no gateBypasses key, code-review gate {status:'ran',provider:'host-cli'}, assurance.overall 'strong'; 331-01-CODE-REVIEW.json pass:false converged:false attempts:7; registry.ts final else for reviewFindingsBypassed; code-review.ts:166 'bypasses ANY failing code-review'
+- next: cadence milestone propose
+
+When --allow-code-review-failure (or --force) carries a settle past real HIGH code-review findings, registry.ts deliberately keeps the gate's plain status:'ran' recording (the reviewFindingsBypassed branch falls through to the final else), and nothing pushes a SUMMARY.gateBypasses entry. Phase 283's bypass cap therefore never applies: phase 331 settled past two HIGHs (one not operator-authorized, because the flag cannot be scoped to a finding) with assurance.overall 'strong'. The bypass is visible only in the *-CODE-REVIEW.json sidecar (pass:false, converged:false) and stderr anomalies. CLAUDE.md states bypasses are recorded in SUMMARY gateBypasses. Same shape likely applies to security-audit (--allow-security-audit-failure). Decide: record a gateBypasses entry (and/or status skipped with skipReason) for findings bypasses, and whether the flag should be scopable to finding ids.

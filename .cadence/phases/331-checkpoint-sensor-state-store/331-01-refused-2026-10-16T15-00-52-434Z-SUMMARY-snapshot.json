@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 2,
+  "draftId": "331-01",
+  "completedAt": "2026-10-16T15:00:52.434Z",
+  "acResults": [],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "refused",
+      "reason": "settle run refused: code-review did NOT converge after 3 attempts — a human decision is required. Fix the flagged code, or pass --allow-code-review-failure to proceed anyway.",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "core re-exports atomicWriteText; checkpoint depends on core at runtime; release plan keeps checkpoint at 0.0.0 (type none); independent review approved",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "transition table (7 legal / 29 rejected), unconditional unknown predicate, machine-state store; two review rounds (win32 corrupt-store-as-idle, 29-pair store coverage, POSIX ENOTDIR parity) fixed and re-verified in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "statusline sensor: parse/record/pass-through, nearest-.cadence resolution with realpath-based ~/.cadence exclusion, best-effort notices; two review rounds (alias bypass, notice path) fixed; re-verified in main thread 10 files/193 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "bash (Git Bash) + powershell.exe -NoProfile -Command byte transparency, both run on win32; measurements captured; independent review approved, 3 minor hardening fixes applied in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "statusline-install (token-aware splice, strict UTF-8, win32 PATH x PATHEXT resolution) + AC-7 tool sweep; two review rounds; re-verified in main thread 12 files/233 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "REPORT-checkpoint-phase-2.md + checkpoint-phase-2-report.test.ts (6/6) + handoff As-built note; settle-time items marked pending-settle; core tests/docs 53 files green",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [
+      "phase-build"
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "codeReview": {
+    "packages/checkpoint/src/install.ts": [
+      {
+        "severity": "high",
+        "message": "On Windows, rename replaces the target DACL with the temp file’s inherited ACL; `mode` does not preserve it. A restrictive settings file can expose env secrets to the parent ACL.",
+        "line": 447,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "8610f1fad3bbe2469be09872321195ae4694ff89657e0d0bfc349250c81280d1",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "medium",
+        "message": "`statSync` follows a settings.json symlink, but atomic rename replaces the link itself. Dotfile-managed settings lose their link despite the command promising to change only statusLine.",
+        "line": 447,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "09e2c16ec38d120750776bde58e042865ebfc24df73d9e93be99dfea8b5813ef",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/checkpoint/src/state.ts": [
+      {
+        "severity": "medium",
+        "message": "Any string is accepted for `since`, so `{state:\"armed\",since:\"not-a-date\"}` becomes valid state. Future mtime/timeout consumers can misbehave instead of treating the store as corrupt.",
+        "line": 190,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-3",
+          "tier": "executable"
+        },
+        "id": "0ad47b4d802611749aaeee6ce9ef12999f5ff90846ec1fe03a0b00e9d49787d1",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "6c1f5b0ce80f5a37aba89844f5322878ad6509cecaaf348f8514f48d0cb9a2e3"
+  }
+}

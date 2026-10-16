@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 2,
+  "draftId": "331-01",
+  "completedAt": "2026-10-16T16:44:59.903Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-8",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-9",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-10",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "core re-exports atomicWriteText; checkpoint depends on core at runtime; release plan keeps checkpoint at 0.0.0 (type none); independent review approved",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "transition table (7 legal / 29 rejected), unconditional unknown predicate, machine-state store; two review rounds (win32 corrupt-store-as-idle, 29-pair store coverage, POSIX ENOTDIR parity) fixed and re-verified in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "statusline sensor: parse/record/pass-through, nearest-.cadence resolution with realpath-based ~/.cadence exclusion, best-effort notices; two review rounds (alias bypass, notice path) fixed; re-verified in main thread 10 files/193 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "bash (Git Bash) + powershell.exe -NoProfile -Command byte transparency, both run on win32; measurements captured; independent review approved, 3 minor hardening fixes applied in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "statusline-install (token-aware splice, strict UTF-8, win32 PATH x PATHEXT resolution) + AC-7 tool sweep; two review rounds; re-verified in main thread 12 files/233 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "REPORT-checkpoint-phase-2.md + checkpoint-phase-2-report.test.ts (6/6) + handoff As-built note; settle-time items marked pending-settle; core tests/docs 53 files green",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Shell tests compare raw stdout buffers, verify reading 42 plus absolutes/ISO ts, force PowerShell on win32, and record argv and byte measurements; report includes results.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "parseReading preserves null/available absolutes without fallback computation; wrapper tests verify reading.json and unchanged or absent state.json.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "One exported predicate treats null, undefined, and 0 as unknown; explicit tests cover state contexts and reject idle→armed without a known reading.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "A hand-written 36-pair matrix tests 7 legal and 29 refused edges; store tests prove refusal reasons reach stderr and preserve state.json bytes.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Concurrent built-wrapper test polls reading.json, separates transient read errors, requires both payload shapes, rejects torn parses, and enforces the approved deadline-temp exception.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Exported schema and report contain all required fields, rationale, headings, and Phase 3 preconditions; tests bind report JSON to parseReading output. Number|null matches amendment.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Ephemeral-repo tests seed both checkpoint files and a temp sibling, then verify doctor, verify-all, and boundary filtering do not flag them.",
+      "provider": "host-cli"
+    },
+    "AC-8": {
+      "pass": true,
+      "reason": "Installer tests prove byte-preserving statusLine-only edits and hooks equality, wrapping/refusal behavior, unchanged refused files, and untouched repository settings.",
+      "provider": "host-cli"
+    },
+    "AC-9": {
+      "pass": true,
+      "reason": "Built-wrapper tests cover blocked checkpoint path, absent project marker, malformed JSON, and missing executable with byte-transparent stdout, required notices, and exit behavior.",
+      "provider": "host-cli"
+    },
+    "AC-10": {
+      "pass": true,
+      "reason": "Package-name import round-trips atomicWriteText; manifest tests assert runtime dependency/private version, and a real changeset-status test verifies fixed-group core bump with checkpoint unbumped.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 246366,
+    "truncated": false,
+    "filesCount": 31,
+    "provider": "host-cli"
+  },
+  "codeReview": {
+    "packages/checkpoint/src/install.ts": [
+      {
+        "severity": "high",
+        "message": "On Windows, rename replaces settings.json with a temp file inheriting the parent DACL, dropping explicit ACLs. Secrets in its env block may become readable by directory principals.",
+        "line": 447,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "e63627c9fa2b609fc120e49484cfce8f02f34d5ef9ab403a8dc7b97eca06629a",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "medium",
+        "message": "Atomic rename replaces a symlinked settings file itself, leaving its target unchanged and breaking dotfile-manager links. Detect/reject symlinks or update their target.",
+        "line": 447,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "e86f6246c1426b35d4f8db54d1c2f40b68b67641473ef7afe1c391e40adba1d5",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "medium",
+        "message": "Only some shell builtins are rejected. Commands such as `alias foo` or `cd dir` can be installed, then fail or change semantics under the no-shell spawn.",
+        "line": 172,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "6514b2e33f9fa20a7b6fa5ac3e7fafb29c01beff9f67cd9247236c530970f05d",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/checkpoint/src/sensor.ts": [
+      {
+        "severity": "high",
+        "message": "All inner stdout is buffered until exit. A verbose or non-terminating statusline grows memory without bound and never renders; stream output with backpressure instead.",
+        "line": 322,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-2",
+          "tier": "executable"
+        },
+        "id": "682039fb60dca6ecdb52291347ad65d8f3046d8354c30ca8af4836ad54ea91e2",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "medium",
+        "message": "A recording continues after the deadline; an older delayed invocation can finish after a newer one and overwrite reading.json with stale data.",
+        "line": 371,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-2",
+          "tier": "executable"
+        },
+        "id": "25c63ea6bb621fddf033918fcd223f1668bbfcc8117c821108f6a304070592da",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/checkpoint/src/state.ts": [
+      {
+        "severity": "medium",
+        "message": "Any string is accepted for `since`, so a corrupt non-ISO timestamp is treated as valid despite the state-file contract and can break timestamp-based consumers.",
+        "line": 190,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-3",
+          "tier": "executable"
+        },
+        "id": "8cc4440f4473407ffaafa85e1380653194b03dcf4b51173470decf67867caa15",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 283,
+    "sessionSubagentSpawns": 47
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 10,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "06954d31f3092100171cde864177d3b373f64e43a3e2cf3041ae84e58e45c669"
+  }
+}

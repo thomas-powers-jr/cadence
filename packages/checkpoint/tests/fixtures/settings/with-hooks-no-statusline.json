@@ -1,0 +1,36 @@
+{
+    "hooks": {
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "deja hook user-prompt-submit"
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Write|Edit|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "deja hook post-tool-use"
+                    }
+                ]
+            },
+            {
+                "matcher": "Skill",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node packages/host-claude-code/bin/cadence-host-claude-code.cjs hook --cadence \"node packages/core/bin/cadence.cjs\""
+                    }
+                ],
+                "_managedBy": "cadence"
+            }
+        ]
+    },
+    "includeCoAuthoredBy": false
+}

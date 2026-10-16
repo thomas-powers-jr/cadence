@@ -3362,6 +3362,68 @@
       "decisionIds": [],
       "createdAt": "2026-10-15T15:52:11.152Z",
       "updatedAt": "2026-10-15T15:52:11.152Z"
+    },
+    {
+      "id": "rec-20261016-001",
+      "title": "atomicWriteText loses a file's explicit ACL on Windows: temp-then-rename inherits the directory's security descriptor",
+      "summary": "atomicWrite (packages/core/src/state/atomic-write.ts) creates the temp sibling with writeFile, which inherits the parent directory's descriptor, then renames it over the target; on NTFS the renamed file keeps the temp file's descriptor, so any non-inherited ACE on the original is lost. Affects all 28 core call sites, not only the phase-331 installer that surfaced it. Fix shape for the phase: on win32, either preserve (read the target's descriptor before the write, reapply after rename) or refuse when the target carries non-inherited ACEs - decide there. Found by code-review HIGH #6 in phase 331; reasoned from NTFS semantics, not yet measured with a probe.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core",
+        "state",
+        "windows"
+      ],
+      "affectedFiles": [
+        "packages/core/src/state/atomic-write.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261016-331-settle",
+      "createdAt": "2026-10-16T16:50:03.983Z",
+      "updatedAt": "2026-10-16T16:50:03.983Z"
+    },
+    {
+      "id": "rec-20261016-002",
+      "title": "A code-review findings bypass is persisted as a clean pass: SUMMARY records status 'ran' with no gateBypasses entry, so assurance grades it 'strong'",
+      "summary": "When --allow-code-review-failure (or --force) carries a settle past real HIGH code-review findings, registry.ts deliberately keeps the gate's plain status:'ran' recording (the reviewFindingsBypassed branch falls through to the final else), and nothing pushes a SUMMARY.gateBypasses entry. Phase 283's bypass cap therefore never applies: phase 331 settled past two HIGHs (one not operator-authorized, because the flag cannot be scoped to a finding) with assurance.overall 'strong'. The bypass is visible only in the *-CODE-REVIEW.json sidecar (pass:false, converged:false) and stderr anomalies. CLAUDE.md states bypasses are recorded in SUMMARY gateBypasses. Same shape likely applies to security-audit (--allow-security-audit-failure). Decide: record a gateBypasses entry (and/or status skipped with skipReason) for findings bypasses, and whether the flag should be scopable to finding ids.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core",
+        "gates",
+        "assurance"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/gates/code-review.ts",
+        "packages/core/src/gates/assurance-record.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-16T16:50:16.439Z",
+      "updatedAt": "2026-10-16T16:50:16.439Z",
+      "scoutId": "scout-20261016-331-settle"
     }
   ],
   "archived": [
@@ -11271,11 +11333,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "330-raise-override-floors-past-the-13-root-moderate-advisories",
-      "createdAt": "2026-10-08T00:10:53.121Z",
-      "updatedAt": "2026-10-15T16:23:25.976Z",
       "shippedRef": "phase 330: caret pnpm.overrides floors for hono, qs, fast-uri, ip-address, vitest, @vitest/coverage-v8; root pnpm audit 13 moderate -> 0 (2026-10-15); gate-severity half split out as rec-20261015-001",
       "archivedAt": "2026-10-15T16:23:25.976Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-08T00:10:53.121Z",
+      "updatedAt": "2026-10-15T16:23:25.976Z"
     }
   ]
 }

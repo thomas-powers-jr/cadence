@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deja hook pre-tool-use"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node packages/host-claude-code/bin/cadence-host-claude-code.cjs hook --cadence \"node packages/core/bin/cadence.cjs\""
+          }
+        ],
+        "_managedBy": "cadence"
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "jq -r '.model.display_name' | head -c 40"
+  }
+}
