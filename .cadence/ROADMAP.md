@@ -3682,6 +3682,18 @@ caught a win32 corrupt-store-as-idle bug, an alias bypass of the
 `~/.cadence` exclusion, and lossy UTF-8 transcoding in the installer. The
 full record is in `docs/checkpoint/REPORT-checkpoint-phase-2.md`.
 
+**Settled past code review.** `code-review` (host-cli) did not converge:
+it reached 7 attempts against a limit of 3. Each of the five real
+(host-cli) reviews before the last raised new findings, and all were fixed.
+One attempt was a mock fallback after a codex timeout. The settle used
+`--allow-code-review-failure`. The operator authorized finding 6 (Windows
+ACL loss in core's `atomicWriteText`, `rec-20261016-001`). The flag also
+went past finding 7 (inner stdout buffered until exit, now a Phase 3
+precondition), which was not authorized beforehand; the operator kept the
+settle and had it recorded. The SUMMARY records the bypassed review as a
+plain `ran` and grades the phase `strong`. That is a core recording gap,
+filed as `rec-20261016-002`, so read the phase as `mixed`.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

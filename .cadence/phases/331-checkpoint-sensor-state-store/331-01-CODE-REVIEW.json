@@ -1,7 +1,7 @@
 {
   "draftId": "331-01",
   "converged": false,
-  "attempts": 6,
+  "attempts": 7,
   "maxAttempts": 3,
   "history": [
     {
@@ -45,10 +45,18 @@
       "findingsCount": 1,
       "provider": "host-cli",
       "verdict": "escalate"
+    },
+    {
+      "at": "2026-10-16T16:44:59.897Z",
+      "pass": false,
+      "findingsCount": 2,
+      "provider": "host-cli",
+      "verdict": "escalate",
+      "bypassed": true
     }
   ],
   "pass": false,
   "provider": "host-cli",
-  "findings": 1,
-  "at": "2026-10-16T15:00:52.430Z"
+  "findings": 2,
+  "at": "2026-10-16T16:44:59.897Z"
 }
