@@ -8,3 +8,9 @@
 export { CLAUDE_CODE_EXPECTED_HOOKS } from './doctor/host-hooks.js';
 // Phase 308: same pattern, for `packages/host-codex`'s analogous drift test.
 export { CODEX_EXPECTED_HOOKS } from './doctor/host-hooks.js';
+// Phase 331: same narrow pattern, for a runtime consumer this time.
+// `packages/checkpoint`'s statusline sensor writes its state files through
+// this temp-file + rename writer instead of hand-rolling a second atomic
+// writer (D-BR, dec-20261013-002). It is a stable I/O primitive, not engine
+// logic, so exporting it does not couple checkpoint's validator grammar to core.
+export { atomicWriteText } from './state/atomic-write.js';

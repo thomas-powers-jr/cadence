@@ -1,0 +1,92 @@
+{
+  "draftId": "331-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "core re-exports atomicWriteText; checkpoint depends on core at runtime; release plan keeps checkpoint at 0.0.0 (type none); independent review approved",
+      "touchedFiles": [
+        ".gitignore",
+        "packages/checkpoint/package.json",
+        "packages/checkpoint/src/index.ts",
+        "packages/checkpoint/tests/drift-ac-grammar.test.ts",
+        "packages/checkpoint/tests/drift-sections.test.ts",
+        "packages/core/src/index.ts",
+        "pnpm-lock.yaml",
+        ".changeset/checkpoint-sensor-core-atomic-write-export.md",
+        "packages/checkpoint/src/state.ts",
+        "packages/checkpoint/tests/core-export.test.ts",
+        "packages/checkpoint/tests/state-store.test.ts",
+        "packages/checkpoint/tests/state-transitions.test.ts"
+      ],
+      "updatedAt": "2026-10-15T18:43:55.341Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "transition table (7 legal / 29 rejected), unconditional unknown predicate, machine-state store; two review rounds (win32 corrupt-store-as-idle, 29-pair store coverage, POSIX ENOTDIR parity) fixed and re-verified in main thread",
+      "touchedFiles": [
+        "packages/checkpoint/tests/fixtures/statusline/inner-statusline.cjs",
+        "packages/checkpoint/tests/fixtures/statusline/payload-42.json",
+        "packages/checkpoint/tests/fixtures/statusline/payload-compacted.json",
+        "packages/checkpoint/tests/fixtures/statusline/payload-null.json",
+        "packages/checkpoint/tests/sensor-concurrency.test.ts",
+        "packages/checkpoint/tests/sensor.test.ts"
+      ],
+      "updatedAt": "2026-10-15T18:52:12.117Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "bash (Git Bash) + powershell.exe -NoProfile -Command byte transparency, both run on win32; measurements captured; independent review approved, 3 minor hardening fixes applied in main thread",
+      "touchedFiles": [
+        "packages/checkpoint/src/cli.ts",
+        "packages/checkpoint/src/sensor.ts",
+        "packages/checkpoint/tests/helpers/shells.ts",
+        "packages/checkpoint/tests/sensor-shell-transparency.test.ts"
+      ],
+      "updatedAt": "2026-10-15T19:09:55.785Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "statusline sensor: parse/record/pass-through, nearest-.cadence resolution with realpath-based ~/.cadence exclusion, best-effort notices; two review rounds (alias bypass, notice path) fixed; re-verified in main thread 10 files/193 tests",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-15T19:10:58.478Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "statusline-install (token-aware splice, strict UTF-8, win32 PATH x PATHEXT resolution) + AC-7 tool sweep; two review rounds; re-verified in main thread 12 files/233 tests",
+      "touchedFiles": [
+        "docs/handoffs/HANDOFF-checkpoint-phase-2.md",
+        "docs/checkpoint/REPORT-checkpoint-phase-2.md",
+        "packages/checkpoint/src/install.ts",
+        "packages/checkpoint/tests/fixtures/settings/with-hooks-and-statusline.json",
+        "packages/checkpoint/tests/fixtures/settings/with-hooks-no-statusline.json",
+        "packages/checkpoint/tests/fixtures/settings/with-piped-statusline.json",
+        "packages/checkpoint/tests/install.test.ts",
+        "packages/checkpoint/tests/state-files-tool-sweep.test.ts",
+        "packages/core/tests/docs/checkpoint-phase-2-report.test.ts"
+      ],
+      "updatedAt": "2026-10-15T19:45:50.395Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "REPORT-checkpoint-phase-2.md + checkpoint-phase-2-report.test.ts (6/6) + handoff As-built note; settle-time items marked pending-settle; core tests/docs 53 files green",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-15T19:46:06.485Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  }
+}

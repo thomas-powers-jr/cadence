@@ -50,6 +50,9 @@ launch/
 # cadence-owned ephemeral state (see docs/concepts.md)
 .cadence/state.json
 .cadence/STATE.md
+# checkpoint statusline sensor's per-project reading + machine state (phase 331),
+# including atomicWriteText's transient `*.tmp` siblings.
+.cadence/checkpoint/
 
 # Ad hoc scratch dump for pasted-in external bug reports / triage input.
 # Not repo content — never published.

@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 2,
+  "draftId": "331-01",
+  "completedAt": "2026-10-15T22:30:36.960Z",
+  "acResults": [],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "refused",
+      "reason": "settle run refused: code-review did NOT converge after 3 attempts — a human decision is required. Fix the flagged code, or pass --allow-code-review-failure to proceed anyway.",
+      "provider": "mock",
+      "providerSelection": "fallback"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "core re-exports atomicWriteText; checkpoint depends on core at runtime; release plan keeps checkpoint at 0.0.0 (type none); independent review approved",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "transition table (7 legal / 29 rejected), unconditional unknown predicate, machine-state store; two review rounds (win32 corrupt-store-as-idle, 29-pair store coverage, POSIX ENOTDIR parity) fixed and re-verified in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "statusline sensor: parse/record/pass-through, nearest-.cadence resolution with realpath-based ~/.cadence exclusion, best-effort notices; two review rounds (alias bypass, notice path) fixed; re-verified in main thread 10 files/193 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "bash (Git Bash) + powershell.exe -NoProfile -Command byte transparency, both run on win32; measurements captured; independent review approved, 3 minor hardening fixes applied in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "statusline-install (token-aware splice, strict UTF-8, win32 PATH x PATHEXT resolution) + AC-7 tool sweep; two review rounds; re-verified in main thread 12 files/233 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "REPORT-checkpoint-phase-2.md + checkpoint-phase-2-report.test.ts (6/6) + handoff As-built note; settle-time items marked pending-settle; core tests/docs 53 files green",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [
+      "phase-build"
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "codeReview": {
+    "packages/checkpoint/tests/sensor-shell-transparency.test.ts": [
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 126,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 148,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 149,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 181,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 182,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 183,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 184,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 185,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 188,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 210,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      },
+      {
+        "severity": "high",
+        "message": "console.log left in source",
+        "line": 222,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-1",
+          "tier": "executable"
+        },
+        "id": "4e91df089f633c6d78b1ef29d70134210ae540d470e0bdbe2ae1ff303ab7c325",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "mock",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "weak"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "2a360ad4574e6cc97e6ba376599874b12fbb1f61438bb2490f0c9554c2b684a7"
+  }
+}
