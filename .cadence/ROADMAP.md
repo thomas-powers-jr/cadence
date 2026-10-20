@@ -3694,6 +3694,20 @@ settle and had it recorded. The SUMMARY records the bypassed review as a
 plain `ran` and grades the phase `strong`. That is a core recording gap,
 filed as `rec-20261016-002`, so read the phase as `mixed`.
 
+**Slice 331-02 (2026-10-20).** It fixed 331-01's red CI legs and code-review
+finding 7, from measurements (probe PR #573). Claude Code renders a
+statusline only once the command exits, so the 250 ms deadline's "inside the
+300 ms debounce" rationale was wrong. After a loaded windows-latest runner
+missed even 1000 ms (run 39461022835), the operator set a 1500 ms hold
+ceiling, kept abandon-with-one-notice, and added a documented
+`CHECKPOINT_RECORD_DEADLINE_MS` override so recording tests no longer depend
+on machine speed. The bin now runs `dist/cli.js` in-process (one Node start
+fewer), inner stdout is streamed (no backpressure), and a statusline reader
+that closes the pipe mid-run no longer crashes the wrapper. AC-5 runs
+2 × 8 invocations to fit macOS's 20 s budget. The boundary base for this
+second slice on an unmerged branch was scoped with a local `slice-base/331-02`
+ref, by operator decision (a candidate finding in the phase report).
+
 ### Phase 332 — Code-review and security-audit findings bypasses reach gateBypasses (rec-20261016-002)
 
 **Objective.** A settle that went past failing code-review HIGH findings or

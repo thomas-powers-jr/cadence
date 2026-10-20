@@ -178,13 +178,14 @@ describe('checkpoint statusline under concurrent writers', () => {
     // Measured evidence for the phase report (stderr, not stdout). The
     // per-invocation wall time is what sets this test's duration: each writer
     // runs its invocations one after another (331-02).
-    process.stderr.write(
+    const logLine =
       `[331-01/AC-5] parsesA=${parsesA} parsesB=${parsesB} transient=${JSON.stringify(transient)} ` +
-        `torn=${torn.length} writeNotices=${writeNotices.length} wallP50Ms=${wallP50} wallP90Ms=${wallP90} ` +
-        `invocations=${all.length}${writeNotices.length > 0 ? ` first=${JSON.stringify(writeNotices[0])}` : ''}\n`,
-    );
+      `torn=${torn.length} writeNotices=${writeNotices.length} wallP50Ms=${wallP50} wallP90Ms=${wallP90} ` +
+      `invocations=${all.length}${writeNotices.length > 0 ? ` first=${JSON.stringify(writeNotices[0])}` : ''}\n`;
+    process.stderr.write(logLine);
     expect(Number.isFinite(wallP50) && wallP50 > 0).toBe(true);
     expect(wallP90).toBeGreaterThanOrEqual(wallP50);
+    expect(logLine).toMatch(/ wallP50Ms=\d+ wallP90Ms=\d+ /);
 
     expect(all).toHaveLength(2 * INVOCATIONS_PER_WRITER);
     for (const r of all) expect(r.status).toBe(0);
