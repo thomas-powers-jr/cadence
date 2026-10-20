@@ -69,6 +69,24 @@
       "execution": "dispatch",
       "isolation": "worktree",
       "modelClass": "complex"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "AC-5 test logs per-invocation wall p50/p90 (and now asserts the log line carries them) and carries the 331-02/AC-4 token. Shrink rule agreed before measuring (shrink if 15 x p90 > 20 s): on PR #571 run 39461022835 macos-latest (after the hop cut) p50 999 / p90 1446 ms, 15 x 1446 = 21.7 s > 20 s, so INVOCATIONS_PER_WRITER 15 -> 8 (8 x 1446 = 11.6 s), cited in the test comment; the 2 x 15 test had passed there in 17.2 s, so this was the rule, not an observed timeout. Ambient CHECKPOINT_RECORD_DEADLINE_MS stripped from its spawn (deadline-subject). Verify met: AC-5 green on all three legs on two consecutive CI runs of PR #571 with vitest.shared.ts unchanged: run 39468308041 (d0e14424; ubuntu 6.4 s, macOS 6.1 s, windows 12.5 s; payloads 930/2028, 1446/765, 777/486; 0 notices; that run's macOS leg red only from core's tests/cli/milestone.test.ts 20 s timeout, untouched by this slice) and run 39471208128 (dfbdae47; all legs and ci-success green; windows p50 1522 / p90 1887 ms, 0 notices). Independent review APPROVE WITH MINOR; comment numbers corrected and verified against CI logs.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-20T18:20:38.711Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "Appended '## Slice 331-02 (as built, 2026-10-20)' to docs/checkpoint/REPORT-checkpoint-phase-2.md (append-only vs slice-base: 0 removed lines): statusline docs facts (render on exit, 300 ms trigger debounce not a budget, cancel on retrigger); per-leg probe table from runs 39448948337/39450266774/39452805430 with 'worst' defined and sourced; run 39461022835's 1000 ms misses and the 675/825 ms rename-retry budget; operator decisions (1500 ms ceiling, abandon + notice, CHECKPOINT_RECORD_DEADLINE_MS); what changed; corrections to 331-01's record (as an additive list, D-BZ); Phase 3 notes (unbounded lifetime, inner left running on cancel); candidate findings (multi-slice boundary base, untypechecked/unlinted checkpoint tests, the preload wiring-test technique). Doc test packages/checkpoint/tests/report-331-02.test.ts (5 x 331-02/AC-5) passes; core checkpoint-phase-2-report and roadmap-per-phase-entries tests pass. Whole-branch review NOT READY on one stale bullet -> fixed in 818f48d5 -> fresh re-check READY. PR #571 all three legs + ci-success green on run 39471208128 (dfbdae47).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-20T18:22:06.097Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "standard"
     }
   }
 }
