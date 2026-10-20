@@ -41,10 +41,29 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
-      # THROWAWAY PROBE (branch probe/331-02-timing; never merged): the same
-      # timing probe with nothing else running, three batches back to back.
+
+  # THROWAWAY PROBE (branch probe/331-02-timing; never merged): the timing
+  # probe with nothing else running, three batches back to back. Its own job,
+  # not a step in `test`, so it runs whatever the suite does and leaves the
+  # test job's no-`if:` guard (ci-windows-leg.test.ts, phase 317) intact.
+  probe-331-02:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - name: 331-02 timing probe (isolated)
-        if: always()
         shell: bash
         run: |
           for b in 1 2 3; do
