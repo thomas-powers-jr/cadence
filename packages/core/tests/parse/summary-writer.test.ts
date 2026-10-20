@@ -679,3 +679,35 @@ describe('renderSummaryMd - bypass state alongside grade (phase 283, T4)', () =>
     expect(md).not.toMatch(/- bypassed:/);
   });
 });
+
+describe('renderSummaryMd - code-review findings bypass beside the grade (phase 332, T4)', () => {
+  // Phase 332 records a code-review findings bypass as an ordinary
+  // error-severity `gateBypasses` entry, so the phase-283 render path shows it
+  // with no change to summary-writer.ts.
+  it('332-01/AC-7: lists the code-review bypass with its flag and reports it beside the overall grade', () => {
+    const summary: Summary = {
+      ...SAMPLE,
+      gateBypasses: [
+        {
+          gate: 'code-review',
+          flag: '--allow-code-review-failure',
+          reason: 'bypassed 2 finding(s), highest severity high',
+          severity: 'error',
+        },
+      ],
+      assurance: {
+        verifierRollup: [{ provider: 'host-cli', gateCount: 1 }],
+        evidenceTally: { 'ai-verified': 1, executed: 0, assertion: 0, mention: 0, unverified: 0 },
+        overall: 'mixed',
+      },
+    };
+    const lines = renderSummaryMd(summary).split('\n');
+
+    expect(lines).toContain(
+      '- ERROR code-review via --allow-code-review-failure: bypassed 2 finding(s), highest severity high',
+    );
+    const overallIdx = lines.indexOf('- overall: mixed');
+    expect(overallIdx).toBeGreaterThan(-1);
+    expect(lines[overallIdx + 1]).toBe('- bypassed: 1 gate(s) (severity: error)');
+  });
+});

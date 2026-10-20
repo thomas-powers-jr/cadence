@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "draftId": "332-01",
+  "completedAt": "2026-10-20T14:02:55.259Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-8",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-9",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Red step: 8 tests (332-01/AC-1..AC-5) in tests/services/settle.test.ts + golden fixture; 5 fail on the missing code-review gateBypasses entry, 3 AC-4 pass, 54 pre-existing pass (main-thread re-run). Independent review APPROVE after a fix round pinning the bypassed count (2 HIGH + 1 MEDIUM).",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Red step: 6 332-01/AC-6 tests (strict x complex); allow-flag (2 CRITICAL), bare --force (3 CRITICAL) and both-flags cases fail on the missing security-audit gateBypasses entry; precondition and two clean-audit-with-flag guards pass. Main-thread re-run 8 failed | 60 passed. Independent review APPROVE; fix round added the clean-flag and both-flags cases.",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "GateFlags.reviewFindingsBypass set by code-review/security-audit from the stderr flag value; runSettleGates -> RunGatesResult.findingsBypasses (per-gate res); settle.ts joins them into gateBypasses so deriveSettleAssuranceRecord sees them. T1/T2 tests green; 5 registry tests added. Independent review APPROVE (4 Minor; two comment fixes applied in main thread). Main-thread full turbo lint/typecheck/test/build --force: 28/28, core 4901 passed.",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "complex"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "332-01/AC-7 render test in tests/parse/summary-writer.test.ts: synthetic SUMMARY with one error-severity code-review bypass renders the ERROR bypass line and '- bypassed: 1 gate(s) (severity: error)' directly after '- overall: mixed'; summary-writer.ts unchanged. 40/40 pass. Independent look deferred to the whole-branch review.",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "Implemented by the 2026-10-16 session (docs/concepts.md note, commands.md + docs/cli.md rows, settle run --help strings, 332-01/AC-8 doc test, core minor changeset) but never recorded; re-verified 2026-10-20 by reading the diff. Whole-branch review (fresh Opus, APPROVE WITH MINOR) follow-ups applied test-first this session: L3 docs/cli.md rows now say 'never strong' with a matching AC-8 assertion; L1 findings-bypass reason shortened to 'bypassed N finding(s), highest severity X' (registry.ts findingsBypassEntry; 14 test expectations updated first, 12 red, then green). tests/docs + 332 suites 58 files / 541 passed. Note: T2's PROGRESS touchedFiles is [] though T2 edited tests/services/settle.test.ts; not correctable via the CLI.",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "Implemented by the 2026-10-16 session: 332-01/AC-9 characterization test + ev-20261016-007 (331-01 SUMMARY blob ef1ec808 from 579bcff3: stored strong, corpus re-derivation strong, with the code-review entry mixed). Re-verified 2026-10-20: blob hash re-checked against origin/worktree-331-sensor; no .cadence/phases/331-* path in this worktree's status; AC-9 + assurance-record/corpus/report suites green in the full turbo run. The measurement itself was carried forward from the scratch script (measure-331.mjs), not re-run; its reason string predates the L1 shortening, which does not affect the grade.",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Gate results now carry bypass metadata; registry persists one error code-review entry. Linked settle test exercises real-provider HIGH findings, count, flag, stderr, and exit 0.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Linked integration test proves mixed with the entry and strong after removal. assurance-record.ts is untouched; no other error bypass is asserted.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Code makes --force win as the recorded/printed flag. Linked tests cover force alone and combined flags, exactly one code-review entry, and no settle entry.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Bypass metadata is emitted only for actual findings. Linked tests cover clean no-flag and needless force, assert no key, and compare normalized output to the fixed-clock golden fixture.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Linked test asserts strict×standard has code-review but not anomaly-notify, then exercises a bypass and verifies the code-review bypass entry.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Security-audit now emits metadata only for bypassed CRITICAL findings. Linked tests cover allow-security-audit-failure and force with exact error entries and clean code-review.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "summary-writer.ts is untouched; linked synthetic-summary test verifies the code-review flag rendering and the error-severity bypass count beside mixed assurance.",
+      "provider": "host-cli"
+    },
+    "AC-8": {
+      "pass": true,
+      "reason": "Concepts, command reference, CLI help descriptions, and CLI table were updated. The new doc-content suite checks each destination states error gateBypasses recording and the mixed cap.",
+      "provider": "host-cli"
+    },
+    "AC-9": {
+      "pass": true,
+      "reason": "Linked re-derivation test uses a 331-shaped real-provider ran gate with ai-verified ACs: no bypass derives strong; adding the recorded code-review entry derives mixed.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 105304,
+    "truncated": false,
+    "filesCount": 19,
+    "provider": "host-cli"
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 138,
+    "sessionSubagentSpawns": 14
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 9,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "27d161d03a22169d2879e484bd52e8fe584c9b51434f16bba878d8706edca851"
+  }
+}

@@ -546,6 +546,22 @@ These run on every phase regardless of profile or tier.
 | `plan-review` | AI plan-review agent runs at `cadence draft approve` (strict × complex only); `pass=false` refuses approve | `--allow-plan-review-failure` (on `draft approve`) |
 | `security-audit` | AI security-audit agent runs at `cadence settle run` after code-review (strict × complex only); CRITICAL findings refuse settle | `--allow-security-audit-failure` or `--force` (on `settle run`) |
 
+> **Findings bypasses are recorded (phase 332).** When `settle run`
+> proceeds past `code-review`'s HIGH findings or `security-audit`'s
+> CRITICAL findings because of `--allow-code-review-failure`,
+> `--allow-security-audit-failure` or `--force`, it records one entry per
+> gate in `SUMMARY.json.gateBypasses` at `error` severity. The entry's
+> `flag` is the flag the gate named on stderr (`--force` whenever it is set,
+> otherwise the gate-specific flag), and its `reason` gives the number of
+> bypassed findings and their highest severity. The gate's own `gates[]`
+> entry still records `status: 'ran'`. Because the entry is error-severity,
+> phase 283's cap holds `assurance.overall` at `'mixed'` or below, never
+> `'strong'`. Before this phase such a bypass left no `gateBypasses` entry
+> and could grade `'strong'`. A bypassed code-review or security-audit call
+> that *throws* is not a findings bypass: it keeps its `status: 'skipped'`
+> record (phase 248). A refused
+> settle records no `gateBypasses`.
+
 ### Stage-scoped gates (outside the profile × tier matrix)
 
 The 14 gates above are the profile × tier universe. A few **stage-scoped**,

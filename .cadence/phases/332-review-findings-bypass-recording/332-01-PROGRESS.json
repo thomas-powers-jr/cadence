@@ -1,0 +1,79 @@
+{
+  "draftId": "332-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Red step: 8 tests (332-01/AC-1..AC-5) in tests/services/settle.test.ts + golden fixture; 5 fail on the missing code-review gateBypasses entry, 3 AC-4 pass, 54 pre-existing pass (main-thread re-run). Independent review APPROVE after a fix round pinning the bypassed count (2 HIGH + 1 MEDIUM).",
+      "touchedFiles": [
+        "packages/core/tests/services/settle.test.ts",
+        "packages/core/tests/services/__fixtures__/settle-clean-code-review-summary.json"
+      ],
+      "updatedAt": "2026-10-16T19:55:01.641Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Red step: 6 332-01/AC-6 tests (strict x complex); allow-flag (2 CRITICAL), bare --force (3 CRITICAL) and both-flags cases fail on the missing security-audit gateBypasses entry; precondition and two clean-audit-with-flag guards pass. Main-thread re-run 8 failed | 60 passed. Independent review APPROVE; fix round added the clean-flag and both-flags cases.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-16T20:05:31.188Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "GateFlags.reviewFindingsBypass set by code-review/security-audit from the stderr flag value; runSettleGates -> RunGatesResult.findingsBypasses (per-gate res); settle.ts joins them into gateBypasses so deriveSettleAssuranceRecord sees them. T1/T2 tests green; 5 registry tests added. Independent review APPROVE (4 Minor; two comment fixes applied in main thread). Main-thread full turbo lint/typecheck/test/build --force: 28/28, core 4901 passed.",
+      "touchedFiles": [
+        "packages/core/src/gates/code-review.ts",
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/gates/security-audit.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/gates/registry.test.ts"
+      ],
+      "updatedAt": "2026-10-16T20:29:39.736Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "complex"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "332-01/AC-7 render test in tests/parse/summary-writer.test.ts: synthetic SUMMARY with one error-severity code-review bypass renders the ERROR bypass line and '- bypassed: 1 gate(s) (severity: error)' directly after '- overall: mixed'; summary-writer.ts unchanged. 40/40 pass. Independent look deferred to the whole-branch review.",
+      "touchedFiles": [
+        "packages/core/tests/parse/summary-writer.test.ts"
+      ],
+      "updatedAt": "2026-10-16T20:31:04.568Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "Implemented by the 2026-10-16 session (docs/concepts.md note, commands.md + docs/cli.md rows, settle run --help strings, 332-01/AC-8 doc test, core minor changeset) but never recorded; re-verified 2026-10-20 by reading the diff. Whole-branch review (fresh Opus, APPROVE WITH MINOR) follow-ups applied test-first this session: L3 docs/cli.md rows now say 'never strong' with a matching AC-8 assertion; L1 findings-bypass reason shortened to 'bypassed N finding(s), highest severity X' (registry.ts findingsBypassEntry; 14 test expectations updated first, 12 red, then green). tests/docs + 332 suites 58 files / 541 passed. Note: T2's PROGRESS touchedFiles is [] though T2 edited tests/services/settle.test.ts; not correctable via the CLI.",
+      "touchedFiles": [
+        "docs/cli.md",
+        "docs/concepts.md",
+        "docs/reference/commands.md",
+        "packages/core/src/cli/commands/settle.ts",
+        ".changeset/review-findings-bypass-recorded.md",
+        "packages/core/tests/docs/review-findings-bypass-docs.test.ts",
+        "packages/core/tests/gates/review-findings-bypass-rederive.test.ts"
+      ],
+      "updatedAt": "2026-10-20T13:57:55.745Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "Implemented by the 2026-10-16 session: 332-01/AC-9 characterization test + ev-20261016-007 (331-01 SUMMARY blob ef1ec808 from 579bcff3: stored strong, corpus re-derivation strong, with the code-review entry mixed). Re-verified 2026-10-20: blob hash re-checked against origin/worktree-331-sensor; no .cadence/phases/331-* path in this worktree's status; AC-9 + assurance-record/corpus/report suites green in the full turbo run. The measurement itself was carried forward from the scratch script (measure-331.mjs), not re-run; its reason string predates the L1 shortening, which does not affect the grade.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-20T13:57:57.280Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    }
+  }
+}

@@ -19,6 +19,8 @@ import type { CommandIO } from '../../src/services/io.js';
 import { changesetEvidencePresent } from '../support/changeset-evidence.js';
 import { computeSummaryContentHash, canonicalStringify } from '../../src/services/summary-hash.js';
 import { GATE_ORDER } from '../../src/gates/registry.js';
+import { gatesFor, effectiveGateSet } from '../../src/gates/engine.js';
+import { deriveAssuranceRecord } from '../../src/gates/assurance-record.js';
 import { buildCadenceMcpServer } from '../../src/mcp/server.js';
 import { discoverChangedPhases } from '../../src/git/diff-strict.js';
 
@@ -3422,5 +3424,617 @@ describe('settleService guards a refused settle against clobbering a pre-existin
         discriminator: "already-shipped draft's canonical",
       }),
     ).toBe(true);
+  });
+});
+
+/**
+ * Phase 332 (332-01, T1): a code-review findings bypass (`--allow-code-review-
+ * failure` or bare `--force` past a HIGH finding) falls through the gate as
+ * `outcome: 'pass'` + `flags.reviewFindingsBypassed`, which today reaches
+ * neither `gates[]` (recorded `status: 'ran'`) nor `gateBypasses` — so phase
+ * 283's D-S cap never fires and the settle can grade `strong`. These tests pin
+ * the `gateBypasses` entry the fix records, under the same flag the gate's own
+ * stderr line prints (force wins when both are set — `gates/code-review.ts`).
+ *
+ * Shared fixture: strict profile × standard tier (code-review in the gate set),
+ * a real (non-mock) `anthropic` code-review verifier discoverable only via the
+ * `.env` `setupBuildRepo` writes, a real passing test command, and a qualifying
+ * `assertion`-mode coverage test for AC-1 — so no `--allow-missing-coverage`
+ * (and no `coverage-bypassed` entry) is needed to finalize.
+ */
+describe('settleService records code-review findings bypasses in gateBypasses (phase 332, T1)', () => {
+  const FIXED_NOW = '2026-10-16T00:00:00.000Z';
+
+  function config332(extra: Partial<CadenceConfig> = {}): CadenceConfig {
+    return {
+      ...defaultConfig,
+      profile: 'strict',
+      codeReview: { provider: 'anthropic' },
+      gates: { sealed: [], evidenceFloor: 'unverified' },
+      verification: {
+        ...defaultConfig.verification,
+        testCommand: 'node -e "process.exit(0)"',
+      },
+      ...extra,
+    };
+  }
+
+  async function setup332Repo(
+    r: string,
+    phase: string,
+    extra: Partial<CadenceConfig> = {},
+  ): Promise<void> {
+    await setupBuildRepo({ root: r, phase, id: '332-01', tier: 'standard', config: config332(extra) });
+    await seedCoverageTest(r, ['AC-1']);
+    delete process.env.ANTHROPIC_API_KEY;
+  }
+
+  async function read332Summary(r: string, phase: string): Promise<Summary> {
+    return JSON.parse(
+      await readFile(join(r, '.cadence', 'phases', phase, '332-01-SUMMARY.json'), 'utf8'),
+    ) as Summary;
+  }
+
+  function highFinding(): Record<string, Finding[]> {
+    return { 'src/foo.ts': [mkFinding('console.log left in source', 'high')] };
+  }
+
+  /**
+   * Two HIGH findings plus one MEDIUM, all in the one declared file — so the
+   * recorded count must be the number of bypassed HIGH findings (2): not a
+   * constant 1, not every finding of any severity (3), and not the file
+   * count (1). No `critical`: `collectHighFindings` collects 'high' only.
+   */
+  function twoHighsOneMedium(): Record<string, Finding[]> {
+    return {
+      'src/foo.ts': [
+        mkFinding('console.log left in source', 'high'),
+        mkFinding('unused export', 'medium'),
+        mkFinding('unchecked index access', 'high'),
+      ],
+    };
+  }
+
+  /**
+   * AC-4's golden-fixture normalization — applied identically when the
+   * fixture was captured (from the pre-change code) and on every compare.
+   * Normalized fields, by name:
+   *  - `contentHash` → '<contentHash>' (digest over the whole SUMMARY,
+   *    including the machine-specific values below)
+   *  - `stateAtSettle` → '<stateAtSettle>'
+   *  - every string containing the per-run temp root (either slash style)
+   *    has that root replaced with '<ROOT>'
+   * `completedAt` is NOT normalized: the injected `now()` fixes it.
+   */
+  function normalize332(summary: Record<string, unknown>, r: string): Record<string, unknown> {
+    const roots = [r, r.replace(/\\/g, '/')];
+    const walk = (v: unknown): unknown => {
+      if (typeof v === 'string') {
+        let s = v;
+        for (const rt of roots) s = s.split(rt).join('<ROOT>');
+        return s;
+      }
+      if (Array.isArray(v)) return v.map(walk);
+      if (v !== null && typeof v === 'object') {
+        return Object.fromEntries(Object.entries(v).map(([k, val]) => [k, walk(val)]));
+      }
+      return v;
+    };
+    const out = walk(summary) as Record<string, unknown>;
+    if ('contentHash' in out) out.contentHash = '<contentHash>';
+    if ('stateAtSettle' in out) out.stateAtSettle = '<stateAtSettle>';
+    return out;
+  }
+
+  it('332-01/AC-1: --allow-code-review-failure past two HIGH findings (plus a MEDIUM) exits 0 and records exactly one error-severity code-review gateBypasses entry naming the HIGH count and highest severity', async () => {
+    root = await mktemp();
+    await setup332Repo(root, '332-01-allow-flag');
+    constructed.codeReviewFindingsOverride = twoHighsOneMedium();
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, allowCodeReviewFailure: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.codeReview).toEqual(['anthropic']);
+    expect(err.join('')).toContain(
+      'code-review: --allow-code-review-failure set; proceeding past 2 HIGH finding(s).',
+    );
+
+    const summary = await read332Summary(root, '332-01-allow-flag');
+    const entries = (summary.gateBypasses ?? []).filter((b) => b.gate === 'code-review');
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual({
+      gate: 'code-review',
+      flag: '--allow-code-review-failure',
+      severity: 'error',
+      reason: 'bypassed 2 finding(s), highest severity high',
+    });
+  });
+
+  it("332-01/AC-2: with a real-provider code-review over a non-empty diff and an ai-verified AC, the recorded bypass alone caps assurance.overall at 'mixed' (re-deriving without it gives 'strong')", async () => {
+    root = await mktemp();
+    const phase = '332-01-assurance-cap';
+    await setup332Repo(root, phase, {
+      verifier: { provider: 'anthropic', diffCapBytes: 262144 },
+    });
+    // A real git workdir with an uncommitted change to the reviewed file —
+    // without it `collectPhaseDiff` returns '' and code-review tags itself
+    // `providerSelection: 'empty-diff'`, which never counts as a real
+    // verifier (phase 287, D-Z), so 'strong' would be unreachable and the
+    // D-S cap would have nothing to cap.
+    runGit(root, ['init', '-q']);
+    runGit(root, ['config', 'user.email', 'test@example.com']);
+    runGit(root, ['config', 'user.name', 'Test']);
+    runGit(root, ['add', '-A']);
+    runGit(root, ['commit', '-q', '-m', 'base']);
+    await writeFile(join(root, 'src', 'foo.ts'), 'export const x = 2;\n', 'utf8');
+    constructed.codeReviewFindingsOverride = highFinding();
+
+    const { io } = captureIO();
+    const res = await settleService(
+      root,
+      {
+        auto: true,
+        deep: true,
+        interactive: false,
+        allowCodeReviewFailure: true,
+        now: () => FIXED_NOW,
+      },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.codeReview).toEqual(['anthropic']);
+
+    const summary = await read332Summary(root, phase);
+    // Preconditions: a real verifier judged a real diff, and the only AC is
+    // ai-verified — the "would have graded strong" shape.
+    const codeReviewGate = summary.gates?.find((g) => g.gate === 'code-review');
+    expect(codeReviewGate).toMatchObject({ status: 'ran', provider: 'anthropic' });
+    expect(codeReviewGate?.providerSelection).not.toBe('empty-diff');
+    expect(summary.acResults.find((r) => r.id === 'AC-1')?.evidence).toBe('ai-verified');
+
+    const bypasses = summary.gateBypasses ?? [];
+    expect(bypasses.filter((b) => b.gate === 'code-review')).toHaveLength(1);
+    expect(summary.assurance?.overall).toBe('mixed');
+    // No OTHER error-severity bypass exists — the code-review entry alone is
+    // what caps the grade.
+    expect(bypasses.filter((b) => b.severity === 'error' && b.gate !== 'code-review')).toEqual([]);
+    const rederived = deriveAssuranceRecord(summary.gates ?? [], summary.acResults, {
+      gateBypasses: bypasses.filter((b) => b.gate !== 'code-review'),
+      ...(summary.deepVerify ? { deepVerify: summary.deepVerify } : {}),
+    });
+    expect(rederived.overall).toBe('strong');
+  });
+
+  it('332-01/AC-3: bare --force past two HIGH findings (plus a MEDIUM) records one code-review entry under --force (the flag the gate printed) and no settle force-used entry', async () => {
+    root = await mktemp();
+    await setup332Repo(root, '332-01-force-alone');
+    constructed.codeReviewFindingsOverride = twoHighsOneMedium();
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, force: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(err.join('')).toContain('code-review: --force set; proceeding past 2 HIGH finding(s).');
+
+    const summary = await read332Summary(root, '332-01-force-alone');
+    const bypasses = summary.gateBypasses ?? [];
+    const entries = bypasses.filter((b) => b.gate === 'code-review');
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual({
+      gate: 'code-review',
+      flag: '--force',
+      severity: 'error',
+      reason: 'bypassed 2 finding(s), highest severity high',
+    });
+    expect(bypasses.some((b) => b.gate === 'settle')).toBe(false);
+  });
+
+  it('332-01/AC-3: --force together with --allow-code-review-failure records the code-review entry under --force, matching the gate\'s stderr line, and no settle force-used entry', async () => {
+    root = await mktemp();
+    await setup332Repo(root, '332-01-force-and-allow');
+    constructed.codeReviewFindingsOverride = highFinding();
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      {
+        auto: true,
+        interactive: false,
+        force: true,
+        allowCodeReviewFailure: true,
+        now: () => FIXED_NOW,
+      },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(err.join('')).toContain('code-review: --force set; proceeding past 1 HIGH finding(s).');
+
+    const summary = await read332Summary(root, '332-01-force-and-allow');
+    const bypasses = summary.gateBypasses ?? [];
+    const entries = bypasses.filter((b) => b.gate === 'code-review');
+    expect(entries).toHaveLength(1);
+    // The flag AND the reason both name --force: they must come from the same
+    // value the gate printed, never computed separately.
+    expect(entries[0]).toEqual({
+      gate: 'code-review',
+      flag: '--force',
+      severity: 'error',
+      reason: 'bypassed 1 finding(s), highest severity high',
+    });
+    expect(bypasses.some((b) => b.gate === 'settle')).toBe(false);
+  });
+
+  it('332-01/AC-4: a clean code-review with no bypass flag writes no gateBypasses key and a SUMMARY.json equal to the pre-change golden fixture', async () => {
+    root = await mktemp();
+    await setup332Repo(root, '332-01-clean-no-flag');
+
+    const { io } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    const raw = JSON.parse(
+      await readFile(
+        join(root, '.cadence', 'phases', '332-01-clean-no-flag', '332-01-SUMMARY.json'),
+        'utf8',
+      ),
+    ) as Record<string, unknown>;
+    expect('gateBypasses' in raw).toBe(false);
+
+    // The golden fixture was captured once from the pre-change code under
+    // this same fixed clock, already normalized by `normalize332`; this test
+    // only ever reads it, never regenerates it.
+    const golden = JSON.parse(
+      await readFile(
+        new URL('./__fixtures__/settle-clean-code-review-summary.json', import.meta.url),
+        'utf8',
+      ),
+    ) as Record<string, unknown>;
+    expect(normalize332(raw, root)).toEqual(golden);
+  });
+
+  it('332-01/AC-4: a clean code-review with --force set for no reason writes no gateBypasses key', async () => {
+    root = await mktemp();
+    await setup332Repo(root, '332-01-clean-force');
+
+    const { io } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, force: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    const raw = JSON.parse(
+      await readFile(
+        join(root, '.cadence', 'phases', '332-01-clean-force', '332-01-SUMMARY.json'),
+        'utf8',
+      ),
+    ) as Record<string, unknown>;
+    expect('gateBypasses' in raw).toBe(false);
+  });
+
+  it('332-01/AC-4: a clean code-review with --allow-code-review-failure set for no reason writes no gateBypasses key', async () => {
+    root = await mktemp();
+    await setup332Repo(root, '332-01-clean-allow');
+
+    const { io } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, allowCodeReviewFailure: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    const raw = JSON.parse(
+      await readFile(
+        join(root, '.cadence', 'phases', '332-01-clean-allow', '332-01-SUMMARY.json'),
+        'utf8',
+      ),
+    ) as Record<string, unknown>;
+    expect('gateBypasses' in raw).toBe(false);
+  });
+
+  it('332-01/AC-5: under strict profile × standard tier (code-review active, anomaly-notify absent) a bypassed HIGH finding still records the code-review gateBypasses entry', async () => {
+    // Precondition on the active gate set itself: the engine's own table, and
+    // the gate set settle actually resolves from this fixture's config (no
+    // packs). `anomaly-notify` runs outside the registry loop and never
+    // appears in `gates[]` under any profile, so the persisted provenance
+    // cannot confirm its absence — these two resolutions are the evidence.
+    const tableGateSet = gatesFor('standard', 'strict');
+    expect(tableGateSet.gates).toContain('code-review');
+    expect(tableGateSet.gates).not.toContain('anomaly-notify');
+    const resolvedGateSet = effectiveGateSet({ tier: 'standard' }, config332(), null, []);
+    expect(resolvedGateSet.gates).toContain('code-review');
+    expect(resolvedGateSet.gates).not.toContain('anomaly-notify');
+
+    root = await mktemp();
+    await setup332Repo(root, '332-01-no-anomaly-notify');
+    constructed.codeReviewFindingsOverride = highFinding();
+
+    const { io } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, allowCodeReviewFailure: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    const summary = await read332Summary(root, '332-01-no-anomaly-notify');
+    expect(summary.gates?.find((g) => g.gate === 'code-review')?.status).toBe('ran');
+    expect((summary.gateBypasses ?? []).filter((b) => b.gate === 'code-review')).toHaveLength(1);
+  });
+});
+
+/**
+ * Phase 332 (332-01, T2): the security-audit gate has the same findings-
+ * bypass fall-through as code-review — `--allow-security-audit-failure` or
+ * bare `--force` past a CRITICAL finding returns `outcome: 'pass'` +
+ * `flags.reviewFindingsBypassed`, which today reaches no `gateBypasses`
+ * entry. These tests pin the entry the fix records, under the flag the
+ * gate's own stderr line prints (force wins when set — `gates/security-
+ * audit.ts`).
+ *
+ * Shared fixture: strict profile × complex tier (the only cell where
+ * security-audit fires — `gates/engine.ts` DELTAS), real (non-mock)
+ * `anthropic` code-review and security-audit verifiers discoverable only via
+ * the `.env` `setupBuildRepo` writes, a real passing test command, and a
+ * qualifying `assertion`-mode coverage test for AC-1. Code-review stays clean
+ * (no `codeReviewFindingsOverride`), and the control test below proves the
+ * cell reaches security-audit with no bypass flag at all.
+ */
+describe('settleService records security-audit findings bypasses in gateBypasses (phase 332, T2)', () => {
+  const FIXED_NOW = '2026-10-16T00:00:00.000Z';
+
+  function config332Complex(): CadenceConfig {
+    return {
+      ...defaultConfig,
+      profile: 'strict',
+      codeReview: { provider: 'anthropic' },
+      securityAudit: { provider: 'anthropic' },
+      gates: { sealed: [], evidenceFloor: 'unverified' },
+      verification: {
+        ...defaultConfig.verification,
+        testCommand: 'node -e "process.exit(0)"',
+      },
+    };
+  }
+
+  async function setup332ComplexRepo(r: string, phase: string): Promise<void> {
+    await setupBuildRepo({ root: r, phase, id: '332-01', tier: 'complex', config: config332Complex() });
+    await seedCoverageTest(r, ['AC-1']);
+    delete process.env.ANTHROPIC_API_KEY;
+  }
+
+  async function read332ComplexSummary(r: string, phase: string): Promise<Summary> {
+    return JSON.parse(
+      await readFile(join(r, '.cadence', 'phases', phase, '332-01-SUMMARY.json'), 'utf8'),
+    ) as Summary;
+  }
+
+  /**
+   * Two CRITICAL findings plus one HIGH — so the recorded count must be the
+   * number of bypassed CRITICAL findings (2): not a constant 1 and not every
+   * finding of any severity (3). The gate only refuses on 'critical'.
+   */
+  function twoCriticalsOneHigh(): Finding[] {
+    return [
+      mkFinding('hardcoded secret', 'critical'),
+      mkFinding('weak hash algorithm', 'high'),
+      mkFinding('sql built by string concatenation', 'critical'),
+    ];
+  }
+
+  /**
+   * Three CRITICAL findings plus one HIGH — used by the bare --force test so
+   * it pins a different count (3) than the --allow-security-audit-failure
+   * test (2).
+   */
+  function threeCriticalsOneHigh(): Finding[] {
+    return [
+      mkFinding('hardcoded secret', 'critical'),
+      mkFinding('weak hash algorithm', 'high'),
+      mkFinding('sql built by string concatenation', 'critical'),
+      mkFinding('path traversal in upload handler', 'critical'),
+    ];
+  }
+
+  it('332-01/AC-6: precondition — a clean strict profile × complex tier settle with no bypass flag reaches security-audit and records no gateBypasses', async () => {
+    expect(gatesFor('complex', 'strict').gates).toContain('security-audit');
+    expect(gatesFor('complex', 'strict').gates).toContain('code-review');
+
+    root = await mktemp();
+    const phase = '332-01-complex-clean-control';
+    await setup332ComplexRepo(root, phase);
+
+    const { io } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.codeReview).toEqual(['anthropic']);
+    expect(constructed.securityAudit).toEqual(['anthropic']);
+    const raw = JSON.parse(
+      await readFile(join(root, '.cadence', 'phases', phase, '332-01-SUMMARY.json'), 'utf8'),
+    ) as Record<string, unknown>;
+    const summary = raw as unknown as Summary;
+    expect(summary.gates?.find((g) => g.gate === 'security-audit')?.status).toBe('ran');
+    expect(summary.gates?.find((g) => g.gate === 'code-review')?.status).toBe('ran');
+    expect('gateBypasses' in raw).toBe(false);
+  });
+
+  it('332-01/AC-6: --allow-security-audit-failure past two CRITICAL findings (plus a HIGH), code-review clean, exits 0 and records exactly one error-severity security-audit gateBypasses entry', async () => {
+    root = await mktemp();
+    const phase = '332-01-sa-allow-flag';
+    await setup332ComplexRepo(root, phase);
+    constructed.securityAuditFindingsOverride = twoCriticalsOneHigh();
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, allowSecurityAuditFailure: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.codeReview).toEqual(['anthropic']);
+    expect(constructed.securityAudit).toEqual(['anthropic']);
+    expect(err.join('')).toContain(
+      'security-audit: --allow-security-audit-failure set; proceeding past 2 CRITICAL finding(s).',
+    );
+
+    const summary = await read332ComplexSummary(root, phase);
+    expect(summary.gates?.find((g) => g.gate === 'security-audit')?.status).toBe('ran');
+    const bypasses = summary.gateBypasses ?? [];
+    const entries = bypasses.filter((b) => b.gate === 'security-audit');
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual({
+      gate: 'security-audit',
+      flag: '--allow-security-audit-failure',
+      severity: 'error',
+      reason: 'bypassed 2 finding(s), highest severity critical',
+    });
+    expect(bypasses.some((b) => b.gate === 'code-review')).toBe(false);
+  });
+
+  it('332-01/AC-6: bare --force past three CRITICAL findings (plus a HIGH), code-review clean, records exactly one security-audit entry under --force and no other bypass entry', async () => {
+    root = await mktemp();
+    const phase = '332-01-sa-force-alone';
+    await setup332ComplexRepo(root, phase);
+    constructed.securityAuditFindingsOverride = threeCriticalsOneHigh();
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, force: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.codeReview).toEqual(['anthropic']);
+    expect(constructed.securityAudit).toEqual(['anthropic']);
+    expect(err.join('')).toContain(
+      'security-audit: --force set; proceeding past 3 CRITICAL finding(s).',
+    );
+
+    const summary = await read332ComplexSummary(root, phase);
+    expect(summary.gates?.find((g) => g.gate === 'security-audit')?.status).toBe('ran');
+    const bypasses = summary.gateBypasses ?? [];
+    const entries = bypasses.filter((b) => b.gate === 'security-audit');
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual({
+      gate: 'security-audit',
+      flag: '--force',
+      severity: 'error',
+      reason: 'bypassed 3 finding(s), highest severity critical',
+    });
+    // Bare --force could otherwise wave an earlier gate through silently —
+    // no entry other than the security-audit one may exist.
+    expect(bypasses.filter((b) => b.gate !== 'security-audit')).toEqual([]);
+    expect(bypasses.some((b) => b.gate === 'settle')).toBe(false);
+  });
+
+  it('332-01/AC-6: --force together with --allow-security-audit-failure past CRITICAL findings records exactly one security-audit entry under --force, matching the gate\'s stderr line, and no settle force-used entry', async () => {
+    root = await mktemp();
+    const phase = '332-01-sa-force-and-allow';
+    await setup332ComplexRepo(root, phase);
+    constructed.securityAuditFindingsOverride = twoCriticalsOneHigh();
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      {
+        auto: true,
+        interactive: false,
+        force: true,
+        allowSecurityAuditFailure: true,
+        now: () => FIXED_NOW,
+      },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.securityAudit).toEqual(['anthropic']);
+    expect(err.join('')).toContain(
+      'security-audit: --force set; proceeding past 2 CRITICAL finding(s).',
+    );
+
+    const summary = await read332ComplexSummary(root, phase);
+    expect(summary.gates?.find((g) => g.gate === 'security-audit')?.status).toBe('ran');
+    const bypasses = summary.gateBypasses ?? [];
+    const entries = bypasses.filter((b) => b.gate === 'security-audit');
+    expect(entries).toHaveLength(1);
+    // The flag AND the reason both name --force: the same value the gate
+    // printed, never computed separately.
+    expect(entries[0]).toEqual({
+      gate: 'security-audit',
+      flag: '--force',
+      severity: 'error',
+      reason: 'bypassed 2 finding(s), highest severity critical',
+    });
+    expect(bypasses.some((b) => b.gate === 'settle')).toBe(false);
+  });
+
+  it('332-01/AC-6: a clean security-audit with --force set for no reason writes no gateBypasses key', async () => {
+    root = await mktemp();
+    const phase = '332-01-sa-clean-force';
+    await setup332ComplexRepo(root, phase);
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, force: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.securityAudit).toEqual(['anthropic']);
+    expect(err.join('')).not.toContain('proceeding past');
+    const raw = JSON.parse(
+      await readFile(join(root, '.cadence', 'phases', phase, '332-01-SUMMARY.json'), 'utf8'),
+    ) as Record<string, unknown>;
+    const summary = raw as unknown as Summary;
+    expect(summary.gates?.find((g) => g.gate === 'security-audit')?.status).toBe('ran');
+    expect('gateBypasses' in raw).toBe(false);
+  });
+
+  it('332-01/AC-6: a clean security-audit with --allow-security-audit-failure set for no reason writes no gateBypasses key', async () => {
+    root = await mktemp();
+    const phase = '332-01-sa-clean-allow';
+    await setup332ComplexRepo(root, phase);
+
+    const { io, err } = captureIO();
+    const res = await settleService(
+      root,
+      { auto: true, interactive: false, allowSecurityAuditFailure: true, now: () => FIXED_NOW },
+      io,
+    );
+
+    expect(res.exitCode).toBe(0);
+    expect(constructed.securityAudit).toEqual(['anthropic']);
+    expect(err.join('')).not.toContain('proceeding past');
+    const raw = JSON.parse(
+      await readFile(join(root, '.cadence', 'phases', phase, '332-01-SUMMARY.json'), 'utf8'),
+    ) as Record<string, unknown>;
+    const summary = raw as unknown as Summary;
+    expect(summary.gates?.find((g) => g.gate === 'security-audit')?.status).toBe('ran');
+    expect('gateBypasses' in raw).toBe(false);
   });
 });

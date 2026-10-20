@@ -302,6 +302,21 @@ export interface GateFlags {
    *  "clean pass" — a mock-identified pass is only abstained when this flag
    *  is absent/false. */
   reviewFindingsBypassed?: boolean;
+  /** Phase 332 (332-01, T3, D-CA dec-20261016-004): set on exactly the same
+   *  findings-bypass fall-through as `reviewFindingsBypassed` above, carrying
+   *  what that bypass actually was — `flag` is the very value the gate's own
+   *  stderr line printed (`--force` wins when both flags are set, D-CB
+   *  dec-20261016-005), `count` the number of bypassed refusing findings
+   *  (code-review's HIGHs / security-audit's CRITICALs), `highestSeverity`
+   *  the most severe of them. `registry.ts` turns it into one error-severity
+   *  `GateBypass` per gate (`RunGatesResult.findingsBypasses`). A separate
+   *  field rather than widening the boolean: the registry's mock-abstain
+   *  guard compares `reviewFindingsBypassed !== true` and must keep doing so. */
+  reviewFindingsBypass?: {
+    flag: string;
+    count: number;
+    highestSeverity: Finding['severity'];
+  };
   /** Phase 232: verifier identity that actually ran a gate (currently set
    *  only by `code-review`/`security-audit`), for the registry to merge onto
    *  that gate's persisted GateProvenance entry (`provider`/`model`) without
@@ -389,6 +404,21 @@ export type GateImpl = (ctx: SettleContext) => Promise<GateResult>;
  */
 export function isGateSealed(ctx: SettleContext, gateId: string): boolean {
   return ctx.config?.gates?.sealed?.includes(gateId) ?? false;
+}
+
+/** Most-severe-first order of `Finding['severity']`. */
+const FINDING_SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'] as const satisfies readonly Finding['severity'][];
+
+/**
+ * Phase 332 (332-01, T3): the most severe severity among `findings`, or
+ * `undefined` for an empty list. Shared by code-review and security-audit to
+ * derive `GateFlags.reviewFindingsBypass.highestSeverity` from the findings
+ * they actually bypassed rather than hardcoding it.
+ */
+export function highestFindingSeverity(
+  findings: readonly Pick<Finding, 'severity'>[],
+): Finding['severity'] | undefined {
+  return FINDING_SEVERITY_ORDER.find((s) => findings.some((f) => f.severity === s));
 }
 
 /** Shallow-merge a GateResult's contribution into the accumulator. */

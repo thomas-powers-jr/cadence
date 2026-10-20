@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { redactSecrets } from '../security/redact.js';
 import type { SecurityAuditResult } from '../contracts/index.js';
+import { highestFindingSeverity } from './types.js';
 import type { GateImpl, GateResult } from './types.js';
 
 /**
@@ -66,6 +67,11 @@ export const runSecurityAuditGate: GateImpl = async (ctx): Promise<GateResult> =
     const criticals = securityAuditFindings.filter((f) => f.severity === 'critical');
     const bypassed =
       ctx.opts.force === true || ctx.opts.allowSecurityAuditFailure === true;
+    // Phase 332 (332-01, T3, D-CB dec-20261016-005): the one value both the
+    // findings-bypass stderr line below and `flags.reviewFindingsBypass.flag`
+    // use, so the recorded flag is always exactly what the gate printed.
+    const findingsBypassFlag =
+      ctx.opts.force === true ? '--force' : '--allow-security-audit-failure';
     if (criticals.length > 0) {
       for (const c of criticals) {
         ctx.io.err(
@@ -86,10 +92,8 @@ export const runSecurityAuditGate: GateImpl = async (ctx): Promise<GateResult> =
           },
         };
       }
-      const flag =
-        ctx.opts.force === true ? '--force' : '--allow-security-audit-failure';
       ctx.io.err(
-        `security-audit: ${flag} set; proceeding past ${criticals.length} CRITICAL finding(s).\n`,
+        `security-audit: ${findingsBypassFlag} set; proceeding past ${criticals.length} CRITICAL finding(s).\n`,
       );
     }
     // Phase 267 (267-01, T2): unlike `bypassed` above (true whenever
@@ -99,12 +103,28 @@ export const runSecurityAuditGate: GateImpl = async (ctx): Promise<GateResult> =
     // must NOT be relabeled a mock "clean pass" by registry.ts. A clean pass
     // run with --force set for an unrelated reason must not be suppressed.
     const findingsBypassed = criticals.length > 0 && bypassed;
+    // Phase 332 (332-01, T3): on that same condition, `reviewFindingsBypass`
+    // carries what was bypassed — the printed flag, the CRITICAL count and
+    // the highest severity among those same `criticals` — for registry.ts to
+    // record as a `GateBypass`. `criticals` is non-empty whenever
+    // `findingsBypassed` is true, so the `undefined` check only satisfies
+    // the type.
+    const highestSeverity = highestFindingSeverity(criticals);
     return {
       outcome: 'pass',
       summaryPatch: { securityAudit: securityAuditFindings },
       flags: {
         verifierIdentity: buildVerifierIdentityFlag(result, touched, diff),
         ...(findingsBypassed ? { reviewFindingsBypassed: true } : {}),
+        ...(findingsBypassed && highestSeverity !== undefined
+          ? {
+              reviewFindingsBypass: {
+                flag: findingsBypassFlag,
+                count: criticals.length,
+                highestSeverity,
+              },
+            }
+          : {}),
       },
     };
   } catch (err) {

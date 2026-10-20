@@ -1263,6 +1263,7 @@ During 289-01's settle, the real (non-mock) host-cli deep-verify pass was run th
 - files: packages/core/src/services/settle.ts, packages/core/src/intelligence/finding-routing.ts
 - decisions: dec-20260822-014 (active)
 - evidence: 289-01-CODE-REVIEW.json history: round2 fail@18:14:36.047Z (1 finding) -> rec-20260822-006 createdAt 18:14:36.065Z -> round3 pass@18:24:17.029Z (0 findings), matching 289-01-SUMMARY.md's completed timestamp 18:24:17.031Z (T1's fix).
+- evidence: 2026-10-16, phase 331-01 settle: settle auto-routed all six code-review findings into the ledger as rec-20261016-002..-007 while the operator held them out. The ledger was reset to HEAD and only two rows were re-filed by hand through the CLI; the re-filed recording-gap rec took id rec-20261016-002, so the held-out backup's -002..-007 now collide with live ids. Same root cause as this rec: routing writes ledger rows with no reconciliation path when the operator holds or later resolves the findings.
 - next: cadence milestone propose
 
 Phase 289's rec-20260822-006 was a real instance: a code-review finding at round 2 (18:14:36.047Z, host-cli) correctly reported writeLedger as unguarded, and findings-to-ledger routing auto-filed rec-20260822-006 18ms later (18:14:36.065Z). T1's fix landed within the same settle, ~10 minutes later (289-01 completed 18:24:17.031Z), and round 3 passed with 0 findings -- but the auto-filed rec was never closed, reconciled, or even flagged stale; it sat open as candidate/needs-decision until this session manually rejected it with a full audit. The finding was never wrong -- the routing mechanism that files a rec at refusal time has no path back to check whether a later round of the same settle already resolved it. This is distinct from dec-20260731-001 (same-settle same-id finding merge -- multiple occurrences of one finding within a single round) and dec-20260801-003 (cross-settle message-drift dedup -- a re-worded finding across separate settles); neither covers a finding that is fixed by a later round of the same settle it was filed in. Worth a decision: on settle success, cross-check open candidate-status recs with a sourceFindingId against that phase's final (passing) code-review result and flag/auto-close ones the final round no longer reproduces -- or at minimum, surface a doctor check so these don't require a human noticing the discrepancy, as happened here.
@@ -1875,3 +1876,84 @@ Phase 328 gave scripts/check-audit-exceptions.mjs and scripts/check-lockfile-ove
 - next: cadence milestone propose
 
 scripts/check-audit-exceptions.mjs fails only on high/critical advisories, so the 13 root moderates rec-20261008-002 named accumulated since at least 2026-10-07 with no CI signal, 11 of them (hono, qs, ip-address and fast-uri) on cadence-core's production path via @modelcontextprotocol/sdk and only the vitest pair dev-only; phase 330 clears them with override floors but leaves the gate unchanged, so the next production-path moderate will be equally silent. Decide among: (a) keep high/critical only (record as dropped, not deferred, in DESIGN.md or a decision); (b) report moderates as a non-failing notice in the audit job; (c) fail on moderates reachable from a published package's production dependency path while leaving dev-only moderates as notices. Note that root pnpm.overrides do not reach npm consumers, so any gate here governs this repo's lockfile, not consumer installs. Split out of rec-20261008-002 by phase 330, which answered only its floor-raising half.
+
+## rec-20261016-001 — atomicWriteText loses a file's explicit ACL on Windows: temp-then-rename inherits the directory's security descriptor
+
+- status: candidate
+- ready: needs-evidence
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: core, state, windows
+- files: packages/core/src/state/atomic-write.ts
+- evidence: phase 331 code-review finding 6 (331-01-CODE-REVIEW.json); 28 atomicWriteText call sites in packages/core/src; zero ACL handling in packages/ (grep icacls|Get-Acl|securityDescriptor empty); not reachable via any published code path today
+- next: cadence milestone propose
+
+atomicWrite (packages/core/src/state/atomic-write.ts) creates the temp sibling with writeFile, which inherits the parent directory's descriptor, then renames it over the target; on NTFS the renamed file keeps the temp file's descriptor, so any non-inherited ACE on the original is lost. Affects all 28 core call sites, not only the phase-331 installer that surfaced it. Fix shape for the phase: on win32, either preserve (read the target's descriptor before the write, reapply after rename) or refuse when the target carries non-inherited ACEs - decide there. Found by code-review HIGH #6 in phase 331; reasoned from NTFS semantics, not yet measured with a probe.
+
+## rec-20261016-003 — assurance report cannot see historical code-review/security-audit findings bypasses: re-derivation reads only the persisted gateBypasses
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: assurance, settle
+- files: packages/core/src/services/assurance-report.ts
+- evidence: Found 2026-10-16 while scoping the rec-20261016-002 fix (dec-20261016-007, D-CD).
+- evidence: 332-01 T6 measurement 2026-10-16: .cadence/phases/331-checkpoint-sensor-state-store/331-01-SUMMARY.json (blob ef1ec808e2849bb42a94e67d3342c16c87eb90ea, from commit 579bcff3 on origin/worktree-331-sensor; scratch copy verified with git hash-object) stored assurance.overall strong; corpus-style re-derivation strong (zero drift: no gateBypasses key and the code-review gate is {status:ran, provider:host-cli, providerSelection:configured}, so assurance report cannot see the bypass); with the code-review entry phase 332 records (2 HIGH from the SUMMARY codeReview, matching 331-01-CODE-REVIEW.json findings:2; flag --allow-code-review-failure per the 579bcff3 commit message; severity error) re-derived overall mixed. Command: pnpm --filter @thomas-powers-jr/cadence-core build, then node scratchpad/t6/measure-331.mjs <worktree> <scratch 331-01-SUMMARY.json>; logic: deriveAssuranceRecord(s.gates ?? [], s.acResults, {gateBypasses: s.gateBypasses ?? [], deepVerify: s.deepVerify}) imported from packages/core/dist/gates/assurance-record.js, run once on the SUMMARY as stored and once with gateBypasses [{gate:code-review, flag:--allow-code-review-failure, reason:code-review: --allow-code-review-failure bypassed 2 finding(s), highest severity high, severity:error}].
+- next: cadence milestone propose
+
+assurance-report.ts:322-323 re-derives each graded record from summary.gates, acResults and summary.gateBypasses. A SUMMARY written before the findings-bypass recording fix (rec-20261016-002) carries no gateBypasses entry for a code-review or security-audit findings bypass, so it re-derives with the same strong grade and zero drift: 331-01 is the known case. The bypass is recoverable from the gate sidecar (*-CODE-REVIEW.json: pass false, converged false, history entry bypassed true). Re-derivation could read that sidecar to surface historical bypasses as drift. Report-only: no SUMMARY backfill (D-U, D-BZ).
+
+## rec-20261016-004 — cadence handoff deletes tracked SESSION-*.md docs when pruning past handoff.retain
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: handoff
+- files: packages/core/src/handoff/retention.ts, packages/core/src/handoff/run-handoff.ts
+- evidence: Eight recorded occurrences across session handoffs (SESSION-2026-10-15-handoffs-merged.md: fifth; SESSION-2026-10-16-331-settled-ci-red.md: eighth).
+- next: cadence milestone propose
+
+Every cadence handoff run prunes handoff docs past handoff.retain (10), including docs already committed to git, so each run leaves tracked deletions in the working tree that the operator must git restore. A tool whose purpose is durable records should not delete tracked files as a side effect. Fix shape: retention skips (or only reports) git-tracked files, pruning only untracked local docs. Observed eight times, most recently in the 2026-10-16 331 session (7 tracked docs pruned and restored).
+
+## rec-20261016-005 — --allow-code-review-failure is all-or-nothing: decide whether a per-finding bypass is worth building
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: code-review, settle
+- files: packages/core/src/gates/code-review.ts
+- evidence: 331-01 settle 2026-10-16: authorization scoped to finding 6, flag also bypassed finding 7 (dec-20261016-001, D-BX).
+- next: cadence milestone propose
+
+The flag (and --force) passes every failing HIGH in the run (code-review.ts bypassed computation). An operator authorization that names one finding cannot be enforced: in 331-01 it was authorized for finding 6 and also passed an unauthorized finding 7. Design question: a per-finding bypass such as --allow-code-review-finding <identity> keyed on the finding identity hash, refusing when any un-named HIGH remains. Do not build without a decision.
+
+## rec-20261016-006 — commands.md says --force does not bypass other gates, but it bypasses code-review and security-audit
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: docs, settle
+- files: docs/reference/commands.md
+- evidence: Found by the phase 332 T5 implementer on 2026-10-16 while editing the settle run flag rows; left out of 332's scope.
+- next: cadence milestone propose
+
+docs/reference/commands.md, settle run Gate interactions paragraph, says --force overrides --auto's refusal when ACs are incomplete but does not bypass other gates. That is wrong: gates/code-review.ts and gates/security-audit.ts treat ctx.opts.force === true as a findings bypass, and concepts.md's Gate bypass reference summary already lists --force against deep-verify, interactive-verdict, code-review and security-audit. Fix the paragraph and consider a doc-content test pairing the two pages.
