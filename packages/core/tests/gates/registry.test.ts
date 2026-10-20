@@ -923,3 +923,183 @@ describe('Phase 234 kernel/verifier/consumer-boundary refactor regression pin (A
     expect(new Set(GATE_ORDER).size).toBe(GATE_ORDER.length);
   });
 });
+
+/**
+ * Phase 332 (332-01, T3): a code-review/security-audit findings bypass
+ * reports `flags.reviewFindingsBypass` (the flag the gate printed, the
+ * bypassed finding count, the highest bypassed severity); `runSettleGates`
+ * turns each into one error-severity `GateBypass` on `findingsBypasses`
+ * while that gate's `gates[]` entry stays `status: 'ran'`.
+ */
+describe('runSettleGates findings-bypass recording (Phase 332, 332-01, T3)', () => {
+  it('332-01/AC-1: a code-review result carrying reviewFindingsBypass yields one error-severity entry with the pinned reason, and its provenance stays status ran', async () => {
+    const ctx = {
+      gateSet: { gates: ['code-review'] },
+      opts: { allowCodeReviewFailure: true },
+    } as unknown as SettleContext;
+    const { gates, findingsBypasses, refused } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'code-review': {
+          outcome: 'pass',
+          flags: {
+            verifierIdentity: { family: 'anthropic' },
+            reviewFindingsBypassed: true,
+            reviewFindingsBypass: {
+              flag: '--allow-code-review-failure',
+              count: 2,
+              highestSeverity: 'high',
+            },
+          },
+        },
+      }),
+      order: ['code-review'],
+    });
+    expect(refused).toBe(false);
+    expect(gates).toEqual([{ gate: 'code-review', status: 'ran', provider: 'anthropic' }]);
+    expect(findingsBypasses).toEqual([
+      {
+        gate: 'code-review',
+        flag: '--allow-code-review-failure',
+        reason: 'bypassed 2 finding(s), highest severity high',
+        severity: 'error',
+      },
+    ]);
+  });
+
+  it('332-01/AC-6: a security-audit result carrying reviewFindingsBypass under --force yields one error-severity entry with the pinned reason, and its provenance stays status ran', async () => {
+    const ctx = {
+      gateSet: { gates: ['security-audit'] },
+      opts: { force: true },
+    } as unknown as SettleContext;
+    const { gates, findingsBypasses } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'security-audit': {
+          outcome: 'pass',
+          flags: {
+            verifierIdentity: { family: 'anthropic' },
+            reviewFindingsBypassed: true,
+            reviewFindingsBypass: { flag: '--force', count: 3, highestSeverity: 'critical' },
+          },
+        },
+      }),
+      order: ['security-audit'],
+    });
+    expect(gates).toEqual([{ gate: 'security-audit', status: 'ran', provider: 'anthropic' }]);
+    expect(findingsBypasses).toEqual([
+      {
+        gate: 'security-audit',
+        flag: '--force',
+        reason: 'bypassed 3 finding(s), highest severity critical',
+        severity: 'error',
+      },
+    ]);
+  });
+
+  it("332-01/AC-6: a bypassed code-review followed by a clean security-audit records only the code-review entry (read from each gate's own result, not the merged accumulator)", async () => {
+    // `mergeInto` Object.assigns flags across gates, so the accumulator still
+    // holds code-review's reviewFindingsBypass when security-audit runs —
+    // reading `acc.flags` would double-record it under security-audit.
+    const ctx = {
+      gateSet: { gates: ['code-review', 'security-audit'] },
+      opts: { allowCodeReviewFailure: true },
+    } as unknown as SettleContext;
+    const { acc, gates, findingsBypasses } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'code-review': {
+          outcome: 'pass',
+          flags: {
+            verifierIdentity: { family: 'anthropic' },
+            reviewFindingsBypassed: true,
+            reviewFindingsBypass: {
+              flag: '--allow-code-review-failure',
+              count: 1,
+              highestSeverity: 'high',
+            },
+          },
+        },
+        'security-audit': {
+          outcome: 'pass',
+          flags: { verifierIdentity: { family: 'anthropic' } },
+        },
+      }),
+      order: ['code-review', 'security-audit'],
+    });
+    // Precondition: the merged accumulator really does still carry it.
+    expect(acc.flags.reviewFindingsBypass).toBeDefined();
+    expect(gates.map((g) => g.status)).toEqual(['ran', 'ran']);
+    expect(findingsBypasses).toEqual([
+      {
+        gate: 'code-review',
+        flag: '--allow-code-review-failure',
+        reason: 'bypassed 1 finding(s), highest severity high',
+        severity: 'error',
+      },
+    ]);
+  });
+
+  it('332-01/AC-6: both gates bypassed yields two entries in gate order, each with its own flag and count', async () => {
+    const ctx = {
+      gateSet: { gates: ['code-review', 'security-audit'] },
+      opts: { force: true },
+    } as unknown as SettleContext;
+    const { findingsBypasses } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'code-review': {
+          outcome: 'pass',
+          flags: {
+            verifierIdentity: { family: 'anthropic' },
+            reviewFindingsBypassed: true,
+            reviewFindingsBypass: { flag: '--force', count: 4, highestSeverity: 'high' },
+          },
+        },
+        'security-audit': {
+          outcome: 'pass',
+          flags: {
+            verifierIdentity: { family: 'anthropic' },
+            reviewFindingsBypassed: true,
+            reviewFindingsBypass: { flag: '--force', count: 1, highestSeverity: 'critical' },
+          },
+        },
+      }),
+      order: ['code-review', 'security-audit'],
+    });
+    expect(findingsBypasses).toEqual([
+      {
+        gate: 'code-review',
+        flag: '--force',
+        reason: 'bypassed 4 finding(s), highest severity high',
+        severity: 'error',
+      },
+      {
+        gate: 'security-audit',
+        flag: '--force',
+        reason: 'bypassed 1 finding(s), highest severity critical',
+        severity: 'error',
+      },
+    ]);
+  });
+
+  it('332-01/AC-4: a clean pass (no reviewFindingsBypass) yields an empty findingsBypasses array, on the success and refusal paths alike', async () => {
+    const ctx = {
+      gateSet: { gates: ['code-review', 'security-audit'] },
+      opts: { force: true },
+    } as unknown as SettleContext;
+    const clean = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'code-review': { outcome: 'pass', flags: { verifierIdentity: { family: 'anthropic' } } },
+        'security-audit': { outcome: 'pass', flags: { verifierIdentity: { family: 'anthropic' } } },
+      }),
+      order: ['code-review', 'security-audit'],
+    });
+    expect(clean.refused).toBe(false);
+    expect(clean.gates.map((g) => g.status)).toEqual(['ran', 'ran']);
+    expect(clean.findingsBypasses).toEqual([]);
+
+    const refusedRun = await runSettleGates(ctx, {
+      registry: recordingRegistry([], { 'code-review': { outcome: 'refuse' } }),
+      order: ['code-review', 'security-audit'],
+    });
+    expect(refusedRun.refused).toBe(true);
+    expect(refusedRun.findingsBypasses).toEqual([]);
+  });
+});

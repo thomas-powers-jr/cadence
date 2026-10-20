@@ -1877,7 +1877,7 @@ export async function settleService(
     // resolution rather than each independently re-deriving it.
     const now = opts.now ?? (() => new Date().toISOString());
 
-    const { acc, refused, gates: settleGates } = await runSettleGates(ctx);
+    const { acc, refused, gates: settleGates, findingsBypasses } = await runSettleGates(ctx);
     // Phase 275 (275-01, T4; as-built): extended exactly once, before any
     // branch below, so all 5 downstream call sites (4
     // `writeRefusedSettleSummary` + the final `finalizeAndCloseSettle`) see
@@ -1939,7 +1939,24 @@ export async function settleService(
         acc.codeReview, acc.securityAudit, cadenceConfig, foreignBinaryMismatch, now, io,
       );
     }
-    const { gateBypasses } = anomalyResult;
+    // Phase 332 (332-01, T3, D-CA dec-20261016-004): code-review/security-
+    // audit findings bypasses (`runSettleGates`' `findingsBypasses`) join the
+    // list here — a direct `GateBypass` push, the same shape `pack-resolution`,
+    // `skill-audit` and `evidenceFloorBypassesUsed` use, NOT via
+    // `anomalyToGateBypass`: code-review's `codeReviewHigh` emit (only when
+    // `anomaly-notify` is in the gate set) goes straight to the notifier, and
+    // security-audit emits no anomaly at all (settle's `emit.anomalies` is a
+    // no-op), so neither bypass ever joins the `anomalies` array
+    // `gateBypassesFromAnomalies` reads. Joined
+    // into `gateBypasses` itself (not beside `evidenceFloorBypassesUsed`)
+    // because `finalizeAndCloseSettle` hands only `gateBypasses` to
+    // `deriveSettleAssuranceRecord` — that is what lets phase 283's D-S
+    // error-severity cap see them. The refused SUMMARY records no
+    // `gateBypasses` (Boundaries) because `writeRefusedSettleSummary` is never
+    // handed this list, including the evidence-floor refusal below. Placed
+    // after the generic bypass-echo loop: each gate already printed its own
+    // stderr line, so no second echo.
+    const gateBypasses = [...anomalyResult.gateBypasses, ...findingsBypasses];
 
     const evidenceResult = await deriveEvidenceAndCheckFloor(
       ctx,

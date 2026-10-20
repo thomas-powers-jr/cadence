@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "draftId": "332-01",
+  "completedAt": "2026-10-16T00:00:00.000Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "anthropic",
+      "providerSelection": "empty-diff"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": ""
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [],
+    "provenance": []
+  },
+  "coverageScheme": "bare",
+  "coverageMode": "assertion",
+  "codeReview": {},
+  "stateAtSettle": "<stateAtSettle>",
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "anthropic",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 1,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": "<contentHash>"
+}

@@ -1254,6 +1254,12 @@ changeset (example/test-only change, no published-package surface).*
   without touching anything else; byte transparency proven through Git Bash
   and `powershell.exe -Command`, core exports `atomicWriteText` (D-BR), and
   nothing blocks, injects, or registers a hook.
+- **Phase 332** — a code-review HIGH or security-audit CRITICAL findings
+  bypass (`--allow-code-review-failure`, `--allow-security-audit-failure` or
+  `--force`) now leaves one `error`-severity `SUMMARY.json.gateBypasses`
+  entry naming the flag the gate printed, so phase 283's cap holds the grade
+  below `strong`; previously the bypass left no entry and could grade
+  `strong`, as 331-01 did (rec-20261016-002).
 
 
 
