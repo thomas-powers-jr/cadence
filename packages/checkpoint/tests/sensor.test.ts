@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
@@ -635,8 +635,63 @@ describe('runStatusline (in-process)', () => {
     expect((JSON.parse(writes[0]?.[1] ?? '') as Json)['used_percentage']).toBe(42);
   });
 
-  it('defaults the record deadline to 250 ms, inside Claude Code\'s 300 ms statusline debounce', () => {
-    expect(RECORD_DEADLINE_MS).toBe(250);
+  it('331-02/AC-1: the record deadline is a 1000 ms statusline-hold ceiling (Claude Code renders only on exit; 300 ms is a debounce between runs, not a budget)', () => {
+    expect(RECORD_DEADLINE_MS).toBe(1000);
+  });
+
+  it('331-02/AC-1: without recordDeadlineMs a never-settling write is abandoned with one notice naming 1000 ms, and the inner result is returned', async () => {
+    const input = payloadFor('payload-42.json', project);
+    const stdout = collector<Uint8Array>();
+    const stderr = collector<string>();
+    const code = await runStatusline({
+      argv: ['--', process.execPath, INNER, '4'],
+      stdin: [input],
+      stdout,
+      stderr,
+      cwdFallback: tmp,
+      now: () => FIXED_NOW,
+      excludedCadenceDirs: REAL_EXCLUSIONS,
+      writeReading: () => new Promise<void>(() => undefined),
+    });
+    expect(code).toBe(4);
+    expect(Buffer.concat(stdout.chunks).equals(runInnerDirect(input).stdout)).toBe(true);
+    expect(stderr.chunks).toHaveLength(1);
+    expect(stderr.chunks[0]).toMatch(/reading not recorded within 1000 ms/);
+  });
+
+  it('331-02/AC-3: the inner stdout is written as it arrives, before the inner exits', async () => {
+    const signal = join(tmp, 'signal');
+    const captured: string[] = [];
+    const stdout = {
+      write(chunk: Uint8Array): boolean {
+        captured.push(Buffer.from(chunk).toString('utf8'));
+        return true;
+      },
+    };
+    // Joined, so a pipe read that splits the first chunk still counts.
+    const firstArrived = (): boolean => captured.join('').includes('first');
+    const run = runStatusline({
+      argv: ['--', process.execPath, join(FIXTURES, 'inner-two-chunks.cjs'), signal],
+      stdin: [payloadFor('payload-42.json', project)],
+      stdout,
+      stderr: collector<string>(),
+      cwdFallback: tmp,
+      now: () => FIXED_NOW,
+      excludedCadenceDirs: REAL_EXCLUSIONS,
+    });
+    // Bounded wait in the test body for the first chunk; not a vitest timeout.
+    const waitUntil = Date.now() + 10_000;
+    while (!firstArrived() && Date.now() < waitUntil) {
+      await new Promise((done) => setTimeout(done, 10));
+    }
+    const firstSeenBeforeSignal = firstArrived();
+    // Unconditional, so the inner always exits and nothing hangs.
+    writeFileSync(signal, 'go');
+    const code = await run;
+    expect(code).toBe(0);
+    expect(firstSeenBeforeSignal).toBe(true);
+    expect(captured.join('')).toBe('first\nsecond');
+    expect(captured.length).toBeGreaterThan(1);
   });
 });
 
@@ -942,5 +997,45 @@ describe('checkpoint statusline (built wrapper, no shell)', () => {
     expect(r.status).toBe(2);
     expect(r.stderr.toString('utf8')).toContain('Usage: checkpoint validate <path>');
     expect(r.stderr.toString('utf8')).toContain('checkpoint statusline');
+  });
+});
+
+describe('checkpoint statusline (built wrapper process shape)', () => {
+  function runWrapperAsync(
+    input: Buffer,
+    args: string[],
+  ): Promise<{ pid: number | undefined; status: number | null; stdout: Buffer }> {
+    return new Promise((done, fail) => {
+      const child = spawn(process.execPath, [BIN, 'statusline', ...args], {
+        windowsHide: true,
+        env: envWithout('CADENCE_HOME'),
+        stdio: ['pipe', 'pipe', 'ignore'],
+      });
+      const out: Buffer[] = [];
+      child.stdout.on('data', (chunk: Buffer) => out.push(chunk));
+      child.on('error', fail);
+      child.on('close', (status) => done({ pid: child.pid, status, stdout: Buffer.concat(out) }));
+      child.stdin.on('error', () => undefined);
+      child.stdin.end(input);
+    });
+  }
+
+  it('331-02/AC-2: the inner statusline is a direct child of the spawned bin process, with stdout and exit code forwarded', async () => {
+    const fixture = join(FIXTURES, 'inner-ppid.cjs');
+    // This test is about process shape, not recording: tmp holds no .cadence of
+    // its own (a .cadence in an ancestor of the OS temp dir would still get a
+    // reading, as in the AC-9 "no .cadence in any ancestor" test).
+    const input = payloadFor('payload-42.json', tmp);
+    const side = join(tmp, 'ppid.txt');
+    const direct = spawnSync(process.execPath, [fixture, join(tmp, 'ppid-direct.txt')], { input, windowsHide: true });
+
+    const ok = await runWrapperAsync(input, ['--', process.execPath, fixture, side]);
+    expect(ok.pid).toBeDefined();
+    expect(readFileSync(side, 'utf8')).toBe(String(ok.pid));
+    expect(ok.status).toBe(0);
+    expect(ok.stdout.equals(direct.stdout)).toBe(true);
+
+    const failing = await runWrapperAsync(input, ['--', process.execPath, fixture, join(tmp, 'ppid-3.txt'), '3']);
+    expect(failing.status).toBe(3);
   });
 });

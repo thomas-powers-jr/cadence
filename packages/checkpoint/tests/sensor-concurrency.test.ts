@@ -60,10 +60,19 @@ interface Invocation {
   status: number | null;
   stdout: Buffer;
   stderr: string;
+  /** Spawn-to-close wall time of this one wrapper invocation. */
+  wallMs: number;
+}
+
+/** Nearest-rank percentile of an ascending-sorted, non-empty list. */
+function percentile(sorted: readonly number[], p: number): number {
+  const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  return sorted[rank] ?? Number.NaN;
 }
 
 function invokeWrapper(input: Buffer): Promise<Invocation> {
   return new Promise((resolvePromise, reject) => {
+    const started = performance.now();
     const child = spawn(process.execPath, [BIN, 'statusline', '--', process.execPath, INNER], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -74,7 +83,12 @@ function invokeWrapper(input: Buffer): Promise<Invocation> {
     child.stderr.on('data', (c: Buffer) => err.push(c));
     child.on('error', reject);
     child.on('close', (status) => {
-      resolvePromise({ status, stdout: Buffer.concat(out), stderr: Buffer.concat(err).toString('utf8') });
+      resolvePromise({
+        status,
+        stdout: Buffer.concat(out),
+        stderr: Buffer.concat(err).toString('utf8'),
+        wallMs: performance.now() - started,
+      });
     });
     child.stdin.end(input);
   });
@@ -87,7 +101,7 @@ async function writerLoop(input: Buffer): Promise<Invocation[]> {
 }
 
 describe('checkpoint statusline under concurrent writers', () => {
-  it('331-01/AC-5: concurrent wrapper invocations never leave a torn reading.json, and no .tmp sibling remains unless a deadline notice accounts for it', async () => {
+  it('331-01/AC-5 and 331-02/AC-4: concurrent wrapper invocations never leave a torn reading.json, no .tmp sibling remains unless a deadline notice accounts for it, and per-invocation wall time is reported', async () => {
     const payloadA = payloadWith(42, 15500);
     const payloadB = payloadWith(17, 99999);
     const shapeA = expectedShape(payloadA);
@@ -143,11 +157,19 @@ describe('checkpoint statusline under concurrent writers', () => {
 
     const all = [...resultsA, ...resultsB];
     const writeNotices = all.filter((r) => r.stderr.length > 0).map((r) => r.stderr.trim());
-    // Measured evidence for the phase report (stderr, not stdout).
+    const wall = all.map((r) => r.wallMs).sort((a, b) => a - b);
+    const wallP50 = Math.round(percentile(wall, 50));
+    const wallP90 = Math.round(percentile(wall, 90));
+    // Measured evidence for the phase report (stderr, not stdout). The
+    // per-invocation wall time is what sets this test's duration: each writer
+    // runs its invocations one after another (331-02).
     process.stderr.write(
       `[331-01/AC-5] parsesA=${parsesA} parsesB=${parsesB} transient=${JSON.stringify(transient)} ` +
-        `torn=${torn.length} writeNotices=${writeNotices.length}${writeNotices.length > 0 ? ` first=${JSON.stringify(writeNotices[0])}` : ''}\n`,
+        `torn=${torn.length} writeNotices=${writeNotices.length} wallP50Ms=${wallP50} wallP90Ms=${wallP90} ` +
+        `invocations=${all.length}${writeNotices.length > 0 ? ` first=${JSON.stringify(writeNotices[0])}` : ''}\n`,
     );
+    expect(Number.isFinite(wallP50) && wallP50 > 0).toBe(true);
+    expect(wallP90).toBeGreaterThanOrEqual(wallP50);
 
     expect(all).toHaveLength(2 * INVOCATIONS_PER_WRITER);
     for (const r of all) expect(r.status).toBe(0);

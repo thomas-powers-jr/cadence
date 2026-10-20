@@ -225,12 +225,20 @@ export interface StatuslineOptions {
 const NOTICE_PREFIX = 'checkpoint statusline: ';
 
 /**
- * Upper bound on the wait for the reading once the inner has exited: inside
- * Claude Code's 300 ms statusline debounce, so a slow or hung filesystem
- * cannot hold the statusline back. A write abandoned at the deadline can
- * leave a `*.tmp` sibling behind.
+ * How long the wrapper waits for the recording after the inner exits before
+ * it flushes and exits: a ceiling chosen by the operator (331-02), not a
+ * measured tail. Claude Code shows a statusline only once the command exits,
+ * debounces update triggers by 300 ms (a quiet period before a run, not a
+ * time budget for it), and cancels a run still in flight when a new one
+ * triggers (https://code.claude.com/docs/en/statusline). The recording
+ * usually finishes before the inner exits; the worst measured case was
+ * 84.6 ms after it, on windows-latest under suite load (probe run
+ * 39450266774), and the slower-runner tail behind PR #571's dropped readings
+ * was never captured. This bounds the wait, not process lifetime: a truly
+ * hung filesystem call can still keep the process alive (see the phase
+ * report). A write abandoned at the deadline can leave a `*.tmp` sibling.
  */
-export const RECORD_DEADLINE_MS = 250;
+export const RECORD_DEADLINE_MS = 1000;
 
 async function defaultWriteReading(path: string, text: string): Promise<void> {
   // atomicWriteText (D-BR) writes a temp sibling then renames; it does
@@ -319,8 +327,14 @@ function runInner(argv: readonly string[], input: Buffer, opts: StatuslineOption
       return;
     }
 
-    const out: Buffer[] = [];
-    child.stdout?.on('data', (chunk: Buffer) => out.push(chunk));
+    // Each chunk goes straight to stdout as it arrives (331-02): the wrapper
+    // never accumulates the inner's whole output. Claude Code still renders
+    // only once the wrapper exits, so this changes memory, not render time.
+    // 'close' fires only after the inner's stdout has ended, so every chunk
+    // is written before the exit code is reported.
+    child.stdout?.on('data', (chunk: Buffer) => {
+      opts.stdout.write(chunk);
+    });
     child.on('error', (err) => {
       // Only a failure to start is fatal; later errors (e.g. a kill failure)
       // leave 'close' to report the exit code.
@@ -328,7 +342,6 @@ function runInner(argv: readonly string[], input: Buffer, opts: StatuslineOption
     });
     child.on('close', (code) => {
       if (settled) return;
-      opts.stdout.write(Buffer.concat(out));
       finish(code ?? 1);
     });
     // An inner that exits without reading stdin makes this write EPIPE; that

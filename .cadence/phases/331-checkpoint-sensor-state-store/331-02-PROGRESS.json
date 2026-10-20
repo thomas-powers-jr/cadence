@@ -1,0 +1,40 @@
+{
+  "draftId": "331-02",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Red step: 4 tests in tests/sensor.test.ts (331-02/AC-1 constant + default-deadline notice, replacing the 250/300 ms debounce test; 331-02/AC-3 two-chunk signal-file handshake with a 10 s bounded wait in the test body; 331-02/AC-2 ppid side-file through the built bin, exit 3 forwarded) + fixtures inner-ppid.cjs, inner-two-chunks.cjs. Main-thread re-run: 4 failed | 45 passed (49), each for its AC's stated reason (250!=1000; notice names 250 ms; first chunk not seen before signal; inner ppid != bin pid). Independent review APPROVE WITH MINOR (reviewer's scratch copy with minimal T2-T4 went 49/49 twice); minors applied in main thread (joined-text first-chunk check, softened recording comment, dropped unused timestamps), re-run unchanged. Boundary base: phaseGuard.integrationRef set to local ref slice-base/331-02 (75df07d5, 331-02's start) by operator decision 2026-10-20, so the boundary gate scopes to this slice instead of inheriting 331-01's unmerged commits. Candidate finding: packages/checkpoint tsconfig/lint cover src only, so tests/ and fixtures are never typechecked or linted.",
+      "touchedFiles": [
+        "packages/checkpoint/tests/sensor.test.ts",
+        "packages/checkpoint/tests/fixtures/statusline/inner-ppid.cjs",
+        "packages/checkpoint/tests/fixtures/statusline/inner-two-chunks.cjs"
+      ],
+      "updatedAt": "2026-10-20T16:39:01.044Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "RECORD_DEADLINE_MS 250 -> 1000 with a rewritten doc comment: an operator-chosen wait ceiling (331-02), not a measured tail; render-on-exit, 300 ms trigger debounce (a quiet period, not a budget) and cancel-on-retrigger cited to code.claude.com/docs/en/statusline; worst measured +84.6 ms (windows-latest under load, probe run 39450266774); uncaptured slower-runner tail stated; bounds the wait, not process lifetime. Independent review APPROVE WITH MINOR (verified the cited docs live); its comment-wording minors applied. Main-thread: build 0, checkpoint 247 passed / 1 failed (T4's AC-3, expected red), eslint 0; both 331-02/AC-1 tests pass. Stale 250 ms / 300 ms-budget lines remain in REPORT-checkpoint-phase-2.md :342/:344/:346/:377, all in 331-01's sections: T6 adds a 331-02 as-built note instead of rewriting them (D-BZ).",
+      "touchedFiles": [
+        "packages/checkpoint/bin/checkpoint.cjs",
+        "packages/checkpoint/src/sensor.ts",
+        "packages/checkpoint/tests/sensor-concurrency.test.ts"
+      ],
+      "updatedAt": "2026-10-20T16:49:29.832Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "mechanical"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "bin/checkpoint.cjs now dynamic-imports dist/cli.js (pathToFileURL) in-process after the unchanged Node >=22 guard, instead of spawning a second Node; cli.ts unchanged (argv.slice(2) still yields the subcommand args). Load/top-level failure writes one stderr line with the stack and exits 1. Independent review APPROVE WITH MINOR: exit codes equivalent on every cli.ts path, stdin/isTTY same fd, path-to-URL handles spaces/#/%/non-ASCII/drive letters/UNC, signal-killed process now reports real signal status instead of the old shim's 0 (benign improvement), win32 kill of the bin still kills the inner; minor (catch message + stack) applied. Main-thread: 331-02/AC-2 passes; checkpoint 247 passed / 1 failed (T4's AC-3); local AC-5 per-invocation wall p50 115 ms (was ~150 ms before the hop cut in the local probe). REPORT lines describing the two-process shape (:326/:334/:342/:347) are 331-01's; T6 adds an as-built note.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-20T16:49:30.427Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    }
+  }
+}
