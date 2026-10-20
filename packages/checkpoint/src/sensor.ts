@@ -227,9 +227,11 @@ const NOTICE_PREFIX = 'checkpoint statusline: ';
 /**
  * How long the wrapper waits for the recording after the inner exits before
  * it flushes and exits: a ceiling chosen by the operator (331-02), not a
- * measured tail. It covers the project walk's p99 (366 ms, probe run
- * 39450266774) plus the 825 ms core's atomicWriteText may sleep retrying a
- * contended Windows rename. Claude Code shows a statusline only once the
+ * measured tail. It leaves room for the project walk's p99 (366 ms, the
+ * slowest of 15 runs on probe run 39450266774) plus core's atomicWriteText
+ * retrying a contended Windows rename, which sleeps at most 675 ms before a
+ * rename that succeeds (825 ms when all 10 attempts fail), not counting the
+ * mkdir, write and rename calls themselves. Claude Code shows a statusline only once the
  * command exits, debounces update triggers by 300 ms (a quiet period before a
  * run, not a time budget for it), and cancels a run still in flight when a
  * new one triggers (https://code.claude.com/docs/en/statusline). On run

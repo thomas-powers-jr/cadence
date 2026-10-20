@@ -55,6 +55,20 @@
       "execution": "dispatch",
       "isolation": "worktree",
       "modelClass": "complex"
+    },
+    "T8": {
+      "status": "DONE",
+      "notes": "RECORD_DEADLINE_MS 1000 -> 1500 (operator decision after run 39461022835) with an honest doc comment (leaves room for walk p99 366 ms plus atomicWriteText's rename retries: at most 675 ms before a succeeding rename, 825 ms if all 10 fail; ceiling, not measured tail; bounds the wait, not lifetime). Pure exported recordDeadlineFromEnv (strict /^[1-9][0-9]*$/, <= 2147483647) wired into cli.ts's statusline command only. Recording/bytes tests inject a 10 s deadline (in-process recordDeadlineMs, built-wrapper/shell CHECKPOINT_RECORD_DEADLINE_MS in the child env only); deadline tests keep the default and strip any ambient override. RED first (8 targeted tests). Independent review CHANGES REQUIRED -> fixed in main thread: F1 deterministic CLI wiring test via a --require preload that hangs fs/promises.stat (proved green with wiring, red with the cli.ts spread removed, file restored byte-identical); F2 two remaining in-process byte tests injected; F4 comment wording; F6 ambient override stripped from the process-shape and AC-5 spawns; F7 generous deadline 60 s -> 10 s (spawnSync is uninterruptible). Main-thread: checkpoint 262 passed / 1 skipped, eslint (src + touched tests) 0, strict typecheck of touched tests 0.",
+      "touchedFiles": [
+        "packages/checkpoint/tests/helpers/shells.ts",
+        "packages/checkpoint/tests/sensor-shell-transparency.test.ts",
+        "docs/checkpoint/REPORT-checkpoint-phase-2.md",
+        "packages/checkpoint/tests/report-331-02.test.ts"
+      ],
+      "updatedAt": "2026-10-20T18:01:33.215Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "complex"
     }
   }
 }

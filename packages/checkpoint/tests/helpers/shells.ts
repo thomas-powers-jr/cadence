@@ -36,9 +36,11 @@ export interface RunOptions {
  * Record deadline for every wrapper these helpers run (the shell passes it on
  * to `checkpoint statusline`): their callers' subject is recording or bytes,
  * not the deadline, and loaded CI runners have missed even 1000 ms (run
- * 39461022835). Set only in the child env, never on process.env.
+ * 39461022835). Set only in the child env, never on process.env. 10 s, not
+ * more: spawnSync cannot be interrupted by the test timer, so a slow write
+ * should still fail readably inside the shared budget.
  */
-const GENEROUS_DEADLINE_MS = 60_000;
+const GENEROUS_DEADLINE_MS = 10_000;
 
 function run(exe: string, args: string[], opts: RunOptions): ShellResult {
   const spawnOpts: SpawnSyncOptions = {

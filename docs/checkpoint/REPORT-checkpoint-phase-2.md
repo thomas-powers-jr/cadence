@@ -376,3 +376,67 @@ Other gate refusals: `draft-read` refused once after As-built DRAFT edits (resol
 - **Hung project filesystem.** On a truly hung filesystem the sensor process outlives its output (see "Bounded reading wait"), and stuck processes pile up one per statusline tick. Phase 3 must not depend on the sensor process exiting, and any hook that reads `reading.json` must treat it as possibly stale (by `ts`). Options if this matters in practice: self-terminate on abandonment (measured on Windows; loses the exit code), or a detached recorder process.
 - **Stray temp files.** A sensor write abandoned at the 250 ms deadline can leave `reading.json.*.tmp` in `.cadence/checkpoint/`. Phase 3 readers must read only `reading.json` and `state.json` by name, and must not treat `*.tmp` siblings as state.
 - **Write failures in hook callers.** `transitionStore` throws on mkdir or write I/O errors rather than returning `{ ok: false }`, so Phase 3 hook callers must wrap it.
+
+## Slice 331-02 (as built, 2026-10-20)
+
+Slice 331-02 fixed the two CI defects 331-01 left on PR #571 and code-review finding 7, from measurements. The sections above are 331-01's record and are not rewritten (D-BZ). Where they now describe superseded behavior, the corrections are listed under "Corrections to 331-01's record" below.
+
+### What Claude Code does with a statusline
+
+From https://code.claude.com/docs/en/statusline:
+
+- **Render on exit.** Claude Code shows the command's output only after the command exits with code 0. Writing and closing stdout early does not show anything sooner, so every millisecond the wrapper waits is a millisecond the statusline is blank or stale.
+- **300 ms is a debounce, not a budget.** Update triggers are debounced by 300 ms (a quiet period before a run starts). No per-run timeout is documented.
+- **Cancel on retrigger.** If a new update triggers while a run is in flight, Claude Code cancels the in-flight run. Whether it kills the process or closes its pipes is not documented.
+
+331-01's 250 ms deadline was justified as fitting "inside" the 300 ms debounce. That reading was wrong: the debounce does not bound a run.
+
+### Measurements
+
+Probe PR #573 (branch `probe/331-02-timing`, never merged) ran a timing probe on all three legs in three CI runs: 39448948337, 39450266774 and 39452805430. It ran twice per leg: isolated (three batches of 30 runs) and under the full suite's load (a test inside the checkpoint suite). "Exit to written" is the time from the inner statusline exiting to the reading being written, measured in-process with a 60 s deadline so nothing was cut off; negative means the reading was written before the inner exited.
+
+| Leg | Wrapper wall p50 / p99, isolated | Wrapper wall p50 / p99, under load | Exit to written, worst, isolated / under load | Deadline notices (250 ms) |
+|---|---|---|---|---|
+| ubuntu-latest | 98-106 / 101-117 ms | 720-968 / 1079-1121 ms | -17 / -48 ms | 0 |
+| macos-latest | 94-196 / 103-389 ms | 506-1277 / 736-2311 ms | +30 / +11 ms | 0 |
+| windows-latest | 164-188 / 177-198 ms | 566-2790 / 1468-4795 ms | -34 / +84.6 ms | 1 of 30 under load |
+
+Ranges span the three runs. The bare inner (`inner-statusline.cjs`) took a p50 of 28-30 ms on ubuntu, 49-68 ms on macOS and 60-61 ms on Windows, isolated. On run 39450266774 (windows-latest under load) the project walk's p99 was 366 ms and one atomic write took 218 ms.
+
+That probe never caught the slower-runner tail behind 331-01's AC-5 misses (11 of 30 on run 38921906308, 2 of 30 on run 38951077000). PR #571's first 331-02 CI run did: on run 39461022835 (windows-latest, job 118760197799), with the deadline already at 1000 ms, a warm in-process recording missed it (331-01/AC-2's empty-stderr assertion failed), and AC-5 lost 2 of 30 readings, with a per-invocation wall time of p50 1491 ms and p90 2642 ms. Core's `atomicWriteText` alone may sleep 825 ms retrying a contended Windows rename (`packages/core/src/state/atomic-write.ts`: 10 attempts with a 15 ms × attempt backoff), so a write that is only retrying can take about 1.2 s with a p99 walk.
+
+### Decisions (operator, 2026-10-20)
+
+- **Deadline: a 1500 ms hold ceiling.** `RECORD_DEADLINE_MS` is 1500. It is a cap the operator chose on how long a slow recording may hold the statusline, **not a measured tail**: it covers the p99 walk plus `atomicWriteText`'s rename-retry budget, and the measured tail is open-ended.
+- **Degradation: abandon with one notice.** Under extreme load a reading is abandoned with one stderr notice and stdout and the exit code are unaffected. A detached recorder process was not chosen, because it would add a Node start to every invocation under the same load.
+- **Override: `CHECKPOINT_RECORD_DEADLINE_MS`.** A strict positive integer (`/^[1-9][0-9]*$/`, at most 2147483647, setTimeout's maximum) in the statusline command's environment replaces the 1500 ms default; anything else is ignored. It is a diagnostic and test override. The checkpoint tests whose subject is recording or bytes set it (or pass `recordDeadlineMs` in-process) so they no longer depend on machine speed; the deadline's own tests keep the default.
+
+### What changed
+
+- **Deadline.** `RECORD_DEADLINE_MS` 250 → 1500 ms, with its doc comment rewritten to the facts above.
+- **One Node process.** `bin/checkpoint.cjs` now loads `dist/cli.js` in-process (a dynamic import after the Node 22 check) instead of spawning a second Node process. The inner statusline is now a direct child of the bin process (asserted by 331-02/AC-2 through its parent PID), one fewer Node start per invocation. Its saving was not measured like for like: the probe's sequential timings and AC-5's concurrent ones are different shapes. A load failure or an error thrown while `dist/cli.js` runs prints one stderr line with the stack and exits 1. A signal-killed wrapper now reports its real signal status; the old shim reported exit 0.
+- **Streamed stdout (finding 7).** `runInner` writes each inner stdout chunk to the wrapper's stdout as it arrives, so the wrapper keeps no copy of the output. **Backpressure is not applied** (`opts.stdout` exposes only `write`), so a slow reader can still queue output in the stdout stream's own buffer. Render time is unchanged, because Claude Code renders on exit. 331-02/AC-3 proves the first chunk reaches stdout before the inner exits, in-process and through a real pipe.
+- **A closed statusline pipe no longer crashes the wrapper.** Found by T4's independent review: once stdout streamed, a reader closing the pipe mid-run made the next write raise an unhandled EPIPE (exit 1, a raw stack trace, the reading lost). `cli.ts` now listens for `'error'` on stdout and stderr and makes each a silent no-op once it has errored; the inner's exit code is forwarded and the reading still recorded (331-02/AC-6, red before and green after on win32).
+- **AC-5 fits macOS's budget.** Each writer's invocations run one after another, so the test lasts about invocations × one invocation's wall time. On run 39461022835 (macos-latest, after the hop cut) one invocation took p50 999 ms and p90 1446 ms: 15 × 1446 ms is 21.7 s, over the 20 s shared budget, so AC-5 now runs 2 writers × 8. Its assertions are unchanged, and its log line now reports per-invocation p50 and p90.
+
+### Corrections to 331-01's record
+
+These lines in the sections above describe behavior 331-02 changed. They stand as 331-01's record; read them with these corrections:
+
+- "Process chain", "Latency" and "Not bounded: process lifetime": the wrapper is now **one** Node process (`bin/checkpoint.cjs` running `dist/cli.js` in-process), not a shim spawning `dist/cli.js`. A stuck filesystem call now keeps one process alive, not two.
+- "Cancellation": on POSIX, killing the bin can now orphan at most the inner statusline command, not `dist/cli.js` too; and a signal-killed wrapper no longer maps to exit 0.
+- "Latency" and "Bounded reading wait": the deadline is 1500 ms, and the "within Claude Code's 300 ms statusline debounce" rationale is withdrawn (see "What Claude Code does with a statusline").
+- "Stray temp files": the deadline that can leave a `*.tmp` sibling is now 1500 ms.
+- "Phase 3 preconditions" → "Stream the inner's stdout": **done in 331-02**, without backpressure (see "Streamed stdout" above).
+
+### Phase 3 notes
+
+- **Process lifetime is still unbounded on a truly hung filesystem.** The deadline bounds how long the wrapper waits, not how long the process lives: a stuck `fs/promises` call on libuv's threadpool still keeps the process alive after it has flushed and called exit.
+- **An inner can be left running when Claude Code cancels a run.** If cancellation closes the wrapper's pipes, the wrapper now survives (331-02/AC-6) and keeps draining the inner until it exits. If cancellation kills the wrapper, on win32 the inner dies with it (measured in 331-01); on POSIX the inner may be orphaned.
+- **Readings can be lost under extreme load.** Phase 3 readers must treat `reading.json` as possibly stale by `ts`, as before.
+
+### Candidate findings (not filed; the ledger is operator-only for this arc)
+
+- **A second slice on an unmerged branch inherits the first slice's diff.** Boundary enforcement, `boundary-scan` and the settle review diff all diff from `merge-base(origin/<phaseGuard.integrationRef>, HEAD)`. With 331-01's commits still unmerged, the boundary gate refused 331-02's first task over 26 of 331-01's files, and code-review would have re-read all of 331-01's sensor code. For 331-02 the operator approved setting `phaseGuard.integrationRef` to a local ref, `slice-base/331-02`, at 331-02's start commit (`75df07d5`), restored to `main` before the phase commit.
+- **The checkpoint package never typechecks or lints its tests.** `tsconfig.json` includes only `src`, and `lint` is `eslint src`. Linting `tests/` finds one existing error (`sensor-concurrency.test.ts`, an unused `_ts` binding from 331-01).
+- **The `CHECKPOINT_RECORD_DEADLINE_MS` wiring in `cli.ts` has no automated test.** It is unit-tested at the parser (331-02/AC-7) and was probed by hand (`=1` gave a "within 1 ms" notice in 3 of 3 runs; `=abc` gave none); a CLI-level test with a tiny deadline would race.

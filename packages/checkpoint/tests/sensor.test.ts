@@ -81,8 +81,11 @@ function envWithout(...keys: string[]): NodeJS.ProcessEnv {
 // The subject of the tests that use these is recording or stdout bytes, not
 // the record deadline, and loaded CI runners have missed even 1000 ms (run
 // 39461022835). The deadline's own tests (331-02/AC-1, the 331-01/AC-9
-// abandon tests, sensor-concurrency.test.ts) keep the default.
-const GENEROUS_DEADLINE_MS = 60_000;
+// abandon tests, sensor-concurrency.test.ts) keep the default. 10 s rather
+// than more: these runners use spawnSync, which the test timer cannot
+// interrupt, so a write that is slow but finishes should still fail readably
+// ("not recorded within 10000 ms") inside the shared budget.
+const GENEROUS_DEADLINE_MS = 10_000;
 
 /** A built-wrapper child env with the generous deadline (only in the child, never on process.env). */
 function sensorEnv(env: NodeJS.ProcessEnv = envWithout('CADENCE_HOME')): NodeJS.ProcessEnv {
@@ -571,6 +574,7 @@ describe('runStatusline (in-process)', () => {
       stderr: collector<string>(),
       cwdFallback: tmp,
       excludedCadenceDirs: REAL_EXCLUSIONS,
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     expect(code).toBe(4);
     expect(Buffer.concat(stdout.chunks).toString('utf8')).toBe('ok');
@@ -738,6 +742,7 @@ describe('runStatusline (in-process)', () => {
       cwdFallback: tmp,
       now: () => FIXED_NOW,
       excludedCadenceDirs: REAL_EXCLUSIONS,
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     // Bounded wait in the test body for the first chunk; not a vitest timeout.
     const waitUntil = Date.now() + 10_000;
@@ -1068,7 +1073,8 @@ describe('checkpoint statusline (built wrapper process shape)', () => {
     return new Promise((done, fail) => {
       const child = spawn(process.execPath, [BIN, 'statusline', ...args], {
         windowsHide: true,
-        env: envWithout('CADENCE_HOME'),
+        // A developer's exported override must not change what this test runs.
+        env: envWithout('CADENCE_HOME', 'CHECKPOINT_RECORD_DEADLINE_MS'),
         stdio: ['pipe', 'pipe', 'ignore'],
       });
       const out: Buffer[] = [];
@@ -1097,6 +1103,45 @@ describe('checkpoint statusline (built wrapper process shape)', () => {
 
     const failing = await runWrapperAsync(input, ['--', process.execPath, fixture, join(tmp, 'ppid-3.txt'), '3']);
     expect(failing.status).toBe(3);
+  });
+});
+
+describe('checkpoint statusline (built wrapper, deadline override wiring)', () => {
+  /**
+   * Runs the built wrapper (no inner) with a preload that makes
+   * fs/promises' stat never settle in the wrapper process only, so the
+   * recording can never finish and the outcome depends only on the deadline:
+   * the notice names the deadline the statusline command actually used.
+   */
+  function runWithHungWalk(deadline: string | undefined): { status: number | null; stderr: string } {
+    const preload = join(tmp, 'hang-walk.cjs');
+    writeFileSync(
+      preload,
+      "if (process.argv.includes('statusline')) {\n" +
+        "  const fsp = require('node:fs/promises');\n" +
+        '  fsp.stat = () => new Promise(() => undefined);\n' +
+        "  require('node:module').syncBuiltinESMExports();\n" +
+        '}\n',
+    );
+    const env = envWithout('CADENCE_HOME', 'CHECKPOINT_RECORD_DEADLINE_MS');
+    env['NODE_OPTIONS'] = `--require ${JSON.stringify(preload)}`;
+    if (deadline !== undefined) env['CHECKPOINT_RECORD_DEADLINE_MS'] = deadline;
+    const r = spawnSync(process.execPath, [BIN, 'statusline'], {
+      input: payloadFor('payload-42.json', project),
+      windowsHide: true,
+      env,
+    });
+    return { status: r.status, stderr: r.stderr.toString('utf8') };
+  }
+
+  it('331-02/AC-7: the statusline command uses a valid CHECKPOINT_RECORD_DEADLINE_MS and ignores an invalid one', () => {
+    const valid = runWithHungWalk('37');
+    expect(valid.status).toBe(0);
+    expect(valid.stderr).toBe('checkpoint statusline: reading not recorded within 37 ms of the inner exiting; abandoned it\n');
+
+    const invalid = runWithHungWalk('abc');
+    expect(invalid.status).toBe(0);
+    expect(invalid.stderr).toBe('checkpoint statusline: reading not recorded within 1500 ms of the inner exiting; abandoned it\n');
   });
 });
 

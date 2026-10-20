@@ -11,10 +11,14 @@ const INNER = join(FIXTURES, 'inner-statusline.cjs');
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 // Each writer's invocations run one after another, so this test takes about
 // INVOCATIONS_PER_WRITER x one invocation's wall time. 331-02 cut it from 15
-// to 8: on PR #571 run 39461022835 (macos-latest, under suite load, after the
-// process-hop cut) one invocation measured p50 999 ms / p90 1446 ms, and
+// to 8 by a rule agreed before measuring (shrink if 15 x p90 exceeds 20 s),
+// not after an observed timeout: on PR #571 run 39461022835 (macos-latest,
+// under suite load, after the process-hop cut) one invocation measured
+// p50 999 ms / p90 1446 ms and the 2 x 15 test passed in 17.2 s, but
 // 15 x 1446 ms is 21.7 s, over macOS's shared 20 s budget; 8 x 1446 ms is
-// 11.6 s. Both payloads were still observed thousands of times per run.
+// 11.6 s. At 2 x 8 on run 39468308041 the test took 6.4 s (ubuntu), 6.1 s
+// (macOS) and 12.5 s (windows, 90 s budget), and the reader saw the two
+// payloads 930/2028, 1446/765 and 777/486 times.
 const INVOCATIONS_PER_WRITER = 8;
 const TRANSIENT_READ_CODES = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOENT']);
 
@@ -79,9 +83,14 @@ function percentile(sorted: readonly number[], p: number): number {
 function invokeWrapper(input: Buffer): Promise<Invocation> {
   return new Promise((resolvePromise, reject) => {
     const started = performance.now();
+    // This is one of the deadline's own tests: an exported override in the
+    // developer's environment must not move it off the default.
+    const env = { ...process.env };
+    delete env['CHECKPOINT_RECORD_DEADLINE_MS'];
     const child = spawn(process.execPath, [BIN, 'statusline', '--', process.execPath, INNER], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
+      env,
     });
     const out: Buffer[] = [];
     const err: Buffer[] = [];
