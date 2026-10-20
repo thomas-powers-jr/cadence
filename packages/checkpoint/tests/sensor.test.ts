@@ -1073,8 +1073,10 @@ describe('checkpoint statusline (built wrapper process shape)', () => {
     return new Promise((done, fail) => {
       const child = spawn(process.execPath, [BIN, 'statusline', ...args], {
         windowsHide: true,
-        // A developer's exported override must not change what this test runs.
-        env: envWithout('CADENCE_HOME', 'CHECKPOINT_RECORD_DEADLINE_MS'),
+        // Not a deadline test: it also compares stdout bytes, so like every
+        // recording-or-bytes test it gets the generous deadline (331-02/AC-7),
+        // which also replaces any override a developer has exported.
+        env: sensorEnv(),
         stdio: ['pipe', 'pipe', 'ignore'],
       });
       const out: Buffer[] = [];
