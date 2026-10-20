@@ -1,0 +1,22 @@
+{
+  "hook_event_name": "Status",
+  "session_id": "abc123",
+  "cwd": "/x",
+  "model": {
+    "id": "claude-opus-5-5",
+    "display_name": "Opus"
+  },
+  "workspace": {
+    "current_dir": "/x",
+    "project_dir": "/launch/dir"
+  },
+  "context_window": {
+    "total_input_tokens": 65933,
+    "total_output_tokens": 13,
+    "context_window_size": 1000000,
+    "used_percentage": null,
+    "remaining_percentage": null,
+    "current_usage": null
+  },
+  "exceeds_200k_tokens": false
+}

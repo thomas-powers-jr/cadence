@@ -1246,6 +1246,18 @@ changeset (example/test-only change, no published-package surface).*
   root `pnpm audit` from 13 moderate to 0 with no published package change;
   the gate-severity question split out as rec-20261015-001
   (rec-20261008-002).
+- **Phase 331** — checkpoint Arc A Phase 2: a byte-transparent
+  `checkpoint statusline` wrapper records context usage (both units, raw,
+  null/0 as unknown) to the nearest project's `.cadence/checkpoint/`, a
+  transition table accepts CMD-C's 7 edges and rejects the other 29 pairs,
+  and `checkpoint statusline-install` wraps a settings file's statusLine
+  without touching anything else; byte transparency proven through Git Bash
+  and `powershell.exe -Command`, core exports `atomicWriteText` (D-BR), and
+  nothing blocks, injects, or registers a hook. Slice 331-02 fixed its red
+  CI legs and code-review finding 7: a 1500 ms recording hold ceiling with a documented
+  `CHECKPOINT_RECORD_DEADLINE_MS` override, one Node process instead of two,
+  streamed inner stdout, and no crash when the statusline reader closes the
+  pipe mid-run.
 - **Phase 332** — a code-review HIGH or security-audit CRITICAL findings
   bypass (`--allow-code-review-failure`, `--allow-security-audit-failure` or
   `--force`) now leaves one `error`-severity `SUMMARY.json.gateBypasses`

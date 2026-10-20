@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 2,
+  "draftId": "331-01",
+  "completedAt": "2026-10-16T13:52:31.732Z",
+  "acResults": [],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "refused",
+      "reason": "settle run refused: code-review did NOT converge after 3 attempts — a human decision is required. Fix the flagged code, or pass --allow-code-review-failure to proceed anyway.",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "core re-exports atomicWriteText; checkpoint depends on core at runtime; release plan keeps checkpoint at 0.0.0 (type none); independent review approved",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "transition table (7 legal / 29 rejected), unconditional unknown predicate, machine-state store; two review rounds (win32 corrupt-store-as-idle, 29-pair store coverage, POSIX ENOTDIR parity) fixed and re-verified in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "statusline sensor: parse/record/pass-through, nearest-.cadence resolution with realpath-based ~/.cadence exclusion, best-effort notices; two review rounds (alias bypass, notice path) fixed; re-verified in main thread 10 files/193 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "bash (Git Bash) + powershell.exe -NoProfile -Command byte transparency, both run on win32; measurements captured; independent review approved, 3 minor hardening fixes applied in main thread",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "statusline-install (token-aware splice, strict UTF-8, win32 PATH x PATHEXT resolution) + AC-7 tool sweep; two review rounds; re-verified in main thread 12 files/233 tests",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "standard"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "REPORT-checkpoint-phase-2.md + checkpoint-phase-2-report.test.ts (6/6) + handoff As-built note; settle-time items marked pending-settle; core tests/docs 53 files green",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [],
+    "invoked": [
+      "phase-build"
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "codeReview": {
+    "packages/checkpoint/src/sensor.ts": [
+      {
+        "severity": "high",
+        "message": "The wrapper waits for recordReading before exiting. A slow or retrying filesystem write delays or stalls statusline output, violating its non-blocking contract.",
+        "line": 317,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-2",
+          "tier": "executable"
+        },
+        "id": "da02b461d9374a184f5f64352c9294b27536bdc25aeb11ca003062b37f9c9716",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/checkpoint/src/install.ts": [
+      {
+        "severity": "medium",
+        "message": "Atomic rename at a symlink path replaces settings.json with a regular file instead of editing its target, breaking dotfile-managed settings and future source updates.",
+        "line": 447,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "fdcd1d00274c90d09c899318cf8d89b5e8fef957fa53543391d06678693cfbd1",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/checkpoint/src/state.ts": [
+      {
+        "severity": "medium",
+        "message": "Any string is accepted as since although the store contract requires ISO-8601. A corrupt timestamp then looks valid and can break future time-based transitions.",
+        "line": 190,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-3",
+          "tier": "executable"
+        },
+        "id": "65d1c860ed484f2774c1c763b9b1d2d19aec4c8d0d235bda860500b24cbb953a",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "e926680f1da99191ad4fa1f6b09e10ca25670cff6b3f3e85f6c1734a1e18ad49"
+  }
+}

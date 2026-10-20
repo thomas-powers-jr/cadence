@@ -1,0 +1,62 @@
+{
+  "draftId": "331-01",
+  "converged": false,
+  "attempts": 7,
+  "maxAttempts": 3,
+  "history": [
+    {
+      "at": "2026-10-15T20:44:43.044Z",
+      "pass": false,
+      "findingsCount": 2,
+      "provider": "host-cli",
+      "verdict": "reloop"
+    },
+    {
+      "at": "2026-10-15T20:55:36.138Z",
+      "pass": false,
+      "findingsCount": 1,
+      "provider": "host-cli",
+      "verdict": "reloop"
+    },
+    {
+      "at": "2026-10-15T22:30:36.931Z",
+      "pass": false,
+      "findingsCount": 11,
+      "provider": "mock",
+      "verdict": "escalate"
+    },
+    {
+      "at": "2026-10-16T13:52:31.727Z",
+      "pass": false,
+      "findingsCount": 1,
+      "provider": "host-cli",
+      "verdict": "escalate"
+    },
+    {
+      "at": "2026-10-16T14:28:22.601Z",
+      "pass": false,
+      "findingsCount": 1,
+      "provider": "host-cli",
+      "verdict": "escalate"
+    },
+    {
+      "at": "2026-10-16T15:00:52.430Z",
+      "pass": false,
+      "findingsCount": 1,
+      "provider": "host-cli",
+      "verdict": "escalate"
+    },
+    {
+      "at": "2026-10-16T16:44:59.897Z",
+      "pass": false,
+      "findingsCount": 2,
+      "provider": "host-cli",
+      "verdict": "escalate",
+      "bypassed": true
+    }
+  ],
+  "pass": false,
+  "provider": "host-cli",
+  "findings": 2,
+  "at": "2026-10-16T16:44:59.897Z"
+}

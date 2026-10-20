@@ -16,10 +16,11 @@ import { join } from 'node:path';
 // (`include: ["src"]`) does not typecheck test files; vitest transpiles them.
 //
 // The import itself resolves without any declared dependency, but the
-// `@thomas-powers-jr/cadence-core` (and `-types`) devDependencies in
-// checkpoint's package.json are still LOAD-BEARING: they are how turbo learns
-// that checkpoint's test task depends on core's source, so a renderer-only
-// edit busts checkpoint's cached test result. Do not remove them as "unused".
+// `@thomas-powers-jr/cadence-core` dependency (a runtime one since phase 331,
+// for `atomicWriteText`) and the `-types` devDependency in checkpoint's
+// package.json are still LOAD-BEARING here: they are how turbo learns that
+// checkpoint's test task depends on core's source, so a renderer-only edit
+// busts checkpoint's cached test result. Do not remove them as "unused".
 import { renderSession } from '../../core/src/handoff/render-session.js';
 import type { SessionRenderInput } from '../../core/src/handoff/render-session.js';
 import { extractHeaderLabels, LATEST_HANDOFF_VERSION, REQUIRED_SECTIONS_V2, validate } from '../src/validate.js';

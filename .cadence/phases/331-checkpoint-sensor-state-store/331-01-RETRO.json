@@ -1,0 +1,92 @@
+{
+  "bypasses": [],
+  "roughTasks": [],
+  "findings": {
+    "codeReview": {
+      "packages/checkpoint/src/install.ts": [
+        {
+          "severity": "high",
+          "message": "On Windows, rename replaces settings.json with a temp file inheriting the parent DACL, dropping explicit ACLs. Secrets in its env block may become readable by directory principals.",
+          "line": 447,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-7",
+            "tier": "executable"
+          },
+          "id": "e63627c9fa2b609fc120e49484cfce8f02f34d5ef9ab403a8dc7b97eca06629a",
+          "target": "artifact",
+          "disposition": "open"
+        },
+        {
+          "severity": "medium",
+          "message": "Atomic rename replaces a symlinked settings file itself, leaving its target unchanged and breaking dotfile-manager links. Detect/reject symlinks or update their target.",
+          "line": 447,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-7",
+            "tier": "executable"
+          },
+          "id": "e86f6246c1426b35d4f8db54d1c2f40b68b67641473ef7afe1c391e40adba1d5",
+          "target": "artifact",
+          "disposition": "open"
+        },
+        {
+          "severity": "medium",
+          "message": "Only some shell builtins are rejected. Commands such as `alias foo` or `cd dir` can be installed, then fail or change semantics under the no-shell spawn.",
+          "line": 172,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-7",
+            "tier": "executable"
+          },
+          "id": "6514b2e33f9fa20a7b6fa5ac3e7fafb29c01beff9f67cd9247236c530970f05d",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ],
+      "packages/checkpoint/src/sensor.ts": [
+        {
+          "severity": "high",
+          "message": "All inner stdout is buffered until exit. A verbose or non-terminating statusline grows memory without bound and never renders; stream output with backpressure instead.",
+          "line": 322,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-2",
+            "tier": "executable"
+          },
+          "id": "682039fb60dca6ecdb52291347ad65d8f3046d8354c30ca8af4836ad54ea91e2",
+          "target": "artifact",
+          "disposition": "open"
+        },
+        {
+          "severity": "medium",
+          "message": "A recording continues after the deadline; an older delayed invocation can finish after a newer one and overwrite reading.json with stale data.",
+          "line": 371,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-2",
+            "tier": "executable"
+          },
+          "id": "25c63ea6bb621fddf033918fcd223f1668bbfcc8117c821108f6a304070592da",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ],
+      "packages/checkpoint/src/state.ts": [
+        {
+          "severity": "medium",
+          "message": "Any string is accepted for `since`, so a corrupt non-ISO timestamp is treated as valid despite the state-file contract and can break timestamp-based consumers.",
+          "line": 190,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-3",
+            "tier": "executable"
+          },
+          "id": "8cc4440f4473407ffaafa85e1380653194b03dcf4b51173470decf67867caa15",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ]
+    }
+  }
+}

@@ -10,6 +10,13 @@
 
 **Ledger rule from the parent document stands: do not mutate the Cadence ledger from this work.** The operator files decisions and recommendations.
 
+> **As built (phase 331, 2026-10-15):** Phase 2 was built as phase 331. See `docs/checkpoint/REPORT-checkpoint-phase-2.md`. Three §2 measurements had moved by then:
+> - core was `1.70.0`, not `1.68.0`;
+> - checkpoint already listed core as a devDependency (phase 316);
+> - core's package entry did not export `atomicWriteText`, so D-BR took one additive core re-export.
+>
+> AC-8's settings edit is made by a new `checkpoint statusline-install` command. The repository's own `.claude/settings.json` was not changed. The DRAFT (`.cadence/phases/331-checkpoint-sensor-state-store/331-01-DRAFT.md`) records further ACs and the As-built amendments.
+
 **Runs in parallel with the hook-JSON-block work.** Phase 2 registers no hook, blocks nothing, and depends on nothing in that arc. Use a separate worktree.
 
 ---

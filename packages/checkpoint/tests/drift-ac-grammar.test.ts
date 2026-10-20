@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-// Test-only relative SOURCE imports, not package imports: core and types are
-// devDependencies of checkpoint purely so turbo builds them first, and phase
-// 316's boundaries forbid adding public exports to either package. Importing
-// source by path pins checkpoint against the exact grammar core and types
-// ship, without widening their public surface.
+// Test-only relative SOURCE imports, not package imports: types is a
+// devDependency of checkpoint purely so turbo builds it first, and core —
+// a runtime dependency since phase 331, for `atomicWriteText` only (D-BR) —
+// exports neither of these, nor should it just for a test. Importing source
+// by path pins checkpoint against the exact grammar core and types ship,
+// without widening their public surface.
 import { parseDraftMd } from '../../core/src/parse/draft-parser.js';
 import { CadenceError } from '../../core/src/errors.js';
 import { AcceptanceCriterionZ } from '../../types/src/plan.js';
