@@ -12,6 +12,10 @@
 // report: raw-node versus through-shell inner bytes, the argv a probe
 // receives through `powershell.exe -Command` with and without `--`, and exit
 // code forwarding. Nothing asserts their direction.
+//
+// The subject here is bytes and recording, not the record deadline, so the
+// shell helpers give every child a generous CHECKPOINT_RECORD_DEADLINE_MS
+// (helpers/shells.ts, 331-02/AC-7).
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

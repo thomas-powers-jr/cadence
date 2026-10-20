@@ -227,18 +227,41 @@ const NOTICE_PREFIX = 'checkpoint statusline: ';
 /**
  * How long the wrapper waits for the recording after the inner exits before
  * it flushes and exits: a ceiling chosen by the operator (331-02), not a
- * measured tail. Claude Code shows a statusline only once the command exits,
- * debounces update triggers by 300 ms (a quiet period before a run, not a
- * time budget for it), and cancels a run still in flight when a new one
- * triggers (https://code.claude.com/docs/en/statusline). The recording
- * usually finishes before the inner exits; the worst measured case was
- * 84.6 ms after it, on windows-latest under suite load (probe run
- * 39450266774), and the slower-runner tail behind PR #571's dropped readings
- * was never captured. This bounds the wait, not process lifetime: a truly
- * hung filesystem call can still keep the process alive (see the phase
- * report). A write abandoned at the deadline can leave a `*.tmp` sibling.
+ * measured tail. It covers the project walk's p99 (366 ms, probe run
+ * 39450266774) plus the 825 ms core's atomicWriteText may sleep retrying a
+ * contended Windows rename. Claude Code shows a statusline only once the
+ * command exits, debounces update triggers by 300 ms (a quiet period before a
+ * run, not a time budget for it), and cancels a run still in flight when a
+ * new one triggers (https://code.claude.com/docs/en/statusline). On run
+ * 39461022835 (windows-latest under suite load) a warm in-process recording
+ * missed 1000 ms, so the tail is open-ended: abandoning the write with one
+ * notice is the accepted degradation. This bounds the wait, not process
+ * lifetime: a truly hung filesystem call can still keep the process alive
+ * (see the phase report). A write abandoned at the deadline can leave a
+ * `*.tmp` sibling. `CHECKPOINT_RECORD_DEADLINE_MS` overrides it for
+ * diagnostics and tests (see `recordDeadlineFromEnv`).
  */
-export const RECORD_DEADLINE_MS = 1000;
+export const RECORD_DEADLINE_MS = 1500;
+
+/** setTimeout's maximum delay; Node fires a larger one after 1 ms instead (TimeoutOverflowWarning). */
+const MAX_TIMER_MS = 2_147_483_647;
+
+/**
+ * Pure: the record deadline `CHECKPOINT_RECORD_DEADLINE_MS` asks for, or
+ * `undefined` to keep `RECORD_DEADLINE_MS`. Only canonical decimal digits
+ * with no sign, leading zero or surrounding whitespace are accepted
+ * (`/^[1-9][0-9]*$/`), up to setTimeout's 2147483647 ms maximum; anything
+ * else (absent, empty, zero, negative, fractional, non-numeric, padded, or
+ * too large, which Node would fire after 1 ms) is ignored rather than
+ * clamped or coerced. A diagnostic and test override for the statusline
+ * command only.
+ */
+export function recordDeadlineFromEnv(env: Record<string, string | undefined>): number | undefined {
+  const raw = env['CHECKPOINT_RECORD_DEADLINE_MS'];
+  if (raw === undefined || !/^[1-9][0-9]*$/.test(raw)) return undefined;
+  const ms = Number(raw);
+  return ms <= MAX_TIMER_MS ? ms : undefined;
+}
 
 async function defaultWriteReading(path: string, text: string): Promise<void> {
   // atomicWriteText (D-BR) writes a temp sibling then renames; it does

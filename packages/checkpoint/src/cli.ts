@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { installStatusline } from './install.js';
-import { exitAfterFlush, runStatusline } from './sensor.js';
+import { exitAfterFlush, recordDeadlineFromEnv, runStatusline } from './sensor.js';
 import { validate } from './validate.js';
 
 const USAGE =
@@ -38,8 +38,10 @@ interface GuardedFlushable {
 }
 
 /**
- * A process stream that becomes a silent no-op once it has emitted 'error'
- * (EPIPE when the statusline reader closes its end of the pipe mid-run). The
+ * A process stream that becomes a silent no-op once it has emitted any
+ * 'error' (in practice EPIPE, when the statusline reader closes its end of
+ * the pipe mid-run; a file-redirected stdout's ENOSPC is silenced too, since
+ * a statusline has nowhere useful to report a broken stdout). The
  * error arrives as a stream event, not a throw, so without this listener it
  * would crash the wrapper and lose the reading and the inner's exit code.
  * `flushable` invokes its callback at once after an error, so exitAfterFlush
@@ -68,6 +70,8 @@ function guardStream(stream: NodeJS.WriteStream): { sink: GuardedStream; flushab
 function statusline(args: string[]): void {
   const stdout = guardStream(process.stdout);
   const stderr = guardStream(process.stderr);
+  // CHECKPOINT_RECORD_DEADLINE_MS (diagnostics and tests); unset or invalid keeps RECORD_DEADLINE_MS.
+  const recordDeadlineMs = recordDeadlineFromEnv(process.env);
   void runStatusline({
     argv: args,
     // A terminal stdin would block forever; Claude Code always pipes.
@@ -75,6 +79,7 @@ function statusline(args: string[]): void {
     stdout: stdout.sink,
     stderr: stderr.sink,
     cwdFallback: process.cwd(),
+    ...(recordDeadlineMs !== undefined ? { recordDeadlineMs } : {}),
   }).then((code) => {
     // Drain piped stdout/stderr, then exit: an abandoned reading write must
     // not keep the process (and so the statusline) alive.

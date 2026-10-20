@@ -44,6 +44,17 @@
       "execution": "inline",
       "isolation": "worktree",
       "modelClass": "standard"
+    },
+    "T7": {
+      "status": "DONE",
+      "notes": "cli.ts statusline guards process.stdout/stderr with persistent 'error' listeners and hands runStatusline/exitAfterFlush wrappers that become silent no-ops after an error (flush callback invoked at once), so a reader closing the pipe mid-run no longer crashes the wrapper; inner exit code forwarded, reading still recorded; no uncaughtException handler; sensor.ts untouched. inner-two-chunks.cjs gained an optional exit code. Tests: built-wrapper 331-02/AC-6 (destroy read end after 'first', signal, assert exit 5, no unhandled/EPIPE/stack on stderr, reading recorded) RED before (unhandled EPIPE, exit 1) and GREEN after; built-wrapper real-pipe 331-02/AC-3 (coverage gap close, passes before and after). Main-thread re-verify at commit 10927855: build 0, checkpoint 250 passed / 1 skipped, eslint 0, encoding intact. Independent review APPROVE WITH MINOR: reverted-cli AC-6 failed 3/3, fixed passes 10/10; crash/hang/exit-code matrix probed on the built bin; comment minors (all errors silenced, socketpair/ECONNRESET on POSIX) applied. POSIX red not run locally: Linux/macOS CI is the check.",
+      "touchedFiles": [
+        "packages/checkpoint/src/cli.ts"
+      ],
+      "updatedAt": "2026-10-20T17:30:39.160Z",
+      "execution": "dispatch",
+      "isolation": "worktree",
+      "modelClass": "complex"
     }
   }
 }

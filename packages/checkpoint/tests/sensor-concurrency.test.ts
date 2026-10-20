@@ -9,7 +9,13 @@ const BIN = join(__dirname, '..', 'bin', 'checkpoint.cjs');
 const FIXTURES = join(__dirname, 'fixtures', 'statusline');
 const INNER = join(FIXTURES, 'inner-statusline.cjs');
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-const INVOCATIONS_PER_WRITER = 15;
+// Each writer's invocations run one after another, so this test takes about
+// INVOCATIONS_PER_WRITER x one invocation's wall time. 331-02 cut it from 15
+// to 8: on PR #571 run 39461022835 (macos-latest, under suite load, after the
+// process-hop cut) one invocation measured p50 999 ms / p90 1446 ms, and
+// 15 x 1446 ms is 21.7 s, over macOS's shared 20 s budget; 8 x 1446 ms is
+// 11.6 s. Both payloads were still observed thousands of times per run.
+const INVOCATIONS_PER_WRITER = 8;
 const TRANSIENT_READ_CODES = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOENT']);
 
 type Json = Record<string, unknown>;

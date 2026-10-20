@@ -20,6 +20,7 @@ import {
   exitAfterFlush,
   parseReading,
   RECORD_DEADLINE_MS,
+  recordDeadlineFromEnv,
   resolveProjectDir,
   runStatusline,
 } from '../src/sensor.js';
@@ -77,13 +78,28 @@ function envWithout(...keys: string[]): NodeJS.ProcessEnv {
   return env;
 }
 
+// The subject of the tests that use these is recording or stdout bytes, not
+// the record deadline, and loaded CI runners have missed even 1000 ms (run
+// 39461022835). The deadline's own tests (331-02/AC-1, the 331-01/AC-9
+// abandon tests, sensor-concurrency.test.ts) keep the default.
+const GENEROUS_DEADLINE_MS = 60_000;
+
+/** A built-wrapper child env with the generous deadline (only in the child, never on process.env). */
+function sensorEnv(env: NodeJS.ProcessEnv = envWithout('CADENCE_HOME')): NodeJS.ProcessEnv {
+  return { ...env, CHECKPOINT_RECORD_DEADLINE_MS: String(GENEROUS_DEADLINE_MS) };
+}
+
 /** The inner statusline run directly, no wrapper, no shell. */
 function runInnerDirect(input: Buffer, extra: string[] = []): ProcResult {
   const r = spawnSync(process.execPath, [INNER, ...extra], { input, windowsHide: true });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr.toString('utf8') };
 }
 
-/** The built wrapper: `node bin/checkpoint.cjs statusline <args...>`, no shell. */
+/**
+ * The built wrapper: `node bin/checkpoint.cjs statusline <args...>`, no shell.
+ * Every caller's subject is recording or bytes, so the child always gets the
+ * generous deadline, on top of `opts.env` when one is given.
+ */
 function runWrapper(
   input: Buffer,
   args: string[],
@@ -92,7 +108,7 @@ function runWrapper(
   const r = spawnSync(process.execPath, [BIN, 'statusline', ...args], {
     input,
     windowsHide: true,
-    env: opts.env ?? envWithout('CADENCE_HOME'),
+    env: sensorEnv(opts.env),
     ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
   });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr.toString('utf8') };
@@ -342,6 +358,44 @@ describe('defaultExcludedCadenceDirs', () => {
   });
 });
 
+describe('recordDeadlineFromEnv', () => {
+  const KEY = 'CHECKPOINT_RECORD_DEADLINE_MS';
+
+  it('331-02/AC-7: a positive integer CHECKPOINT_RECORD_DEADLINE_MS is used as the record deadline', () => {
+    expect(recordDeadlineFromEnv({ [KEY]: '2500' })).toBe(2500);
+    expect(recordDeadlineFromEnv({ [KEY]: '1' })).toBe(1);
+    expect(recordDeadlineFromEnv({ [KEY]: '60000' })).toBe(60000);
+  });
+
+  it('331-02/AC-7: an absent or empty CHECKPOINT_RECORD_DEADLINE_MS leaves the default', () => {
+    expect(recordDeadlineFromEnv({})).toBeUndefined();
+    expect(recordDeadlineFromEnv({ [KEY]: undefined })).toBeUndefined();
+    expect(recordDeadlineFromEnv({ [KEY]: '' })).toBeUndefined();
+  });
+
+  it('331-02/AC-7: zero, negative, non-integer and non-numeric values leave the default', () => {
+    for (const value of ['0', '-5', '1.5', 'abc', '1e3', '0x10', 'Infinity', 'NaN', '12ms']) {
+      expect(recordDeadlineFromEnv({ [KEY]: value }), value).toBeUndefined();
+    }
+  });
+
+  it('331-02/AC-7: only canonical digits are accepted: surrounding whitespace, a sign and leading zeros are refused', () => {
+    for (const value of [' 12 ', '12 ', ' 12', '\t12', '12\n', '+12', '012', '00']) {
+      expect(recordDeadlineFromEnv({ [KEY]: value }), JSON.stringify(value)).toBeUndefined();
+    }
+  });
+
+  it("331-02/AC-7: a value above setTimeout's 2147483647 ms maximum leaves the default (Node would fire it after 1 ms)", () => {
+    expect(recordDeadlineFromEnv({ [KEY]: '2147483647' })).toBe(2147483647);
+    expect(recordDeadlineFromEnv({ [KEY]: '2147483648' })).toBeUndefined();
+    expect(recordDeadlineFromEnv({ [KEY]: '99999999999999999999' })).toBeUndefined();
+  });
+
+  it('331-02/AC-7: other variables are ignored', () => {
+    expect(recordDeadlineFromEnv({ RECORD_DEADLINE_MS: '2500', CHECKPOINT_DEADLINE_MS: '2500' })).toBeUndefined();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Impure, in-process: runStatusline
 // ---------------------------------------------------------------------------
@@ -375,6 +429,7 @@ describe('runStatusline (in-process)', () => {
       cwdFallback: tmp,
       now: () => FIXED_NOW,
       excludedCadenceDirs: REAL_EXCLUSIONS,
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     expect(code).toBe(5);
     expect(stderr.chunks).toEqual([]);
@@ -401,6 +456,7 @@ describe('runStatusline (in-process)', () => {
       stderr,
       cwdFallback: tmp,
       excludedCadenceDirs: REAL_EXCLUSIONS,
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     expect(code).toBe(0);
     expect(Buffer.concat(stdout.chunks).length).toBe(0);
@@ -419,6 +475,7 @@ describe('runStatusline (in-process)', () => {
       stderr,
       cwdFallback: tmp,
       excludedCadenceDirs: REAL_EXCLUSIONS,
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     expect(code).toBe(127);
     expect(Buffer.concat(stdout.chunks).length).toBe(0);
@@ -443,6 +500,7 @@ describe('runStatusline (in-process)', () => {
       stderr,
       cwdFallback: tmp,
       excludedCadenceDirs: [...defaultExcludedCadenceDirs({}, fakeHome), ...REAL_EXCLUSIONS],
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     expect(code).toBe(0);
     expect(stderr.chunks).toEqual([]);
@@ -474,6 +532,7 @@ describe('runStatusline (in-process)', () => {
         stderr,
         cwdFallback: tmp,
         excludedCadenceDirs: [...defaultExcludedCadenceDirs({}, excludedHome), ...REAL_EXCLUSIONS],
+        recordDeadlineMs: GENEROUS_DEADLINE_MS,
       });
       expect(code, sessionDir).toBe(0);
       expect(stderr.chunks, sessionDir).toEqual([]);
@@ -492,6 +551,7 @@ describe('runStatusline (in-process)', () => {
       stderr,
       cwdFallback: tmp,
       excludedCadenceDirs: REAL_EXCLUSIONS,
+      recordDeadlineMs: GENEROUS_DEADLINE_MS,
     });
     expect(code).toBe(0);
     expect(stderr.chunks).toHaveLength(1);
@@ -635,11 +695,11 @@ describe('runStatusline (in-process)', () => {
     expect((JSON.parse(writes[0]?.[1] ?? '') as Json)['used_percentage']).toBe(42);
   });
 
-  it('331-02/AC-1: the record deadline is a 1000 ms statusline-hold ceiling (Claude Code renders only on exit; 300 ms is a debounce between runs, not a budget)', () => {
-    expect(RECORD_DEADLINE_MS).toBe(1000);
+  it('331-02/AC-1: the record deadline is a 1500 ms statusline-hold ceiling (Claude Code renders only on exit; 300 ms is a debounce between runs, not a budget)', () => {
+    expect(RECORD_DEADLINE_MS).toBe(1500);
   });
 
-  it('331-02/AC-1: without recordDeadlineMs a never-settling write is abandoned with one notice naming 1000 ms, and the inner result is returned', async () => {
+  it('331-02/AC-1: without recordDeadlineMs a never-settling write is abandoned with one notice naming 1500 ms, and the inner result is returned', async () => {
     const input = payloadFor('payload-42.json', project);
     const stdout = collector<Uint8Array>();
     const stderr = collector<string>();
@@ -656,7 +716,7 @@ describe('runStatusline (in-process)', () => {
     expect(code).toBe(4);
     expect(Buffer.concat(stdout.chunks).equals(runInnerDirect(input).stdout)).toBe(true);
     expect(stderr.chunks).toHaveLength(1);
-    expect(stderr.chunks[0]).toMatch(/reading not recorded within 1000 ms/);
+    expect(stderr.chunks[0]).toMatch(/reading not recorded within 1500 ms/);
   });
 
   it('331-02/AC-3: the inner stdout is written as it arrives, before the inner exits', async () => {
@@ -972,7 +1032,7 @@ describe('checkpoint statusline (built wrapper, no shell)', () => {
     const r = spawnSync(process.execPath, [BIN, 'statusline', '--', process.execPath, big], {
       input: payloadFor('payload-42.json', project),
       windowsHide: true,
-      env: envWithout('CADENCE_HOME'),
+      env: sensorEnv(),
       maxBuffer: 64 * 1024 * 1024,
     });
     expect(r.stderr.toString('utf8')).toBe('');
@@ -1049,12 +1109,15 @@ describe('checkpoint statusline (built wrapper, real stdout pipe)', () => {
     closed: Promise<number | null>;
   }
 
-  /** `node bin/checkpoint.cjs statusline -- node inner-two-chunks.cjs <signal> <code>` with all three stdio piped. */
+  /**
+   * `node bin/checkpoint.cjs statusline -- node inner-two-chunks.cjs <signal> <code>` with all three stdio
+   * piped, and the generous deadline: both callers assert a recorded reading.
+   */
   function spawnTwoChunks(input: Buffer, signal: string, code: number): PipedRun {
     const child = spawn(
       process.execPath,
       [BIN, 'statusline', '--', process.execPath, join(FIXTURES, 'inner-two-chunks.cjs'), signal, String(code)],
-      { windowsHide: true, env: envWithout('CADENCE_HOME'), stdio: ['pipe', 'pipe', 'pipe'] },
+      { windowsHide: true, env: sensorEnv(), stdio: ['pipe', 'pipe', 'pipe'] },
     );
     const out: Buffer[] = [];
     const err: Buffer[] = [];
@@ -1109,9 +1172,10 @@ describe('checkpoint statusline (built wrapper, real stdout pipe)', () => {
     const firstSeen = await waitFor(() => run.stdout().includes('first'));
     // The statusline reader goes away: the wrapper's next stdout write (the
     // inner's second chunk) goes into a pipe with no read end. That write
-    // fails with EPIPE on every OS whatever its size (POSIX write(2) to a
-    // pipe with no reader; Node ignores SIGPIPE): nothing else holds the read
-    // end, since the inner's stdout is its own pipe into the wrapper.
+    // fails on every OS whatever its size: EPIPE on a Windows pipe, EPIPE (or
+    // ECONNRESET) on the AF_UNIX socketpair Node uses for 'pipe' stdio on
+    // POSIX, where Node ignores SIGPIPE. Nothing else holds the read end,
+    // since the inner's stdout is its own pipe into the wrapper.
     run.child.stdout?.destroy();
     writeFileSync(signal, 'go');
     const status = await run.closed;

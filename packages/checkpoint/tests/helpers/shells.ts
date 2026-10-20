@@ -13,7 +13,8 @@
 //   shape 0.4a §5c showed collapsing native exit codes.
 //
 // Every runner feeds the given stdin bytes and returns the raw stdout Buffer,
-// the exit status, and stderr as text.
+// the exit status, and stderr as text, and sets CHECKPOINT_RECORD_DEADLINE_MS
+// in the child env (see GENEROUS_DEADLINE_MS).
 import { spawnSync } from 'node:child_process';
 import type { SpawnSyncOptions } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -31,12 +32,20 @@ export interface RunOptions {
   env?: NodeJS.ProcessEnv;
 }
 
+/**
+ * Record deadline for every wrapper these helpers run (the shell passes it on
+ * to `checkpoint statusline`): their callers' subject is recording or bytes,
+ * not the deadline, and loaded CI runners have missed even 1000 ms (run
+ * 39461022835). Set only in the child env, never on process.env.
+ */
+const GENEROUS_DEADLINE_MS = 60_000;
+
 function run(exe: string, args: string[], opts: RunOptions): ShellResult {
   const spawnOpts: SpawnSyncOptions = {
     input: opts.input,
     windowsHide: true,
     ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
-    ...(opts.env !== undefined ? { env: opts.env } : {}),
+    env: { ...(opts.env ?? process.env), CHECKPOINT_RECORD_DEADLINE_MS: String(GENEROUS_DEADLINE_MS) },
   };
   const r = spawnSync(exe, args, spawnOpts);
   if (r.error !== undefined) {
