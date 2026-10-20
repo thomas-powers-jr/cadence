@@ -29,18 +29,56 @@ function statuslineInstall(args: string[]): void {
   });
 }
 
+interface GuardedStream {
+  write(chunk: string | Uint8Array): boolean;
+}
+
+interface GuardedFlushable {
+  write(chunk: string, cb: () => void): boolean;
+}
+
+/**
+ * A process stream that becomes a silent no-op once it has emitted 'error'
+ * (EPIPE when the statusline reader closes its end of the pipe mid-run). The
+ * error arrives as a stream event, not a throw, so without this listener it
+ * would crash the wrapper and lose the reading and the inner's exit code.
+ * `flushable` invokes its callback at once after an error, so exitAfterFlush
+ * always reaches exit; before one, Node calls a write callback even when the
+ * write fails.
+ */
+function guardStream(stream: NodeJS.WriteStream): { sink: GuardedStream; flushable: GuardedFlushable } {
+  let broken = false;
+  stream.on('error', () => {
+    broken = true;
+  });
+  return {
+    sink: { write: (chunk) => (broken ? true : stream.write(chunk)) },
+    flushable: {
+      write: (chunk, cb) => {
+        if (broken) {
+          cb();
+          return true;
+        }
+        return stream.write(chunk, () => cb());
+      },
+    },
+  };
+}
+
 function statusline(args: string[]): void {
+  const stdout = guardStream(process.stdout);
+  const stderr = guardStream(process.stderr);
   void runStatusline({
     argv: args,
     // A terminal stdin would block forever; Claude Code always pipes.
     stdin: process.stdin.isTTY ? [] : process.stdin,
-    stdout: process.stdout,
-    stderr: process.stderr,
+    stdout: stdout.sink,
+    stderr: stderr.sink,
     cwdFallback: process.cwd(),
   }).then((code) => {
     // Drain piped stdout/stderr, then exit: an abandoned reading write must
     // not keep the process (and so the statusline) alive.
-    exitAfterFlush(code, { stdout: process.stdout, stderr: process.stderr }, (c) => process.exit(c));
+    exitAfterFlush(code, { stdout: stdout.flushable, stderr: stderr.flushable }, (c) => process.exit(c));
   });
 }
 

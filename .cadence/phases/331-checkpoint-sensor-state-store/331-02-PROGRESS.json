@@ -35,6 +35,15 @@
       "execution": "dispatch",
       "isolation": "worktree",
       "modelClass": "standard"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "runInner writes each inner stdout chunk to opts.stdout as it arrives (settled-guarded) instead of buffering until close; start failure (127) still writes nothing; exit code still forwarded after 'close'. Per T4's stop clause the comment states backpressure is NOT applied (opts.stdout exposes only write), so a slow reader can still queue output in the stream buffer: the gain is no wrapper-held copy, not bounded memory; render time unchanged (render-on-exit). Also corrected the stderr guard comment (catches synchronous throws only; a pipe EPIPE arrives as a stream 'error' event). Independent review APPROVE WITH MINOR: byte order/no loss confirmed, 331-01/AC-1 bash + powershell.exe tests ran on win32 equal (62 bytes); F1 (unhandled EPIPE on a closed statusline pipe, reproduced, made earlier by streaming) became AC-6/T7 by operator decision; F5 real-pipe streaming test folded into T7. Main-thread after minors: build 0, checkpoint 248 passed / 1 skipped (POSIX-only), eslint 0.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-20T16:57:40.780Z",
+      "execution": "inline",
+      "isolation": "worktree",
+      "modelClass": "standard"
     }
   }
 }

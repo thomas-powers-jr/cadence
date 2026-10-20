@@ -327,12 +327,15 @@ function runInner(argv: readonly string[], input: Buffer, opts: StatuslineOption
       return;
     }
 
-    // Each chunk goes straight to stdout as it arrives (331-02): the wrapper
-    // never accumulates the inner's whole output. Claude Code still renders
-    // only once the wrapper exits, so this changes memory, not render time.
-    // 'close' fires only after the inner's stdout has ended, so every chunk
-    // is written before the exit code is reported.
+    // Each chunk is written to stdout as it arrives (331-02), so the wrapper
+    // keeps no copy of the inner's output. Backpressure is not applied
+    // (opts.stdout exposes only write), so a slow reader can still queue
+    // output in the stdout stream's own buffer. Claude Code renders only once
+    // the wrapper exits, so render time is unchanged. 'close' fires only after
+    // the inner's stdout has ended, so every chunk is written before the exit
+    // code is reported.
     child.stdout?.on('data', (chunk: Buffer) => {
+      if (settled) return;
       opts.stdout.write(chunk);
     });
     child.on('error', (err) => {
@@ -363,8 +366,9 @@ function runInner(argv: readonly string[], input: Buffer, opts: StatuslineOption
 export async function runStatusline(opts: StatuslineOptions): Promise<number> {
   const input = await readAll(opts.stdin);
   const argv = opts.argv[0] === '--' ? opts.argv.slice(1) : opts.argv;
-  // A notice is best-effort: a stderr that throws (e.g. EPIPE) must not turn
-  // into a rejection that skips the flush-and-exit.
+  // A notice is best-effort: a stderr whose write throws synchronously must
+  // not turn into a rejection that skips the flush-and-exit. (A pipe's EPIPE
+  // arrives later as an 'error' event on the stream, which this cannot catch.)
   const stderr = {
     write: (chunk: string): unknown => {
       try {

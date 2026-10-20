@@ -1039,3 +1039,89 @@ describe('checkpoint statusline (built wrapper process shape)', () => {
     expect(failing.status).toBe(3);
   });
 });
+
+describe('checkpoint statusline (built wrapper, real stdout pipe)', () => {
+  interface PipedRun {
+    child: ReturnType<typeof spawn>;
+    stdout: () => string;
+    stderr: () => string;
+    /** The wrapper's exit status; null if the test body's guard had to kill it. */
+    closed: Promise<number | null>;
+  }
+
+  /** `node bin/checkpoint.cjs statusline -- node inner-two-chunks.cjs <signal> <code>` with all three stdio piped. */
+  function spawnTwoChunks(input: Buffer, signal: string, code: number): PipedRun {
+    const child = spawn(
+      process.execPath,
+      [BIN, 'statusline', '--', process.execPath, join(FIXTURES, 'inner-two-chunks.cjs'), signal, String(code)],
+      { windowsHide: true, env: envWithout('CADENCE_HOME'), stdio: ['pipe', 'pipe', 'pipe'] },
+    );
+    const out: Buffer[] = [];
+    const err: Buffer[] = [];
+    child.stdout.on('data', (chunk: Buffer) => out.push(chunk));
+    child.stderr.on('data', (chunk: Buffer) => err.push(chunk));
+    // A wrapper that never exits is killed here, in the test body, so the
+    // assertions report it instead of a hung test.
+    const guard = setTimeout(() => child.kill(), 15_000);
+    const closed = new Promise<number | null>((done, fail) => {
+      child.on('error', fail);
+      child.on('close', (status) => {
+        clearTimeout(guard);
+        done(status);
+      });
+    });
+    child.stdin.on('error', () => undefined);
+    child.stdin.end(input);
+    return {
+      child,
+      stdout: () => Buffer.concat(out).toString('utf8'),
+      stderr: () => Buffer.concat(err).toString('utf8'),
+      closed,
+    };
+  }
+
+  /** Bounded wait in the test body; not a vitest timeout. */
+  async function waitFor(condition: () => boolean, ms = 10_000): Promise<boolean> {
+    const until = Date.now() + ms;
+    while (!condition() && Date.now() < until) {
+      await new Promise((done) => setTimeout(done, 10));
+    }
+    return condition();
+  }
+
+  it('331-02/AC-3: through a real pipe the first chunk reaches the reader before the inner exits, and the whole output and exit code follow', async () => {
+    const signal = join(tmp, 'signal');
+    const run = spawnTwoChunks(payloadFor('payload-42.json', project), signal, 3);
+    const firstSeenBeforeSignal = await waitFor(() => run.stdout().includes('first'));
+    // Unconditional, so the inner always exits and nothing hangs.
+    writeFileSync(signal, 'go');
+    const status = await run.closed;
+    expect(firstSeenBeforeSignal).toBe(true);
+    expect(status).toBe(3);
+    expect(run.stdout()).toBe('first\nsecond');
+    expect(run.stderr()).toBe('');
+    expect(readReading(project)['used_percentage']).toBe(42);
+  });
+
+  it('331-02/AC-6: a reader that closes the stdout pipe mid-run does not crash the wrapper; the exit code is forwarded and the reading recorded', async () => {
+    const signal = join(tmp, 'signal');
+    const run = spawnTwoChunks(payloadFor('payload-42.json', project), signal, 5);
+    const firstSeen = await waitFor(() => run.stdout().includes('first'));
+    // The statusline reader goes away: the wrapper's next stdout write (the
+    // inner's second chunk) goes into a pipe with no read end. That write
+    // fails with EPIPE on every OS whatever its size (POSIX write(2) to a
+    // pipe with no reader; Node ignores SIGPIPE): nothing else holds the read
+    // end, since the inner's stdout is its own pipe into the wrapper.
+    run.child.stdout?.destroy();
+    writeFileSync(signal, 'go');
+    const status = await run.closed;
+    const stderr = run.stderr();
+    expect(firstSeen).toBe(true);
+    expect(stderr).not.toContain("Unhandled 'error'");
+    expect(stderr).not.toContain('EPIPE');
+    expect(stderr).not.toMatch(/^\s+at /m);
+    for (const line of stderrLines(stderr)) expect(line).toMatch(/^checkpoint statusline: /);
+    expect(status).toBe(5);
+    expect(readReading(project)['used_percentage']).toBe(42);
+  });
+});
