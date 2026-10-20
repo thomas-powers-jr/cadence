@@ -41,6 +41,15 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # THROWAWAY PROBE (branch probe/331-02-timing; never merged): the same
+      # timing probe with nothing else running, three batches back to back.
+      - name: 331-02 timing probe (isolated)
+        if: always()
+        shell: bash
+        run: |
+          for b in 1 2 3; do
+            node packages/checkpoint/probe/timing-probe.mjs "isolated-b$b" 30
+          done
 
   # Single stable status context for branch protection. Kept as its own job so
   # the required-check name stays `ci-success` independent of the matrix shape.
