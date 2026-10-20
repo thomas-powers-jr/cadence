@@ -78,11 +78,11 @@ export function registerSettleCommand(program: Command): void {
     )
     .option(
       '--allow-code-review-failure',
-      'do not refuse on HIGH-severity code-review findings; record them in SUMMARY and emit anomalies anyway (Phase 24.3)',
+      'do not refuse on HIGH-severity code-review findings; record them in SUMMARY and emit anomalies anyway. The bypass (by this flag or --force) is recorded as an error-severity SUMMARY.json.gateBypasses entry, which caps assurance.overall at mixed, never strong (Phase 24.3; recorded since Phase 332)',
     )
     .option(
       '--allow-security-audit-failure',
-      'do not refuse on CRITICAL security-audit findings; record them in SUMMARY and settle anyway (Phase 25.2)',
+      'do not refuse on CRITICAL security-audit findings; record them in SUMMARY and settle anyway. The bypass (by this flag or --force) is recorded as an error-severity SUMMARY.json.gateBypasses entry, which caps assurance.overall at mixed, never strong (Phase 25.2; recorded since Phase 332)',
     )
     .option(
       '--allow-skill-audit-miss',

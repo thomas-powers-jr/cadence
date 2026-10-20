@@ -3641,6 +3641,57 @@ on both trees by design. The fast-uri and ip-address assertions in
 `lockfile-overrides-current-state.test.ts` were superseded with comments,
 not deleted.
 
+### Phase 332 — Code-review and security-audit findings bypasses reach gateBypasses (rec-20261016-002)
+
+**Objective.** A settle that went past failing code-review HIGH findings or
+security-audit CRITICAL findings, via `--allow-code-review-failure`,
+`--allow-security-audit-failure` or `--force`, recorded the gate as
+`status: 'ran'` with no `gateBypasses` entry. Phase 283's D-S cap reads
+`gateBypasses`, so such a phase could grade `strong`. 331-01 did exactly
+that: it bypassed two HIGH findings, one of them unauthorized, and its
+SUMMARY says `strong`. This phase records each findings bypass as one
+`error`-severity `gateBypasses` entry per gate. The entry's `flag` is what
+the gate printed on stderr, and `--force` is named whenever it is set.
+`deriveAssuranceRecord` is unchanged; the existing cap does the grading.
+Out of scope:
+- a per-finding bypass flag (filed as rec-20261016-005);
+- re-deriving historical bypasses from the gate sidecar (filed as
+  rec-20261016-003);
+- any edit to 331-01's SUMMARY (D-BZ).
+
+**As built (2026-10-16).**
+- **Mechanism.** The handoff proposed a new anomaly type, but that design
+  could not work: settle's `emit.anomalies` seam is a no-op, and gate emits go
+  straight to the notifier. The anomaly's translator never sees them.
+- **Design.** The fix follows the `pack-resolution`/`skill-audit`/evidence-floor
+  precedent, a direct `GateBypass` push (D-CA, dec-20261016-004):
+  - code-review and security-audit set a new
+    `GateFlags.reviewFindingsBypass` (flag, count, highest severity) from the
+    same values their stderr line prints;
+  - `runSettleGates` turns it into `RunGatesResult.findingsBypasses`, read
+    from each gate's own result;
+  - settle joins those entries into the `gateBypasses` list that the
+    assurance derivation receives, so the cap sees them.
+- **`--force`.** The handoff assumed `--force` already recorded `force-used`
+  for a failing code-review. It doesn't: `force-used` covers only
+  structural, deep and interactive failures. So a `--force` findings bypass
+  is now recorded too (D-CB, dec-20261016-005).
+- **Security-audit.** It had the identical hole, and the same change closes it
+  (D-CC, dec-20261016-006).
+- **Tests.** Red-first settle-service tests for both gates pin:
+  - the exact entry;
+  - the bypassed count (two or three findings, so a constant count fails);
+  - `--force` precedence;
+  - no `force-used` double record;
+  - the strict profile × standard tier cell without `anomaly-notify`;
+  - a golden clean-settle SUMMARY;
+  - an AC-2 proof that this entry alone moves an otherwise-`strong` grade
+    to `mixed`.
+- **Corpus re-derivation.** It reads the persisted `gateBypasses`, so it
+  cannot see a pre-fix bypass (D-CD, dec-20261016-007). Measured on a scratch
+  copy of 331-01's SUMMARY (blob `ef1ec808`): stored `strong`, re-derived
+  `strong`, and `mixed` with the entry this phase records (ev-20261016-007).
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

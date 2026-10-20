@@ -1,4 +1,4 @@
-import type { Gate, GateProvenance } from '@thomas-powers-jr/cadence-types';
+import type { Gate, GateBypass, GateProvenance } from '@thomas-powers-jr/cadence-types';
 import { NO_TEST_COMMAND_NOTICE } from '@thomas-powers-jr/cadence-types';
 import type { GateImpl, GateResult, SettleAccumulator, SettleContext } from './types.js';
 import { mergeInto } from './types.js';
@@ -85,6 +85,33 @@ export interface RunGatesResult {
   /** Phase 140: per-gate ran/skipped provenance, in GATE_ORDER. Partial on
    *  refusal — only entries computed before the halting gate. */
   readonly gates: GateProvenance[];
+  /** Phase 332 (332-01, T3, D-CA dec-20261016-004): one error-severity
+   *  `GateBypass` per gate that passed only because real findings were waved
+   *  through (`GateFlags.reviewFindingsBypass` — code-review HIGHs,
+   *  security-audit CRITICALs), in GATE_ORDER. Always present (empty when
+   *  none); partial on refusal, like `gates`. That gate's `gates[]` entry stays `status: 'ran'` — the verifier
+   *  did run; this is the separate record that it was overridden. */
+  readonly findingsBypasses: readonly GateBypass[];
+}
+
+/**
+ * Phase 332 (332-01, T3): the `GateBypass` a gate's own
+ * `flags.reviewFindingsBypass` describes, or `null` when it carries none.
+ * Reads the gate's own `res`, never the merged accumulator — `mergeInto`
+ * `Object.assign`s flags across gates, so `acc.flags` would still hold
+ * code-review's value when security-audit runs and double-record it.
+ * `reason` omits the gate and flag: the entry already carries both, and the
+ * SUMMARY.md render prints them ahead of it.
+ */
+function findingsBypassEntry(gate: SettleGate, res: GateResult): GateBypass | null {
+  const bypass = res.flags?.reviewFindingsBypass;
+  if (!bypass) return null;
+  return {
+    gate,
+    flag: bypass.flag,
+    reason: `bypassed ${bypass.count} finding(s), highest severity ${bypass.highestSeverity}`,
+    severity: 'error',
+  };
 }
 
 /**
@@ -203,6 +230,7 @@ export async function runSettleGates(
   const log = getLogger().child({ seam: 'gate' });
   const acc: SettleAccumulator = { flags: {} };
   const gates: GateProvenance[] = [];
+  const findingsBypasses: GateBypass[] = [];
   for (const gate of order) {
     const entry = registry[gate];
     if (!entry.selfGuarded && !ctx.gateSet.gates.includes(gate)) {
@@ -247,7 +275,7 @@ export async function runSettleGates(
       const reason = `${gate}: threw — ${message}`;
       log.warn('gate threw', { gate, error: message });
       gates.push({ gate, status: 'refused', reason });
-      return { acc, refused: true, gates };
+      return { acc, refused: true, gates, findingsBypasses };
     }
     mergeInto(acc, res);
     if (res.outcome === 'refuse') {
@@ -259,7 +287,7 @@ export async function runSettleGates(
         ...verifierIdentityProvenance(res),
         ...observedVerifierIdentityProvenance(res),
       });
-      return { acc, refused: true, gates };
+      return { acc, refused: true, gates, findingsBypasses };
     }
     // Phase 241 (T1): every read below goes through `gateCtx`, the same
     // context the impl was handed, not the outer `ctx`. The two are
@@ -356,7 +384,14 @@ export async function runSettleGates(
     } else {
       gates.push({ gate, status: 'ran', ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
     }
+    // Phase 332 (332-01, T3): a findings bypass falls through the ladder
+    // above to the final `'ran'` branch (the mock-abstain branch is guarded
+    // by `reviewFindingsBypassed !== true`, and `reviewVerifierFailure` comes
+    // only from the verifier-throw path) — its provenance entry is unchanged.
+    // The bypass itself is recorded separately, from this gate's own `res`.
+    const findingsBypass = findingsBypassEntry(gate, res);
+    if (findingsBypass) findingsBypasses.push(findingsBypass);
     log.debug('gate passed', { gate, outcome: res.outcome });
   }
-  return { acc, refused: false, gates };
+  return { acc, refused: false, gates, findingsBypasses };
 }

@@ -3,6 +3,7 @@ import { runConvergentReview } from '../verify/converge.js';
 import { anchorFindings } from '../verify/criteria-gap.js';
 import { attachFindingIdentity } from '../verify/finding-identity.js';
 import type { CodeReviewInput, CodeReviewResult, CodeReviewTaskRef } from '../contracts/index.js';
+import { highestFindingSeverity } from './types.js';
 import type { GateImpl, GateResult } from './types.js';
 
 /**
@@ -67,11 +68,13 @@ export function buildCodeReviewInput(draft: Draft, touched: string[], diff: stri
 
 /** HIGH-only finding flattener. The convergence boolean + sidecar findingsCount
  *  are HIGH-only (Phase 37.1 spec) — a conscious divergence from the 35.1
- *  source which counts total findings. Moved from settle.ts verbatim. */
+ *  source which counts total findings. Moved from settle.ts verbatim.
+ *  Phase 332 (332-01, T3): each item also carries its `severity`, so the
+ *  findings-bypass record derives its highest severity from these very items. */
 export function collectHighFindings(
   findings: Record<string, Finding[]>,
-): Array<{ file: string; line?: number; message: string }> {
-  const out: Array<{ file: string; line?: number; message: string }> = [];
+): Array<{ file: string; line?: number; message: string; severity: Finding['severity'] }> {
+  const out: Array<{ file: string; line?: number; message: string; severity: Finding['severity'] }> = [];
   for (const [file, list] of Object.entries(findings)) {
     for (const f of list) {
       if (f.severity !== 'high') continue;
@@ -79,6 +82,7 @@ export function collectHighFindings(
         file,
         ...(f.line !== undefined ? { line: f.line } : {}),
         message: f.message,
+        severity: f.severity,
       });
     }
   }
@@ -166,6 +170,11 @@ export const runCodeReviewGate: GateImpl = async (ctx): Promise<GateResult> => {
     // --allow-code-review-failure bypasses ANY failing code-review.
     const bypassed =
       !pass && (ctx.opts.allowCodeReviewFailure === true || ctx.opts.force === true);
+    // Phase 332 (332-01, T3, D-CB dec-20261016-005): the one value both the
+    // findings-bypass stderr line below and `flags.reviewFindingsBypass.flag`
+    // use, so the recorded flag is always exactly what the gate printed.
+    const findingsBypassFlag =
+      ctx.opts.force === true ? '--force' : '--allow-code-review-failure';
     // Phase 267 (267-01, dec-20260810-003 corrects dec-20260809-005):
     // `*-CODE-REVIEW.json` is a SEPARATE persisted artifact from
     // registry.ts's SUMMARY-level GateProvenance relabel below — a reader
@@ -204,10 +213,8 @@ export const runCodeReviewGate: GateImpl = async (ctx): Promise<GateResult> => {
         );
       }
       if (bypassed) {
-        const flag =
-          ctx.opts.force === true ? '--force' : '--allow-code-review-failure';
         ctx.io.err(
-          `code-review: ${flag} set; proceeding past ${highs.length} HIGH finding(s).\n`,
+          `code-review: ${findingsBypassFlag} set; proceeding past ${highs.length} HIGH finding(s).\n`,
         );
         if (ctx.gateSet.gates.includes('anomaly-notify')) {
           await ctx.emit.codeReviewHigh(verifyResult.findings, {
@@ -289,12 +296,27 @@ export const runCodeReviewGate: GateImpl = async (ctx): Promise<GateResult> => {
     // branch, i.e. real HIGH findings were waved through, never on a
     // genuinely clean pass. Tags the outcome so registry.ts can tell "clean
     // pass" apart from "bypassed real finding" without re-deriving it.
+    // Phase 332 (332-01, T3): on that same branch, `reviewFindingsBypass`
+    // carries what was bypassed — the printed flag, the HIGH count and the
+    // highest severity among those same `highs` — for registry.ts to record
+    // as a `GateBypass`. `highs` is non-empty whenever `bypassed` is true, so
+    // the `undefined` check only satisfies the type.
+    const highestSeverity = highestFindingSeverity(highs);
     return {
       outcome: 'pass',
       summaryPatch: { codeReview: identifiedFindings },
       flags: {
         verifierIdentity: buildVerifierIdentityFlag(verifyResult, touched, diff),
         ...(bypassed ? { reviewFindingsBypassed: true } : {}),
+        ...(bypassed && highestSeverity !== undefined
+          ? {
+              reviewFindingsBypass: {
+                flag: findingsBypassFlag,
+                count: highs.length,
+                highestSeverity,
+              },
+            }
+          : {}),
       },
     };
   } catch (err) {

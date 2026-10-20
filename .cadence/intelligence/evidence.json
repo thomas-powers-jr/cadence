@@ -2992,6 +2992,62 @@
       "kind": "note",
       "summary": "2026-10-15: pnpm audit reported 13 moderate / 0 high root advisories (hono x4, ip-address x4, qs x2, fast-uri, vitest, @vitest/mocker); the security-success check was green throughout because the gate checks high/critical only.",
       "createdAt": "2026-10-15T15:52:11.152Z"
+    },
+    {
+      "id": "ev-20261016-001",
+      "recommendationId": "rec-20261016-001",
+      "kind": "note",
+      "summary": "phase 331 code-review finding 6 (331-01-CODE-REVIEW.json); 28 atomicWriteText call sites in packages/core/src; zero ACL handling in packages/ (grep icacls|Get-Acl|securityDescriptor empty); not reachable via any published code path today",
+      "createdAt": "2026-10-16T16:50:03.983Z"
+    },
+    {
+      "id": "ev-20261016-002",
+      "recommendationId": "rec-20261016-002",
+      "kind": "note",
+      "summary": "phase 331 settle 2026-10-16T16:44:59Z: 331-01-SUMMARY.json has no gateBypasses key, code-review gate {status:'ran',provider:'host-cli'}, assurance.overall 'strong'; 331-01-CODE-REVIEW.json pass:false converged:false attempts:7; registry.ts final else for reviewFindingsBypassed; code-review.ts:166 'bypasses ANY failing code-review'",
+      "createdAt": "2026-10-16T16:50:16.439Z"
+    },
+    {
+      "id": "ev-20261016-003",
+      "recommendationId": "rec-20261016-003",
+      "kind": "note",
+      "summary": "Found 2026-10-16 while scoping the rec-20261016-002 fix (dec-20261016-007, D-CD).",
+      "createdAt": "2026-10-16T19:16:32.558Z"
+    },
+    {
+      "id": "ev-20261016-004",
+      "recommendationId": "rec-20261016-004",
+      "kind": "note",
+      "summary": "Eight recorded occurrences across session handoffs (SESSION-2026-10-15-handoffs-merged.md: fifth; SESSION-2026-10-16-331-settled-ci-red.md: eighth).",
+      "createdAt": "2026-10-16T19:16:33.160Z"
+    },
+    {
+      "id": "ev-20261016-005",
+      "recommendationId": "rec-20261016-005",
+      "kind": "note",
+      "summary": "331-01 settle 2026-10-16: authorization scoped to finding 6, flag also bypassed finding 7 (dec-20261016-001, D-BX).",
+      "createdAt": "2026-10-16T19:16:33.779Z"
+    },
+    {
+      "id": "ev-20261016-006",
+      "recommendationId": "rec-20260822-007",
+      "kind": "note",
+      "summary": "2026-10-16, phase 331-01 settle: settle auto-routed all six code-review findings into the ledger as rec-20261016-002..-007 while the operator held them out. The ledger was reset to HEAD and only two rows were re-filed by hand through the CLI; the re-filed recording-gap rec took id rec-20261016-002, so the held-out backup's -002..-007 now collide with live ids. Same root cause as this rec: routing writes ledger rows with no reconciliation path when the operator holds or later resolves the findings.",
+      "createdAt": "2026-10-16T19:16:40.515Z"
+    },
+    {
+      "id": "ev-20261016-007",
+      "recommendationId": "rec-20261016-003",
+      "kind": "note",
+      "summary": "332-01 T6 measurement 2026-10-16: .cadence/phases/331-checkpoint-sensor-state-store/331-01-SUMMARY.json (blob ef1ec808e2849bb42a94e67d3342c16c87eb90ea, from commit 579bcff3 on origin/worktree-331-sensor; scratch copy verified with git hash-object) stored assurance.overall strong; corpus-style re-derivation strong (zero drift: no gateBypasses key and the code-review gate is {status:ran, provider:host-cli, providerSelection:configured}, so assurance report cannot see the bypass); with the code-review entry phase 332 records (2 HIGH from the SUMMARY codeReview, matching 331-01-CODE-REVIEW.json findings:2; flag --allow-code-review-failure per the 579bcff3 commit message; severity error) re-derived overall mixed. Command: pnpm --filter @thomas-powers-jr/cadence-core build, then node scratchpad/t6/measure-331.mjs <worktree> <scratch 331-01-SUMMARY.json>; logic: deriveAssuranceRecord(s.gates ?? [], s.acResults, {gateBypasses: s.gateBypasses ?? [], deepVerify: s.deepVerify}) imported from packages/core/dist/gates/assurance-record.js, run once on the SUMMARY as stored and once with gateBypasses [{gate:code-review, flag:--allow-code-review-failure, reason:code-review: --allow-code-review-failure bypassed 2 finding(s), highest severity high, severity:error}].",
+      "createdAt": "2026-10-16T20:34:49.641Z"
+    },
+    {
+      "id": "ev-20261016-008",
+      "recommendationId": "rec-20261016-006",
+      "kind": "note",
+      "summary": "Found by the phase 332 T5 implementer on 2026-10-16 while editing the settle run flag rows; left out of 332's scope.",
+      "createdAt": "2026-10-16T20:37:30.921Z"
     }
   ]
 }

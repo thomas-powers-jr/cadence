@@ -2255,7 +2255,8 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260822-015"
+        "ev-20260822-015",
+        "ev-20261016-006"
       ],
       "assumptionIds": [],
       "decisionIds": [
@@ -2263,7 +2264,7 @@
       ],
       "scoutId": "scout-20260822-clean-base",
       "createdAt": "2026-08-22T20:16:42.551Z",
-      "updatedAt": "2026-08-22T20:16:42.551Z"
+      "updatedAt": "2026-10-16T19:16:40.515Z"
     },
     {
       "id": "rec-20260822-008",
@@ -3362,6 +3363,153 @@
       "decisionIds": [],
       "createdAt": "2026-10-15T15:52:11.152Z",
       "updatedAt": "2026-10-15T15:52:11.152Z"
+    },
+    {
+      "id": "rec-20261016-001",
+      "title": "atomicWriteText loses a file's explicit ACL on Windows: temp-then-rename inherits the directory's security descriptor",
+      "summary": "atomicWrite (packages/core/src/state/atomic-write.ts) creates the temp sibling with writeFile, which inherits the parent directory's descriptor, then renames it over the target; on NTFS the renamed file keeps the temp file's descriptor, so any non-inherited ACE on the original is lost. Affects all 28 core call sites, not only the phase-331 installer that surfaced it. Fix shape for the phase: on win32, either preserve (read the target's descriptor before the write, reapply after rename) or refuse when the target carries non-inherited ACEs - decide there. Found by code-review HIGH #6 in phase 331; reasoned from NTFS semantics, not yet measured with a probe.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core",
+        "state",
+        "windows"
+      ],
+      "affectedFiles": [
+        "packages/core/src/state/atomic-write.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261016-331-settle",
+      "createdAt": "2026-10-16T16:50:03.983Z",
+      "updatedAt": "2026-10-16T16:50:03.983Z"
+    },
+    {
+      "id": "rec-20261016-003",
+      "title": "assurance report cannot see historical code-review/security-audit findings bypasses: re-derivation reads only the persisted gateBypasses",
+      "summary": "assurance-report.ts:322-323 re-derives each graded record from summary.gates, acResults and summary.gateBypasses. A SUMMARY written before the findings-bypass recording fix (rec-20261016-002) carries no gateBypasses entry for a code-review or security-audit findings bypass, so it re-derives with the same strong grade and zero drift: 331-01 is the known case. The bypass is recoverable from the gate sidecar (*-CODE-REVIEW.json: pass false, converged false, history entry bypassed true). Re-derivation could read that sidecar to surface historical bypasses as drift. Report-only: no SUMMARY backfill (D-U, D-BZ).",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "assurance",
+        "settle"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/assurance-report.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-003",
+        "ev-20261016-007"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261016-331-recovery",
+      "createdAt": "2026-10-16T19:16:32.558Z",
+      "updatedAt": "2026-10-16T20:34:49.641Z"
+    },
+    {
+      "id": "rec-20261016-004",
+      "title": "cadence handoff deletes tracked SESSION-*.md docs when pruning past handoff.retain",
+      "summary": "Every cadence handoff run prunes handoff docs past handoff.retain (10), including docs already committed to git, so each run leaves tracked deletions in the working tree that the operator must git restore. A tool whose purpose is durable records should not delete tracked files as a side effect. Fix shape: retention skips (or only reports) git-tracked files, pruning only untracked local docs. Observed eight times, most recently in the 2026-10-16 331 session (7 tracked docs pruned and restored).",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "handoff"
+      ],
+      "affectedFiles": [
+        "packages/core/src/handoff/retention.ts",
+        "packages/core/src/handoff/run-handoff.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261016-331-recovery",
+      "createdAt": "2026-10-16T19:16:33.160Z",
+      "updatedAt": "2026-10-16T19:16:33.160Z"
+    },
+    {
+      "id": "rec-20261016-005",
+      "title": "--allow-code-review-failure is all-or-nothing: decide whether a per-finding bypass is worth building",
+      "summary": "The flag (and --force) passes every failing HIGH in the run (code-review.ts bypassed computation). An operator authorization that names one finding cannot be enforced: in 331-01 it was authorized for finding 6 and also passed an unauthorized finding 7. Design question: a per-finding bypass such as --allow-code-review-finding <identity> keyed on the finding identity hash, refusing when any un-named HIGH remains. Do not build without a decision.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "code-review",
+        "settle"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/code-review.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261016-331-recovery",
+      "createdAt": "2026-10-16T19:16:33.779Z",
+      "updatedAt": "2026-10-16T19:16:33.779Z"
+    },
+    {
+      "id": "rec-20261016-006",
+      "title": "commands.md says --force does not bypass other gates, but it bypasses code-review and security-audit",
+      "summary": "docs/reference/commands.md, settle run Gate interactions paragraph, says --force overrides --auto's refusal when ACs are incomplete but does not bypass other gates. That is wrong: gates/code-review.ts and gates/security-audit.ts treat ctx.opts.force === true as a findings bypass, and concepts.md's Gate bypass reference summary already lists --force against deep-verify, interactive-verdict, code-review and security-audit. Fix the paragraph and consider a doc-content test pairing the two pages.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "docs",
+        "settle"
+      ],
+      "affectedFiles": [
+        "docs/reference/commands.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-008"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261016-331-recovery",
+      "createdAt": "2026-10-16T20:37:30.921Z",
+      "updatedAt": "2026-10-16T20:37:30.921Z"
     }
   ],
   "archived": [
@@ -11271,10 +11419,53 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "330-raise-override-floors-past-the-13-root-moderate-advisories",
-      "createdAt": "2026-10-08T00:10:53.121Z",
-      "updatedAt": "2026-10-15T16:23:25.976Z",
       "shippedRef": "phase 330: caret pnpm.overrides floors for hono, qs, fast-uri, ip-address, vitest, @vitest/coverage-v8; root pnpm audit 13 moderate -> 0 (2026-10-15); gate-severity half split out as rec-20261015-001",
       "archivedAt": "2026-10-15T16:23:25.976Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-08T00:10:53.121Z",
+      "updatedAt": "2026-10-15T16:23:25.976Z"
+    },
+    {
+      "id": "rec-20261016-002",
+      "title": "A code-review findings bypass is persisted as a clean pass: SUMMARY records status 'ran' with no gateBypasses entry, so assurance grades it 'strong'",
+      "summary": "When --allow-code-review-failure (or --force) carries a settle past real HIGH code-review findings, registry.ts deliberately keeps the gate's plain status:'ran' recording (the reviewFindingsBypassed branch falls through to the final else), and nothing pushes a SUMMARY.gateBypasses entry. Phase 283's bypass cap therefore never applies: phase 331 settled past two HIGHs (one not operator-authorized, because the flag cannot be scoped to a finding) with assurance.overall 'strong'. The bypass is visible only in the *-CODE-REVIEW.json sidecar (pass:false, converged:false) and stderr anomalies. CLAUDE.md states bypasses are recorded in SUMMARY gateBypasses. Same shape likely applies to security-audit (--allow-security-audit-failure). Decide: record a gateBypasses entry (and/or status skipped with skipReason) for findings bypasses, and whether the flag should be scopable to finding ids.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core",
+        "gates",
+        "assurance"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/gates/code-review.ts",
+        "packages/core/src/gates/assurance-record.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261016-001",
+        "dec-20261016-003",
+        "dec-20261016-004",
+        "dec-20261016-005",
+        "dec-20261016-006",
+        "dec-20261016-007"
+      ],
+      "convertedToPhaseId": "332-review-findings-bypass-recording",
+      "scoutId": "scout-20261016-331-settle",
+      "createdAt": "2026-10-16T16:50:16.439Z",
+      "updatedAt": "2026-10-20T14:03:54.229Z",
+      "shippedRef": "phase 332 (332-01, settled 2026-10-20T14:02:55Z; deep-verify 9/9 host-cli/codex)",
+      "archivedAt": "2026-10-20T14:03:54.229Z",
       "archiveReason": "shipped"
     }
   ]

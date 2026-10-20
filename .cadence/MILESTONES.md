@@ -1246,6 +1246,12 @@ changeset (example/test-only change, no published-package surface).*
   root `pnpm audit` from 13 moderate to 0 with no published package change;
   the gate-severity question split out as rec-20261015-001
   (rec-20261008-002).
+- **Phase 332** — a code-review HIGH or security-audit CRITICAL findings
+  bypass (`--allow-code-review-failure`, `--allow-security-audit-failure` or
+  `--force`) now leaves one `error`-severity `SUMMARY.json.gateBypasses`
+  entry naming the flag the gate printed, so phase 283's cap holds the grade
+  below `strong`; previously the bypass left no entry and could grade
+  `strong`, as 331-01 did (rec-20261016-002).
 
 
 

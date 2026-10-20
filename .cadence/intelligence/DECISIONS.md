@@ -839,6 +839,54 @@ Reuse the existing temp-file + rename writer at core/src/state/atomic-write.ts; 
 
 Project-keyed per M4, because /clear assigns a new session_id. Inside .cadence/ it sits beside the other loop state. Phase 2 AC-7 must show that cadence doctor, summary verify-all and the boundary scanner do not flag the file; if one does, the DRAFT records a finding rather than moving the file.
 
+### dec-20261016-001 — D-BX: decline after-the-fact authorization of 331-01 code-review finding 7; slice 331-02 owns the fix
+
+- recommendation: rec-20261016-002
+- decided: 2026-10-16T19:15:49.723Z
+
+331-01 settled with --allow-code-review-failure, authorized for finding 6 only (Windows ACL loss, rec-20261016-001). The flag is gate-wide (code-review.ts:166) and also passed finding 7 (sensor.ts:322, inner stdout buffered until exit), which nobody authorized. The operator declines after-the-fact authorization so the record does not say two findings were accepted when one was decided. The defect is real; slice 331-02 owns the streaming fix. Recorded in docs/checkpoint/REPORT-checkpoint-phase-2.md (commit 579bcff3 on worktree-331-sensor).
+
+### dec-20261016-002 — D-BY: fix 331-01's red CI in a new slice 331-02, not a post-settle fix-forward
+
+- decided: 2026-10-16T19:15:50.288Z
+
+A post-settle fix under 331-01's strong grade would put a second un-reviewed change under a grade that is already overstated. 331-02 gets its own gates and, once the code-review bypass recording fix is on main, a grade that reflects any bypass it needs. The 250 ms recording deadline must be re-set from measured CI distributions, not raised by guess.
+
+### dec-20261016-003 — D-BZ: 331-01's SUMMARY is not edited; its strong grade stays as the record
+
+- recommendation: rec-20261016-002
+- decided: 2026-10-16T19:15:50.838Z
+
+Report, never rewrite. 331-01-SUMMARY.json records assurance.overall strong with no gateBypasses key although two HIGH code-review findings were bypassed. That is wrong and stays as the record of what the recorder did on 2026-10-16; the report says to read it as mixed, and rec-20261016-002 fixes the recorder, not the artifact.
+
+### dec-20261016-004 — D-CA: code-review/security-audit findings bypasses reach gateBypasses by direct push keyed on reviewFindingsBypassed, not via a new anomaly
+
+- recommendation: rec-20261016-002
+- decided: 2026-10-16T19:16:03.258Z
+
+The handoff's anomaly-arm design cannot work: settle.ts's emit.anomalies seam is a no-op (settle.ts:741 area, `void events`) and codeReviewHigh/codeReviewUnconverged go straight to the notifier, so a gate-emitted codeReviewBypassed event would never reach anomalyToGateBypass. Precedent for gate-level bypasses is a direct GateBypass push (pack-resolution, skill-audit, evidenceFloorBypassesUsed). The registry already carries reviewFindingsBypassed, scoped to real findings waved through (code-review.ts, security-audit.ts). Severity error so 283's D-S cap applies with no deriveAssuranceRecord change. Operator choice 2026-10-16.
+
+### dec-20261016-005 — D-CB: a --force bypass of failing code-review is recorded too, naming the flag the gate printed
+
+- recommendation: rec-20261016-002
+- decided: 2026-10-16T19:16:03.921Z
+
+The handoff's AC-3 premise was false: notify/collect.ts emits force-used only for structural, deep or interactive failures, so --force on a failing code-review alone records nothing today. Both --force and --allow-code-review-failure now record one code-review gateBypass whose flag matches the gate's own stderr line (code-review.ts names --force when both are set). force-used (gate settle) keeps its meaning; it is a different gate, so nothing is double-recorded. Operator choice 2026-10-16.
+
+### dec-20261016-006 — D-CC: security-audit findings bypasses are fixed in the same phase
+
+- recommendation: rec-20261016-002
+- decided: 2026-10-16T19:16:04.622Z
+
+security-audit sets the same reviewFindingsBypassed flag and its --allow-security-audit-failure/--force bypass has the identical hole. Keying the fix on that flag covers it at no extra cost; excluding it would take extra code to keep a known hole open. One AC; the gate only fires in strict x complex. Operator choice 2026-10-16.
+
+### dec-20261016-007 — D-CD: correction to D-BZ -- the corpus re-derivation will not show 331-01's drift; measure it on a copy and file the gap
+
+- recommendation: rec-20261016-002
+- decided: 2026-10-16T19:16:05.296Z
+
+D-BZ (dec-20261016-003) stands. Its expectation that the assurance report would show 331-01's drift once the recorder is fixed is false: assurance-report.ts:322-323 re-derives from the persisted summary.gateBypasses, which 331-01 lacks, so it re-derives strong with zero drift. The phase computes 331-01's would-be grade by running deriveAssuranceRecord on a copy with the bypass added (the real SUMMARY is untouched) and states the invisibility in its report; a rec is filed for re-derivation that reads the CODE-REVIEW.json sidecar's bypass history. Operator choice 2026-10-16.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
