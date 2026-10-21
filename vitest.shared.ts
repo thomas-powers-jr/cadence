@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import { availableParallelism } from 'node:os';
 
 // Single source of truth for test timeout + worker-pool tuning (and, below,
 // coverage) across every package. Per-package vitest.config.ts files
@@ -101,6 +102,27 @@ const currentPackage = path.basename(process.cwd());
 const coverageThresholds =
   COVERAGE_THRESHOLDS[currentPackage] ?? FALLBACK_THRESHOLDS;
 
+// Worker-pool size: the machine's core count, capped at 12 (phase 333).
+//
+// The 12 dates from Phase 32.1, as a cap below a 24-core dev box. As a flat
+// `maxWorkers: 12` it also *raised* the pool on 3-4 vCPU CI runners, where
+// vitest's own default is `availableParallelism() - 1`. The core suite ran ~10
+// tests at once on every leg, ~3-4x oversubscribing the 3-vCPU macos-26-arm64 runner, and
+// the CLI-spawning tests (each spawn ~370ms even idle; dozens of tests spawn
+// 5+ times) blew the 20s budget there on diffs that could not touch them
+// (rec-20261008-005, rec-20260918-004). Probe run 39613760426 (PR #575) with
+// this formula: macOS milestone.test.ts:124 went 20.1s -> 1.85s and the core
+// suite 572s -> 418s; Ubuntu 342s -> 241s. Windows went 714s -> 874s (its
+// spawns are I/O-bound and gained from the overlap), accepted for one rule on
+// every OS.
+//
+// `cores`, not vitest's `cores - 1`: workers here mostly block on CLI child
+// processes, and `cores - 1` would leave the 3-vCPU runner with 2 workers.
+// Boxes with 12+ cores are unchanged.
+export function resolveMaxWorkers(cores: number): number {
+  return Math.max(1, Math.min(12, cores));
+}
+
 export default defineConfig({
   test: {
     globals: false,
@@ -124,7 +146,8 @@ export default defineConfig({
     // Vitest 4's pool rework flattened per-pool min/max worker knobs
     // (poolOptions.<pool>.{minForks,maxForks}) into a single top-level cap:
     // https://vitest.dev/guide/migration#pool-rework
-    maxWorkers: 12,
+    // Sized per machine by resolveMaxWorkers() above.
+    maxWorkers: resolveMaxWorkers(availableParallelism()),
     coverage: {
       // `enabled: true` is required here because no package's `test` script
       // (or CI's `pnpm test` / `turbo run test`) passes the `--coverage`
