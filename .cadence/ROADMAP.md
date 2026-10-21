@@ -3759,6 +3759,49 @@ Out of scope:
   copy of 331-01's SUMMARY (blob `ef1ec808`): stored `strong`, re-derived
   `strong`, and `mixed` with the entry this phase records (ev-20261016-007).
 
+### Phase 334 — Clear the vite GHSA-587h high advisory with override floors
+
+**Objective.** GHSA-587h-7wmj-h5pm (high, published 2026-10-20) failed
+`security-success` on every PR from 2026-10-21. It hits the dev-only vite
+7.3.6 that vitest pulls in as a peer, along with two moderate siblings
+(GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw). The fix follows phase 330:
+caret `pnpm.overrides` floors in the private root `package.json`. The
+existing `vite@^6.0.0 || ^7.0.0 || ^8.0.0` target was raised in place from
+`^7.3.5` to `^7.3.7`, not stacked with a second overlapping vite key, and a
+`launch-editor@<2.14.2: ^2.14.2` floor was added. launch-editor was already
+at the patched 2.14.2 under `@changesets/cli`. The root fix alone was not
+enough. The audit job's website step, masked because the root step failed
+first, also failed: GHSA-gfr2-rv44-r23c (high) against markdown-it 14.3.2,
+reached through the website's direct `typedoc` devDependency. Separate PRs
+would each fail on the other's advisory, so the same phase adds
+`markdown-it@^14.0.0: ^14.3.3` to `website/package.json`, phase 328 style.
+No published package changes and no changeset. Out of scope: vite 8,
+vitest 5, and the website's postcss-selector-parser moderate (its patch is
+the 7.x major).
+
+**As built (2026-10-21).**
+- **vite stayed locked.** A plain `pnpm install` rewrote the overridden peer
+  specifiers but kept the locked vite 7.3.6 peer. pnpm 9.12 reuses a locked
+  auto-installed peer even when its range no longer admits it.
+  `--fix-lockfile` did the same.
+- **Reverted boundary deviation.** A `pnpm update vite -r --depth Infinity`
+  attempt churned 231 unrelated lines without moving vite. It was reverted
+  from a backup.
+- **What worked.** Hand-deleting the two stale `vite@7.3.6` lockfile blocks
+  and re-running `pnpm install` re-resolved vite to 7.3.7. The resulting diff
+  touches only vite, its integrity matches the registry, and
+  `--frozen-lockfile` accepts it. The website's plain `pnpm install` moved
+  markdown-it to 14.3.3 cleanly.
+- **Audit results.** Root `pnpm audit` went from 1 high + 2 moderate to 0.
+  The website went from 1 high + 1 low + 1 moderate to the 1 moderate alone.
+  `check-audit-exceptions.mjs` and `check-lockfile-overrides.mjs` exit 0 for
+  both projects. On Windows the audit script needed a scratchpad spawn shim
+  for `corepack.cmd` (rec-20261004-003).
+- **Independent review.** The website leg was found by the independent
+  review, not by the original request, and added as AC-4/T3 after approval.
+- **Test.** The new `phase334-vite-high-advisory.test.ts` was shown red first
+  for the root floors and then for the website floor.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
