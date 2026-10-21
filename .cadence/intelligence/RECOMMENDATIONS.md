@@ -1462,21 +1462,6 @@ docs/reference/config.md:219 introduces the skillAudit section with 'Drives the 
 
 assumption add takes --rec and --text, but validate <id> and reject <id> take an id and nothing else (packages/core/src/cli/commands/assumption.ts). So the ledger records THAT a hypothesis was validated or rejected and never WHY: the observation that discriminated it is not storable on the assumption. This is the same audit-trail shape this arc has now found three times (rec-20260917-004 for settle bypasses, rec-20260917-006 for skill-audit telemetry) — a verdict survives in the durable record while the evidence for it does not. It matters more here than elsewhere because the assumption ledger is the substrate for a hypothesis-driven debugging discipline whose entire value is that the trail is inspectable afterwards: a reader of a closed debugging session can see which hypotheses were rejected but cannot see what rejected them. The available workaround is a convention, not a schema link: put the observation on the anchor recommendation via , which keeps it in the ledger but binds it to the rec rather than to the assumption, so nothing enforces or validates the reference. Options to consider: an optional --note on validate/reject stored on the assumption; or an evidence row that can cite an assumptionId as well as a recommendationId. Additive either way.
 
-## rec-20260918-004 — debugging-skill-walkthrough.test.ts is a latent CI timeout flake risk on loaded macOS runners
-
-- status: candidate
-- ready: needs-evidence
-- priority: low
-- leverage: 5/10
-- risk: 5/10
-- confidence: 40%
-- decay: fresh
-- areas: gates, intelligence
-- files: packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts, vitest.shared.ts
-- next: cadence milestone propose
-
-Phase 313's AC-2/AC-4 tests in packages/core/tests/intelligence/debugging-skill-walkthrough.test.ts each spawn 6-9 real CLI child processes (recommendation add/evidence add/assumption add x2/reject/validate/list) against vitest.shared.ts's 20s global testTimeout. Observed timing out on macOS-latest/Node22 in CI (PR 520, run 35298507536, both AC-2 at 72:3 and AC-4 at 158:3) despite the identical test file passing clean on the same OS/Node leg minutes earlier in PR 519's own CI run on the same code -- a one-shot re-run of the failed job came back fully green, consistent with transient CI-runner subprocess-spawn contention under parallel load, the same class CLAUDE.md's Windows-Panic section already names for other subprocess-heavy tests. Not investigated further per the Flake Reflex protocol (single leg red, diff on the observing PR was docs-only and could not plausibly touch this test's timing, re-run succeeded). Left as a recommendation rather than a fix: options are a per-file testTimeout override (CLAUDE.md's Per-Test Band-Aid failure mode warns against reflexive per-test timeouts, so this would need a considered exception) or restructuring the test to reduce subprocess-spawn count. Low urgency until it recurs.
-
 ## rec-20260918-005 — DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error
 
 - status: candidate
@@ -1700,22 +1685,6 @@ progressService passes only nextPhaseNumber to nextAction in IDLE, never the led
 - next: cadence milestone propose
 
 Phase 322 fixed only status, STATE.md and the SessionStart banner. settle never clears state.activePhase and state.json is per-checkout, so in a primary checkout whose phases settle in worktrees, 'cadence handoff' pre-fills active_phase with the last phase settled locally (render-session.ts), and resume, the MCP surface and the intelligence context packet (render-context.ts, backend/cadence.ts) report the same stale value. Candidate fix: apply the same IDLE treatment (label as checkout-local; derive the latest settled phase via findLatestSettledPhase) to each surface, without changing activePhase's semantics or JSON contracts.
-
-## rec-20261008-005 — tests/cli/milestone.test.ts 'accept then illegal re-accept' times out (20 s) on macOS CI on unrelated PRs (#538, #551, #553): split or root-cause the CLI-spawn cost
-
-- status: candidate
-- ready: needs-decision
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: ci, tests
-- files: packages/core/tests/cli/milestone.test.ts, vitest.shared.ts
-- evidence: run 37713434071 (PR #553, doc-only diff): macos-latest test leg FAIL tests/cli/milestone.test.ts accept/re-accept, Test timed out in 20000ms; ubuntu 6m18s and windows 15m42s green
-- next: cadence milestone propose
-
-Third occurrence on diffs that cannot touch it: PR #538 (markdown-only, 2026-09-26 handoff), PR #551 (phase 323, run 37700912139, 2026-10-07) and PR #553 (handoff doc only, run 37713434071, 2026-10-08) all failed only the macos-latest/Node22 leg with 'Test timed out in 20000ms' in tests/cli/milestone.test.ts > cadence milestone > accept then illegal re-accept exits 1; defer works; list --json parses. Ubuntu and Windows green each time; a one-shot re-run of the failed job went green for #551. Same class as rec-20260918-004 (debugging-skill-walkthrough.test.ts): one it() spawning several real CLI child processes against vitest.shared.ts's 20 s global timeout on a loaded macOS runner. The pr-land flake protocol ('re-run once') now costs ~10 min per PR and is being applied blind. Options: split the it() into one CLI spawn per test; share one spawned CLI across the asserts via a fixture; or measure the per-spawn cost on macOS and decide whether the runner, not the test, is the problem. Do not add a per-test timeout (The Per-Test Band-Aid).
 
 ## rec-20261008-007 — Guard against tests that readFileSync a .changeset/*.md with no post-consumption fallback (phase 303 fixed the class, phase 324 reintroduced it)
 
@@ -1957,3 +1926,19 @@ The flag (and --force) passes every failing HIGH in the run (code-review.ts bypa
 - next: cadence milestone propose
 
 docs/reference/commands.md, settle run Gate interactions paragraph, says --force overrides --auto's refusal when ACs are incomplete but does not bypass other gates. That is wrong: gates/code-review.ts and gates/security-audit.ts treat ctx.opts.force === true as a findings bypass, and concepts.md's Gate bypass reference summary already lists --force against deep-verify, interactive-verdict, code-review and security-audit. Fix the paragraph and consider a doc-content test pairing the two pages.
+
+## rec-20261021-001 — Lazy-load CLI command modules to cut per-spawn startup cost
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: cli, performance, tests
+- files: packages/core/src/cli/register.ts, packages/core/src/cli/index.ts
+- evidence: 2026-10-21 measurement: 523 modules loaded for --version; 370 ms spawn vs 60 ms bare node; 290 ms in the register.js import
+- next: cadence milestone propose
+
+Every cadence CLI invocation imports packages/core/dist/cli/register.js, which eagerly loads every command module: 523 modules for a bare --version. Measured 2026-10-21 on an idle 16-core Windows box: about 370 ms per spawn against about 60 ms for bare node, with about 290 ms of it in the register.js import, and NODE_COMPILE_CACHE made no difference. Commander registration has to stay eager (cli-reference.test.ts diffs the registered command set against docs/reference/commands.md), but each command's action handler could dynamic-import its implementation. That would speed up real users' CLI and hooks, and the roughly 290 CLI-spawning tests (49 make 5 or more calls). Split out of phase 333, which fixed the CI timeouts at the worker-pool level instead.

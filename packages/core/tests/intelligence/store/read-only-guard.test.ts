@@ -41,7 +41,7 @@ let active: Fixture | null = null;
 // restore) is the vitest-recommended idiom for env var manipulation in
 // tests: vitest tracks every stubbed key itself and guarantees it is
 // reverted, which is more robust than a hand-rolled save/restore under
-// vitest.shared.ts's `pool: 'forks'` / `maxWorkers: 12` config, where
+// vitest.shared.ts's `pool: 'forks'` / multi-worker config, where
 // process.env is a live OS-level object shared by every test file a worker
 // happens to execute -- a manual save/restore can capture and "faithfully
 // restore" an already-contaminated ambient value instead of a clean one.
