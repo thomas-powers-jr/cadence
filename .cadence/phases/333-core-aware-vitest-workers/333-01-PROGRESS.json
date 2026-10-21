@@ -1,0 +1,32 @@
+{
+  "draftId": "333-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Red step: phase333-core-aware-vitest-workers.test.ts (333-01/AC-1..AC-3). Before T2, AC-1 and AC-2 failed (resolveMaxWorkers undefined; source still sets maxWorkers: 12) and AC-3 passed by design (preservation check), per a main-thread run (2 failed | 1 passed). An independent fresh-context Opus review gave APPROVE WITH NITS, and its mutation checks were all caught: flat 12, cores - 1, missing floor, missing export, pool threads, win32 timeout.",
+      "touchedFiles": [
+        ".claude/scheduled_tasks.lock",
+        "CLAUDE.md",
+        "packages/core/tests/docs/phase260-vitest-v4-upgrade.test.ts",
+        "packages/core/tests/intelligence/store/read-only-guard.test.ts",
+        "vitest.shared.ts",
+        ".agents/skills/source-command-cadence-progress/SKILL.md",
+        ".agents/skills/source-command-cadence-resume/SKILL.md",
+        "docs/handoffs/HANDOFF-331-recovery.md",
+        "docs/handoffs/HANDOFF-331-settle-decision.md",
+        "docs/handoffs/HANDOFF-demo-progressive-disclosure.md",
+        "docs/handoffs/REVIEW-331-code-review-convergence-decision.md",
+        "docs/handoffs/cadence-audit-20260724-handoff.md",
+        "docs/tutorial-rebuild-brief.md",
+        "packages/core/tests/docs/phase333-core-aware-vitest-workers.test.ts"
+      ],
+      "updatedAt": "2026-10-21T15:09:35.750Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "vitest.shared.ts exports resolveMaxWorkers(cores) = max(1, min(12, cores)) and sets maxWorkers: resolveMaxWorkers(availableParallelism()); the comment keeps the Phase 32.1/Vitest 4 rationale and adds the probe evidence. phase260 260-01/AC-2 now matches maxWorkers:\\s*resolveMaxWorkers\\( (supersession comment added). Review nits fixed: concurrency figure in the comment, stale comment in read-only-guard.test.ts:44, CLAUDE.md convention line (operator-approved). Main-thread full pnpm turbo run lint typecheck test build --force: 28/28 green, core 4921 passed. CI proof from probe PR #575 run 39613760426.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-21T15:09:36.299Z"
+    }
+  }
+}

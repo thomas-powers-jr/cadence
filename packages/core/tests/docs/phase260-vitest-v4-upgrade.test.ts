@@ -56,7 +56,11 @@ describe('vitest 2->4 upgrade — real, current repo state (260-01)', () => {
 
   it("vitest.shared.ts uses Vitest 4's flattened maxWorkers, not the removed poolOptions.forks.{minForks,maxForks} shape (260-01/AC-2)", () => {
     const source = readFileSync(join(ROOT, 'vitest.shared.ts'), 'utf8');
-    expect(source).toMatch(/maxWorkers:\s*12/);
+    // Superseded by 333-01: the flat `maxWorkers: 12` this asserted became
+    // a core-aware cap (resolveMaxWorkers, see phase333-core-aware-vitest-
+    // workers.test.ts). The 260-01/AC-2 intent, a top-level maxWorkers
+    // rather than poolOptions.forks, is unchanged.
+    expect(source).toMatch(/maxWorkers:\s*resolveMaxWorkers\(/);
     // Assert the removed *code* is gone (the migration comment is allowed to
     // mention the old API name for documentation purposes, so match the
     // actual config-object shape, not any bare mention of the word).

@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 2,
+  "draftId": "333-01",
+  "completedAt": "2026-10-21T15:24:56.567Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Red step: phase333-core-aware-vitest-workers.test.ts (333-01/AC-1..AC-3). Before T2, AC-1 and AC-2 failed (resolveMaxWorkers undefined; source still sets maxWorkers: 12) and AC-3 passed by design (preservation check), per a main-thread run (2 failed | 1 passed). An independent fresh-context Opus review gave APPROVE WITH NITS, and its mutation checks were all caught: flat 12, cores - 1, missing floor, missing export, pool threads, win32 timeout."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "vitest.shared.ts exports resolveMaxWorkers(cores) = max(1, min(12, cores)) and sets maxWorkers: resolveMaxWorkers(availableParallelism()); the comment keeps the Phase 32.1/Vitest 4 rationale and adds the probe evidence. phase260 260-01/AC-2 now matches maxWorkers:\\s*resolveMaxWorkers\\( (supersession comment added). Review nits fixed: concurrency figure in the comment, stale comment in read-only-guard.test.ts:44, CLAUDE.md convention line (operator-approved). Main-thread full pnpm turbo run lint typecheck test build --force: 28/28 green, core 4921 passed. CI proof from probe PR #575 run 39613760426."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "pr-land",
+      "handoff",
+      "phase-build",
+      "superpowers:systematic-debugging"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "resolveMaxWorkers clamps cores with Math.max(1, Math.min(12, cores)); linked test explicitly exercises the required range and degenerate inputs.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Default config sets maxWorkers to resolveMaxWorkers(availableParallelism()); linked test checks imported value and rejects a line-anchored numeric assignment.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Only worker sizing changed; linked test explicitly verifies platform timeouts, forks pool, and enabled coverage remain unchanged.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 3645,
+    "truncated": false,
+    "filesCount": 3,
+    "provider": "host-cli"
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 17,
+    "sessionSubagentSpawns": 15
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 3,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "60db2be0484b49f713c7f20b51cf120a53341753477b5ea37063217aefcf4be1"
+  }
+}

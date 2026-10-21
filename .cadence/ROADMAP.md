@@ -3759,6 +3759,39 @@ Out of scope:
   copy of 331-01's SUMMARY (blob `ef1ec808`): stored `strong`, re-derived
   `strong`, and `mixed` with the entry this phase records (ev-20261016-007).
 
+### Phase 333 — Core-aware vitest worker cap (rec-20261008-005, rec-20260918-004)
+
+**Objective.** The macOS CI leg kept timing out at 20 s in core tests that
+spawn the CLI several times, on PRs whose diffs could not touch them. The
+cause was `vitest.shared.ts`'s flat `maxWorkers: 12`. Phase 32.1 meant it as
+a cap below a 24-core dev box, but on 3–4 vCPU CI runners it *raised* the
+pool above vitest's own `cores - 1` default. The core suite ran about 10
+tests at once on every leg, which oversubscribed the 3-vCPU macOS runner
+about 4×. The fix is an exported pure `resolveMaxWorkers(cores)`, equal to
+`max(1, min(12, cores))`, set as
+`maxWorkers: resolveMaxWorkers(availableParallelism())`.
+Out of scope:
+- lazy CLI command loading for the ~290 ms / 523-module spawn cost (filed
+  as rec-20261021-001);
+- splitting the slow tests;
+- `TIMEOUT_MS`.
+
+**As built (2026-10-21).**
+- **Probe evidence.** A throwaway PR, #575 (run 39613760426), carried the
+  same formula before the DRAFT was written.
+
+  | Leg | Concurrency | `milestone.test.ts:124` | Core suite |
+  |---|---|---|---|
+  | macOS | 9.8 → 2.5 | 20.1 s → 1.85 s | 572 s → 418 s |
+  | Ubuntu | — | — | 342 s → 241 s |
+  | Windows | — | — | 714 s → 874 s |
+
+- **Windows trade-off.** The Windows suite slowed, and the operator accepted
+  that over an OS-specific multiplier.
+- **Supersession.** Phase 260's `maxWorkers: 12` literal assertion now
+  checks that `maxWorkers` is set through `resolveMaxWorkers`. CLAUDE.md's
+  worker-cap convention was updated with the operator's approval.
+
 ### Phase 334 — Clear the vite GHSA-587h high advisory with override floors
 
 **Objective.** GHSA-587h-7wmj-h5pm (high, published 2026-10-20) failed

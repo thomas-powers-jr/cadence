@@ -3048,6 +3048,27 @@
       "kind": "note",
       "summary": "Found by the phase 332 T5 implementer on 2026-10-16 while editing the settle run flag rows; left out of 332's scope.",
       "createdAt": "2026-10-16T20:37:30.921Z"
+    },
+    {
+      "id": "ev-20261021-001",
+      "recommendationId": "rec-20261008-005",
+      "kind": "note",
+      "summary": "2026-10-20/21 recurrences, all macOS-only red on diffs that cannot touch core: runs 39461022835, 39468308041, 39481591050 attempt 1 (milestone.test.ts:124 at 20048 ms) and attempt 2 (milestone.test.ts:124 at 20115 ms plus recommendation.test.ts:242 at 20045 ms). Root cause measured 2026-10-21: vitest.shared.ts's flat maxWorkers: 12 runs about 9.8 tests at once on every leg, which oversubscribes the 3-vCPU macos-26-arm64 runner about 4x (vitest's own default would be cores - 1). Probe PR #575, run 39613760426, with maxWorkers = min(12, cores): macOS concurrency fell to 2.5, milestone:124 went 20.1 s -> 1.85 s and recommendation:242 20.0 s -> 3.0 s, and core-suite Duration fell 572 s -> 418 s (Ubuntu 342 -> 241 s, Windows 714 -> 874 s). Fixed in phase 333.",
+      "createdAt": "2026-10-21T15:01:01.502Z"
+    },
+    {
+      "id": "ev-20261021-002",
+      "recommendationId": "rec-20260918-004",
+      "kind": "note",
+      "summary": "Same class as rec-20261008-005 (vitest.shared.ts's flat maxWorkers: 12 oversubscribing 3-4 vCPU CI runners). Probe run 39613760426 (maxWorkers = min(12, cores)), macOS: debugging-skill-walkthrough.test.ts 313-01/AC-2 went 17186 ms -> 3002 ms and AC-4 17112 ms -> 3676 ms (baselines from run 39481591050 attempts 1 and 2). Fixed by phase 333.",
+      "createdAt": "2026-10-21T15:01:01.960Z"
+    },
+    {
+      "id": "ev-20261021-003",
+      "recommendationId": "rec-20261021-001",
+      "kind": "note",
+      "summary": "2026-10-21 measurement: 523 modules loaded for --version; 370 ms spawn vs 60 ms bare node; 290 ms in the register.js import",
+      "createdAt": "2026-10-21T15:01:02.410Z"
     }
   ]
 }
