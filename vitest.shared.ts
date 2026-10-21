@@ -1,5 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import { availableParallelism } from 'node:os';
+
+// PROBE (phase 333 pre-draft, throwaway): log runner cores at config load.
+process.stderr.write(`[probe-333] availableParallelism=${availableParallelism()} maxWorkers=${Math.max(1, Math.min(12, availableParallelism()))}
+`);
 
 // Single source of truth for test timeout + worker-pool tuning (and, below,
 // coverage) across every package. Per-package vitest.config.ts files
@@ -124,7 +129,7 @@ export default defineConfig({
     // Vitest 4's pool rework flattened per-pool min/max worker knobs
     // (poolOptions.<pool>.{minForks,maxForks}) into a single top-level cap:
     // https://vitest.dev/guide/migration#pool-rework
-    maxWorkers: 12,
+    maxWorkers: Math.max(1, Math.min(12, availableParallelism())),
     coverage: {
       // `enabled: true` is required here because no package's `test` script
       // (or CI's `pnpm test` / `turbo run test`) passes the `--coverage`
