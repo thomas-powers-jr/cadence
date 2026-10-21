@@ -1264,6 +1264,13 @@ changeset (example/test-only change, no published-package surface).*
   entry naming the flag the gate printed, so phase 283's cap holds the grade
   below `strong`; previously the bypass left no entry and could grade
   `strong`, as 331-01 did (rec-20261016-002).
+- **Phase 334** — cleared the two high advisories that failed
+  `security-success` on every PR from 2026-10-21. The root fix raised the
+  existing vite override to `^7.3.7` (GHSA-587h-7wmj-h5pm plus two moderate
+  siblings against the dev-only vite 7.3.6) and added a launch-editor
+  floor. The website fix added a markdown-it `^14.3.3` floor
+  (GHSA-gfr2-rv44-r23c, which the root failure had masked). No published
+  package changed.
 
 
 

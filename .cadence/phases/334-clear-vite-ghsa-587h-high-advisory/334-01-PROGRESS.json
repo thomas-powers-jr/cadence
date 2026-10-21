@@ -1,0 +1,35 @@
+{
+  "draftId": "334-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "phase334-vite-high-advisory.test.ts: AC-1/AC-2 shown red against the pre-change root package.json+lockfile (2 of 4 failed: vite ^7.3.7 target missing, vite 7.3.6 below floor), green after T2; AC-3 preservation check green on both trees. Independent fresh-context review: 0 Critical/Important on the root fix. Full turbo lint/typecheck/test/build 28/28.",
+      "touchedFiles": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "website/package.json",
+        "website/pnpm-lock.yaml",
+        "packages/core/tests/docs/phase334-vite-high-advisory.test.ts"
+      ],
+      "updatedAt": "2026-10-21T14:30:20.436Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Root overrides: vite ^6||^7||^8 target raised ^7.3.5 -> ^7.3.7 in place, launch-editor@<2.14.2 -> ^2.14.2 added. Plain pnpm install kept the locked vite 7.3.6 peer (unmet peer warning); a pnpm update attempt was reverted from backup (boundary deviation, no residue); deleting the two stale vite@7.3.6 lockfile blocks + pnpm install re-resolved to 7.3.7, vite-only diff, integrity matches registry, --frozen-lockfile accepts. Root pnpm audit 1 high + 2 moderate -> 0; check-audit-exceptions (Windows corepack shim, rec-20261004-003) and check-lockfile-overrides 12/12 exit 0.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-21T14:30:21.016Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Website leg found by independent review (CI never reached the website audit step): GHSA-gfr2-rv44-r23c markdown-it 14.3.2 high. AC-4 test shown red (1 failed/4 passed), then markdown-it@^14.0.0 -> ^14.3.3 in website pnpm.overrides + pnpm install: markdown-it-only diff, 14.3.3 integrity matches registry, --frozen-lockfile accepts. check-audit-exceptions website and check-lockfile-overrides website (6/6) exit 0; website pnpm test 13/13 and pnpm build 234 pages. Re-review: 0 Critical/Important, minors fixed. Full turbo 28/28; tests/docs 55 files 363 passed.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-21T14:30:21.602Z",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  }
+}
