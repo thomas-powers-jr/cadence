@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runGit, tempRepo } from '@thomas-powers-jr/cadence-testkit';
@@ -57,8 +57,10 @@ describe('core atomicWriteText as a checkpoint runtime dependency', () => {
   // workspace manifests and its real `.changeset/` directory, committed on
   // `main`: status's "changed packages since baseBranch" check then sees a
   // clean tree, so the plan does not depend on CI's shallow checkout or on
-  // how far this branch is from main. The plan itself (changesets x packages
-  // x config) is exactly the repo's.
+  // how far this branch is from main. The packages and config are exactly the
+  // repo's; the changesets are the repo's plus one synthetic core minor, so
+  // the plan always bumps core's group. Without it, a release that consumes
+  // every changeset leaves an empty plan and nothing below would be checked.
   it('331-01/AC-10: changeset status --verbose --output bumps core\'s fixed group and leaves checkpoint unbumped and unpublished', async () => {
     const fixture = await tempRepo();
     try {
@@ -74,6 +76,10 @@ describe('core atomicWriteText as a checkpoint runtime dependency', () => {
       for (const file of readdirSync(join(REPO_ROOT, '.changeset'))) {
         copyFileSync(join(REPO_ROOT, '.changeset', file), join(root, '.changeset', file));
       }
+      writeFileSync(
+        join(root, '.changeset', 'release-plan-fixture-core-minor.md'),
+        '---\n"@thomas-powers-jr/cadence-core": minor\n---\n\nSynthetic fixture changeset: keeps core in the plan.\n',
+      );
       runGit(root, ['init', '-q', '-b', 'main']);
       runGit(root, ['add', '-A']);
       runGit(root, [
