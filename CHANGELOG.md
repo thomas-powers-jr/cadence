@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.71.0] - 2026-10-22
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.71.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Fixed
+
+- **A code-review or security-audit findings bypass now reaches `gateBypasses`, so it can no longer grade `strong`.** When `--allow-code-review-failure`, `--allow-security-audit-failure` or `--force` waves through code-review HIGH or security-audit CRITICAL findings, `cadence settle run` writes one `error`-severity `SUMMARY.json.gateBypasses` entry per gate, naming the flag the gate printed, the number of bypassed findings and their highest severity, and phase 283's cap holds `assurance.overall` at `mixed`. Previously such a bypass left no entry and could grade `strong`. Which findings refuse settle, the flags' scope and the gates' stderr wording are unchanged. (Phase `332`, #572.)
+- **The shared vitest config sizes the worker pool to the machine's cores, capped at 12** (`resolveMaxWorkers`), instead of a flat 12 that oversubscribed the 3-vCPU macOS CI runner into 20 s timeouts. Repository test infrastructure only. (Phase `333`, #577.)
+
+### Added
+
+- **cadence-core exports `atomicWriteText(path, text, opts?)`**, the temp-sibling-and-rename writer core uses for its own state files, with a Windows `EPERM`/`EACCES`/`EBUSY` rename retry. Its first consumer is the private checkpoint package's statusline sensor. Engine behavior and CLI are unchanged. (Phase `331`, #571.)
+
+### Security
+
+- **Repository lockfiles cleared of their open advisories; no published package's dependencies changed.** The docs site's lockfile advisories were fixed rather than excepted, and the `audit` job now also checks `website/` (phase `328`, #565). `@changesets/cli` moved to 3.x, retiring the `braces` audit exception (phase `329`, #567). Root `pnpm.overrides` floors cleared 13 moderate advisories (phase `330`, #568) and the vite and markdown-it high advisories (phase `334`, #576).
+
 ## [1.70.0] - 2026-10-10
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.70.0`. Per-package bumps managed by changesets, lockstep across all five published packages.

@@ -1,5 +1,9 @@
 # @thomas-powers-jr/cadence-types
 
+## 1.71.0
+
+No changes in this release.
+
 ## 1.70.0
 
 ## 1.69.1

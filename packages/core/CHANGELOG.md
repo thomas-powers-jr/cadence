@@ -1,5 +1,17 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.71.0
+
+### Minor Changes
+
+`cadence settle run` now records a code-review or security-audit findings bypass (phase 332, rec-20261016-002, 2a4c57e, #572). When `--allow-code-review-failure`, `--allow-security-audit-failure` or `--force` waves through code-review HIGH findings or security-audit CRITICAL findings, `SUMMARY.json.gateBypasses` gets one `error`-severity entry per gate, naming the flag the gate printed, the number of bypassed findings and their highest severity, so `assurance.overall` is capped at `mixed` and never `strong`. Previously such a bypass left no `gateBypasses` entry and could grade `strong`. Which findings refuse settle, the flags' scope and the gates' stderr wording are unchanged, a bypassed code-review or security-audit call that throws is still recorded as a skipped gate, and a refused settle still records no `gateBypasses`.
+
+- `atomicWriteText(path, text, opts?)` is now exported from the package entry (phase 331, ce17221, #571): core's own temp-sibling-and-rename state-file writer, with a Windows `EPERM`/`EACCES`/`EBUSY` rename retry, first consumed by the private checkpoint package's statusline sensor; engine behavior and CLI are unchanged.
+
+### Patch Changes
+
+- @thomas-powers-jr/cadence-types@1.71.0
+
 ## 1.70.0
 
 ### Minor Changes
