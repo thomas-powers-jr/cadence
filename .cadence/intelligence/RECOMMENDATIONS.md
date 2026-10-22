@@ -1879,22 +1879,6 @@ atomicWrite (packages/core/src/state/atomic-write.ts) creates the temp sibling w
 
 assurance-report.ts:322-323 re-derives each graded record from summary.gates, acResults and summary.gateBypasses. A SUMMARY written before the findings-bypass recording fix (rec-20261016-002) carries no gateBypasses entry for a code-review or security-audit findings bypass, so it re-derives with the same strong grade and zero drift: 331-01 is the known case. The bypass is recoverable from the gate sidecar (*-CODE-REVIEW.json: pass false, converged false, history entry bypassed true). Re-derivation could read that sidecar to surface historical bypasses as drift. Report-only: no SUMMARY backfill (D-U, D-BZ).
 
-## rec-20261016-004 — cadence handoff deletes tracked SESSION-*.md docs when pruning past handoff.retain
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: handoff
-- files: packages/core/src/handoff/retention.ts, packages/core/src/handoff/run-handoff.ts
-- evidence: Eight recorded occurrences across session handoffs (SESSION-2026-10-15-handoffs-merged.md: fifth; SESSION-2026-10-16-331-settled-ci-red.md: eighth).
-- next: cadence milestone propose
-
-Every cadence handoff run prunes handoff docs past handoff.retain (10), including docs already committed to git, so each run leaves tracked deletions in the working tree that the operator must git restore. A tool whose purpose is durable records should not delete tracked files as a side effect. Fix shape: retention skips (or only reports) git-tracked files, pruning only untracked local docs. Observed eight times, most recently in the 2026-10-16 331 session (7 tracked docs pruned and restored).
-
 ## rec-20261016-005 — --allow-code-review-failure is all-or-nothing: decide whether a per-finding bypass is worth building
 
 - status: candidate
@@ -1942,3 +1926,19 @@ docs/reference/commands.md, settle run Gate interactions paragraph, says --force
 - next: cadence milestone propose
 
 Every cadence CLI invocation imports packages/core/dist/cli/register.js, which eagerly loads every command module: 523 modules for a bare --version. Measured 2026-10-21 on an idle 16-core Windows box: about 370 ms per spawn against about 60 ms for bare node, with about 290 ms of it in the register.js import, and NODE_COMPILE_CACHE made no difference. Commander registration has to stay eager (cli-reference.test.ts diffs the registered command set against docs/reference/commands.md), but each command's action handler could dynamic-import its implementation. That would speed up real users' CLI and hooks, and the roughly 290 CLI-spawning tests (49 make 5 or more calls). Split out of phase 333, which fixed the CI timeouts at the worker-pool level instead.
+
+## rec-20261022-001 — doctor handoff-retention check overstates what the next handoff write will prune
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: handoff, doctor
+- files: packages/core/src/doctor/run.ts
+- evidence: Phase 335 whole-branch review: AC-6 ends with 12 committed docs against retain 10 while the check reports the next write will prune 2.
+- next: cadence milestone propose
+
+Since phase 335 the retention prune keeps every git-tracked SESSION doc, but checkHandoffRetention (doctor/run.ts) still reports, when the count exceeds handoff.retain, that the next handoff write will prune count minus retain docs, and its doc comment says the docs self-heal on the next write. When the excess is committed (as in this repo, where SESSION docs are tracked and swept in housekeeping PRs) nothing is pruned, so the ok message is false. Fix shape: have the check count only untracked docs against the budget (reusing the same best-effort ls-files lookup) or reword the message to say untracked docs will be pruned and tracked ones kept. Deliberately out of scope for phase 335 (DRAFT boundary).

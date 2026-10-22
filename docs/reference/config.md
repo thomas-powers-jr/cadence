@@ -402,23 +402,28 @@ Handoff retention (v1.20). `cadence handoff` writes dated `SESSION-*.md` docs in
 left unmanaged they accumulate indefinitely. An **opt-in**, count-based retention policy prunes the
 stale ones at **handoff-write time** (not settle — settle fires per-phase and would race the
 `lastHandoff` pointer mid-session). Selection is deterministic and offline (lexicographic-descending
-by filename — the ISO date prefix sorts chronologically — no git introspection).
+by filename — the ISO date prefix sorts chronologically). Before deleting anything, the pruner asks
+git which docs are tracked (a best-effort, read-only `git ls-files` in `.cadence/handoff/`) and keeps
+every tracked one *(phase 335)*. When that lookup fails (not a git repository, git unavailable,
+timeout), no doc is protected and pruning proceeds as before.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `handoff.retain` | `integer >= 1` (optional) | *unset* | Keep the N most-recent `SESSION-*.md` docs and hard-delete the rest on each handoff write. **Unset disables pruning entirely** (current behavior). The just-written doc (the new `lastHandoff`) is always the newest, so it is never deleted. |
+| `handoff.retain` | `integer >= 1` (optional) | *unset* | Keep the N most-recent `SESSION-*.md` docs; on each handoff write, hard-deletes **untracked** `SESSION-*.md` docs past the budget; git-tracked docs are never deleted by the pruner. **Unset disables pruning entirely** (current behavior). The just-written doc (the new `lastHandoff`) is always the newest, so it is never deleted. |
 
 Pruning is **best-effort and never silently destructive**: it only runs when `retain` is set, always
-keeps the active handoff, reports what it removed (`handoff: pruned N stale doc(s): …`), and a failure
+keeps the active handoff and every git-tracked doc, reports what it removed (`handoff: pruned N stale doc(s): …`),
+prints one stderr line when the budget would have removed git-tracked (committed or staged) docs (`handoff: kept N git-tracked SESSION doc(s) past handoff.retain; committed SESSION docs are kept, sweep them in a housekeeping PR`), and a failure
 (unreadable config, `unlink` error) leaves the handoff intact rather than failing it. Because the
 behavior is opt-in and the dated archive that `cadence resume` relies on is preserved (the newest N),
 nothing the resume flow needs is destroyed.
 
 `cadence doctor` includes a `handoff-retention` check: `ok` when the count is within the
-`retain` budget (or retention is set and the next write will self-heal the excess), and a `warning`
+`retain` budget (or retention is set and the next write will prune the untracked excess), and a `warning`
 only when retention is **unset** and at least 10 docs have piled up — suggesting a `handoff.retain`
 value to cap the growth. `cadence doctor --fix` auto-remediates that warning: it sets `handoff.retain`
-to the default (10) and immediately prunes the archive down to budget (see `docs/reference/commands.md`'s
+to the default (10) and immediately prunes untracked docs down to budget. Git-tracked docs are kept,
+so a committed excess stays until it is swept in a housekeeping PR (see `docs/reference/commands.md`'s
 `cadence doctor` section for the full `--fix` classification table).
 
 ```jsonc

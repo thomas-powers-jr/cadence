@@ -1276,6 +1276,12 @@ changeset (example/test-only change, no published-package surface).*
   floor. The website fix added a markdown-it `^14.3.3` floor
   (GHSA-gfr2-rv44-r23c, which the root failure had masked). No published
   package changed.
+- **Phase 335** — the handoff retention prune never deletes a git-tracked
+  `SESSION-*.md` doc, in `cadence handoff` and in the `doctor --fix`
+  handoff-retention repair alike. A best-effort `git ls-files` decides what
+  is tracked; a failed lookup protects nothing, as before. When the budget
+  would have pruned committed docs, one stderr notice names how many were
+  kept (rec-20261016-004).
 
 
 

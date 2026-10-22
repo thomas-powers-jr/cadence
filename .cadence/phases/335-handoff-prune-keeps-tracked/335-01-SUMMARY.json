@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 2,
+  "draftId": "335-01",
+  "completedAt": "2026-10-22T16:19:55.359Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Unit tests for AC-1..AC-4 in retention.test.ts; red before T3 on exactly the tracked-set and notice cases; independent opus review APPROVE, three minor hardening points applied (lister dir assertion, hard-coded expectations, comment).",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Real-git tests: AC-5 (runHandoff default prune), AC-6 (doctor --fix), AC-2 non-git runHandoff case; AC-5/AC-6 red before T3 because committed docs were deleted; independent opus review APPROVE, index-untouched assertion and fixture hardening (add -f, core.hooksPath=) applied.",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "retention.ts: selectPrunable tracked filter after the keep window; pruneHandoffDir PruneDeps with best-effort git ls-files lister and bound stderr default; one kept-docs notice. Independent opus review APPROVE; applied: top-level-only tracked names, skip git when nothing is over budget, lister unexported. deja pre-tool-use hook did not flag the new lister, so no deja:new override was used.",
+      "execution": "inline",
+      "isolation": "worktree"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "Doc test (AC-7) red then green; config.md intro, retain row and notice paragraph; commands.md doctor --fix row; cadence-core patch changeset; ROADMAP and MILESTONES phase 335 entries. Packet suggested dispatch; done inline in the main thread instead.",
+      "execution": "inline",
+      "isolation": "worktree"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Tracked names are filtered after the retain window; cited test verifies only 04 and 01 are unlinked, 02/03 remain, and current 05 remains.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Thrown/null tracked lookup falls back to an empty set without stderr; cited tests cover both seams and the default non-git runHandoff path.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Notice count is computed from pre-filter prune candidates that are tracked; cited tests verify one exact line for 2 and silence for in-budget/empty sets.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Optional tracked set defaults empty, preserving selection; cited fixtures verify legacy outputs and non-empty-set exclusion, current retention, and order.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Default git ls-files lookup protects committed basenames; cited real-repo test verifies four files remain, no deleted index entries, one untracked prune, and notice.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Doctor repair uses pruneHandoffDir; cited real-repo test verifies retain becomes 10 while all 12 committed docs and index state remain intact.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Config and command references now state untracked-only deletion, tracked-doc protection, git lookup, and doctor preservation; cited doc test exercises the wording.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 29577,
+    "truncated": false,
+    "filesCount": 10,
+    "provider": "host-cli"
+  },
+  "codeReview": {},
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 15,
+    "sessionSubagentSpawns": 1
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 7,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "efe075ff73b5108a30e049d8bd998825d700d922cb82c88eccb42e8da4364204"
+  }
+}
