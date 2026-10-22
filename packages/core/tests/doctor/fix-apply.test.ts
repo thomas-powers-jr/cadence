@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, rm, mkdir, writeFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
+import { runGit, tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { emptyState } from '@thomas-powers-jr/cadence-types';
 import { runDoctor, HANDOFF_WARN_THRESHOLD } from '../../src/doctor/run.js';
 import { planFixes, applyFixes, type FixPlan } from '../../src/doctor/fix.js';
@@ -116,6 +116,39 @@ describe('applyFixes auto repairs (131 AC-2)', () => {
 
     const after = await runDoctor(active.root, ENV);
     expect(after.checks.find((c) => c.name === 'handoff-retention')?.severity).toBe('ok');
+  });
+
+  it('335-01/AC-6: handoff-retention repair keeps committed SESSION docs in a real git repository', async () => {
+    active = await tempRepo({ initialized: true }); // handoff.retain unset by default
+    await seedHandoffDocs(active.root, 12); // days 10..21, all committed below
+    runGit(active.root, ['init', '-q', '-b', 'main']);
+    runGit(active.root, ['add', '-f', '--', '.cadence/handoff']);
+    runGit(active.root, [
+      '-c', 'user.name=handoff-test', '-c', 'user.email=handoff-test@example.invalid', '-c', 'commit.gpgsign=false',
+      '-c', 'core.hooksPath=', 'commit', '-q', '-m', 'fixture',
+    ]);
+
+    const before = await runDoctor(active.root, ENV);
+    expect(before.checks.find((c) => c.name === 'handoff-retention')?.severity).toBe('warning');
+
+    // Apply only the handoff-retention repair, so no other auto repair touches the index.
+    const plan = planFixes(before);
+    const only: FixPlan = { actions: plan.actions.filter((a) => a.fixId === 'handoff-retention') };
+    const outcomes = await applyFixes(active.root, only, { wireHost: false });
+    expect(outcomes.find((o) => o.fixId === 'handoff-retention')?.status).toBe('applied');
+
+    const config = JSON.parse(
+      await readFile(join(active.root, '.cadence', 'config.json'), 'utf8'),
+    ) as { handoff?: { retain?: number } };
+    expect(config.handoff?.retain).toBe(HANDOFF_WARN_THRESHOLD);
+
+    const remaining = (await readdir(join(active.root, '.cadence', 'handoff'))).filter((n) =>
+      /^SESSION-.*\.md$/.test(n),
+    );
+    expect(remaining).toHaveLength(12);
+    expect(runGit(active.root, ['ls-files', '--deleted'])).toBe('');
+    // The index is untouched too: nothing was `git rm --cached` behind a kept file.
+    expect(runGit(active.root, ['status', '--porcelain', '--untracked-files=no'])).toBe('');
   });
 
   it('AC-3 (phase 190): handoff-retention repair is a true no-op when the check already passes', async () => {

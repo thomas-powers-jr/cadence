@@ -3069,6 +3069,13 @@
       "kind": "note",
       "summary": "2026-10-21 measurement: 523 modules loaded for --version; 370 ms spawn vs 60 ms bare node; 290 ms in the register.js import",
       "createdAt": "2026-10-21T15:01:02.410Z"
+    },
+    {
+      "id": "ev-20261022-001",
+      "recommendationId": "rec-20261022-001",
+      "kind": "note",
+      "summary": "Phase 335 whole-branch review: AC-6 ends with 12 committed docs against retain 10 while the check reports the next write will prune 2.",
+      "createdAt": "2026-10-22T16:14:21.097Z"
     }
   ]
 }

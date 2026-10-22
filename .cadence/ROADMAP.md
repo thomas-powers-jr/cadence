@@ -3835,6 +3835,25 @@ the 7.x major).
 - **Test.** The new `phase334-vite-high-advisory.test.ts` was shown red first
   for the root floors and then for the website floor.
 
+### Phase 335 — `cadence handoff` prune never deletes a git-tracked doc (rec-20261016-004)
+
+**Objective.** With `handoff.retain` set, every `cadence handoff` pruned
+`.cadence/handoff/SESSION-*.md` past the budget, including docs already
+committed. Each run left tracked deletions the operator had to
+`git restore`: eight recorded occurrences through 2026-10-16, a ninth on
+2026-10-20, then 10 and 12 docs on 2026-10-21 and 2026-10-22. That
+contradicted the config reference's "never silently destructive" claim. Both
+prune entry points, `cadence handoff` and the `doctor --fix`
+handoff-retention repair, go through `pruneHandoffDir`, so the fix lives
+there. `selectPrunable` gains an optional tracked set that it filters out
+after the keep window, and its output without one is unchanged.
+`pruneHandoffDir` asks git which docs are tracked with a best-effort,
+read-only `git ls-files`; a failed lookup protects nothing, as before. When
+the budget would have pruned a committed doc, it prints one stderr notice.
+Tracked docs are protected unconditionally, with no config knob. Tier
+`complex` by `classifyTier` (10 files over the standard tier's 8), as the
+operator's work order required.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

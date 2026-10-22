@@ -1,10 +1,10 @@
 // packages/core/tests/handoff/run-handoff.test.ts
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { defaultConfig } from '@thomas-powers-jr/cadence-types';
-import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
+import { runGit, tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { SimpleStateBackend } from '../../src/state/simple.js';
 import { runHandoff, runHandoffCheck } from '../../src/handoff/run-handoff.js';
 
@@ -120,6 +120,68 @@ describe('runHandoff', () => {
     expect(res.stamped).toBe(true);
     expect(existsSync(res.path)).toBe(true);
     expect(res.pruned).toEqual([]); // error swallowed → no pruned report
+  });
+
+  it('335-01/AC-5: a real git repository keeps its committed SESSION docs through the default prune', async () => {
+    active = await tempRepo({ initialized: true });
+    const committed = [
+      'SESSION-2026-06-04.md',
+      'SESSION-2026-06-05.md',
+      'SESSION-2026-06-06.md',
+      'SESSION-2026-06-07.md',
+    ];
+    const dir = await seedHandoffDocs(active.root, committed);
+    await enableRetention(active.root, 2);
+    runGit(active.root, ['init', '-q', '-b', 'main']);
+    runGit(active.root, ['add', '-f', '--', '.cadence/handoff']);
+    runGit(active.root, [
+      '-c', 'user.name=handoff-test', '-c', 'user.email=handoff-test@example.invalid', '-c', 'commit.gpgsign=false',
+      '-c', 'core.hooksPath=', 'commit', '-q', '-m', 'fixture',
+    ]);
+    const untracked = 'SESSION-2026-06-02.md';
+    await writeFile(join(dir, untracked), '# untracked\n');
+
+    // Calls through to the real write, so an unbound default stderr throws here.
+    const spy = vi.spyOn(process.stderr, 'write');
+    try {
+      const res = await runHandoff(active.root, {}, NOW_LATEST);
+
+      // New doc 09 is newest; retain=2 keeps {09, 07}; 06, 05, 04 are tracked.
+      expect(res.pruned).toEqual([untracked]);
+      expect(existsSync(join(dir, untracked))).toBe(false);
+      for (const n of committed) expect(existsSync(join(dir, n))).toBe(true);
+      expect(runGit(active.root, ['ls-files', '--deleted'])).toBe('');
+      // The index is untouched too: nothing was `git rm --cached` behind a kept file.
+      expect(runGit(active.root, ['status', '--porcelain', '--untracked-files=no'])).toBe('');
+      const notices = spy.mock.calls.map((c) => String(c[0])).filter((s) => s.startsWith('handoff: kept'));
+      expect(notices).toEqual([
+        'handoff: kept 3 git-tracked SESSION doc(s) past handoff.retain; committed SESSION docs are kept, sweep them in a housekeeping PR\n',
+      ]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('335-01/AC-2: outside a git repository the doc is written, the prune is unchanged and stderr is silent', async () => {
+    active = await tempRepo({ initialized: true });
+    const dir = await seedHandoffDocs(active.root, [
+      'SESSION-2026-06-05.md',
+      'SESSION-2026-06-06.md',
+      'SESSION-2026-06-07.md',
+    ]);
+    await enableRetention(active.root, 2);
+
+    const spy = vi.spyOn(process.stderr, 'write');
+    try {
+      const res = await runHandoff(active.root, {}, NOW_LATEST);
+
+      expect(existsSync(res.path)).toBe(true);
+      expect(res.pruned).toEqual(['SESSION-2026-06-06.md', 'SESSION-2026-06-05.md']);
+      expect(existsSync(join(dir, 'SESSION-2026-06-07.md'))).toBe(true);
+      expect(spy.mock.calls).toEqual([]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('AC-5: runHandoffCheck reports unfilled sections of the freshest doc', async () => {

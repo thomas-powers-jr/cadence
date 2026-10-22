@@ -3369,35 +3369,6 @@
       "updatedAt": "2026-10-16T20:34:49.641Z"
     },
     {
-      "id": "rec-20261016-004",
-      "title": "cadence handoff deletes tracked SESSION-*.md docs when pruning past handoff.retain",
-      "summary": "Every cadence handoff run prunes handoff docs past handoff.retain (10), including docs already committed to git, so each run leaves tracked deletions in the working tree that the operator must git restore. A tool whose purpose is durable records should not delete tracked files as a side effect. Fix shape: retention skips (or only reports) git-tracked files, pruning only untracked local docs. Observed eight times, most recently in the 2026-10-16 331 session (7 tracked docs pruned and restored).",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "handoff"
-      ],
-      "affectedFiles": [
-        "packages/core/src/handoff/retention.ts",
-        "packages/core/src/handoff/run-handoff.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261016-004"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "scoutId": "scout-20261016-331-recovery",
-      "createdAt": "2026-10-16T19:16:33.160Z",
-      "updatedAt": "2026-10-16T19:16:33.160Z"
-    },
-    {
       "id": "rec-20261016-005",
       "title": "--allow-code-review-failure is all-or-nothing: decide whether a per-finding bypass is worth building",
       "summary": "The flag (and --force) passes every failing HIGH in the run (code-review.ts bypassed computation). An operator authorization that names one finding cannot be enforced: in 331-01 it was authorized for finding 6 and also passed an unauthorized finding 7. Design question: a per-finding bypass such as --allow-code-review-finding <identity> keyed on the finding identity hash, refusing when any un-named HIGH remains. Do not build without a decision.",
@@ -3484,6 +3455,34 @@
       "decisionIds": [],
       "createdAt": "2026-10-21T15:01:02.410Z",
       "updatedAt": "2026-10-21T15:01:02.410Z"
+    },
+    {
+      "id": "rec-20261022-001",
+      "title": "doctor handoff-retention check overstates what the next handoff write will prune",
+      "summary": "Since phase 335 the retention prune keeps every git-tracked SESSION doc, but checkHandoffRetention (doctor/run.ts) still reports, when the count exceeds handoff.retain, that the next handoff write will prune count minus retain docs, and its doc comment says the docs self-heal on the next write. When the excess is committed (as in this repo, where SESSION docs are tracked and swept in housekeeping PRs) nothing is pruned, so the ok message is false. Fix shape: have the check count only untracked docs against the budget (reusing the same best-effort ls-files lookup) or reword the message to say untracked docs will be pruned and tracked ones kept. Deliberately out of scope for phase 335 (DRAFT boundary).",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "handoff",
+        "doctor"
+      ],
+      "affectedFiles": [
+        "packages/core/src/doctor/run.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261022-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-22T16:14:21.097Z",
+      "updatedAt": "2026-10-22T16:14:21.097Z"
     }
   ],
   "archived": [
@@ -11502,10 +11501,43 @@
       ],
       "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-09-18T02:39:19.565Z",
-      "updatedAt": "2026-10-21T15:25:17.202Z",
       "shippedRef": "phase 333 (333-01, settled 2026-10-21): same root cause as rec-20261008-005, the flat maxWorkers: 12; probe run 39613760426 macOS debugging-skill-walkthrough.test.ts 313-01/AC-2 17.2s -> 3.0s, AC-4 17.1s -> 3.7s",
       "archivedAt": "2026-10-21T15:25:17.202Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-18T02:39:19.565Z",
+      "updatedAt": "2026-10-21T15:25:17.202Z"
+    },
+    {
+      "id": "rec-20261016-004",
+      "title": "cadence handoff deletes tracked SESSION-*.md docs when pruning past handoff.retain",
+      "summary": "Every cadence handoff run prunes handoff docs past handoff.retain (10), including docs already committed to git, so each run leaves tracked deletions in the working tree that the operator must git restore. A tool whose purpose is durable records should not delete tracked files as a side effect. Fix shape: retention skips (or only reports) git-tracked files, pruning only untracked local docs. Observed eight times, most recently in the 2026-10-16 331 session (7 tracked docs pruned and restored).",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "handoff"
+      ],
+      "affectedFiles": [
+        "packages/core/src/handoff/retention.ts",
+        "packages/core/src/handoff/run-handoff.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261016-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "335-handoff-prune-keeps-tracked",
+      "scoutId": "scout-20261016-331-recovery",
+      "createdAt": "2026-10-16T19:16:33.160Z",
+      "updatedAt": "2026-10-22T16:20:53.229Z",
+      "shippedRef": "phase 335 (335-01, settled 2026-10-22; deep-verify 7/7 and code-review 0 findings, host-cli/codex): handoff retention prune keeps git-tracked SESSION docs in cadence handoff and doctor --fix; doctor check wording split out as rec-20261022-001",
+      "archivedAt": "2026-10-22T16:20:53.229Z",
       "archiveReason": "shipped"
     }
   ]
