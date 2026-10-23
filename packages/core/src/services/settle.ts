@@ -219,7 +219,83 @@ function anomalyToGateBypass(event: AnomalyEvent): GateBypass | null {
       severity: event.severity,
     };
   }
+  if (event.type === 'checkpoint-force-released') {
+    // Phase 336 (D-CE, `dec-20261022-002`): not a CLI flag — the checkpoint
+    // Stop-gate's own ceiling release, recorded under its pseudo-gate name
+    // (`GateBypassZ.gate` is a loose string for exactly this).
+    return {
+      gate: 'checkpoint-stop',
+      flag: 'ceiling-release',
+      reason: event.message,
+      severity: event.severity,
+    };
+  }
   return null;
+}
+
+/**
+ * Strict ISO-8601 date-time with an explicit `Z` or `±HH:MM` offset — the
+ * shape `new Date().toISOString()` (and the checkpoint store) writes.
+ * Writer contract: the checkpoint store writes `lastForcedAt` via
+ * `toISOString()` and validates it with a verbatim copy of this regex
+ * (`packages/checkpoint/src/state.ts`), so the store and settle agree on
+ * which records count.
+ */
+const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Phase 336 (D-CE, `dec-20261022-002`): best-effort read of the checkpoint
+ * store's sticky `lastForcedAt` from `<root>/.cadence/checkpoint/state.json`,
+ * by path — core never imports the checkpoint package. Never throws: an
+ * absent or unreadable file, invalid JSON, a non-object, or a `lastForcedAt`
+ * that is missing, not a string, or not an ISO date-time all yield `null`
+ * ("no information"), exactly like every other observation helper here.
+ */
+async function readCheckpointLastForcedAt(root: string): Promise<string | null> {
+  try {
+    const raw = await readFile(join(root, '.cadence', 'checkpoint', 'state.json'), 'utf8');
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const value = (parsed as Record<string, unknown>).lastForcedAt;
+    if (typeof value !== 'string' || !ISO_DATETIME_RE.test(value)) return null;
+    if (Number.isNaN(Date.parse(value))) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Phase 336 (D-CE): outcome of {@link checkpointForceReleaseFact}.
+ * - `none`: no valid record, or a record from before the draft opened —
+ *   nothing to say (AC-16 paths stay silent).
+ * - `forced`: the record is at or after the draft's open time — a fact.
+ * - `uncomparable`: a valid record exists but the active draft has no
+ *   parseable `openDrafts[].since` to compare it against — not a fact, but
+ *   never dropped silently (the caller prints one stderr notice).
+ */
+type CheckpointForceReleaseOutcome =
+  | { kind: 'none' }
+  | { kind: 'forced'; lastForcedAt: string }
+  | { kind: 'uncomparable'; lastForcedAt: string };
+
+/**
+ * Phase 336 (D-CE): pure decision — a force-release counts against this
+ * draft iff `lastForcedAt` is at or after the active draft's
+ * `openDrafts[].since`, compared as parsed instants (not strings, so mixed
+ * offsets order correctly). A valid record with no `since` entry, or an
+ * unparseable one, is `uncomparable`.
+ */
+function checkpointForceReleaseFact(
+  lastForcedAt: string | null,
+  since: string | undefined,
+): CheckpointForceReleaseOutcome {
+  if (lastForcedAt === null) return { kind: 'none' };
+  const forcedMs = Date.parse(lastForcedAt);
+  if (Number.isNaN(forcedMs)) return { kind: 'none' };
+  const sinceMs = since === undefined ? Number.NaN : Date.parse(since);
+  if (Number.isNaN(sinceMs)) return { kind: 'uncomparable', lastForcedAt };
+  return forcedMs >= sinceMs ? { kind: 'forced', lastForcedAt } : { kind: 'none' };
 }
 
 function gateBypassesFromAnomalies(events: AnomalyEvent[]): GateBypass[] {
@@ -1154,6 +1230,23 @@ async function runAnomalyAndSkillAuditChecks(
   // non-null (`loadConfig` returns `defaultConfig` when there is no
   // `config.json`), so the former `ctx.config ? … : []` ternary could never
   // take its `[]` branch from that call path.
+  //
+  // Phase 336 (D-CE): the checkpoint force-release fact is gathered here (the
+  // impure read) and handed to the pure `collectAnomalies`, so the anomaly
+  // reaches `gateBypassesFromAnomalies` like every other bypass-carrying one.
+  const checkpointOutcome = checkpointForceReleaseFact(
+    await readCheckpointLastForcedAt(cwd),
+    state.openDrafts.find((d) => d.id === state.activeDraft)?.since,
+  );
+  if (checkpointOutcome.kind === 'uncomparable') {
+    io.err(
+      `settle: checkpoint force-release record (lastForcedAt ${checkpointOutcome.lastForcedAt}) found but the active draft has no open-time to compare it against; not recorded as a bypass\n`,
+    );
+  }
+  const checkpointForceRelease =
+    checkpointOutcome.kind === 'forced'
+      ? { lastForcedAt: checkpointOutcome.lastForcedAt }
+      : undefined;
   const anomalies = collectAnomalies({
     draft,
     progress,
@@ -1164,6 +1257,7 @@ async function runAnomalyAndSkillAuditChecks(
     ...(deepVerify ? { deepVerify } : {}),
     ...(interactiveVerify ? { interactiveVerify } : {}),
     ...(verifierFailure ? { verifierFailure } : {}),
+    ...(checkpointForceRelease ? { checkpointForceRelease } : {}),
   });
   const gateBypasses = gateBypassesFromAnomalies(anomalies);
   for (const bypass of gateBypasses) {

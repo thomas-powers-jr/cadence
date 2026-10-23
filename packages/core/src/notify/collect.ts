@@ -34,6 +34,15 @@ export interface CollectAnomaliesContext {
    * when omitted, the boundary check falls back to exact-string matching.
    */
   root?: string | undefined;
+  /**
+   * Phase 336 (D-CE, `dec-20261022-002`): present iff settle found a
+   * checkpoint Stop-gate ceiling force-release (`lastForcedAt` in
+   * `.cadence/checkpoint/state.json`) at or after the active draft's
+   * `openDrafts[].since`. The read and the comparison happen in settle; this
+   * function only turns the already-decided fact into one event, so it stays
+   * pure. Omit the key when there is no such fact.
+   */
+  checkpointForceRelease?: { lastForcedAt: string };
 }
 
 export interface CollectAnomaliesOptions {
@@ -101,6 +110,21 @@ export function collectAnomalies(
       severity: 'warn',
       message: 'auto × complex soft cap bypassed via --allow-auto-complex (DESIGN.md §4 M2)',
       context: {},
+      ts: stamp(),
+    });
+  }
+
+  // checkpoint-force-released — single error event when the checkpoint
+  // Stop-gate released a session at its ceiling during this draft (phase 336,
+  // D-CE). Mapped by settle to a `checkpoint-stop` gate bypass, so phase 283's
+  // cap holds the grade at 'mixed'.
+  if (ctx.checkpointForceRelease) {
+    const { lastForcedAt } = ctx.checkpointForceRelease;
+    events.push({
+      type: 'checkpoint-force-released',
+      severity: 'error',
+      message: `checkpoint stop-gate force-released a session at its block ceiling during this draft (lastForcedAt ${lastForcedAt}), without a validated handoff`,
+      context: { lastForcedAt },
       ts: stamp(),
     });
   }

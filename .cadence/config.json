@@ -74,7 +74,7 @@
   },
   "verifier": {
     "provider": "host-cli",
-    "diffCapBytes": 262144
+    "diffCapBytes": 393216
   },
   "perTaskVerifier": {
     "provider": "host-cli"

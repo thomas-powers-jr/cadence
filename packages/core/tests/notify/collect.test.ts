@@ -461,3 +461,36 @@ describe('force-used honesty report — real-classifier replay of phase 272 / 29
     expect(deepIds).toEqual(['AC-5']);
   });
 });
+
+// Phase 336 (336-01, T2): D-CE settle side. `checkpointForceRelease` is an
+// optional, already-decided fact settle passes in (settle.ts reads
+// `.cadence/checkpoint/state.json` and compares `lastForcedAt` against the
+// active draft's `openDrafts[].since`); `collectAnomalies` stays pure and only
+// turns the fact into one error-severity event.
+describe('collectAnomalies checkpointForceRelease (phase 336)', () => {
+  const FIXED = new Date('2026-10-22T12:00:00.000Z');
+
+  it('336-01/AC-15: a checkpointForceRelease fact emits exactly one error-severity checkpoint-force-released anomaly naming lastForcedAt', () => {
+    const lastForcedAt = '2026-10-22T10:01:00.000Z';
+    const events = collectAnomalies(
+      ctx({ checkpointForceRelease: { lastForcedAt } }),
+      { now: () => FIXED },
+    );
+    const forced = events.filter((e) => e.type === 'checkpoint-force-released');
+    expect(forced).toHaveLength(1);
+    expect(events).toHaveLength(1);
+    const event = forced[0]!;
+    expect(event.severity).toBe('error');
+    expect(event.message).toContain(lastForcedAt);
+    expect(event.message).not.toContain('\n');
+    expect(event.context).toEqual({ lastForcedAt });
+    expect(event.ts).toBe(FIXED.toISOString());
+    expect(AnomalyEventZ.safeParse(event).success).toBe(true);
+  });
+
+  it('336-01/AC-16: without a checkpointForceRelease fact no checkpoint-force-released anomaly is emitted', () => {
+    const events = collectAnomalies(ctx(), { now: () => FIXED });
+    expect(events.some((e) => e.type === 'checkpoint-force-released')).toBe(false);
+    expect(events).toEqual([]);
+  });
+});

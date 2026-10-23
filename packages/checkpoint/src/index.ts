@@ -1,7 +1,8 @@
-export { validate } from './validate.js';
+export { declaredHandoffVersion, validate } from './validate.js';
 export type { Diagnostic, DiagnosticCode, ValidateOptions, ValidateResult } from './types.js';
 export {
   CHECKPOINT_STATES,
+  GUARDED_EDGES,
   LEGAL_EDGES,
   checkpointStatePath,
   isCheckpointState,
@@ -9,14 +10,48 @@ export {
   readMachineState,
   transition,
   transitionStore,
+  updateStoreExtras,
 } from './state.js';
 export {
   checkpointReadingPath,
   defaultExcludedCadenceDirs,
+  defaultProjectMarker,
   parseReading,
   resolveProjectDir,
   runStatusline,
 } from './sensor.js';
+export {
+  DEFAULT_STOP_OPTIONS,
+  MAX_READING_FUTURE_SKEW_S,
+  MIN_GATE_HANDOFF_VERSION,
+  checkHandoffDoc,
+  decideStop,
+  effectivePercentage,
+  newestHandoffAfter,
+  parseStopGateArgs,
+  parseStopPayload,
+  readingFromJson,
+  runStopGate,
+} from './stop-gate.js';
+export type {
+  HandoffCandidate,
+  ParseStopGateArgsResult,
+  ParseStopPayloadResult,
+  StopBlock,
+  StopFacts,
+  StopGateDiagnostic,
+  StopGateDiagnosticCode,
+  StopGateRunOptions,
+  StopGateStore,
+  StopMachine,
+  StopOptions,
+  StopPlan,
+  StopRelease,
+  StopStdout,
+  StoreOp,
+  TransitionOp,
+  UpdateExtrasOp,
+} from './stop-gate.js';
 export type {
   CheckpointReading,
   ParseReadingResult,
@@ -26,10 +61,16 @@ export type {
 } from './sensor.js';
 export type {
   CheckpointState,
+  GuardFlag,
+  GuardedEdge,
+  MachineStateExtras,
+  MachineStateExtrasPatch,
   MachineStateFile,
   MachineStateRead,
+  MachineStateReadOk,
   TransitionContext,
   TransitionReading,
   TransitionResult,
   TransitionStoreOptions,
+  UpdateStoreExtrasOptions,
 } from './state.js';

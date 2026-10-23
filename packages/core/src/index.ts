@@ -14,3 +14,7 @@ export { CODEX_EXPECTED_HOOKS } from './doctor/host-hooks.js';
 // writer (D-BR, dec-20261013-002). It is a stable I/O primitive, not engine
 // logic, so exporting it does not couple checkpoint's validator grammar to core.
 export { atomicWriteText } from './state/atomic-write.js';
+// Phase 336: the checkpoint Stop gate names a SESSION doc's still-unfilled
+// sections with core's own detector, so the two never disagree about what a
+// leftover `<!-- … FILL IN … -->` marker means.
+export { findUnfilledSections } from './handoff/placeholders.js';

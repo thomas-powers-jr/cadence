@@ -184,7 +184,7 @@ async function isDirectory(path: string): Promise<boolean> {
 }
 
 /** The default project marker test: a `.cadence` directory that is not an excluded store. */
-function defaultProjectMarker(excludedCadenceDirs: readonly string[]): (dir: string) => Promise<boolean> {
+export function defaultProjectMarker(excludedCadenceDirs: readonly string[]): (dir: string) => Promise<boolean> {
   let excluded: Promise<Set<string>> | undefined;
   return async (dir) => {
     const marker = join(dir, '.cadence');

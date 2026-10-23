@@ -1,0 +1,87 @@
+{
+  "draftId": "336-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Inline TDD: core index exports findUnfilledSections; checkpoint core-export test red then green (4/4). Full turbo lint/typecheck/test/build 28/28 green at wave close.",
+      "touchedFiles": [
+        "docs/concepts.md",
+        "packages/checkpoint/src/state.ts",
+        "packages/checkpoint/tests/core-export.test.ts",
+        "packages/checkpoint/tests/state-store.test.ts",
+        "packages/checkpoint/tests/state-transitions.test.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/notify/collect.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/notify/collect.test.ts",
+        "packages/types/src/anomaly.ts",
+        "docs/handoffs/HANDOFF-v1.71-release-335-336.md",
+        "packages/core/tests/services/settle-checkpoint-force-release.test.ts"
+      ],
+      "updatedAt": "2026-10-22T17:49:16.858Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "D-CE settle side: checkpoint-force-released anomaly via collectAnomalies, 5th anomalyToGateBypass arm, best-effort lastForcedAt reader vs openDrafts since. Independent review CHANGES REQUIRED -> fixed (real-flow draft new/approve/build test, live strong->mixed via code-review-factory mock, docs wording) -> re-review APPROVE. Main thread: 15/15 targeted, full turbo 28/28.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-22T17:49:17.410Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Store extras (instructed/blocks/forced/forcedAt/sticky lastForcedAt), updateStoreExtras with expectedState/expectedSince, guarded armed->settled (forced) and armed->idle (sessionReset). Review APPROVE + I-1/I-2/M-1/M-2 fixed, re-review APPROVE. Main thread: checkpoint 288 passed, full turbo 28/28.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-22T17:49:17.972Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Pure decideStop/effectivePercentage/checkHandoffDoc; fixtures from core's real renderSession. Review APPROVE; fix round (as-built amendment): declaredHandoffVersion export in validate.ts, pre-reset/future reading absent, chain cleared on silent pass, AC-2 edge tests; re-review APPROVE. Main thread: checkpoint suite 336 passed, typecheck/lint clean.",
+      "touchedFiles": [
+        "packages/checkpoint/src/validate.ts",
+        "packages/checkpoint/tests/validate.test.ts",
+        "packages/checkpoint/src/stop-gate.ts",
+        "packages/checkpoint/tests/stop-gate.test.ts"
+      ],
+      "updatedAt": "2026-10-22T18:18:32.768Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "stop-gate shell: flags (as-built validation), payload, project via sensor's defaultProjectMarker, reading by exact name, newest SESSION doc after since decoded once, store-before-stdout, exit-0 envelope; CLI wiring + index exports. Review CHANGES REQUIRED (doc-selection tests, M-2 non-number used_percentage, real-fs AC-10) -> fixed -> re-review APPROVE. Main thread: checkpoint 378 passed, typecheck/lint clean.",
+      "touchedFiles": [
+        "packages/checkpoint/src/cli.ts",
+        "packages/checkpoint/src/index.ts",
+        "packages/checkpoint/src/sensor.ts",
+        "packages/checkpoint/tests/stop-gate-cli.test.ts"
+      ],
+      "updatedAt": "2026-10-22T18:49:36.553Z"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "session-start: single-winner wx lock, re-read under lock, walk settled/armed/leftovers to idle via existing edges, lastForcedAt kept, stale lock refuse+suggest, own-lock unlink bounded retry. Review CHANGES REQUIRED (spawned race size for macOS CI, allow-list anchor, fail-fast race, plain-it AC-17) -> fixed -> re-review APPROVE. Main thread: checkpoint 407 passed.",
+      "touchedFiles": [
+        "packages/checkpoint/src/session-start.ts",
+        "packages/checkpoint/tests/session-start.test.ts"
+      ],
+      "updatedAt": "2026-10-22T19:18:38.536Z"
+    },
+    "T7": {
+      "status": "DONE",
+      "notes": "hooks-install: Stop + SessionStart entries tagged _managedBy cadence-checkpoint, merged via host-toolkit mergeManagedHookEntries, re-serialized with a semantic guard, idempotent, BOM/mode kept; host-toolkit workspace dep (+3 lockfile lines). Review APPROVE; header limits reworded in main thread. Main thread: build/lint clean, install-hooks tests green.",
+      "touchedFiles": [
+        "packages/checkpoint/package.json",
+        "pnpm-lock.yaml",
+        ".changeset/checkpoint-stop-gate.md",
+        "packages/checkpoint/src/install-hooks.ts",
+        "packages/checkpoint/tests/install-hooks.test.ts"
+      ],
+      "updatedAt": "2026-10-22T19:39:19.853Z"
+    },
+    "T8": {
+      "status": "DONE",
+      "notes": "E2E capture against the built bins (scratchpad e2e-capture.mjs): blocked/invalid/forced/reset/released payloads recorded verbatim in docs/checkpoint/REPORT-checkpoint-phase-3.md; changeset (core+types minor); ROADMAP + MILESTONES entries. Settle-time facts (providers, assurance, gateBypasses) are filled in after settle. Full turbo 28/28 green.",
+      "touchedFiles": [
+        "docs/checkpoint/REPORT-checkpoint-phase-3.md"
+      ],
+      "updatedAt": "2026-10-22T19:46:24.026Z"
+    }
+  }
+}
