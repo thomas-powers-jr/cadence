@@ -9,6 +9,7 @@ import {
   extractHeaderLabels,
   validate,
 } from '../src/validate.js';
+import { HANDOFF_SCHEMAS, LATEST_HANDOFF_VERSION, declaredHandoffVersion } from '../src/validate.js';
 
 function fixture(name: string): string {
   return readFileSync(join(__dirname, 'fixtures', name), 'utf8');
@@ -441,4 +442,39 @@ describe('version-gated section schema', () => {
       expect(result.diagnostics).toEqual([expect.objectContaining({ code: 'HANDOFF_VERSION_UNSUPPORTED', line: 2 })]);
     },
   );
+});
+
+// Phase 336: the Stop gate's minimum-version check reads the declared version
+// through this export, so it can never disagree with validate()'s own choice
+// of schema.
+describe('declaredHandoffVersion', () => {
+  const v1 = (): string => fixture('version-1-six-sections.md');
+
+  /** True when validate() refused the doc's version as unsupported. */
+  function refusedAsUnsupported(doc: string): boolean {
+    return validate(doc).diagnostics.some((d) => d.code === 'HANDOFF_VERSION_UNSUPPORTED');
+  }
+
+  const cases: [string, () => string, string][] = [
+    ['a v1 doc', () => v1(), '1'],
+    ['a v1 doc with CRLF line endings', () => v1().replace(/\n/g, '\r\n'), '1'],
+    ['a doc with no frontmatter', () => fixture('valid.md'), LATEST_HANDOFF_VERSION],
+    ['frontmatter without the key', () => dropVersionKey(v1()), LATEST_HANDOFF_VERSION],
+    ['no space after the colon', () => v1().replace('cadence_handoff: 1', 'cadence_handoff:1'), '1'],
+    ['a quoted value', () => setVersion(v1(), '"1"'), '"1"'],
+    ['a zero-padded value', () => setVersion(v1(), '01'), '01'],
+    ['an empty value', () => setVersion(v1(), ''), ''],
+    ['a trailing comment', () => setVersion(v1(), '2 # comment'), '2 # comment'],
+    ['an unclosed frontmatter block', () => v1().replace(/^---\n([\s\S]*?)\n---\n/, '---\n$1\n'), LATEST_HANDOFF_VERSION],
+    ['the key only in the body', () => `${stripFrontmatter(v1())}\ncadence_handoff: 1\n`, LATEST_HANDOFF_VERSION],
+    ['frontmatter not on the first line', () => `\n${v1()}`, LATEST_HANDOFF_VERSION],
+    ['a leading BOM', () => `\uFEFF${v1()}`, LATEST_HANDOFF_VERSION],
+  ];
+
+  it.each(cases)('336-01/AC-5: declaredHandoffVersion agrees with validate() on %s', (_label, doc, expected) => {
+    const text = doc();
+    const declared = declaredHandoffVersion(text);
+    expect(declared).toBe(expected);
+    expect(HANDOFF_SCHEMAS.has(declared)).toBe(!refusedAsUnsupported(text));
+  });
 });

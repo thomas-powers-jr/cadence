@@ -98,6 +98,17 @@ function parseFrontmatter(lines: string[]): Frontmatter {
 }
 
 /**
+ * The `cadence_handoff` value a document declares, exactly as `validate()`
+ * chooses its schema: the trimmed raw value of the top-level key in a leading
+ * `---` block (so `01`, `"1"` and an empty value stay as written), or
+ * `LATEST_HANDOFF_VERSION` when there is no such block or no key. Whether the
+ * value is supported is `HANDOFF_SCHEMAS.has(...)`.
+ */
+export function declaredHandoffVersion(markdown: string): string {
+  return parseFrontmatter(splitLines(markdown)).version?.value ?? LATEST_HANDOFF_VERSION;
+}
+
+/**
  * The generator decorates some headers ("## State on handoff   ·  pre-filled
  * — verify, don't retype"); the section's label is the text before " · ".
  */

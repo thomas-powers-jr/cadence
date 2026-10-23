@@ -64,6 +64,9 @@ importers:
       '@thomas-powers-jr/cadence-core':
         specifier: workspace:*
         version: link:../core
+      '@thomas-powers-jr/cadence-host-toolkit':
+        specifier: workspace:*
+        version: link:../host-toolkit
     devDependencies:
       '@thomas-powers-jr/cadence-testkit':
         specifier: workspace:*

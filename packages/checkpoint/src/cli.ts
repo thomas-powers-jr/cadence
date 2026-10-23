@@ -1,12 +1,18 @@
 import { readFileSync } from 'node:fs';
+import { installHooks, parseHooksInstallArgs } from './install-hooks.js';
 import { installStatusline } from './install.js';
 import { exitAfterFlush, recordDeadlineFromEnv, runStatusline } from './sensor.js';
+import { runSessionStart } from './session-start.js';
+import { runStopGate } from './stop-gate.js';
 import { validate } from './validate.js';
 
 const USAGE =
   'Usage: checkpoint validate <path>\n' +
   '       checkpoint statusline [--] <command> [args...]\n' +
-  '       checkpoint statusline-install --settings <path>\n';
+  '       checkpoint statusline-install --settings <path>\n' +
+  '       checkpoint hooks-install --settings <path> [--threshold <pct>] [--ceiling <n>]\n' +
+  '       checkpoint stop-gate [--threshold <pct>] [--ceiling <n>] [--max-reading-age-s <s>]\n' +
+  '       checkpoint session-start\n';
 
 /** `--settings <path>` or `--settings=<path>`, and nothing else; null on anything unexpected. */
 function parseSettingsFlag(args: string[]): string | null {
@@ -25,6 +31,26 @@ function statuslineInstall(args: string[]): void {
     process.exit(2);
   }
   void installStatusline({ settingsPath, stdout: process.stdout, stderr: process.stderr }).then((code) => {
+    process.exitCode = code;
+  });
+}
+
+/**
+ * `checkpoint hooks-install` (an operator command, not a hook): a usage error
+ * is one reason line plus USAGE on stderr and exit 2, like statusline-install.
+ */
+function hooksInstall(args: string[]): void {
+  const parsed = parseHooksInstallArgs(args);
+  if (!parsed.ok) {
+    process.stderr.write(`checkpoint hooks-install: ${parsed.reason}\n${USAGE}`);
+    process.exit(2);
+  }
+  void installHooks({
+    settingsPath: parsed.settingsPath,
+    flags: parsed.options,
+    stdout: process.stdout,
+    stderr: process.stderr,
+  }).then((code) => {
     process.exitCode = code;
   });
 }
@@ -87,6 +113,57 @@ function statusline(args: string[]): void {
   });
 }
 
+/**
+ * `checkpoint stop-gate` (a Claude Code `Stop` hook). Always exits 0:
+ * `runStopGate` never rejects, and a rejection that somehow escaped it would
+ * still be one notice line and exit 0, never the bin's exit-1 crash path.
+ */
+function stopGate(args: string[]): void {
+  const stdout = guardStream(process.stdout);
+  const stderr = guardStream(process.stderr);
+  void runStopGate({
+    argv: args,
+    // A terminal stdin would block forever; Claude Code always pipes. A
+    // terminal run reads as an empty payload (one notice, exit 0).
+    stdin: process.stdin.isTTY ? [] : process.stdin,
+    stdout: stdout.sink,
+    stderr: stderr.sink,
+  })
+    .catch((err: unknown) => {
+      stderr.sink.write(`checkpoint stop-gate: ${String(err).replace(/\s+/g, ' ').trim()}\n`);
+      return 0;
+    })
+    .then((code) => {
+      exitAfterFlush(code, { stdout: stdout.flushable, stderr: stderr.flushable }, (c) => process.exit(c));
+    });
+}
+
+/**
+ * `checkpoint session-start` (a Claude Code `SessionStart` hook). Always
+ * exits 0 and never writes stdout: `runSessionStart` never rejects, and a
+ * rejection that somehow escaped it would still be one notice line and exit
+ * 0. An argument is refused inside the handler (one line, exit 0), never with
+ * the USAGE exit 2.
+ */
+function sessionStart(args: string[]): void {
+  const stdout = guardStream(process.stdout);
+  const stderr = guardStream(process.stderr);
+  void runSessionStart({
+    argv: args,
+    // A terminal stdin would block forever; Claude Code always pipes. A
+    // terminal run reads as an empty payload (one notice, exit 0).
+    stdin: process.stdin.isTTY ? [] : process.stdin,
+    stderr: stderr.sink,
+  })
+    .catch((err: unknown) => {
+      stderr.sink.write(`checkpoint session-start: ${String(err).replace(/\s+/g, ' ').trim()}\n`);
+      return 0;
+    })
+    .then((code) => {
+      exitAfterFlush(code, { stdout: stdout.flushable, stderr: stderr.flushable }, (c) => process.exit(c));
+    });
+}
+
 function main(argv: string[]): void {
   const [command, filePath] = argv;
 
@@ -95,8 +172,23 @@ function main(argv: string[]): void {
     return;
   }
 
+  if (command === 'stop-gate') {
+    stopGate(argv.slice(1));
+    return;
+  }
+
+  if (command === 'session-start') {
+    sessionStart(argv.slice(1));
+    return;
+  }
+
   if (command === 'statusline-install') {
     statuslineInstall(argv.slice(1));
+    return;
+  }
+
+  if (command === 'hooks-install') {
+    hooksInstall(argv.slice(1));
     return;
   }
 

@@ -1942,3 +1942,35 @@ Every cadence CLI invocation imports packages/core/dist/cli/register.js, which e
 - next: cadence milestone propose
 
 Since phase 335 the retention prune keeps every git-tracked SESSION doc, but checkHandoffRetention (doctor/run.ts) still reports, when the count exceeds handoff.retain, that the next handoff write will prune count minus retain docs, and its doc comment says the docs self-heal on the next write. When the excess is committed (as in this repo, where SESSION docs are tracked and swept in housekeeping PRs) nothing is pruned, so the ok message is false. Fix shape: have the check count only untracked docs against the budget (reusing the same best-effort ls-files lookup) or reword the message to say untracked docs will be pruned and tracked ones kept. Deliberately out of scope for phase 335 (DRAFT boundary).
+
+## rec-20261023-001 — Code-review finding (medium): Date.parse normalizes impossible ISO dates (e.g. 2026-02-30) instead of rejecti…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/checkpoint
+- files: packages/checkpoint/src/state.ts
+- evidence: phase 336-checkpoint-stop-gate, draft 336-01, SUMMARY contentHash 919240e5d62c07e5529eb62f23648205fd842e087a6d1912df194f86d94dd50c — medium finding at packages/checkpoint/src/state.ts:231: Date.parse normalizes impossible ISO dates (e.g. 2026-02-30) instead of rejecting them. A malformed lastForcedAt can therefore be accepted and create a settle bypass.
+- next: cadence milestone propose
+
+medium finding at packages/checkpoint/src/state.ts:231: Date.parse normalizes impossible ISO dates (e.g. 2026-02-30) instead of rejecting them. A malformed lastForcedAt can therefore be accepted and create a settle bypass.
+
+## rec-20261023-002 — Code-review finding (medium): stop_hook_active is global to all Stop hooks. Another hook's block can preserve…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/checkpoint
+- files: packages/checkpoint/src/stop-gate.ts
+- evidence: phase 336-checkpoint-stop-gate, draft 336-01, SUMMARY contentHash 919240e5d62c07e5529eb62f23648205fd842e087a6d1912df194f86d94dd50c — medium finding at packages/checkpoint/src/stop-gate.ts:359: stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.
+- next: cadence milestone propose
+
+medium finding at packages/checkpoint/src/stop-gate.ts:359: stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.

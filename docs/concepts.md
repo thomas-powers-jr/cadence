@@ -212,7 +212,15 @@ below — and leaves `loopPosition`/`activeDraft` untouched so the exact same
   `.cadence/phases/283-bypass-aware-assurance/283-01-ASSURANCE-DRIFT-REPORT.md`
   for the full historical-corpus accounting of which past records' grades
   would change under this rule (none were rewritten; the report is
-  read-only).
+  read-only). Phase 336 (D-CE): when `settle run` finds the checkpoint
+  Stop-gate's sticky `lastForcedAt` in the settling checkout's own
+  `.cadence/checkpoint/state.json` (a session rooted in another checkout
+  records its release there instead) at or
+  after the active draft's `openDrafts[].since` (a session released at its
+  block ceiling without a validated handoff), it records a
+  `{ gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }`
+  entry in `gateBypasses`, so this cap keeps that draft's grade from
+  exceeding `'mixed'` (never `'strong'`).
 - Phase 287: closes a gap between phase 263 (gates learned to tag
   `providerSelection: 'empty-diff'` on a real-provider call whose diff was
   empty, so it structurally could not judge anything) and `hasRealVerifier`

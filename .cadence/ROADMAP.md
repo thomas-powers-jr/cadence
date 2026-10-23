@@ -3854,6 +3854,25 @@ Tracked docs are protected unconditionally, with no config knob. Tier
 `complex` by `classifyTier` (10 files over the standard tier's 8), as the
 operator's work order required.
 
+### Phase 336 — checkpoint arc Phase 3: the `Stop` gate
+
+**Objective.** The checkpoint package gains the first part of the arc that
+can block a person. `checkpoint stop-gate` is a Claude Code `Stop` hook.
+Once context usage crosses a threshold (a percentage, with the D-BJ
+input-only absolute fallback; an unknown reading never blocks), it blocks
+once with an instruction to write a `cadence handoff`. It settles only when
+the newest SESSION doc validates at `cadence_handoff: 2` with no unfilled
+sections. After a ceiling of consecutive re-blocks it releases instead,
+recording `forced` plus a sticky `lastForcedAt`. `checkpoint session-start`
+walks the store back to `idle` as a single winner behind an `open(…, 'wx')`
+lock, and `checkpoint hooks-install` writes both hooks under their own
+`_managedBy: 'cadence-checkpoint'` marker. Per D-CE (`dec-20261022-002`),
+`settle run` reads the checkpoint store by path. A force-release inside the
+draft's window, recorded in the settling checkout's own store, becomes a
+`checkpoint-stop` / `ceiling-release` gate bypass, so that slice can't settle
+as `strong`. Every hook path that is not a deliberate
+block exits 0. Tier `complex`, as the operator's work order required.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
