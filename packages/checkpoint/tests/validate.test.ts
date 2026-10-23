@@ -336,6 +336,47 @@ describe('version-gated section schema', () => {
     expect(extractHeaderLabels(fixture('real-v1-session-2026-09-22.md'))).toEqual(V1_REQUIRED);
   });
 
+  // Phase 336 (CodeQL js/polynomial-redos on PR #581): the header match is a
+  // linear string scan, not /^##\s+(.*)$/, whose overlapping \s+ and .* go
+  // quadratic on "## " + whitespace with a line terminator after the label.
+  // Labels must be exactly what that regex (plus trimEnd) produced.
+  it('header labels match the former /^##\\s+(.*)$/ + trimEnd on every edge-case line', () => {
+    const former = (line: string): string | null => {
+      const m = /^##\s+(.*)$/.exec(line);
+      return m ? (m[1] as string).trimEnd() : null;
+    };
+    const lines = [
+      '## Next action',
+      '##  Next action  ',
+      '##\tTabbed',
+      '##\u00a0No-break space',
+      '##\u2028Terminator as the leading whitespace',
+      '##   ',
+      '## x\u2028y',
+      '##   \u2029x',
+      '##NoSpace',
+      '#  One hash',
+      '### Three hashes',
+      ' ## Indented',
+      '##',
+      '## State on handoff   ·  pre-filled',
+    ];
+    for (const line of lines) {
+      const expected = former(line);
+      const labels = extractHeaderLabels(`${line}\n`);
+      // A matched header with an empty label is still a header (label '').
+      expect(labels, JSON.stringify(line)).toEqual(expected === null ? [] : [expected.split(' · ')[0]!.trim()]);
+    }
+  });
+
+  it('header scanning stays linear on a pathological "## " + whitespace + terminator line', () => {
+    const line = `##${' '.repeat(200_000)}\u2029x\u2028y`;
+    const started = performance.now();
+    expect(extractHeaderLabels(line)).toEqual([]);
+    // The quadratic regex took tens of seconds here; a linear scan is milliseconds.
+    expect(performance.now() - started).toBeLessThan(2_000);
+  });
+
   it('316-01/AC-2: a cadence_handoff: 1 document with exactly the six v1 sections validates clean (no Open decisions needed)', () => {
     expect(validate(v1())).toEqual({ ok: true, diagnostics: [] });
   });

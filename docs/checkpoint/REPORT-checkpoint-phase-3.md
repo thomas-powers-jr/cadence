@@ -200,6 +200,12 @@ Store after: `{"state":"settled","since":"2026-10-22T19:33:23.946Z","forced":tru
 - **Anomalies:** none were recorded in the SUMMARY. The run printed the expected `files-outside-boundary` warn on stderr for `docs/handoffs/HANDOFF-v1.71-release-335-336.md`. That work order was copied into the worktree for reference and moved out before settle; it was never edited.
 - **Conduction-drift streak:** `cadence status` reports 0, broken by this SUMMARY, which carried a non-mock verifier identity.
 
+**After settle: CodeQL on PR #581.** CodeQL raised one high-severity `js/polynomial-redos` alert at `packages/checkpoint/src/validate.ts`. The header regex `/^##\s+(.*)$/` predates this phase, but the Stop gate now feeds it handoff docs read from disk.
+- **Measured:** the old regex took 21,069 ms on `"##"` + 200,000 spaces + ` x y` (`tests/validate.test.ts`, red run).
+- **Fix:** it was replaced by a linear string scan, `headerText`, which returns exactly what the regex plus `trimEnd()` produced. An equivalence test over 14 edge-case lines, including Unicode whitespace and line separators, pins this.
+- **After the fix:** the whole validate suite runs in under 400 ms.
+- **Not re-verified:** this change landed after settle, so deep-verify and code-review did not see it. It is behaviour-preserving and covered by the checkpoint suite (429 passed).
+
 ## Premises that proved wrong (report-back #4)
 
 - **`findUnfilledSections` already exists.** The work order said it did not; it is in core (`packages/core/src/handoff/placeholders.ts`). It was not exported from core's index, and core's `exports` map has only `"."`, so reusing it took a new export.

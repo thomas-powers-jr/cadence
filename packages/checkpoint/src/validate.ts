@@ -160,19 +160,37 @@ function parseHeaders(lines: string[], startIdx = 0): ParsedHeader[] {
     }
     if (fenceChar !== null) return;
 
-    // A single greedy \s+ followed by a single greedy .* to end-of-line —
-    // not the lazy-middle + greedy-trailing-\s* shape CodeQL flags as a
-    // polynomial ReDoS risk (overlapping quantifiers over \s create
-    // exponential backtracking paths on adversarial input). trimEnd()
-    // replaces the old trailing \s*.
-    const match = /^##\s+(.*)$/.exec(line);
-    if (match) {
-      const raw = (match[1] as string).trimEnd();
+    const raw = headerText(line);
+    if (raw !== null) {
       headers.push({ raw, label: stripHeaderDecoration(raw), line: idx + 1 });
     }
   });
 
   return headers;
+}
+
+/**
+ * `.` in a JS regex never matches a line terminator, so a header's text may
+ * not contain one. U+2028/U+2029 are built from code points: written as
+ * literal characters they would end the source line.
+ */
+const LINE_TERMINATORS: readonly string[] = ['\n', '\r', String.fromCodePoint(0x2028), String.fromCodePoint(0x2029)];
+
+/**
+ * The text of a `## ` header line, or null when the line is not one —
+ * exactly what `/^##\s+(.*)$/` plus `trimEnd()` produced, but as a linear
+ * scan. That regex's overlapping `\s+` and `.*` backtrack quadratically on
+ * "##" + a long whitespace run + a line terminator after the label (CodeQL
+ * js/polynomial-redos, phase 336), and the Stop gate feeds it docs from disk.
+ * `trimStart()`/`trimEnd()` use the same whitespace set as `\s`.
+ */
+function headerText(line: string): string | null {
+  if (!line.startsWith('##')) return null;
+  const afterHashes = line.slice(2);
+  if (afterHashes.length === 0 || afterHashes.trimStart().length === afterHashes.length) return null;
+  const rest = afterHashes.trimStart();
+  if (LINE_TERMINATORS.some((t) => rest.includes(t))) return null;
+  return rest.trimEnd();
 }
 
 function parseSections(lines: string[], headers: ParsedHeader[]): ParsedSection[] {
