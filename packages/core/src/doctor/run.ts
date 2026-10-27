@@ -894,21 +894,28 @@ export async function checkVerificationReadiness(
         .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
         .join(', ');
       const unresolvablePlural = r.seamsUnresolvable.length === 1 ? 'seam' : 'seams';
-      const binNote = r.reason.includes(bin) ? '' : ` The host CLI binary is "${bin}".`;
+      // Only the host-cli reason names the binary; for any other deep-verify
+      // provider, name it here (a substring test could match a short bin name).
+      const binNote = r.provider === 'host-cli' ? '' : ` The host CLI binary is "${bin}".`;
       const downgradedNote =
         r.seamsDowngraded.length > 0
           ? ` Also, ${r.seamsDowngraded.length} other ${r.seamsDowngraded.length === 1 ? 'seam' : 'seams'} will silently fall back to mock for want of credentials: ${r.seamsDowngraded
               .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
               .join(', ')}.`
           : '';
+      const claudeCodeHint =
+        r.seamsDowngraded.some((seam) => seamProvider(config, seam) === 'anthropic') &&
+        isClaudeCodeSession(env)
+          ? ' Being logged into Claude Code does not supply ANTHROPIC_API_KEY; that is a separate credential.'
+          : '';
       const credentialRemediation =
         r.seamsDowngraded.length > 0
-          ? ` Also supply the missing credentials, or run \`cadence activate --provider host-cli --all\` to reuse your host CLI login for every seam.`
+          ? ` Also supply the missing credentials, or — once "${bin}" launches — run \`cadence activate --provider host-cli --all\` to reuse your host CLI login for every seam.`
           : '';
       return fail(
         'verification-readiness',
         'warning',
-        `${r.reason}${binNote} ${r.seamsUnresolvable.length} host-cli ${unresolvablePlural} will fall back to mock when a review runs, because that binary will not launch: ${unresolvable}.${downgradedNote} ${MOCK_VERIFIER_CAPABILITY.message}`,
+        `${r.reason}${binNote} ${r.seamsUnresolvable.length} host-cli ${unresolvablePlural} will fall back to mock when a review runs, because that binary will not launch: ${unresolvable}.${downgradedNote}${claudeCodeHint} ${MOCK_VERIFIER_CAPABILITY.message}`,
         `Install "${bin}" or point CADENCE_HOST_CLI_BIN at it, or switch those seams' provider. \`cadence config explain\` lists each seam's effective provider.${credentialRemediation}`,
       );
     }

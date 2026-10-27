@@ -188,6 +188,7 @@ describe('checkVerificationReadiness (AC-1, AC-2)', () => {
     expect(c.severity).toBe('warning');
     expect(c.detail).toContain(MISSING_BIN);
     expect(c.detail).toMatch(/deep-verify/);
+    expect(c.detail).toContain("verifier ('host-cli')");
     expect(c.detail).toContain(MOCK_VERIFIER_CAPABILITY.message);
     expect(c.remediation).toMatch(/install/i);
     expect(c.remediation).toContain('CADENCE_HOST_CLI_BIN');
@@ -225,6 +226,42 @@ describe('checkVerificationReadiness (AC-1, AC-2)', () => {
     expect(c.remediation).toMatch(/credentials/);
   });
 
+  it('337-01/AC-3: names the binary when deep-verify is not host-cli, even if the bin name occurs in the reason', async () => {
+    // "present" occurs in the anthropic reason ("credentials present"); a
+    // substring test would wrongly treat the binary as already named.
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'anthropic' },
+      codeReview: { ...cfg.codeReview, provider: 'host-cli' },
+    });
+    const c = await checkVerificationReadiness(active.root, {
+      ANTHROPIC_API_KEY: 'test-key-337',
+      // A bare name: with no PATH in this env the probe searches only
+      // /usr/bin and /bin, where no binary is named "present".
+      CADENCE_HOST_CLI_BIN: 'present',
+    });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toContain('The host CLI binary is "present".');
+    expect(c.detail).toContain("codeReview ('host-cli')");
+  });
+  it('337-01/AC-3: with both problems, keeps the Claude Code hint and never sends seams to the broken binary first', async () => {
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'host-cli' },
+      specReview: { ...cfg.specReview, provider: 'anthropic' },
+    });
+    const c = await checkVerificationReadiness(active.root, {
+      CADENCE_HOST_CLI_BIN: MISSING_BIN,
+      CLAUDECODE: '1',
+    });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toContain('does not supply ANTHROPIC_API_KEY');
+    expect(c.remediation).toContain(`once "${MISSING_BIN}" launches`);
+  });
   it('337-01/AC-3: passes when every seam is host-cli and the binary exists', async () => {
     active = await tempRepo({ initialized: true });
     const cfg = await loadConfig(active.root);
