@@ -1290,6 +1290,14 @@ changeset (example/test-only change, no published-package surface).*
   window reaches `SUMMARY.gateBypasses` as `checkpoint-stop` /
   `ceiling-release`, so that slice can't grade `strong` (D-CE,
   `dec-20261022-002`).
+- **Phase 337** — `cadence doctor` and `cadence onboard` no longer call a
+  `host-cli` verifier ready when its binary is not installed. Readiness
+  looks up `CADENCE_HOST_CLI_BIN` (default `claude`) the way the review
+  spawn will; doctor's `verification-readiness` warns, naming the binary
+  and every host-cli seam that will fall back to mock, and onboard's
+  `--json` payload gains `seamsUnresolvable`. Login, reachability and the
+  self-invocation guard are still checked only when a review runs
+  (rec-20261027-001).
 - **Phase 338** — cleared the three high advisories that failed
   `security-success` on every PR from about 2026-10-26: zod 4.4.3
   (GHSA-mrhx-c7xc-m3w5, root and website), body-parser 2.3.0

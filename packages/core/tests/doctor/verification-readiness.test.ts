@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { MOCK_VERIFIER_NOTICE, MOCK_VERIFIER_CAPABILITY } from '@thomas-powers-jr/cadence-types';
 import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { checkVerificationReadiness } from '../../src/doctor/run.js';
@@ -156,7 +157,8 @@ describe('checkVerificationReadiness (AC-1, AC-2)', () => {
       verifier: { ...cfg.verifier, provider: 'host-cli' },
       specReview: { ...cfg.specReview, provider: 'host-cli' },
     });
-    const c = await checkVerificationReadiness(active.root, {});
+    // phase 337: point host-cli at a binary that exists; this test's intent is unchanged
+    const c = await checkVerificationReadiness(active.root, { CADENCE_HOST_CLI_BIN: process.execPath });
     expect(c.severity).toBe('ok');
   });
 
@@ -170,7 +172,107 @@ describe('checkVerificationReadiness (AC-1, AC-2)', () => {
       ...cfg,
       verifier: { ...cfg.verifier, provider: 'host-cli' },
     });
-    const c = await checkVerificationReadiness(active.root, {});
+    // phase 337: point host-cli at a binary that exists; this test's intent is unchanged
+    const c = await checkVerificationReadiness(active.root, { CADENCE_HOST_CLI_BIN: process.execPath });
+    expect(c.severity).toBe('ok');
+  });
+
+  // Phase 337 — host-cli readiness must reflect whether the binary can launch.
+  const MISSING_BIN = join(tmpdir(), 'cadence-337-missing-host-cli-bin');
+
+  it('337-01/AC-3: warns when deep-verify is host-cli but its binary will not launch', async () => {
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, { ...cfg, verifier: { ...cfg.verifier, provider: 'host-cli' } });
+    const c = await checkVerificationReadiness(active.root, { CADENCE_HOST_CLI_BIN: MISSING_BIN });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toContain(MISSING_BIN);
+    expect(c.detail).toMatch(/deep-verify/);
+    expect(c.detail).toContain("verifier ('host-cli')");
+    expect(c.detail).toContain(MOCK_VERIFIER_CAPABILITY.message);
+    expect(c.remediation).toMatch(/install/i);
+    expect(c.remediation).toContain('CADENCE_HOST_CLI_BIN');
+    expect(c.remediation).toMatch(/provider/);
+  });
+
+  it('337-01/AC-3: names every host-cli seam when the binary will not launch', async () => {
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'host-cli' },
+      codeReview: { ...cfg.codeReview, provider: 'host-cli' },
+    });
+    const c = await checkVerificationReadiness(active.root, { CADENCE_HOST_CLI_BIN: MISSING_BIN });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toMatch(/deep-verify/);
+    expect(c.detail).toMatch(/codeReview/);
+  });
+
+  it('337-01/AC-3: one warning names both the unresolvable host-cli seams and a credential-downgraded seam', async () => {
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'host-cli' },
+      specReview: { ...cfg.specReview, provider: 'anthropic' },
+    });
+    const c = await checkVerificationReadiness(active.root, { CADENCE_HOST_CLI_BIN: MISSING_BIN });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toContain(MISSING_BIN);
+    expect(c.detail).toMatch(/deep-verify/);
+    expect(c.detail).toMatch(/specReview/);
+    expect(c.remediation).toContain('CADENCE_HOST_CLI_BIN');
+    expect(c.remediation).toMatch(/credentials/);
+  });
+
+  it('337-01/AC-3: names the binary when deep-verify is not host-cli, even if the bin name occurs in the reason', async () => {
+    // "present" occurs in the anthropic reason ("credentials present"); a
+    // substring test would wrongly treat the binary as already named.
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'anthropic' },
+      codeReview: { ...cfg.codeReview, provider: 'host-cli' },
+    });
+    const c = await checkVerificationReadiness(active.root, {
+      ANTHROPIC_API_KEY: 'test-key-337',
+      // A bare name with no PATH in this env: on POSIX the probe searches only
+      // /usr/bin and /bin (libuv's default), where no binary is named "present";
+      // on win32 an unset Path means no PATH directories at all.
+      CADENCE_HOST_CLI_BIN: 'present',
+    });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toContain('The host CLI binary is "present".');
+    expect(c.detail).toContain("codeReview ('host-cli')");
+  });
+  it('337-01/AC-3: with both problems, keeps the Claude Code hint and never sends seams to the broken binary first', async () => {
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'host-cli' },
+      specReview: { ...cfg.specReview, provider: 'anthropic' },
+    });
+    const c = await checkVerificationReadiness(active.root, {
+      CADENCE_HOST_CLI_BIN: MISSING_BIN,
+      CLAUDECODE: '1',
+    });
+    expect(c.severity).toBe('warning');
+    expect(c.detail).toContain('does not supply ANTHROPIC_API_KEY');
+    expect(c.remediation).toContain(`once "${MISSING_BIN}" launches`);
+  });
+  it('337-01/AC-3: passes when every seam is host-cli and the binary exists', async () => {
+    active = await tempRepo({ initialized: true });
+    const cfg = await loadConfig(active.root);
+    await writeConfig(active.root, {
+      ...cfg,
+      verifier: { ...cfg.verifier, provider: 'host-cli' },
+      specReview: { ...cfg.specReview, provider: 'host-cli' },
+      codeReview: { ...cfg.codeReview, provider: 'host-cli' },
+    });
+    const c = await checkVerificationReadiness(active.root, { CADENCE_HOST_CLI_BIN: process.execPath });
     expect(c.severity).toBe('ok');
   });
 

@@ -11600,6 +11600,43 @@
       "updatedAt": "2026-10-22T16:20:53.229Z"
     },
     {
+      "id": "rec-20261027-001",
+      "title": "doctor/onboard report host-cli as ready when CADENCE_HOST_CLI_BIN is not installed",
+      "summary": "assessReadiness reports 'deep-verify uses host-cli with credentials present' purely from config: credsPresent('host-cli') is unconditionally true (phase 165), and resolveHostCliCommand only resolves PATH on win32 — on POSIX the bin name passes through unchecked. Observed 2026-10-27 in a Claude Code cloud session (cadence 1.71.0) for a consumer repo with CADENCE_HOST_CLI_BIN=codex: onboard and doctor verification-readiness both reported ready while codex was absent (and, once installed, logged out with its endpoints unreachable), so every host-cli gate would fall back to mock at settle. The spawn-time fallback is loud and recorded, but the readiness surface the operator checks first says the opposite. docs/providers.md 'Readiness reporting caveat' documents the gap. Proposed: a best-effort binary-presence probe (PATH search on POSIX, the existing win32 two-pass search on Windows) as an additive readiness dimension; credsPresent/activate/seamsDowngraded unchanged; login stays lazily checked.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "verify",
+        "doctor",
+        "onboard",
+        "activate"
+      ],
+      "affectedFiles": [
+        "packages/core/src/activate/assess.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/verify/win32-command.ts",
+        "docs/providers.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261027-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "337-host-cli-binary-readiness",
+      "createdAt": "2026-10-27T14:41:18.541Z",
+      "updatedAt": "2026-10-27T15:46:54.639Z",
+      "shippedRef": "phase 337 / branch feat/337-host-cli-binary-readiness",
+      "archivedAt": "2026-10-27T15:46:54.639Z",
+      "archiveReason": "shipped"
+    },
+    {
       "id": "rec-20261027-002",
       "title": "security-success red: zod, body-parser and undici high advisories (root and website lockfiles)",
       "summary": "Since ~2026-10-26 the scheduled security run on main (572b331) fails: scripts/check-audit-exceptions.mjs reports GHSA-mrhx-c7xc-m3w5 (zod <4.6.6, high; root via @anthropic-ai/sdk, website via @astrojs/sitemap, both at 4.4.3) and GHSA-27r3-jxmh-p828 (body-parser >=2.0.0 <2.4.0, high; root via @modelcontextprotocol/sdk at 2.3.0); the website audit additionally reports GHSA-xjj6-f33q-929c (undici >=8.0.0 <8.12.2, high; via astro>unifont at 8.11.2). Blocks every PR (observed on #583). Fix the phase 330/334 way: major-scoped caret pnpm.overrides floors in the private root and website manifests, lockfiles regenerated with pnpm install; no published package changes. Validated on a throwaway worktree for the root: zod 4.6.7, body-parser 2.4.0, audit clean, full typecheck/test/build green.",

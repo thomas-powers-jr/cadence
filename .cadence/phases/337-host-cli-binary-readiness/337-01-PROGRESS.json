@@ -1,0 +1,67 @@
+{
+  "draftId": "337-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "23 asserting 337-01/AC-1 tests on injected facts. Failed (module missing) before T2, verified in main thread. Independent review: no Critical/Important; Minor fix applied in main thread — miss-case decoys now cover both spellings a PATH-searching mutation could probe; mutation (PATH-search slash bins) confirmed caught by the boolean assertions (2 failures).",
+      "touchedFiles": [
+        "packages/core/src/activate/assess.ts",
+        "packages/core/src/verify/host-cli-presence.ts",
+        "packages/core/tests/activate/assess.test.ts",
+        "packages/core/tests/verify/host-cli-presence.test.ts",
+        "docs/reference/commands.md",
+        "packages/core/src/cli/commands/onboard.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/tests/cli/onboard.test.ts",
+        "packages/core/tests/doctor/verification-readiness.test.ts"
+      ],
+      "updatedAt": "2026-10-27T15:09:10.753Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "host-cli-presence.ts; win32-command.ts untouched. Main-thread re-verify: 77/77 (presence + win32-command), typecheck clean, lint clean on new files. Real-spawn comparison: 12/12 probe==spawnSync (empty/unset PATH, trailing-slash and symlink/.. segments, EACCES non-exec/dir, explicit path). Review Minor fixes applied: libuv-style '/' concatenation instead of posix.join, corrected doc comments (isRunnableFile, readFile may throw).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T15:09:11.219Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "assess.ts: seamsUnresolvable + hostCliBin, injectable presence (probed once, lazily). Tests failed first (8), then 53/53 in tests/activate. Exactly two pre-phase tests amended (inject present probe), assertions unchanged; credsPresent untouched; activate suite passes unedited. Independent review: no Critical/Important; Minor doc fixes applied in main thread (ready doc, assessReadiness JSDoc names presence + onboard caller). Main-thread re-verify after all wave-4 edits: build + 797/797 across activate, doctor, onboard, presence, win32, docs; typecheck clean.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T15:10:12.557Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "doctor verification-readiness: unresolvable branch before seamsDowngraded. Tests failed first, then pass; exactly two pre-phase AC-3 ok tests amended (CADENCE_HOST_CLI_BIN=process.execPath). Independent review CLEAN (also re-ran with claude/codex stripped from PATH: 344/344). Main thread: wording 'silently' corrected (spawn fallback is loud); review Minors fixed — deterministic bin note (r.provider==='host-cli'), remediation no longer steers seams to the broken binary, Claude Code hint kept, verifier seam asserted — each pinned by a test and mutation-checked (fix-1 test initially vacuous, corrected to bare bin 'present'). doctor suites pass, typecheck/lint clean.",
+      "touchedFiles": [
+        ".changeset/host-cli-binary-readiness.md",
+        "docs/providers.md",
+        "packages/core/tests/docs/phase337-host-cli-binary-readiness.test.ts"
+      ],
+      "updatedAt": "2026-10-27T15:26:20.690Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "onboard --json verifier payload gains seamsUnresolvable (type + payload); key-set assertion amended; commands.md onboard shape updated. AC-4 tests failed first after build, then pass. Independent review CLEAN; env override confirmed to reach the spawned CLI. Main-thread re-verify: build + onboard suite pass.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T15:26:21.069Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "AC-6 doc test written first (red 4/5, onboard assertion already satisfied by T5), then providers.md caveat as-built amendment (history kept), activation paragraph, commands.md verification-readiness row, patch changeset, ROADMAP ### Phase 337 + MILESTONES bullet. Main thread read the doc diffs against the code (accurate; activate correctly not claimed as changed). tests/docs 58/58 files; full pnpm turbo run lint typecheck test build --force: 28/28 tasks green (core 495 files).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T15:26:31.152Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    }
+  }
+}

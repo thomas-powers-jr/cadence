@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -59,9 +59,12 @@ describe('assessReadiness (AC-6)', () => {
   // to mock at runtime for want of credentials — the set that made
   // `verification-readiness` report a false green.
   it('seamsDowngraded names a non-deep-verify seam whose creds are missing', () => {
+    // phase 337: inject a present host-cli binary; this test's intent (no credential env needed) is unchanged
     const r = assessReadiness(
       cfg({ verifier: { provider: 'host-cli' }, specReview: { provider: 'anthropic' } }),
       {},
+      undefined,
+      () => true,
     );
     // deep-verify itself is healthy — this is exactly the false-green shape.
     expect(r.provider).toBe('host-cli');
@@ -172,7 +175,13 @@ describe('assessReadiness (AC-6)', () => {
   });
 
   it('assessReadiness reports host-cli as ready with no CADENCE_LOCAL_* / CADENCE_HOST_CLI_BIN env set (AC-1)', () => {
-    const r = assessReadiness(cfg({ verifier: { provider: 'host-cli' } }), {});
+    // phase 337: inject a present host-cli binary; this test's intent (no credential env needed) is unchanged
+    const r = assessReadiness(
+      cfg({ verifier: { provider: 'host-cli' } }),
+      {},
+      undefined,
+      () => true,
+    );
     expect(r.provider).toBe('host-cli');
     expect(r.keyPresent).toBe(true);
     expect(r.ready).toBe(true);
@@ -195,5 +204,107 @@ describe('isClaudeCodeSession (AC-1, phase 211)', () => {
 
   it('is false when CLAUDECODE is set to "true"', () => {
     expect(isClaudeCodeSession({ CLAUDECODE: 'true' })).toBe(false);
+  });
+});
+
+describe('assessReadiness host-cli binary resolution (phase 337)', () => {
+  const hostCfg = () =>
+    cfg({ verifier: { provider: 'host-cli' }, codeReview: { provider: 'host-cli' } });
+
+  it('337-01/AC-2 missing binary: lists both seams, names the env bin, not ready', () => {
+    const probe = vi.fn(() => false);
+    const r = assessReadiness(hostCfg(), { CADENCE_HOST_CLI_BIN: 'codex' }, undefined, probe);
+    expect(r.seamsUnresolvable).toEqual(['verifier', 'codeReview']);
+    expect(r.hostCliBin).toBe('codex');
+    expect(r.ready).toBe(false);
+    expect(r.reason).toContain('"codex"');
+    expect(r.reason).toMatch(/fall back to mock/i);
+    expect(probe).toHaveBeenCalledWith('codex');
+  });
+
+  it('337-01/AC-2 effective bin comes from a .env file in cwd', () => {
+    const cwd = makeTmpDir();
+    writeFileSync(join(cwd, '.env'), 'CADENCE_HOST_CLI_BIN=from-dotenv\n');
+    const r = assessReadiness(hostCfg(), {}, cwd, () => false);
+    expect(r.hostCliBin).toBe('from-dotenv');
+    expect(r.reason).toContain('"from-dotenv"');
+  });
+
+  it('337-01/AC-2 effective bin defaults to claude', () => {
+    const cwd = makeTmpDir();
+    const r = assessReadiness(hostCfg(), {}, cwd, () => false);
+    expect(r.hostCliBin).toBe('claude');
+    expect(r.reason).toContain('"claude"');
+  });
+
+  it('337-01/AC-2 present binary: ready, names bin, login and guard checked at review time', () => {
+    const r = assessReadiness(hostCfg(), { CADENCE_HOST_CLI_BIN: 'codex' }, undefined, () => true);
+    expect(r.seamsUnresolvable).toEqual([]);
+    expect(r.hostCliBin).toBe('codex');
+    expect(r.ready).toBe(true);
+    expect(r.reason).toContain('"codex"');
+    expect(r.reason).toMatch(
+      /login and the self-invocation guard are checked only when a review runs/,
+    );
+    expect(r.reason).not.toMatch(/credentials present/i);
+  });
+
+  it('337-01/AC-2 a config with no host-cli seam never calls the probe and has no hostCliBin key', () => {
+    const probe = vi.fn(() => false);
+    const r = assessReadiness(
+      cfg({ verifier: { provider: 'anthropic' } }),
+      { ANTHROPIC_API_KEY: 'k' },
+      undefined,
+      probe,
+    );
+    expect(probe).not.toHaveBeenCalled();
+    expect(r.seamsUnresolvable).toEqual([]);
+    expect('hostCliBin' in r).toBe(false);
+  });
+
+  it('337-01/AC-2 probes at most once per call with several host-cli seams', () => {
+    const probe = vi.fn(() => false);
+    assessReadiness(
+      cfg({
+        verifier: { provider: 'host-cli' },
+        specReview: { provider: 'host-cli' },
+        codeReview: { provider: 'host-cli' },
+      }),
+      {},
+      undefined,
+      probe,
+    );
+    expect(probe).toHaveBeenCalledTimes(1);
+  });
+
+  it('337-01/AC-2 an unresolvable non-deep-verify host-cli seam does not change ready/reason for other providers', () => {
+    const missing = () => false;
+    const onMock = assessReadiness(
+      cfg({ codeReview: { provider: 'host-cli' } }),
+      {},
+      undefined,
+      missing,
+    );
+    expect(onMock.seamsUnresolvable).toEqual(['codeReview']);
+    expect(onMock.ready).toBe(false);
+    expect(onMock.reason).toBe('deep-verify uses the mock provider — no real AI verification.');
+    const onAnthropic = assessReadiness(
+      cfg({ verifier: { provider: 'anthropic' }, codeReview: { provider: 'host-cli' } }),
+      { ANTHROPIC_API_KEY: 'k' },
+      undefined,
+      missing,
+    );
+    expect(onAnthropic.seamsUnresolvable).toEqual(['codeReview']);
+    expect(onAnthropic.ready).toBe(true);
+    expect(onAnthropic.reason).toBe('deep-verify uses anthropic with credentials present.');
+  });
+
+  it('337-01/AC-5 a missing binary leaves credsPresent true and seamsDowngraded free of host-cli seams', () => {
+    const c = hostCfg();
+    expect(credsPresent('host-cli', 'verifier', c, {})).toBe(true);
+    const r = assessReadiness(c, {}, undefined, () => false);
+    expect(r.keyPresent).toBe(true);
+    expect(r.seamsDowngraded).toEqual([]);
+    expect(r.seamsUnresolvable).toEqual(['verifier', 'codeReview']);
   });
 });
