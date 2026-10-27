@@ -1,5 +1,10 @@
 import type { CadenceConfig } from '@thomas-powers-jr/cadence-types';
 import type { VerifierProvider } from '../verify/verifier-factory.js';
+import {
+  hostCliBin as resolveHostCliBin,
+  hostCliBinaryResolves,
+  realHostCliPresenceFacts,
+} from '../verify/host-cli-presence.js';
 import { discoverKey } from './key-discovery.js';
 
 /**
@@ -35,9 +40,20 @@ export interface VerifierReadiness {
    * *configured provider name* and so classify a keyless `anthropic` seam as
    * real. In `VERIFIER_SEAMS` order. Never includes a `mock` seam (not a
    * downgrade — it announces itself) nor a `host-cli` seam (no required
-   * credential by design; see `credsPresent`).
+   * credential by design; see `credsPresent`). A `host-cli` seam whose binary
+   * will not launch is reported in `seamsUnresolvable` instead.
    */
   seamsDowngraded: VerifierSeam[];
+  /**
+   * Phase 337: every seam configured as `host-cli` when the effective host CLI
+   * binary (`hostCliBin`) will not launch — guaranteed to fall back to `mock`
+   * at spawn. In `VERIFIER_SEAMS` order; empty when no seam is `host-cli` or
+   * the binary resolves.
+   */
+  seamsUnresolvable: VerifierSeam[];
+  /** Phase 337: the effective host CLI binary (`CADENCE_HOST_CLI_BIN` from env
+   *  or `.env`, else `claude`). Present only when some seam is `host-cli`. */
+  hostCliBin?: string;
   /** deep-verify provider is real AND its credentials are present. */
   ready: boolean;
   reason: string;
@@ -93,6 +109,8 @@ export function assessReadiness(
   config: CadenceConfig,
   env: NodeJS.ProcessEnv,
   cwd: string = process.cwd(),
+  presence: (bin: string) => boolean = (bin) =>
+    hostCliBinaryResolves(bin, realHostCliPresenceFacts(env)),
 ): VerifierReadiness {
   const seamsReal: VerifierSeam[] = [];
   const seamsMock: VerifierSeam[] = [];
@@ -107,14 +125,40 @@ export function assessReadiness(
       seamsDowngraded.push(seam);
     }
   }
+  // Phase 337: probe the host-cli binary once, lazily, only if a seam uses it.
+  const hostCliSeams = VERIFIER_SEAMS.filter((seam) => seamProvider(config, seam) === 'host-cli');
+  let bin: string | undefined;
+  let binResolves = true;
+  if (hostCliSeams.length > 0) {
+    bin = resolveHostCliBin(env, cwd);
+    binResolves = presence(bin);
+  }
+  const seamsUnresolvable: VerifierSeam[] = binResolves ? [] : hostCliSeams;
   const provider = seamProvider(config, DEEP_VERIFY_SEAM);
   const keyPresent = credsPresent(provider, DEEP_VERIFY_SEAM, config, env, cwd);
-  const ready = provider !== 'mock' && keyPresent;
-  const reason =
-    provider === 'mock'
-      ? 'deep-verify uses the mock provider — no real AI verification.'
-      : keyPresent
-        ? `deep-verify uses ${provider} with credentials present.`
-        : `deep-verify is set to ${provider} but its credentials are missing.`;
-  return { provider, keyPresent, seamsReal, seamsMock, seamsDowngraded, ready, reason };
+  const deepVerifyUnresolvable = provider === 'host-cli' && !binResolves;
+  const ready = provider !== 'mock' && keyPresent && !deepVerifyUnresolvable;
+  let reason: string;
+  if (provider === 'mock') {
+    reason = 'deep-verify uses the mock provider — no real AI verification.';
+  } else if (provider === 'host-cli') {
+    reason = binResolves
+      ? `deep-verify uses host-cli with "${bin}" found; its login and the self-invocation guard are checked only when a review runs.`
+      : `deep-verify is set to host-cli but "${bin}" was not found (CADENCE_HOST_CLI_BIN or PATH) — every host-cli review will fall back to mock.`;
+  } else {
+    reason = keyPresent
+      ? `deep-verify uses ${provider} with credentials present.`
+      : `deep-verify is set to ${provider} but its credentials are missing.`;
+  }
+  return {
+    provider,
+    keyPresent,
+    seamsReal,
+    seamsMock,
+    seamsDowngraded,
+    seamsUnresolvable,
+    ...(bin !== undefined ? { hostCliBin: bin } : {}),
+    ready,
+    reason,
+  };
 }
