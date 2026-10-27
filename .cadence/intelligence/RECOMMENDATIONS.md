@@ -1942,19 +1942,3 @@ Every cadence CLI invocation imports packages/core/dist/cli/register.js, which e
 - next: cadence milestone propose
 
 Since phase 335 the retention prune keeps every git-tracked SESSION doc, but checkHandoffRetention (doctor/run.ts) still reports, when the count exceeds handoff.retain, that the next handoff write will prune count minus retain docs, and its doc comment says the docs self-heal on the next write. When the excess is committed (as in this repo, where SESSION docs are tracked and swept in housekeeping PRs) nothing is pruned, so the ok message is false. Fix shape: have the check count only untracked docs against the budget (reusing the same best-effort ls-files lookup) or reword the message to say untracked docs will be pruned and tracked ones kept. Deliberately out of scope for phase 335 (DRAFT boundary).
-
-## rec-20261027-001 — doctor/onboard report host-cli as ready when CADENCE_HOST_CLI_BIN is not installed
-
-- status: converted
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: verify, doctor, onboard, activate
-- files: packages/core/src/activate/assess.ts, packages/core/src/doctor/run.ts, packages/core/src/verify/win32-command.ts, docs/providers.md
-- evidence: cloud session 2026-10-27: onboard + doctor said 'host-cli with credentials present' with codex not installed; proxy refused api.openai.com
-- next: cadence milestone propose
-
-assessReadiness reports 'deep-verify uses host-cli with credentials present' purely from config: credsPresent('host-cli') is unconditionally true (phase 165), and resolveHostCliCommand only resolves PATH on win32 — on POSIX the bin name passes through unchecked. Observed 2026-10-27 in a Claude Code cloud session (cadence 1.71.0) for a consumer repo with CADENCE_HOST_CLI_BIN=codex: onboard and doctor verification-readiness both reported ready while codex was absent (and, once installed, logged out with its endpoints unreachable), so every host-cli gate would fall back to mock at settle. The spawn-time fallback is loud and recorded, but the readiness surface the operator checks first says the opposite. docs/providers.md 'Readiness reporting caveat' documents the gap. Proposed: a best-effort binary-presence probe (PATH search on POSIX, the existing win32 two-pass search on Windows) as an additive readiness dimension; credsPresent/activate/seamsDowngraded unchanged; login stays lazily checked.
