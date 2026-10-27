@@ -1290,6 +1290,13 @@ changeset (example/test-only change, no published-package surface).*
   window reaches `SUMMARY.gateBypasses` as `checkpoint-stop` /
   `ceiling-release`, so that slice can't grade `strong` (D-CE,
   `dec-20261022-002`).
+- **Phase 338** — cleared the three high advisories that failed
+  `security-success` on every PR from about 2026-10-26: zod 4.4.3
+  (GHSA-mrhx-c7xc-m3w5, root and website), body-parser 2.3.0
+  (GHSA-27r3-jxmh-p828, root) and undici 8.11.2 (GHSA-xjj6-f33q-929c,
+  website). Major-scoped caret override floors in the two private manifests
+  resolve zod 4.6.7, body-parser 2.4.0 and undici 8.12.3. No published
+  package changed (rec-20261027-002).
 
 
 

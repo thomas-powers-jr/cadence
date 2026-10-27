@@ -3092,6 +3092,20 @@
       "summary": "phase 336-checkpoint-stop-gate, draft 336-01, SUMMARY contentHash 919240e5d62c07e5529eb62f23648205fd842e087a6d1912df194f86d94dd50c — medium finding at packages/checkpoint/src/stop-gate.ts:359: stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.",
       "path": ".cadence/phases/336-checkpoint-stop-gate/336-01-SUMMARY.json",
       "createdAt": "2026-10-23T13:46:08.517Z"
+    },
+    {
+      "id": "ev-20261027-002",
+      "recommendationId": "rec-20261027-002",
+      "kind": "note",
+      "summary": "local check-audit-exceptions.mjs (root + website) 2026-10-27; scheduled security run on main failed 2026-10-26",
+      "createdAt": "2026-10-27T16:19:31.890Z"
+    },
+    {
+      "id": "ev-20261027-003",
+      "recommendationId": "rec-20260917-006",
+      "kind": "note",
+      "summary": "Observed in practice 2026-10-27 (phase 338, cloud session): phase 337 recorded phase-build in state.skillAudit.invoked (via an operator-approved replay of the PostToolUse Skill hook — the session had no project hooks). Phase 338 was then built in the same checkout; its own replay was denied, so nothing was recorded for 338, and the operator chose --allow-skill-audit-miss. Settle nevertheless passed the skill audit with skillAudit.invoked=[phase-build] and gateBypasses null — the bypass never fired, and 338's SUMMARY rests on 337's evidence (phase-build was in fact invoked for 338, but that is not what the record proves). Disclosed in phase 338's commit and PR.",
+      "createdAt": "2026-10-27T16:55:41.125Z"
     }
   ]
 }
