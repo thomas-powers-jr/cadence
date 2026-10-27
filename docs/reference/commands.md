@@ -2049,8 +2049,9 @@ none of the three passed and a `.claude/` workspace detected, a TTY is offered
 the install interactively while a non-TTY skips it (the rendered summary's
 "host hooks" line reports the outcome either way). With `--json`, stdout is
 `{ ok: true, project, gateProfile, hostWire: { wired, offered }, verifier: {
-provider, keyPresent, ready, reason } }` on success, or `{ ok: false, error }`
-on the missing-`.cadence/` refusal.
+provider, keyPresent, ready, reason, seamsUnresolvable } }` on success, or
+`{ ok: false, error }` on the missing-`.cadence/` refusal. `seamsUnresolvable`
+lists the `host-cli` seams whose binary was not found (empty when it resolves).
 
 **Exit codes** — `2` when `.cadence/` is missing; `1` on an unexpected error
 (e.g. a config load failure, reported to stderr); `0` on success.
