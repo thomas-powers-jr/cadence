@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 2,
+  "draftId": "337-01",
+  "completedAt": "2026-10-27T15:46:25.614Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "mock"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "code-review: mock-identified clean pass abstained — the mock provider is not real verification, recorded as skipped rather than a persisted pass",
+      "provider": "mock",
+      "providerSelection": "fallback"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "23 asserting 337-01/AC-1 tests on injected facts. Failed (module missing) before T2, verified in main thread. Independent review: no Critical/Important; Minor fix applied in main thread — miss-case decoys now cover both spellings a PATH-searching mutation could probe; mutation (PATH-search slash bins) confirmed caught by the boolean assertions (2 failures).",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "host-cli-presence.ts; win32-command.ts untouched. Main-thread re-verify: 77/77 (presence + win32-command), typecheck clean, lint clean on new files. Real-spawn comparison: 12/12 probe==spawnSync (empty/unset PATH, trailing-slash and symlink/.. segments, EACCES non-exec/dir, explicit path). Review Minor fixes applied: libuv-style '/' concatenation instead of posix.join, corrected doc comments (isRunnableFile, readFile may throw).",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "assess.ts: seamsUnresolvable + hostCliBin, injectable presence (probed once, lazily). Tests failed first (8), then 53/53 in tests/activate. Exactly two pre-phase tests amended (inject present probe), assertions unchanged; credsPresent untouched; activate suite passes unedited. Independent review: no Critical/Important; Minor doc fixes applied in main thread (ready doc, assessReadiness JSDoc names presence + onboard caller). Main-thread re-verify after all wave-4 edits: build + 797/797 across activate, doctor, onboard, presence, win32, docs; typecheck clean.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "doctor verification-readiness: unresolvable branch before seamsDowngraded. Tests failed first, then pass; exactly two pre-phase AC-3 ok tests amended (CADENCE_HOST_CLI_BIN=process.execPath). Independent review CLEAN (also re-ran with claude/codex stripped from PATH: 344/344). Main thread: wording 'silently' corrected (spawn fallback is loud); review Minors fixed — deterministic bin note (r.provider==='host-cli'), remediation no longer steers seams to the broken binary, Claude Code hint kept, verifier seam asserted — each pinned by a test and mutation-checked (fix-1 test initially vacuous, corrected to bare bin 'present'). doctor suites pass, typecheck/lint clean.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "onboard --json verifier payload gains seamsUnresolvable (type + payload); key-set assertion amended; commands.md onboard shape updated. AC-4 tests failed first after build, then pass. Independent review CLEAN; env override confirmed to reach the spawned CLI. Main-thread re-verify: build + onboard suite pass.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "AC-6 doc test written first (red 4/5, onboard assertion already satisfied by T5), then providers.md caveat as-built amendment (history kept), activation paragraph, commands.md verification-readiness row, patch changeset, ROADMAP ### Phase 337 + MILESTONES bullet. Main thread read the doc diffs against the code (accurate; activate correctly not claimed as changed). tests/docs 58/58 files; full pnpm turbo run lint typecheck test build --force: 28/28 tasks green (core 495 files).",
+      "execution": "dispatch",
+      "isolation": "none"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "mock: 1 linked test (packages/core/tests/verify/host-cli-presence.test.ts:98)",
+      "provider": "mock"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "mock: 1 linked test (packages/core/tests/activate/assess.test.ts:214)",
+      "provider": "mock"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "mock: 1 linked test (packages/core/tests/doctor/verification-readiness.test.ts:183)",
+      "provider": "mock"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "mock: 1 linked test (packages/core/tests/cli/onboard.test.ts:244)",
+      "provider": "mock"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "mock: 1 linked test (packages/core/tests/activate/assess.test.ts:302)",
+      "provider": "mock"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "mock: 1 linked test (packages/core/tests/docs/phase337-host-cli-binary-readiness.test.ts:30)",
+      "provider": "mock"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 62484,
+    "truncated": false,
+    "filesCount": 14,
+    "provider": "mock"
+  },
+  "codeReview": {},
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 9,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "mock",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 6,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "bc38451491195a256a6d6684a024f8585fddb8eb26737fbcbbbc902cc6fe06c9"
+  }
+}

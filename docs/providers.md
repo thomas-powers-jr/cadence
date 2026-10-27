@@ -81,6 +81,10 @@ credentials is wired, and `warning` (pointing back at `cadence activate`) while
 you are still on mock. Since phase 239 it checks **every** seam, not just
 deep-verify: a seam left on a real provider whose credentials are absent is
 reported by name, because it will silently fall back to mock at call time.
+Since phase 337 a `host-cli` seam also needs its binary found (on `PATH`, or
+at the configured `CADENCE_HOST_CLI_BIN` path) before the check reports `ok`;
+see [Readiness reporting caveat](#readiness-reporting-caveat) for what is
+still checked only when a review runs.
 
 The manual steps below remain the source of truth for per-gate configuration,
 `local` setup, custom headers, and command-line provider selection.
@@ -479,14 +483,39 @@ left unguarded until a documented signal exists.
 
 ### Readiness reporting caveat
 
-`cadence doctor` and `cadence activate` report `host-cli` as **ready** based
-on config well-formedness alone — `host-cli` has no required credential by
-design, so readiness here just means "nothing is missing," not "the binary
-is confirmed installed and authenticated." Whether the binary actually
-exists and is logged in is only discovered lazily on the first real
-verification call. Don't be surprised if `doctor` reports `host-cli` as
-ready and a subsequent gate run still falls back to mock — that fallback,
-with its stderr warning, is the actual live check.
+**Before phase 337**, `cadence doctor` and `cadence activate` reported
+`host-cli` as **ready** based on config well-formedness alone — `host-cli`
+has no required credential by design (phase 165 made its credential check
+unconditionally pass and left everything else to be checked lazily), so
+readiness here just meant "nothing is missing," not "the binary is
+confirmed installed and authenticated." Whether the binary actually existed
+and was logged in was only discovered on the first real verification call,
+so `doctor` (and later `cadence onboard`) could report `host-cli` as ready
+while every subsequent gate run fell back to mock.
+
+**As built (phase 337, rec-20261027-001).** Readiness now confirms that the
+host-cli binary will launch: the effective binary (`CADENCE_HOST_CLI_BIN`
+from the environment or a repo-root `.env`, else `claude`) is looked up the
+way the review spawn will look it up — on `PATH`, or at the configured
+`CADENCE_HOST_CLI_BIN` path when it names one — and only a runnable file
+counts (on Windows, the same `.exe`/npm `.cmd` shim resolution the spawn
+uses). When it is not found, `cadence doctor`'s `verification-readiness`
+check warns and names the binary and every `host-cli` seam that will fall
+back to mock; `cadence onboard` reports deep-verify as not ready when
+deep-verify itself uses `host-cli`, and its `--json` `verifier` payload lists
+those seams in `seamsUnresolvable`. When it
+is found, the readiness reason names the binary instead of saying
+"credentials present."
+
+What is still lazy: login, network reachability and the self-invocation
+guard (a `claude`-family binary refusing to spawn inside a headless Claude
+Code session) are only discovered when a review runs. Readiness never spawns
+the binary. A binary that is found can therefore still fall back to mock at
+gate time — that fallback, with its stderr warning and its recorded
+provenance in the SUMMARY, remains the live check for everything beyond
+"the binary will launch." For code-review and security-audit,
+`conduction-reachability` (phase 251) also reports the self-invocation guard
+ahead of time.
 
 ### Deferred: batching
 

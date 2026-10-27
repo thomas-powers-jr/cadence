@@ -835,7 +835,10 @@ export async function checkHandoffRetention(root: string): Promise<DoctorCheck> 
  * downgrade to mock. Before phase 239 only the deep-verify seam was
  * credential-checked, so this check reported `ok` while a sibling seam was
  * guaranteed to fall back to mock (a false green that `cadence config explain`
- * caught and this did not). `ok` otherwise. Read-only, best-effort, never throws
+ * caught and this did not). Phase 337: also `warning` when a `host-cli` seam's
+ * binary will not launch (`seamsUnresolvable`) — reported after the deep-verify
+ * branches and before the credential-downgrade one, naming any downgraded seams
+ * in the same warning. `ok` otherwise. Read-only, best-effort, never throws
  * (doctor convention). `env` is injectable for deterministic tests.
  */
 export async function checkVerificationReadiness(
@@ -882,6 +885,41 @@ export async function checkVerificationReadiness(
         'warning',
         `deep-verify is set to '${r.provider}' but its credentials are missing — it will fall back to mock. ${MOCK_VERIFIER_CAPABILITY.message}`,
         `Set ${envVar} (or run \`cadence activate\`).`,
+      );
+    }
+    // Phase 337: a `host-cli` seam whose binary will not launch is guaranteed to
+    // fall back to mock at spawn time, whatever the credential state. Reported
+    // before the credential-downgrade branch so the binary-specific fix is never
+    // hidden; any credential-downgraded seams are named in the same warning.
+    if (r.seamsUnresolvable.length > 0) {
+      const bin = r.hostCliBin ?? 'claude';
+      const unresolvable = r.seamsUnresolvable
+        .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
+        .join(', ');
+      const unresolvablePlural = r.seamsUnresolvable.length === 1 ? 'seam' : 'seams';
+      // Only the host-cli reason names the binary; for any other deep-verify
+      // provider, name it here (a substring test could match a short bin name).
+      const binNote = r.provider === 'host-cli' ? '' : ` The host CLI binary is "${bin}".`;
+      const downgradedNote =
+        r.seamsDowngraded.length > 0
+          ? ` Also, ${r.seamsDowngraded.length} other ${r.seamsDowngraded.length === 1 ? 'seam' : 'seams'} will silently fall back to mock for want of credentials: ${r.seamsDowngraded
+              .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
+              .join(', ')}.`
+          : '';
+      const claudeCodeHint =
+        r.seamsDowngraded.some((seam) => seamProvider(config, seam) === 'anthropic') &&
+        isClaudeCodeSession(env)
+          ? ' Being logged into Claude Code does not supply ANTHROPIC_API_KEY; that is a separate credential.'
+          : '';
+      const credentialRemediation =
+        r.seamsDowngraded.length > 0
+          ? ` Also supply the missing credentials, or — once "${bin}" launches — run \`cadence activate --provider host-cli --all\` to reuse your host CLI login for every seam.`
+          : '';
+      return fail(
+        'verification-readiness',
+        'warning',
+        `${r.reason}${binNote} ${r.seamsUnresolvable.length} host-cli ${unresolvablePlural} will fall back to mock when a review runs, because that binary will not launch: ${unresolvable}.${downgradedNote}${claudeCodeHint} ${MOCK_VERIFIER_CAPABILITY.message}`,
+        `Install "${bin}" or point CADENCE_HOST_CLI_BIN at it, or switch those seams' provider. \`cadence config explain\` lists each seam's effective provider.${credentialRemediation}`,
       );
     }
     // Issue #331: deep-verify being healthy is NOT sufficient. Every other seam
