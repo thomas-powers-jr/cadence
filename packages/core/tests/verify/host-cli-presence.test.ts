@@ -167,12 +167,18 @@ describe('337-01/AC-1: hostCliBinaryResolves on POSIX', () => {
   it('337-01/AC-1: an absolute bin is checked as given and never joined to a PATH dir', () => {
     const facts = posixFacts({
       env: { PATH: '/opt/a' },
-      fs: { '/abs/bin/codex': 'file', '/opt/a//abs/bin/codex': 'file' },
+      fs: { '/abs/bin/codex': 'file', '/opt/a/abs/bin/codex': 'file', '/opt/a//abs/bin/codex': 'file' },
     });
     expect(hostCliBinaryResolves('/abs/bin/codex', facts)).toBe(true);
     expect(probed(facts)).toEqual(['/abs/bin/codex']);
 
-    const miss = posixFacts({ env: { PATH: '/opt/a' }, fs: { '/opt/a/codex': 'file' } });
+    // Decoys at both spellings a PATH-searching mutation could probe
+    // (normalized join and libuv-style concatenation), so the boolean result
+    // itself catches it, not only the probe-order assertion.
+    const miss = posixFacts({
+      env: { PATH: '/opt/a' },
+      fs: { '/opt/a/codex': 'file', '/opt/a/abs/bin/codex': 'file', '/opt/a//abs/bin/codex': 'file' },
+    });
     expect(hostCliBinaryResolves('/abs/bin/codex', miss)).toBe(false);
     expect(probed(miss)).toEqual(['/abs/bin/codex']);
   });
@@ -185,7 +191,10 @@ describe('337-01/AC-1: hostCliBinaryResolves on POSIX', () => {
     expect(hostCliBinaryResolves('./rel/codex', facts)).toBe(true);
     expect(probed(facts)).toEqual(['./rel/codex']);
 
-    const miss = posixFacts({ env: { PATH: '/opt/a' }, fs: { '/opt/a/rel/codex': 'file' } });
+    const miss = posixFacts({
+      env: { PATH: '/opt/a' },
+      fs: { '/opt/a/rel/codex': 'file', '/opt/a/./rel/codex': 'file' },
+    });
     expect(hostCliBinaryResolves('./rel/codex', miss)).toBe(false);
     expect(probed(miss)).toEqual(['./rel/codex']);
   });

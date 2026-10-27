@@ -1,0 +1,39 @@
+{
+  "draftId": "337-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "23 asserting 337-01/AC-1 tests on injected facts. Failed (module missing) before T2, verified in main thread. Independent review: no Critical/Important; Minor fix applied in main thread — miss-case decoys now cover both spellings a PATH-searching mutation could probe; mutation (PATH-search slash bins) confirmed caught by the boolean assertions (2 failures).",
+      "touchedFiles": [
+        "packages/core/src/activate/assess.ts",
+        "packages/core/src/verify/host-cli-presence.ts",
+        "packages/core/tests/activate/assess.test.ts",
+        "packages/core/tests/verify/host-cli-presence.test.ts",
+        "docs/reference/commands.md",
+        "packages/core/src/cli/commands/onboard.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/tests/cli/onboard.test.ts",
+        "packages/core/tests/doctor/verification-readiness.test.ts"
+      ],
+      "updatedAt": "2026-10-27T15:09:10.753Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "host-cli-presence.ts; win32-command.ts untouched. Main-thread re-verify: 77/77 (presence + win32-command), typecheck clean, lint clean on new files. Real-spawn comparison: 12/12 probe==spawnSync (empty/unset PATH, trailing-slash and symlink/.. segments, EACCES non-exec/dir, explicit path). Review Minor fixes applied: libuv-style '/' concatenation instead of posix.join, corrected doc comments (isRunnableFile, readFile may throw).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T15:09:11.219Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "assess.ts: seamsUnresolvable + hostCliBin, injectable presence (probed once, lazily). Tests failed first (8), then 53/53 in tests/activate. Exactly two pre-phase tests amended (inject present probe), assertions unchanged; credsPresent untouched; activate suite passes unedited. Independent review: no Critical/Important; Minor doc fixes applied in main thread (ready doc, assessReadiness JSDoc names presence + onboard caller). Main-thread re-verify after all wave-4 edits: build + 797/797 across activate, doctor, onboard, presence, win32, docs; typecheck clean.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T15:10:12.557Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    }
+  }
+}

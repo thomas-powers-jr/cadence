@@ -884,6 +884,34 @@ export async function checkVerificationReadiness(
         `Set ${envVar} (or run \`cadence activate\`).`,
       );
     }
+    // Phase 337: a `host-cli` seam whose binary will not launch is guaranteed to
+    // fall back to mock at spawn time, whatever the credential state. Reported
+    // before the credential-downgrade branch so the binary-specific fix is never
+    // hidden; any credential-downgraded seams are named in the same warning.
+    if (r.seamsUnresolvable.length > 0) {
+      const bin = r.hostCliBin ?? 'claude';
+      const unresolvable = r.seamsUnresolvable
+        .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
+        .join(', ');
+      const unresolvablePlural = r.seamsUnresolvable.length === 1 ? 'seam' : 'seams';
+      const binNote = r.reason.includes(bin) ? '' : ` The host CLI binary is "${bin}".`;
+      const downgradedNote =
+        r.seamsDowngraded.length > 0
+          ? ` Also, ${r.seamsDowngraded.length} other ${r.seamsDowngraded.length === 1 ? 'seam' : 'seams'} will silently fall back to mock for want of credentials: ${r.seamsDowngraded
+              .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
+              .join(', ')}.`
+          : '';
+      const credentialRemediation =
+        r.seamsDowngraded.length > 0
+          ? ` Also supply the missing credentials, or run \`cadence activate --provider host-cli --all\` to reuse your host CLI login for every seam.`
+          : '';
+      return fail(
+        'verification-readiness',
+        'warning',
+        `${r.reason}${binNote} ${r.seamsUnresolvable.length} host-cli ${unresolvablePlural} will fall back to mock when a review runs, because that binary will not launch: ${unresolvable}.${downgradedNote} ${MOCK_VERIFIER_CAPABILITY.message}`,
+        `Install "${bin}" or point CADENCE_HOST_CLI_BIN at it, or switch those seams' provider. \`cadence config explain\` lists each seam's effective provider.${credentialRemediation}`,
+      );
+    }
     // Issue #331: deep-verify being healthy is NOT sufficient. Every other seam
     // gates a real review too, and one configured to a real provider without
     // credentials will silently downgrade to mock — the case that made this

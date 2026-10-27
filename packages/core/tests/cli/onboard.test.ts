@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { defaultConfig } from '@thomas-powers-jr/cadence-types';
@@ -231,6 +232,44 @@ describe('cadence onboard — regression: .cadence/ committed but state.json abs
   });
 });
 
+describe('cadence onboard — host-cli binary readiness (phase 337)', () => {
+  async function hostCliRepo(): Promise<string> {
+    active = await tempRepo({ initialized: true, projectName: 'hostcli-onboard' });
+    const cfg = await loadConfig(active.root);
+    cfg.verifier.provider = 'host-cli';
+    await writeConfig(active.root, cfg);
+    return active.root;
+  }
+
+  it('337-01/AC-4: a missing CADENCE_HOST_CLI_BIN is reported not ready, in seamsUnresolvable, and named in the reason', async () => {
+    const root = await hostCliRepo();
+    const missing = join(tmpdir(), 'cadence-337-missing-host-cli-bin');
+    const r = await run(['onboard', '--skip-host-wire', '--json'], root, {
+      CADENCE_HOST_CLI_BIN: missing,
+    });
+
+    expect(r.code).toBe(0);
+    const parsed = JSON.parse(r.stdout);
+    expect(parsed.verifier.ready).toBe(false);
+    expect(parsed.verifier.seamsUnresolvable).toContain('verifier');
+    expect(parsed.verifier.reason).toContain(missing);
+    expect(r.stdout).not.toContain('credentials present');
+  });
+
+  it('337-01/AC-4: a resolvable CADENCE_HOST_CLI_BIN is reported ready with an empty seamsUnresolvable', async () => {
+    const root = await hostCliRepo();
+    const r = await run(['onboard', '--skip-host-wire', '--json'], root, {
+      CADENCE_HOST_CLI_BIN: process.execPath,
+    });
+
+    expect(r.code).toBe(0);
+    const parsed = JSON.parse(r.stdout);
+    expect(parsed.verifier.ready).toBe(true);
+    expect(parsed.verifier.seamsUnresolvable).toEqual([]);
+    expect(r.stdout).not.toContain('credentials present');
+  });
+});
+
 describe('cadence onboard — regression: never gains a provider-selection prompt (AC-5, phase 265)', () => {
   // Phase 265 (T3, built separately from this task) adds an interactive
   // provider-selection prompt to `cadence init`. `onboard` is a DIFFERENT
@@ -313,9 +352,11 @@ describe('cadence onboard — regression: never gains a provider-selection promp
     // the interactive branch (offered:true).
     expect(parsed.hostWire).toEqual({ wired: false, offered: true });
     // verifier readiness surface is still exactly assessReadiness's report —
-    // {provider, keyPresent, ready, reason} — never a new interactive field.
+    // {provider, keyPresent, ready, reason} plus seamsUnresolvable, which
+    // phase 337 added from the readiness report — never a new interactive
+    // field (intent unchanged).
     expect(Object.keys(parsed.verifier).sort()).toEqual(
-      ['keyPresent', 'provider', 'ready', 'reason'].sort(),
+      ['keyPresent', 'provider', 'ready', 'reason', 'seamsUnresolvable'].sort(),
     );
     expect(parsed.verifier.provider).toBe('mock');
     expect(parsed.verifier.keyPresent).toBe(true);

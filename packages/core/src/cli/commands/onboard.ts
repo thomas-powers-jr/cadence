@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { emptyState, type Profile } from '@thomas-powers-jr/cadence-types';
 import { loadConfig } from '../../config/loader.js';
-import { assessReadiness, type VerifierReadiness } from '../../activate/assess.js';
+import { assessReadiness, type VerifierReadiness, type VerifierSeam } from '../../activate/assess.js';
 import { maybeWireHost } from '../../init/host-wire.js';
 import { SimpleStateBackend } from '../../state/simple.js';
 import { ScriptedPrompter, StdinPrompter, type Prompter } from '../../verify/prompter.js';
@@ -104,6 +104,7 @@ interface OnboardSummary {
     keyPresent: boolean;
     ready: boolean;
     reason: string;
+    seamsUnresolvable: VerifierSeam[];
   };
 }
 
@@ -190,6 +191,7 @@ export function registerOnboardCommand(program: Command): void {
               keyPresent: verifier.keyPresent,
               ready: verifier.ready,
               reason: verifier.reason,
+              seamsUnresolvable: verifier.seamsUnresolvable,
             },
           };
 

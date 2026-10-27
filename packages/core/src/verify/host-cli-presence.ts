@@ -1,5 +1,4 @@
 import { accessSync, constants, readFileSync, statSync } from 'node:fs';
-import { posix } from 'node:path';
 import { discoverKey } from '../activate/key-discovery.js';
 import { resolveHostCliCommand } from './win32-command.js';
 
@@ -27,14 +26,20 @@ import { resolveHostCliCommand } from './win32-command.js';
  * as found; spawn's ENOENT then falls back to mock loudly.
  *
  * Pure core (`hostCliBinaryResolves`, `hostCliBin`) plus an impure shell
- * (`realHostCliPresenceFacts`) whose checks never throw.
+ * (`realHostCliPresenceFacts`). `hostCliBinaryResolves` never throws: any
+ * throw from a facts call reads as "won't launch".
  */
 export interface HostCliPresenceFacts {
   platform: NodeJS.Platform;
   env: NodeJS.ProcessEnv;
-  /** True iff `p` is a runnable regular file. Must not be called with a
-   *  directory-vs-file ambiguity resolved by the caller. */
+  /** True iff `p` names a runnable regular file — on POSIX a regular file
+   *  with execute permission, on win32 any regular file. A directory, a
+   *  non-executable file or an absent path is false. A relative `p` resolves
+   *  against the process cwd. May throw; `hostCliBinaryResolves` treats a
+   *  throw as false. */
   isRunnableFile(p: string): boolean;
+  /** Reads a `.cmd`/`.bat` launcher (win32 only). May throw; the resolver
+   *  call that uses it is wrapped, so a throw reads as "won't launch". */
   readFile(p: string): string;
   execPath: string;
 }
@@ -66,7 +71,9 @@ export function hostCliBinaryResolves(bin: string, facts: HostCliPresenceFacts):
   if (bin.includes('/')) return safeRunnable(facts, bin);
   const pathVar = facts.env['PATH'] ?? '/usr/bin:/bin';
   for (const segment of pathVar.split(':')) {
-    const candidate = segment === '' ? bin : posix.join(segment, bin);
+    // libuv joins with a literal '/', no normalization: the kernel then walks
+    // the real path (a `..` after a symlink follows the link's target).
+    const candidate = segment === '' ? bin : `${segment}/${bin}`;
     if (safeRunnable(facts, candidate)) return true;
   }
   return false;
@@ -78,7 +85,8 @@ export function hostCliBin(env: NodeJS.ProcessEnv, cwd: string): string {
   return discoverKey('CADENCE_HOST_CLI_BIN', env, cwd).value ?? 'claude';
 }
 
-/** Impure shell: real filesystem facts. Every fs call is best-effort. */
+/** Impure shell: real filesystem facts. `isRunnableFile` never throws;
+ *  `readFile` may, and `hostCliBinaryResolves` absorbs it. */
 export function realHostCliPresenceFacts(env: NodeJS.ProcessEnv): HostCliPresenceFacts {
   const platform = process.platform;
   return {

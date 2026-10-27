@@ -54,7 +54,9 @@ export interface VerifierReadiness {
   /** Phase 337: the effective host CLI binary (`CADENCE_HOST_CLI_BIN` from env
    *  or `.env`, else `claude`). Present only when some seam is `host-cli`. */
   hostCliBin?: string;
-  /** deep-verify provider is real AND its credentials are present. */
+  /** deep-verify provider is real, its credentials are present, and — for
+   *  host-cli — its binary will launch (deep-verify is not in
+   *  `seamsUnresolvable`). */
   ready: boolean;
   reason: string;
 }
@@ -103,8 +105,11 @@ export function isClaudeCodeSession(env: NodeJS.ProcessEnv): boolean {
   return env.CLAUDECODE === '1';
 }
 
-/** Pure verifier-posture assessment. Shared by `activate` and `doctor`.
- *  `cwd` (default `process.cwd()`) is threaded to `credsPresent` for `.env` discovery. */
+/** Verifier-posture assessment, shared by `activate`, `doctor` and `onboard`.
+ *  `cwd` (default `process.cwd()`) is threaded to `credsPresent` for `.env` discovery.
+ *  `presence` (phase 337; default: a real filesystem probe via
+ *  `verify/host-cli-presence.ts`) is called at most once, and only when some
+ *  seam is `host-cli`; tests inject it to stay independent of the machine. */
 export function assessReadiness(
   config: CadenceConfig,
   env: NodeJS.ProcessEnv,
