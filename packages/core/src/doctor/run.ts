@@ -835,7 +835,10 @@ export async function checkHandoffRetention(root: string): Promise<DoctorCheck> 
  * downgrade to mock. Before phase 239 only the deep-verify seam was
  * credential-checked, so this check reported `ok` while a sibling seam was
  * guaranteed to fall back to mock (a false green that `cadence config explain`
- * caught and this did not). `ok` otherwise. Read-only, best-effort, never throws
+ * caught and this did not). Phase 337: also `warning` when a `host-cli` seam's
+ * binary will not launch (`seamsUnresolvable`) — reported after the deep-verify
+ * branches and before the credential-downgrade one, naming any downgraded seams
+ * in the same warning. `ok` otherwise. Read-only, best-effort, never throws
  * (doctor convention). `env` is injectable for deterministic tests.
  */
 export async function checkVerificationReadiness(

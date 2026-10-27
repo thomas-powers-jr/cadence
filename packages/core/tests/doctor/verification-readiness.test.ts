@@ -238,8 +238,9 @@ describe('checkVerificationReadiness (AC-1, AC-2)', () => {
     });
     const c = await checkVerificationReadiness(active.root, {
       ANTHROPIC_API_KEY: 'test-key-337',
-      // A bare name: with no PATH in this env the probe searches only
-      // /usr/bin and /bin, where no binary is named "present".
+      // A bare name with no PATH in this env: on POSIX the probe searches only
+      // /usr/bin and /bin (libuv's default), where no binary is named "present";
+      // on win32 an unset Path means no PATH directories at all.
       CADENCE_HOST_CLI_BIN: 'present',
     });
     expect(c.severity).toBe('warning');
