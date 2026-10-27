@@ -3854,6 +3854,44 @@ Tracked docs are protected unconditionally, with no config knob. Tier
 `complex` by `classifyTier` (10 files over the standard tier's 8), as the
 operator's work order required.
 
+### Phase 337 — doctor and onboard check that the host-cli binary exists (rec-20261027-001)
+
+**Objective.** `assessReadiness` called a `host-cli` deep-verify ready from
+config alone: `credsPresent('host-cli')` is unconditionally `true` (phase
+165), and nothing checked that the binary would launch. On 2026-10-27, in a
+Claude Code cloud session on cadence 1.71.0, a consumer repo with
+`CADENCE_HOST_CLI_BIN=codex` got "ready" from both `cadence onboard` and
+`cadence doctor` while `codex` was not installed, so every host-cli gate
+would have fallen back to mock at settle. The spawn-time fallback was loud
+and recorded, but the readiness surface the operator checks first said the
+opposite, and `docs/providers.md`'s "Readiness reporting caveat" documented
+the gap. The fix is pure core plus impure shell, and additive: a pure
+`hostCliBinaryResolves(bin, facts)` that mirrors what the review spawn will
+do (libuv's execvp-style PATH search on POSIX, the spawn path's own
+`resolveHostCliCommand` on win32), `seamsUnresolvable` and `hostCliBin` on
+`VerifierReadiness`, a doctor warning ahead of the `seamsDowngraded` one,
+and `seamsUnresolvable` in onboard's `--json` payload. Login, reachability
+and the self-invocation guard stay checked at spawn. Tier `complex`.
+
+**As built.**
+- **Presence probe.** `verify/host-cli-presence.ts` gains
+  `hostCliBinaryResolves`, `hostCliBin` (env over `.env` over `claude`, the
+  verifier factory's rule) and a best-effort `realHostCliPresenceFacts`
+  whose fs checks never throw. It does not reuse doctor's `commandOnPath`,
+  which is existence-only; `win32-command.ts` is unedited.
+- **Readiness.** `assessReadiness` takes an optional injectable presence
+  probe, called at most once and only when some seam is `host-cli`. `ready`
+  is false when deep-verify itself is unresolvable, and a resolvable
+  host-cli reason names the binary instead of "credentials present".
+  `credsPresent`, `seamsDowngraded` and `cadence activate` are unchanged.
+- **Surfaces.** doctor's `verification-readiness` warns on unresolvable
+  seams first, naming any credential-downgraded seams in the same warning;
+  onboard's `--json` `verifier` payload lists `seamsUnresolvable`.
+- **Docs.** The providers.md caveat became an as-built amendment that keeps
+  the phase-165 history and says what is still lazy; the activation
+  paragraph and the commands.md row say a host-cli binary must be found.
+  `phase337-host-cli-binary-readiness.test.ts` was shown red first.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

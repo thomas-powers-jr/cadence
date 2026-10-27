@@ -1282,6 +1282,14 @@ changeset (example/test-only change, no published-package surface).*
   is tracked; a failed lookup protects nothing, as before. When the budget
   would have pruned committed docs, one stderr notice names how many were
   kept (rec-20261016-004).
+- **Phase 337** — `cadence doctor` and `cadence onboard` no longer call a
+  `host-cli` verifier ready when its binary is not installed. Readiness
+  looks up `CADENCE_HOST_CLI_BIN` (default `claude`) the way the review
+  spawn will; doctor's `verification-readiness` warns, naming the binary
+  and every host-cli seam that will fall back to mock, and onboard's
+  `--json` payload gains `seamsUnresolvable`. Login, reachability and the
+  self-invocation guard are still checked only when a review runs
+  (rec-20261027-001).
 
 
 
