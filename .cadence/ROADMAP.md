@@ -3892,6 +3892,40 @@ and the self-invocation guard stay checked at spawn. Tier `complex`.
   paragraph and the commands.md row say a host-cli binary must be found.
   `phase337-host-cli-binary-readiness.test.ts` was shown red first.
 
+### Phase 338 — Clear the zod, body-parser and undici high advisories with override floors (rec-20261027-002)
+
+**Objective.** Three high advisories failed `security-success` on every PR
+from about 2026-10-26: `main`'s scheduled security run on `572b331` went
+red that day, and PR #583 hit it on 2026-10-27. In the root lockfile,
+GHSA-mrhx-c7xc-m3w5 hit zod 4.4.3 (reached through `@anthropic-ai/sdk`;
+patched 4.6.6) and GHSA-27r3-jxmh-p828 hit body-parser 2.3.0 (reached
+through `@modelcontextprotocol/sdk`'s express; patched 2.4.0). The website
+lockfile carried the same zod advisory (through `@astrojs/sitemap`) and
+GHSA-xjj6-f33q-929c against undici 8.11.2 (through `astro>unifont`;
+patched 8.12.2). As in phase 334, the audit job's website step was masked
+because the root step failed first, so one phase fixes both. The fix
+follows phases 330 and 334 with caret `pnpm.overrides` floors in the two
+private manifests, scoped to the affected major so no other major is
+dragged across a boundary: root `zod@^4.0.0: ^4.6.6` and
+`body-parser@^2.0.0: ^2.4.0`; website `zod@^4.0.0: ^4.6.6` and
+`undici@^8.0.0: ^8.12.2`. No published package changes and no changeset:
+the published core and types packages keep asking for `zod ^4.4.3`, which
+a fresh downstream install already resolves to a patched 4.6.x. Tier
+`standard`.
+
+**As built.**
+- A plain `pnpm install` re-resolved cleanly in both lockfiles; phase 334's
+  stale-lock trap did not recur. Root: zod 4.6.7, body-parser 2.4.0 (with a
+  new `content-type@2.1.0` under it); pnpm rewrote the SDKs' zod peer ranges
+  and the core/types importer specifiers to the override's `^4.6.6`.
+  Website: zod collapsed onto the 4.6.7 astro already used, undici 8.12.3.
+- Both `check-audit-exceptions.mjs` runs (root and website) report no
+  high/critical advisories, and both `check-lockfile-overrides.mjs` runs are
+  satisfied. The website's `pnpm test` and `pnpm build` pass.
+- The rec and its evidence row are numbered `-002`: `-001` was already taken
+  by phase 337's rec on its then-unmerged branch, and the CLI only sees the
+  ledger on its own branch.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

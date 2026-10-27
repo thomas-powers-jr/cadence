@@ -1,0 +1,35 @@
+{
+  "draftId": "338-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "4 asserting 338-01/AC-N tests, offline (phase 334 model). Main thread confirmed AC-1..3 failed for the right reasons before T2/T3 (no floors; zod 4.4.3 locked) and all 4 pass after. Independent review CLEAN incl. 5 mutations caught.",
+      "touchedFiles": [
+        "package.json",
+        "packages/core/tests/docs/phase338-zod-body-parser-undici-advisories.test.ts",
+        "pnpm-lock.yaml",
+        "website/package.json",
+        "website/pnpm-lock.yaml"
+      ],
+      "updatedAt": "2026-10-27T16:41:03.375Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Root overrides zod@^4.0.0:^4.6.6, body-parser@^2.0.0:^2.4.0; plain pnpm install (no stale-lock trap). Main thread read the lockfile diff: only zod 4.4.3->4.6.7, body-parser 2.3.0->2.4.0, new content-type@2.1.0, peer/importer specifiers rewritten to ^4.6.6. Re-verified: frozen-lockfile install ok, audit no high/critical, overrides 14/14, full turbo 28/28 (core 494 files).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T16:41:03.775Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Website overrides zod@^4.0.0:^4.6.6, undici@^8.0.0:^8.12.2; zod collapsed to 4.6.7, undici 8.12.3, nothing else. Re-verified in main thread: website audit no high/critical, overrides 8/8, website pnpm test + pnpm build (234 pages) pass.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-27T16:41:04.151Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    }
+  }
+}
