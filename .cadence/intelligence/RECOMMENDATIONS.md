@@ -1942,3 +1942,19 @@ Every cadence CLI invocation imports packages/core/dist/cli/register.js, which e
 - next: cadence milestone propose
 
 Since phase 335 the retention prune keeps every git-tracked SESSION doc, but checkHandoffRetention (doctor/run.ts) still reports, when the count exceeds handoff.retain, that the next handoff write will prune count minus retain docs, and its doc comment says the docs self-heal on the next write. When the excess is committed (as in this repo, where SESSION docs are tracked and swept in housekeeping PRs) nothing is pruned, so the ok message is false. Fix shape: have the check count only untracked docs against the budget (reusing the same best-effort ls-files lookup) or reword the message to say untracked docs will be pruned and tracked ones kept. Deliberately out of scope for phase 335 (DRAFT boundary).
+
+## rec-20261027-002 — security-success red: zod, body-parser and undici high advisories (root and website lockfiles)
+
+- status: converted
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, deps
+- files: package.json, pnpm-lock.yaml, website/package.json, website/pnpm-lock.yaml
+- evidence: local check-audit-exceptions.mjs (root + website) 2026-10-27; scheduled security run on main failed 2026-10-26
+- next: cadence milestone propose
+
+Since ~2026-10-26 the scheduled security run on main (572b331) fails: scripts/check-audit-exceptions.mjs reports GHSA-mrhx-c7xc-m3w5 (zod <4.6.6, high; root via @anthropic-ai/sdk, website via @astrojs/sitemap, both at 4.4.3) and GHSA-27r3-jxmh-p828 (body-parser >=2.0.0 <2.4.0, high; root via @modelcontextprotocol/sdk at 2.3.0); the website audit additionally reports GHSA-xjj6-f33q-929c (undici >=8.0.0 <8.12.2, high; via astro>unifont at 8.11.2). Blocks every PR (observed on #583). Fix the phase 330/334 way: major-scoped caret pnpm.overrides floors in the private root and website manifests, lockfiles regenerated with pnpm install; no published package changes. Validated on a throwaway worktree for the root: zod 4.6.7, body-parser 2.4.0, audit clean, full typecheck/test/build green.
