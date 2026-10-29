@@ -3976,6 +3976,35 @@ payload with no `\r` is byte-identical to before. Tier `standard`.
   coverage scan links each AC to an encoding-equivalence test first, avoiding
   phase 336's deep-verify rejection.
 
+### Phase 340 — draft-read refuses only when the DRAFT's content changed since approve, not just its mtime (dec-20261029-001)
+
+**Objective.** The `draft-read` gate (Phase 23.1) refused `settle run`
+whenever DRAFT.md's mtime was newer than `state.draftReadAt`. An mtime is
+not evidence of an edit: a `git checkout`, `git switch`, clone, pull or
+copy to another machine gives an unedited DRAFT a fresh mtime, and the only
+way past the refusal was `--allow-stale-draft`. Cadence Studio's
+`cadence-state load --allow-build` hit exactly this when carrying a
+mid-BUILD loop between PCs, and the planned `cadence state save/load`
+(phase 341) would have inherited it. `draft approve` now also stamps an
+optional `state.draftReadHash`: the sha256 of the DRAFT text after phase
+339's `normalizeText`, so BOM and line-ending churn does not count as an
+edit. When the mtime is newer, the gate refuses only if the current
+normalized hash differs from the stamp; a match passes with a stderr
+notice. State with no stamp keeps the mtime-only check. The refusal
+message, the `--allow-stale-draft` flag, the gate sets and the tier ×
+profile cells are unchanged, and the schema change is additive. Tier
+`standard`.
+
+**As built.**
+- The hash compared at settle is of the same DRAFT text settle parsed for
+  the run, so the gate does not re-read the file.
+- Two follow-ups are recorded rather than built: rec-20261029-001 (once a
+  stamp exists, refuse any hash mismatch regardless of mtime, which would
+  need a new refusal message) and rec-20261029-002 (an edit landing between
+  settle's DRAFT read and its lazy mtime stat passes the content check,
+  where the mtime-only gate refused it). rec-20261029-003 tracks the MCP
+  settle tool's `allowStaleDraft` description, which still says "mtime gate".
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

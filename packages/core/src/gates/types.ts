@@ -227,6 +227,13 @@ export interface SettleContext {
   /** Memoized DRAFT.md mtime in ms (Phase 39.2, for the draft-read gate);
    *  `null` when there is no DRAFT or the stat fails. */
   draftMtimeMs(): Promise<number | null>;
+  /** Memoized content hash of the DRAFT (Phase 340, for the draft-read gate):
+   *  `draftContentHash` (sha256 of the normalized text) of the exact DRAFT text
+   *  settle's preconditions read and parsed for this run — never a re-read, so
+   *  what is hashed is what was parsed. Always non-null from settle (a failed
+   *  read aborts the preconditions); `null` is for contexts without the text.
+   *  Only called by draft-read when the mtime is newer and a stamp exists. */
+  draftContentHash(): Promise<string | null>;
   /** Memoized `git diff --no-color <merge-base> -- <touchedFiles>` (Phase 39.4;
    *  merge-base basis since phase 307 / issue #501), where the merge-base is
    *  with `origin/<phaseGuard.integrationRef>` or the local ref, so committed

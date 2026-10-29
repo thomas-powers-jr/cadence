@@ -846,7 +846,7 @@ Generate SUMMARY.md + JSON and return to IDLE
 | `--interactive` | Walk each AC and prompt the user for a pass/fail/skip verdict (Phase 16) |
 | `--no-interactive` | Bypass the interactive-verdict gate even if the active profile would enforce it. In a non-TTY the walker is **auto-skipped** by default (since v1.29; `interactiveVerifySkipped: "non-tty"` in the SUMMARY) — set `CADENCE_REQUIRE_TTY=1` to restore the strict refusal |
 | `--allow-auto-complex` | Override DESIGN.md §4 M2 soft cap: settle an `auto × complex` draft anyway |
-| `--allow-stale-draft` | Skip the DRAFT-read mtime gate even if the DRAFT.md was edited after approve |
+| `--allow-stale-draft` | Skip the draft-read gate even if DRAFT.md's content changed after approve |
 | `--allow-open-tasks` | Skip the structural-verifier gate even if a task is still PENDING / IN_PROGRESS (Phase 39.2) |
 | `--allow-failing-build` | Do not refuse on a non-zero `verification.testCommand` exit; settle anyway (Phase 39.2) |
 | `--allow-code-review-failure` | Do not refuse on HIGH-severity code-review findings; record them in SUMMARY and emit anomalies anyway. The bypass (by this flag or `--force`) is recorded as an `error`-severity `SUMMARY.json.gateBypasses` entry, which caps `assurance.overall` at `mixed`, never `strong` (Phase 24.3; recorded since Phase 332) |

@@ -3120,6 +3120,20 @@
       "kind": "note",
       "summary": "Independent plan review of 340-01 (finding L2), 2026-10-29",
       "createdAt": "2026-10-29T21:51:16.084Z"
+    },
+    {
+      "id": "ev-20261029-002",
+      "recommendationId": "rec-20261029-002",
+      "kind": "note",
+      "summary": "Independent review of 340-01 T3 (LOW 1 and LOW 2), 2026-10-29",
+      "createdAt": "2026-10-29T22:44:30.252Z"
+    },
+    {
+      "id": "ev-20261029-003",
+      "recommendationId": "rec-20261029-003",
+      "kind": "note",
+      "summary": "Independent review of 340-01 T4+T5 (LOW 1), 2026-10-29",
+      "createdAt": "2026-10-29T22:53:22.699Z"
     }
   ]
 }

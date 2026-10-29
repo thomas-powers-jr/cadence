@@ -18,6 +18,7 @@ import { missingRoadmapEntries, type RoadmapEntryFile } from '../roadmap/phase-e
 import { assertSafePhaseSlug } from '../phases/id.js';
 import { assertNoPhaseCollision } from '../phases/guard.js';
 import { parseDraftMd } from '../parse/draft-parser.js';
+import { draftContentHash } from '../parse/draft-content-hash.js';
 import { renderSummaryMd } from '../parse/summary-writer.js';
 import { computeSummaryContentHash } from './summary-hash.js';
 import { buildRetroDigest, writeRetroArtifacts, runRetroOffer } from './retro.js';
@@ -383,6 +384,9 @@ interface SettlePreconditionData {
   activePhase: string;
   draftPath: string;
   draft: Draft;
+  /** Phase 340: the exact DRAFT text `draft` was parsed from (the single
+   *  read), carried so `draftContentHash()` hashes what was parsed. */
+  draftRaw: string;
   progress: ProgressJson;
 }
 
@@ -408,14 +412,15 @@ async function loadSettlePreconditions(
   }
   const activePhase = assertSafePhaseSlug(state.activePhase);
   const draftPath = join(cwd, '.cadence/phases', activePhase, `${state.activeDraft}-DRAFT.md`);
-  const draft = parseDraftMd(await readFile(draftPath, 'utf8'));
+  const draftRaw = await readFile(draftPath, 'utf8');
+  const draft = parseDraftMd(draftRaw);
 
   const progPath = join(cwd, '.cadence/phases', activePhase, `${state.activeDraft}-PROGRESS.json`);
   const progress: ProgressJson = existsSync(progPath)
     ? (JSON.parse(await readFile(progPath, 'utf8')) as ProgressJson)
     : { draftId: state.activeDraft, tasks: {} };
 
-  return { ok: true, data: { backend, state, activePhase, draftPath, draft, progress } };
+  return { ok: true, data: { backend, state, activePhase, draftPath, draft, draftRaw, progress } };
 }
 
 /**
@@ -692,11 +697,13 @@ function buildSettleContext(
   explicitIds: Set<string>,
   touchedFiles: string[],
   draftPath: string,
+  draftRaw: string,
   verifierOverride: { override: VerifierProvider } | Record<string, never>,
   io: CommandIO,
 ): SettleContext {
   let coverageMemo: Promise<Map<string, VerifyTestRef[]>> | undefined;
   let draftMtimeMemo: Promise<number | null> | undefined;
+  let draftContentHashMemo: Promise<string | null> | undefined;
   let deepVerifierMemo: ReturnType<typeof selectVerifier> | undefined;
   let codeReviewVerifierMemo: ReturnType<typeof selectCodeReviewVerifier> | undefined;
   let securityAuditVerifierMemo: ReturnType<typeof selectSecurityAuditVerifier> | undefined;
@@ -777,6 +784,16 @@ function buildSettleContext(
           .catch(() => null);
       }
       return draftMtimeMemo;
+    },
+    // Phase 340: hashes the DRAFT text the preconditions already read and
+    // parsed (no re-read, so no window between parse and hash). A plain
+    // property closure like `draftMtimeMs`, so the per-gate spread in
+    // `runSettleGates` keeps it (and its memo) by identity.
+    draftContentHash: () => {
+      if (!draftContentHashMemo) {
+        draftContentHashMemo = (async () => draftContentHash(draftRaw))();
+      }
+      return draftContentHashMemo;
     },
     diff: createSettleDiffProvider(
       cwd,
@@ -1882,7 +1899,7 @@ export async function settleService(
   try {
     const preconditionResult = await loadSettlePreconditions(cwd, io);
     if (!preconditionResult.ok) return preconditionResult.result;
-    const { backend, state, activePhase, draftPath, draft, progress } = preconditionResult.data;
+    const { backend, state, activePhase, draftPath, draft, draftRaw, progress } = preconditionResult.data;
 
     // Phase 288 (288-01, T3): a genuinely-empty AC set (parses fine, no
     // malformed heading — that's a separate parse-time failure, T1) is
@@ -1963,6 +1980,7 @@ export async function settleService(
       explicitIds,
       touchedFiles,
       draftPath,
+      draftRaw,
       verifierOverride,
       io,
     );

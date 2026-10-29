@@ -48,9 +48,10 @@ function recordingRegistry(
 }
 
 /**
- * Minimal SettleContext with a controllable gate set, plus three
+ * Minimal SettleContext with a controllable gate set, plus four
  * distinctly-identifiable closures standing in for the real memoized
- * `coverage()` / `draftMtimeMs()` / `diff()` — exactly the properties the
+ * `coverage()` / `draftMtimeMs()` / `draftContentHash()` (phase 340) /
+ * `diff()` — exactly the properties the
  * task's "trap" warns must survive by identity through the per-gate context.
  */
 function baseCtx(gates: string[]): SettleContext {
@@ -59,6 +60,7 @@ function baseCtx(gates: string[]): SettleContext {
     opts: {},
     coverage: async () => new Map(),
     draftMtimeMs: async () => null,
+    draftContentHash: async () => null,
     diff: () => '',
   } as unknown as SettleContext;
 }
@@ -202,7 +204,7 @@ describe('runSettleGates per-gate provenance snapshot (Phase 241, T1)', () => {
 });
 
 describe('memoized-closure identity preservation (Phase 241, T1 — "the trap")', () => {
-  it('passes the exact same coverage/draftMtimeMs/diff function references into every per-gate context, never re-created per gate', async () => {
+  it('passes the exact same coverage/draftMtimeMs/draftContentHash/diff function references into every per-gate context, never re-created per gate', async () => {
     const outer = baseCtx(['draft-read', 'structural-verifier', 'code-review']);
     const seenCtxs: SettleContext[] = [];
     const registry = recordingRegistry({
@@ -232,6 +234,7 @@ describe('memoized-closure identity preservation (Phase 241, T1 — "the trap")'
       // memoization, silently turning one repo-wide coverage scan into many.
       expect(seen.coverage).toBe(outer.coverage);
       expect(seen.draftMtimeMs).toBe(outer.draftMtimeMs);
+      expect(seen.draftContentHash).toBe(outer.draftContentHash);
       expect(seen.diff).toBe(outer.diff);
     }
   });

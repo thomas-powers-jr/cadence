@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 2,
+  "draftId": "340-01",
+  "completedAt": "2026-10-29T23:06:27.436Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "draftReadHash added to CadenceStateZ + emptyState; 4 tests (340-01/AC-1) failed first, now pass. Main-thread re-verify: types 376/376, types+core typecheck and types lint clean. Independent review: no findings."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "draftContentHash (sha256 of normalizeText) in parse/draft-content-hash.ts; draft approve reads the DRAFT once and stamps draftReadHash beside draftReadAt before the single commit. 6 tests (340-01/AC-1) failed first. Main-thread re-verify: 219/219 across new tests + approve/soft-cap CLI + parse/, core typecheck clean, lint 0 errors (1 pre-existing warning in untouched src/demo). Independent review: no HIGH/MEDIUM; both LOW test-strength findings fixed (refusal test now asserts the soft-cap stderr and a seeded prior hash survives)."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "draft-read compares draftReadHash with draftContentHash() (hash of the single precondition read, no re-read) only when the mtime is newer; typeof-string guard; exact AC-2 notice; AC-3 messages unchanged. Main-thread re-verify: full core suite 5090 passed, only the 2 touch-only CLI cases T4 rewrites failing; after review fixes gate/registry/engine 113/113, typecheck clean, lint 0 errors. Independent review: MEDIUM (typeof guard unpinned) fixed with a new AC-4 test, mutation-checked (fails under !== null); LOW comment fixes applied; the narrow read-vs-stat race documented in the gate header and filed as rec-20261029-002."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "Two mtime-only CLI cases rewritten as pair fixes (real content edit + future mtime, original assertions kept, 340-01/AC-3); new CLI cases: touch-only passes with the AC-2 notice exactly once, BOM+CRLF rewrite passes, legacy state without draftReadHash refuses (340-01/AC-2, AC-4). Implementer mutation-checked dist (3 mutants, each killed). Main-thread: full turbo lint/typecheck/test/build 28/28 green (core 5096 passed); after adding the exactly-once assertion the file is 8/8. Independent review: clean."
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "concepts.md draft-read row, --allow-stale-draft help + commands.md reworded consistently, DESIGN.md §4.1 As-built note (LOCKED table untouched), ROADMAP/MILESTONES phase 340 entries, minor changeset for types+core. Main-thread: docs tests 59/59 files, full turbo 28/28. Independent review: changeset overclaim fixed ('a real edit with a newer mtime'); MCP tools.ts description drift outside the task files filed as rec-20261029-003."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "release-cut",
+      "phase-build",
+      "pr-land",
+      "cadence-handoff"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 35,
+    "sessionSubagentSpawns": 38
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 5,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "21c53b044c0c595d3b1b5550cb1e1e8752f8e6fc7f714a6551699d5fdea16915"
+  }
+}

@@ -10,11 +10,21 @@ function ctx(over: {
   mtimeMs?: number | null;
   allowStaleDraft?: boolean;
   errs?: string[];
+  /** Phase 340: the approve-time stamp. Omitted ⇒ the key is absent
+   *  (`undefined`), exactly like the pre-340 fixture. */
+  draftReadHash?: string | null;
+  /** Phase 340: what `draftContentHash()` resolves to. */
+  contentHash?: string | null;
+  /** Phase 340: counts `draftContentHash()` calls. */
+  hashCalls?: { n: number };
 }): SettleContext {
   const errs = over.errs ?? [];
   return {
     cwd: '/x',
-    state: { draftReadAt: over.draftReadAt ?? null } as never,
+    state: {
+      draftReadAt: over.draftReadAt ?? null,
+      ...('draftReadHash' in over ? { draftReadHash: over.draftReadHash } : {}),
+    } as never,
     draft: { acceptanceCriteria: [], tasks: [] } as never,
     progress: { draftId: 'd', tasks: {} },
     config: null,
@@ -24,6 +34,10 @@ function ctx(over: {
     touchedFiles: [],
     coverage: async () => new Map(),
     draftMtimeMs: async () => over.mtimeMs ?? null,
+    draftContentHash: async () => {
+      if (over.hashCalls) over.hashCalls.n += 1;
+      return over.contentHash ?? null;
+    },
     verifiers: { deep: { verify: async () => ({ verdicts: {}, provider: 'mock' }) } },
     emit: { anomalies: async () => {} },
     runner: { test: async () => ({ ran: false, ok: true }) },
@@ -83,5 +97,109 @@ describe('runDraftReadGate', () => {
     const res = await runDraftReadGate(ctx({ draftReadAt: BASELINE, mtimeMs: null, errs }));
     expect(res.outcome).toBe('pass');
     expect(errs).toEqual([]);
+  });
+});
+
+describe('runDraftReadGate content check (phase 340)', () => {
+  const HASH = 'a'.repeat(64);
+  const OTHER = 'b'.repeat(64);
+  const NEWER = BASELINE_MS + 1000;
+  const REFUSAL = `settle run refused: DRAFT.md was edited after approve (mtime ${new Date(
+    NEWER,
+  ).toISOString()} > draftReadAt ${BASELINE}). Re-read it then re-approve, or pass --allow-stale-draft to override.`;
+  const BYPASS =
+    'settle: --allow-stale-draft set; proceeding past draft-read gate (DRAFT.md mtime newer than draftReadAt).\n';
+
+  it('passes loudly when the mtime is newer but the content hash matches the stamp (340-01/AC-2)', async () => {
+    const errs: string[] = [];
+    const hashCalls = { n: 0 };
+    const res = await runDraftReadGate(
+      ctx({ draftReadAt: BASELINE, mtimeMs: NEWER, draftReadHash: HASH, contentHash: HASH, hashCalls, errs }),
+    );
+    // 340-01/AC-2
+    expect(res).toEqual({ outcome: 'pass' });
+    expect(errs.join('')).toBe(
+      'settle: DRAFT.md mtime is newer than draftReadAt but its content is unchanged since approve; draft-read passes.\n',
+    );
+    expect(errs).toHaveLength(1);
+    expect(hashCalls.n).toBe(1);
+  });
+
+  it('refuses with the existing message when the content hash differs (340-01/AC-3)', async () => {
+    const errs: string[] = [];
+    const res = await runDraftReadGate(
+      ctx({ draftReadAt: BASELINE, mtimeMs: NEWER, draftReadHash: HASH, contentHash: OTHER, errs }),
+    );
+    // 340-01/AC-3
+    expect(res).toEqual({ outcome: 'refuse', reason: REFUSAL });
+    expect(errs.join('')).toBe(`${REFUSAL}\n`);
+  });
+
+  it('--allow-stale-draft with a different hash keeps the existing bypass notice (340-01/AC-3)', async () => {
+    const errs: string[] = [];
+    const res = await runDraftReadGate(
+      ctx({
+        draftReadAt: BASELINE,
+        mtimeMs: NEWER,
+        draftReadHash: HASH,
+        contentHash: OTHER,
+        allowStaleDraft: true,
+        errs,
+      }),
+    );
+    // 340-01/AC-3
+    expect(res).toEqual({ outcome: 'pass' });
+    expect(errs.join('')).toBe(BYPASS);
+  });
+
+  it('refuses as today when draftReadHash is null and the mtime is newer (340-01/AC-4)', async () => {
+    const errs: string[] = [];
+    const hashCalls = { n: 0 };
+    const res = await runDraftReadGate(
+      ctx({ draftReadAt: BASELINE, mtimeMs: NEWER, draftReadHash: null, contentHash: HASH, hashCalls, errs }),
+    );
+    // 340-01/AC-4
+    expect(res).toEqual({ outcome: 'refuse', reason: REFUSAL });
+    expect(errs.join('')).toBe(`${REFUSAL}\n`);
+    expect(hashCalls.n).toBe(0);
+  });
+
+  it('refuses as today when a stamp exists but draftContentHash() returns null (340-01/AC-4)', async () => {
+    const errs: string[] = [];
+    const hashCalls = { n: 0 };
+    const res = await runDraftReadGate(
+      ctx({ draftReadAt: BASELINE, mtimeMs: NEWER, draftReadHash: HASH, contentHash: null, hashCalls, errs }),
+    );
+    // 340-01/AC-4
+    expect(res).toEqual({ outcome: 'refuse', reason: REFUSAL });
+    expect(errs.join('')).toBe(`${REFUSAL}\n`);
+    expect(hashCalls.n).toBe(1);
+  });
+
+  it('refuses as today and never hashes when draftReadHash is absent (undefined) (340-01/AC-4)', async () => {
+    // Pins the `typeof === 'string'` guard: pre-340 states and `as never`
+    // fixtures leave the key undefined, which a `!== null` guard would let
+    // through to draftContentHash().
+    const errs: string[] = [];
+    const hashCalls = { n: 0 };
+    const res = await runDraftReadGate(
+      ctx({ draftReadAt: BASELINE, mtimeMs: NEWER, contentHash: HASH, hashCalls, errs }),
+    );
+    // 340-01/AC-4
+    expect(res).toEqual({ outcome: 'refuse', reason: REFUSAL });
+    expect(errs.join('')).toBe(`${REFUSAL}\n`);
+    expect(hashCalls.n).toBe(0);
+  });
+
+  it('never calls draftContentHash when the mtime is not newer (340-01/AC-4)', async () => {
+    const errs: string[] = [];
+    const hashCalls = { n: 0 };
+    const res = await runDraftReadGate(
+      ctx({ draftReadAt: BASELINE, mtimeMs: BASELINE_MS, draftReadHash: HASH, contentHash: OTHER, hashCalls, errs }),
+    );
+    // 340-01/AC-4
+    expect(res).toEqual({ outcome: 'pass' });
+    expect(errs).toEqual([]);
+    expect(hashCalls.n).toBe(0);
   });
 });

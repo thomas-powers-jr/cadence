@@ -3485,6 +3485,66 @@
       "decisionIds": [],
       "createdAt": "2026-10-29T21:51:16.084Z",
       "updatedAt": "2026-10-29T21:51:16.084Z"
+    },
+    {
+      "id": "rec-20261029-002",
+      "title": "draft-read: an edit landing between settle's DRAFT read and its lazy mtime stat passes the content check",
+      "summary": "Phase 340 hashes the DRAFT text settle's preconditions read (settle.ts loadSettlePreconditions) but stats the mtime lazily later in buildSettleContext. A real edit in that window makes the mtime newer while the earlier text still matches draftReadHash, so draft-read passes; settle verified the approved text, but the file on disk (and the settle commit) differs. Pre-340 this refused. Fix options: stat before the precondition read, or have the gate also hash the current file and require both to match the stamp. Also refresh the stale comment in gates/registry.ts (~line 243) that lists only coverage/draftMtimeMs/diff as identity-preserved closures; it should name draftContentHash.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "draft-read",
+        "settle"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/draft-read.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/gates/registry.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261029-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-29T22:44:30.252Z",
+      "updatedAt": "2026-10-29T22:44:30.252Z"
+    },
+    {
+      "id": "rec-20261029-003",
+      "title": "MCP settle tool still describes allowStaleDraft as 'Skip the DRAFT-read mtime gate'",
+      "summary": "Phase 340 reworded the CLI --allow-stale-draft help (cli/commands/settle.ts) and docs/reference/commands.md to name the draft-read gate's content check, but packages/core/src/mcp/tools.ts (~line 335) still describes allowStaleDraft as 'Skip the DRAFT-read mtime gate'. It was outside 340's task files. One-line fix: align it with the CLI wording.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "mcp",
+        "docs",
+        "draft-read"
+      ],
+      "affectedFiles": [
+        "packages/core/src/mcp/tools.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261029-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-29T22:53:22.699Z",
+      "updatedAt": "2026-10-29T22:53:22.699Z"
     }
   ],
   "archived": [
