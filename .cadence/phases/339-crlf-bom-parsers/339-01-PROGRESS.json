@@ -1,0 +1,46 @@
+{
+  "draftId": "339-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Inline TDD: text-normalize.test.ts red (module missing) then green 13/13. Independent review READY; fix round: BOM constants rewritten as '\\uFEFF' escapes (were literal EF BB BF bytes), empty/BOM-only edge tests added, header comment qualified to pure-style files. Main thread: npx vitest run tests/parse/text-normalize.test.ts 13/13, core typecheck clean, lint clean (one pre-existing warning in src/demo/node-test-summary.ts).",
+      "touchedFiles": [
+        "packages/core/src/parse/draft-parser.ts",
+        "packages/core/src/parse/draft-scaffold.ts",
+        "packages/core/src/parse/spec-parser.ts",
+        "packages/core/src/parse/ui-spec-parser.ts",
+        "packages/core/tests/cli/draft-new-seed.test.ts",
+        "packages/core/tests/parse/draft-parser.test.ts",
+        "packages/core/tests/parse/draft-scaffold.test.ts",
+        "packages/core/tests/parse/spec-parser.test.ts",
+        "packages/core/tests/parse/ui-spec-parser.test.ts",
+        ".changeset/crlf-bom-parsers.md",
+        "packages/core/src/parse/text-normalize.ts",
+        "packages/core/tests/parse/text-normalize.test.ts"
+      ],
+      "updatedAt": "2026-10-29T19:15:03.924Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Inline: changeset crlf-bom-parsers.md (core patch, names the three recs), ROADMAP ### Phase 339 entry, MILESTONES bullet. Independent review READY; nit fixed: ROADMAP byte-identity claim qualified to payloads with no \\r. Main thread: npx vitest run tests/docs 59 files / 386 tests passed. As-built note added at end of build.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-29T19:15:04.360Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Dispatched implementer (subagent): 15 new cases red then green, 88/88 across draft-parser/spec-parser/ui-spec-parser/draft-scaffold/draft-new-seed. Main thread found + fixed a raw U+FEFF literal in draft-parser.test.ts (now '\\uFEFF'). Independent review READY; fix: spec-parser.ts + spec-parser.test.ts comments cited rec-20260918-006, corrected to -007. Main thread: build clean, npx vitest run tests/parse tests/cli/draft-new-seed.test.ts 186/186, typecheck clean.",
+      "touchedFiles": [
+        "packages/core/src/parse/draft-mutate.ts",
+        "packages/core/tests/cli/draft-mutate.test.ts",
+        "packages/core/tests/parse/draft-mutate.test.ts"
+      ],
+      "updatedAt": "2026-10-29T19:18:15.521Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Inline TDD: 12 new cases red then green. Independent review READY; fix round: payload fold narrowed to CR-only (lf() no longer strips a payload's leading U+FEFF, which had changed LF bytes against the Boundary), lone-CR test extended to all three mutations, addTask LF byte-identity + leading-BOM-payload toBe added, redundant AC token comment removed. Main thread: build clean, draft-mutate parse+cli + text-normalize 51/51; reviewer's HEAD-vs-new comparison script: 44 cases, 0 diffs (error paths included).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-29T19:21:08.326Z"
+    }
+  }
+}

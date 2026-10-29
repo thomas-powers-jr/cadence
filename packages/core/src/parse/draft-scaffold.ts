@@ -1,4 +1,5 @@
 import type { Spec, UiSpec } from '@thomas-powers-jr/cadence-types';
+import { normalizeText } from './text-normalize.js';
 
 /**
  * Phase 38.1 (#1b) — pure DRAFT.md body renderer. The `spec`-absent branch is
@@ -64,7 +65,8 @@ function renderUiContractBlock(uiSpec: UiSpec): string {
 
 /** First-frontmatter-block `status:` value, trimmed; undefined if absent. */
 export function frontmatterStatus(raw: string): string | undefined {
-  const fm = /^---\n([\s\S]*?)\n---/.exec(raw);
+  // Phase 339: a CRLF or BOM-prefixed file otherwise reads as "unknown" status.
+  const fm = /^---\n([\s\S]*?)\n---/.exec(normalizeText(raw).text);
   if (!fm) return undefined;
   return /(^|\n)status:\s*(.+)/.exec(fm[1]!)?.[2]?.trim();
 }

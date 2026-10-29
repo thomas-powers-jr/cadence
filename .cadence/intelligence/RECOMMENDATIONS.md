@@ -1463,54 +1463,6 @@ docs/reference/config.md:219 introduces the skillAudit section with 'Drives the 
 
 assumption add takes --rec and --text, but validate <id> and reject <id> take an id and nothing else (packages/core/src/cli/commands/assumption.ts). So the ledger records THAT a hypothesis was validated or rejected and never WHY: the observation that discriminated it is not storable on the assumption. This is the same audit-trail shape this arc has now found three times (rec-20260917-004 for settle bypasses, rec-20260917-006 for skill-audit telemetry) — a verdict survives in the durable record while the evidence for it does not. It matters more here than elsewhere because the assumption ledger is the substrate for a hypothesis-driven debugging discipline whose entire value is that the trail is inspectable afterwards: a reader of a closed debugging session can see which hypotheses were rejected but cannot see what rejected them. The available workaround is a convention, not a schema link: put the observation on the anchor recommendation via , which keeps it in the ledger but binds it to the rec rather than to the assumption, so nothing enforces or validates the reference. Options to consider: an optional --note on validate/reject stored on the assumption; or an evidence row that can cite an assumptionId as well as a recommendationId. Additive either way.
 
-## rec-20260918-005 — DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: parsers, dx
-- files: packages/core/src/parse/draft-parser.ts
-- evidence: Confirmed live on the PC-transfer checkout 2026-09-18: no BOM/FEFF handling anywhere in packages/core/src/parse/.
-- next: cadence milestone propose
-
-Phase 310 (rec-20260907-003) normalized CRLF to LF once at parseDraftMd's entry point, but the frontmatter regex is anchored with ^--- and a leading BOM (U+FEFF) still prevents that anchor from matching, so the same operator-facing symptom the rec exists to kill is still live for a named trigger: this repo's own CLAUDE.md notes PowerShell here writes UTF-8 with BOM by default, and PowerShell redirection was one of the motivating CRLF sources. A lone \r with no \n (classic-Mac line endings) hits the identical root cause -- normalization only handles \r\n -- and is a second, lower-priority instance of the same gap. Fix: strip a leading BOM (and normalize a lone \r) at the same parseDraftMd entry point that already normalizes \r\n.
-
-## rec-20260918-006 — draft-mutate.ts's add-ac/add-task splice regexes are \n-only, so a CRLF draft now fails with a different misleading error post-phase-310
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: parsers, dx
-- files: packages/core/src/parse/draft-mutate.ts
-- evidence: Confirmed live on the PC-transfer checkout 2026-09-18: draft-mutate.ts's splice regexes remain \n-only.
-- next: cadence milestone propose
-
-Phase 310 made parseDraftMd tolerate CRLF, but draft-mutate.ts's addAcceptanceCriterion/addTask call parseDraftMd (now CRLF-tolerant) and then splice into the ORIGINAL un-normalized raw string using \n-only regexes (e.g. /(## Acceptance Criteria\n\n)([\s\S]*?)(\n\n## Tasks)/). On a CRLF-terminated draft this splice regex no longer matches, so the mutation throws 'DRAFT.md missing a ## Acceptance Criteria section' -- a new misleading error, though notably it fails loud rather than corrupting the file or writing mixed line endings. Explicitly out of scope for phase 310 (DRAFT boundary: 'Do NOT touch the DRAFT writer/serializer'). Fix: either normalize the raw the same way before splicing, or serialize consistently.
-
-## rec-20260918-007 — spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: parsers, dx
-- files: packages/core/src/parse/spec-parser.ts, packages/core/src/parse/ui-spec-parser.ts
-- evidence: Confirmed live on the PC-transfer checkout 2026-09-18: only draft-parser.ts has CRLF normalization; spec-parser.ts and ui-spec-parser.ts do not.
-- next: cadence milestone propose
-
-spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same ^---\n([\s\S]*?)\n---\n frontmatter regex (and parseFrontmatter/stripFrontmatter/extractSection helpers) that draft-parser.ts had before phase 310 -- same bug shape, same fix (normalize \r\n to \n once at each parse entry point), not yet applied. Explicitly deferred by phase 310's DRAFT boundary ('no recommendation covers them; leave for a future phase') -- this rec makes that deferral durable rather than an unlogged gap.
-
 ## rec-20260918-008 — skillAudit.required is identity-ambiguous: a bare requirement can be satisfied by a same-named skill from an unrelated plugin
 
 - status: candidate

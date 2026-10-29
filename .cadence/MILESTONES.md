@@ -1305,6 +1305,11 @@ changeset (example/test-only change, no published-package surface).*
   website). Major-scoped caret override floors in the two private manifests
   resolve zod 4.6.7, body-parser 2.4.0 and undici 8.12.3. No published
   package changed (rec-20261027-002).
+- **Phase 339** — DRAFT, SPEC and UI-SPEC files saved on Windows parse
+  and edit correctly. A UTF-8 BOM, CRLF or lone-CR line endings no longer
+  cause "missing frontmatter" or "status unknown" errors. `cadence draft
+  set-objective/add-ac/add-task` keep a file's CRLF and BOM when they write
+  it back (rec-20260918-005, rec-20260918-006, rec-20260918-007).
 
 
 

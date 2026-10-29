@@ -1,5 +1,6 @@
 import { SpecZ, type Spec } from '@thomas-powers-jr/cadence-types';
 import { CadenceError } from '../errors.js';
+import { normalizeText } from './text-normalize.js';
 
 // Helpers reproduced verbatim from draft-parser.ts (those are module-private
 // there — not exported; copying is the only path, no shared refactor).
@@ -54,7 +55,9 @@ function parseBulletList(section: string): string[] {
     .filter((l) => l.length > 0);
 }
 
-export function parseSpecMd(raw: string): Spec {
+export function parseSpecMd(rawInput: string): Spec {
+  // Phase 339: BOM/CRLF/lone-CR → LF before any \n-based regex (rec-20260918-007).
+  const raw = normalizeText(rawInput).text;
   const fm = parseFrontmatter(raw);
   const body = stripFrontmatter(raw);
   // Phase 157: the full section text, not just its first line — extractSection

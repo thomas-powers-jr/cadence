@@ -1,5 +1,6 @@
 import { UiSpecZ, type UiSpec, type UiComponent } from '@thomas-powers-jr/cadence-types';
 import { CadenceError } from '../errors.js';
+import { normalizeText } from './text-normalize.js';
 
 // Helpers reproduced verbatim from spec-parser.ts (those are module-private
 // there — not exported; copying is the only path, no shared refactor).
@@ -66,7 +67,9 @@ function parseComponents(section: string): UiComponent[] {
   return out;
 }
 
-export function parseUiSpecMd(raw: string): UiSpec {
+export function parseUiSpecMd(rawInput: string): UiSpec {
+  // Phase 339: BOM/CRLF/lone-CR → LF before any \n-based regex (rec-20260918-007).
+  const raw = normalizeText(rawInput).text;
   const fm = parseFrontmatter(raw);
   const body = stripFrontmatter(raw);
   return UiSpecZ.parse({
