@@ -234,8 +234,9 @@ describe('draft mutations on CRLF / BOM drafts (phase 339)', () => {
     ['CRLF', (lf) => crlf(lf), { bom: false, crlf: true }],
     ['BOM+CRLF', (lf) => BOM + crlf(lf), { bom: true, crlf: true }],
     ['BOM+LF', (lf) => BOM + lf, { bom: true, crlf: false }],
-    // One CRLF line in an otherwise-LF file: detected as crlf, written as all-CRLF.
-    ['mixed', (lf) => lf.replace('\n', '\r\n'), { bom: false, crlf: true }],
+    // Exactly one CRLF line (the first) in an otherwise-LF file: detected as
+    // crlf, written as all-CRLF.
+    ['mixed', (lf) => { const i = lf.indexOf('\n'); return `${lf.slice(0, i)}\r\n${lf.slice(i + 1)}`; }, { bom: false, crlf: true }],
   ];
   const MUTATIONS: Array<[string, (raw: string) => string]> = [
     ['setObjective', (raw) => setObjective(raw, 'Make widget sparkle.')],
