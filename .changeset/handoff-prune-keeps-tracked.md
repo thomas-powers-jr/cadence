@@ -1,5 +1,0 @@
----
-"@thomas-powers-jr/cadence-core": patch
----
-
-`cadence handoff` no longer deletes git-tracked handoff docs when it prunes past `handoff.retain` (phase 335, rec-20261016-004). Previously every handoff write with retention set hard-deleted the oldest `SESSION-*.md` docs past the budget, including ones already committed, leaving tracked deletions to `git restore`. The pruner now asks git which docs are tracked (a best-effort, read-only `git ls-files` in `.cadence/handoff/`) and keeps every tracked one; the `cadence doctor --fix` handoff-retention repair uses the same pruner and is covered too. When the budget would have removed committed docs, one stderr line says how many were kept: `handoff: kept N git-tracked SESSION doc(s) past handoff.retain; committed SESSION docs are kept, sweep them in a housekeeping PR`. If the git lookup fails (not a git repository, git unavailable, timeout), pruning behaves exactly as before. `handoff.retain`'s keep-count semantics and the always-kept active handoff are unchanged.

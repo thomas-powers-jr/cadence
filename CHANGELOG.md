@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.72.0] - 2026-10-29
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.72.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **`cadence settle run` records a checkpoint Stop-gate force-release as a gate bypass, so that slice cannot grade `strong`.** When the private checkpoint package's Stop gate released a session at its re-block ceiling without a validated handoff, it leaves a sticky `lastForcedAt` in `.cadence/checkpoint/state.json`. If that time is at or after the draft's open time, settle writes a `checkpoint-force-released` anomaly and the `SUMMARY.json.gateBypasses` entry `{ gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }`, capping `assurance.overall` at `mixed`. The read is best-effort: an absent, old or malformed record changes nothing. Core also exports `findUnfilledSections`, so the checkpoint gate reports a SESSION doc's unfilled sections using core's own detector. The Stop gate, the single-winner `SessionStart` reset and the `hooks-install` command live in the private checkpoint package, which is not published. (Phase `336`, #581.)
+
+### Fixed
+
+- **`cadence handoff` no longer deletes git-tracked SESSION docs when it prunes past `handoff.retain`.** The pruner keeps every doc git tracks and prints one stderr line saying how many it kept; `cadence doctor --fix`'s handoff-retention repair is covered too. If the git lookup fails, pruning behaves as before. (Phase `335`, #579.)
+- **`cadence doctor` and `cadence onboard` no longer report a `host-cli` verifier as ready when its binary is not installed.** Readiness looks the binary up the way the review spawn will. When it is missing, doctor's `verification-readiness` check warns, naming the binary, every `host-cli` seam that will fall back to mock, and the fix. `cadence onboard --json` gains `verifier.seamsUnresolvable`. (Phase `337`, #583.)
+
+### Security
+
+- **Repository lockfiles cleared of the zod, body-parser and undici high advisories; no published package's dependencies changed.** Major-scoped `pnpm.overrides` floors were added to the root manifest (`zod ^4.6.6`, `body-parser ^2.4.0`) and the website manifest (`zod ^4.6.6`, `undici ^8.12.2`). The published packages still declare `zod ^4.4.3`, which a fresh install already resolves to a patched 4.6.x. (Phase `338`, #584.)
+
 ## [1.71.0] - 2026-10-22
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.71.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
