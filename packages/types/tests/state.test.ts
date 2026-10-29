@@ -50,6 +50,30 @@ describe('CadenceStateZ', () => {
     expect(parsed.draftReadAt).toBe('2026-05-14T22:30:00.000Z');
   });
 
+  // Phase 340 — draftReadHash field.
+  it('parses state.json without draftReadHash (legacy, defaults to null) (340-01/AC-1)', () => {
+    const { draftReadHash: _drop, ...withoutField } = emptyState();
+    const parsed = CadenceStateZ.parse(withoutField);
+    expect(parsed.draftReadHash).toBeNull();
+  });
+
+  it('emptyState includes draftReadHash: null (340-01/AC-1)', () => {
+    expect(emptyState().draftReadHash).toBeNull();
+  });
+
+  it('round-trips a valid 64-lowercase-hex draftReadHash (340-01/AC-1)', () => {
+    const hash = 'a'.repeat(32) + '0123456789abcdef'.repeat(2);
+    const parsed = CadenceStateZ.parse({ ...emptyState(), draftReadHash: hash });
+    expect(parsed.draftReadHash).toBe(hash);
+  });
+
+  it('rejects an uppercase, short, or non-hex draftReadHash (340-01/AC-1)', () => {
+    const s = emptyState();
+    expect(() => CadenceStateZ.parse({ ...s, draftReadHash: 'A'.repeat(64) })).toThrow();
+    expect(() => CadenceStateZ.parse({ ...s, draftReadHash: 'a'.repeat(63) })).toThrow();
+    expect(() => CadenceStateZ.parse({ ...s, draftReadHash: 'g'.repeat(64) })).toThrow();
+  });
+
   // AC-1 (Phase 36.1) — SPEC loop position + activeSpec.
   it('accepts loopPosition SPEC (AC-1)', () => {
     expect(() =>

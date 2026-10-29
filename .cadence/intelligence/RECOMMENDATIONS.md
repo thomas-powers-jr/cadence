@@ -1927,3 +1927,51 @@ medium finding at packages/checkpoint/src/state.ts:231: Date.parse normalizes im
 - next: cadence milestone propose
 
 medium finding at packages/checkpoint/src/stop-gate.ts:359: stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.
+
+## rec-20261029-001 — draft-read: once a draftReadHash stamp exists, refuse any hash mismatch at settle regardless of mtime
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, draft-read
+- files: packages/core/src/gates/draft-read.ts
+- evidence: Independent plan review of 340-01 (finding L2), 2026-10-29
+- next: cadence milestone propose
+
+Phase 340 hashes the DRAFT only when its mtime is newer than draftReadAt, so two holes stay open: an edit made during a long approve (plan-review) before draftReadAt is stamped, and an edit with a backdated mtime. With a stamp present, refusing on any normalized-hash mismatch would close both. Deferred from 340 because it needs a new refusal message (the current one cites mtime > draftReadAt, which would be false).
+
+## rec-20261029-002 — draft-read: an edit landing between settle's DRAFT read and its lazy mtime stat passes the content check
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, draft-read, settle
+- files: packages/core/src/gates/draft-read.ts, packages/core/src/services/settle.ts, packages/core/src/gates/registry.ts
+- evidence: Independent review of 340-01 T3 (LOW 1 and LOW 2), 2026-10-29
+- next: cadence milestone propose
+
+Phase 340 hashes the DRAFT text settle's preconditions read (settle.ts loadSettlePreconditions) but stats the mtime lazily later in buildSettleContext. A real edit in that window makes the mtime newer while the earlier text still matches draftReadHash, so draft-read passes; settle verified the approved text, but the file on disk (and the settle commit) differs. Pre-340 this refused. Fix options: stat before the precondition read, or have the gate also hash the current file and require both to match the stamp. Also refresh the stale comment in gates/registry.ts (~line 243) that lists only coverage/draftMtimeMs/diff as identity-preserved closures; it should name draftContentHash.
+
+## rec-20261029-003 — MCP settle tool still describes allowStaleDraft as 'Skip the DRAFT-read mtime gate'
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: mcp, docs, draft-read
+- files: packages/core/src/mcp/tools.ts
+- evidence: Independent review of 340-01 T4+T5 (LOW 1), 2026-10-29
+- next: cadence milestone propose
+
+Phase 340 reworded the CLI --allow-stale-draft help (cli/commands/settle.ts) and docs/reference/commands.md to name the draft-read gate's content check, but packages/core/src/mcp/tools.ts (~line 335) still describes allowStaleDraft as 'Skip the DRAFT-read mtime gate'. It was outside 340's task files. One-line fix: align it with the CLI wording.

@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AnomalyEvent } from '@thomas-powers-jr/cadence-types';
 import { parseDraftMd } from '../parse/draft-parser.js';
+import { draftContentHash } from '../parse/draft-content-hash.js';
 import { SimpleStateBackend } from '../state/simple.js';
 import { loadConfig } from '../config/loader.js';
 import { effectiveGateSet } from '../gates/engine.js';
@@ -58,7 +59,8 @@ export async function draftApproveService(
       io.err(`draft approve refused: ${path} not found.\n`);
       return { exitCode: 1 };
     }
-    const draft = parseDraftMd(await readFile(path, 'utf8'));
+    const draftRaw = await readFile(path, 'utf8');
+    const draft = parseDraftMd(draftRaw);
     const backend = new SimpleStateBackend(repoRoot);
     const state = await backend.readState();
     const projectMdPath = join(repoRoot, '.cadence', 'PROJECT.md');
@@ -123,6 +125,7 @@ export async function draftApproveService(
     state.loopPosition = 'BUILD';
     state.tier = draft.tier;
     state.draftReadAt = new Date().toISOString();
+    state.draftReadHash = draftContentHash(draftRaw);
     if (!state.openDrafts.some((d) => d.id === id)) {
       state.openDrafts.push({ id, since: new Date().toISOString() });
     }

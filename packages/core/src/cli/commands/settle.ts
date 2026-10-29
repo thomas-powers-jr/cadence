@@ -66,7 +66,7 @@ export function registerSettleCommand(program: Command): void {
     )
     .option(
       '--allow-stale-draft',
-      "skip the DRAFT-read mtime gate even if the DRAFT.md was edited after approve",
+      "skip the draft-read gate even if DRAFT.md's content changed after approve",
     )
     .option(
       '--allow-open-tasks',

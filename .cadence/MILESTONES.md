@@ -1310,6 +1310,13 @@ changeset (example/test-only change, no published-package surface).*
   cause "missing frontmatter" or "status unknown" errors. `cadence draft
   set-objective/add-ac/add-task` keep a file's CRLF and BOM when they write
   it back (rec-20260918-005, rec-20260918-006, rec-20260918-007).
+- **Phase 340** — `settle run`'s `draft-read` gate no longer refuses a
+  DRAFT whose mtime changed but whose content did not, such as after a
+  `git checkout`, pull or copy to another machine. `draft approve` stamps a
+  normalized content hash, and a newer mtime refuses only when that hash
+  differs; a match passes with a stderr notice. State approved before the
+  stamp keeps the mtime-only check (dec-20261029-001; follow-ups
+  rec-20261029-001, rec-20261029-002).
 
 
 

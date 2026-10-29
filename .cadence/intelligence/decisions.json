@@ -1235,8 +1235,8 @@
       "rationale": "Work order HANDOFF-v1.71-release-335-336 section 3.4, option 2. .cadence/checkpoint/state.json is the source of truth (forced: true + forcedAt). At settle run, when it shows forced with forcedAt at or after the active draft's openDrafts[].since in cadence state.json, core emits a 'checkpoint-force-released' anomaly (additive AnomalyTypeZ member) and a fifth anomalyToGateBypass arm maps it to { gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }, so phase 283's cap holds the phase at mixed. Premise correction: the work order's window anchor, the phase's first PROGRESS write, is recorded nowhere (each task's updatedAt is overwritten); openDrafts[].since is stamped once by draft new and kept by draft approve, so it is the durable phase-start fact. Not D-CA's direct push: the release happens hours earlier in another process. The live anomaly path is the pure collectAnomalies (notify/collect.ts) feeding gateBypassesFromAnomalies (settle's emit.anomalies seam is a no-op, per D-CA), so settle gathers the checkpoint fact impurely, best-effort and never throwing, and passes it in as a new optional collectAnomalies input. GateBypass.gate is z.string(), so no summary-schema change. Core reads the JSON by path and never imports checkpoint, so the dependency arrow holds. Core touches: packages/types/src/anomaly.ts, packages/core/src/notify/collect.ts, packages/core/src/services/settle.ts. Operator choice 2026-10-22.",
       "status": "superseded",
       "decidedAt": "2026-10-22T17:03:26.806Z",
-      "supersedes": [],
-      "supersededBy": "dec-20261022-002"
+      "supersededBy": "dec-20261022-002",
+      "supersedes": []
     },
     {
       "id": "dec-20261022-002",
@@ -1247,6 +1247,14 @@
       "supersedes": [
         "dec-20261022-001"
       ]
+    },
+    {
+      "id": "dec-20261029-001",
+      "title": "Studio save/load moves into core: 340 content-hash draft-read gate, then 341 cadence state save/load/list in .cadence/snapshots/ keeping the newest 3",
+      "rationale": "Operator, 2026-10-29. Studio's scripts/cadence-state.ts carries gitignored state.json between PCs; a mid-BUILD restore trips the mtime-only draft-read gate after git re-checkout. 340 makes draft-read compare a normalized sha256 of the DRAFT (stamped at approve) so an unedited DRAFT with a fresh mtime passes. 341 ports save/load/list to core with: a dedicated .cadence/snapshots/ dir (not handoff/), automatic pruning to the newest 3, a revision staleness guard, forward schema migration, an automatic STATE.md re-render, and --json. restore stays out of cadence resume (D10 read-only). Fields reset on load are still open for 341's DRAFT.",
+      "status": "active",
+      "decidedAt": "2026-10-29T21:46:55.149Z",
+      "supersedes": []
     }
   ]
 }

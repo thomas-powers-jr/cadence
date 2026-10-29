@@ -893,6 +893,12 @@ D-BZ (dec-20261016-003) stands. Its expectation that the assurance report would 
 
 Supersedes dec-20261022-001; option 2 of work order HANDOFF-v1.71-release-335-336 section 3.4 stands. Correction: dec-20261022-001 keyed settle on forced: true, but the realistic sequence (ceiling release, then /clear or /compact, then SessionStart walks the store to idle) clears forced hours before settle reads it, so D-CE would miss its most common case. The ceiling release writes forced: true, forcedAt, and a sticky lastForcedAt that every later checkpoint edge carries forward and none clears. At settle run, core reads .cadence/checkpoint/state.json by path, best-effort and never throwing; when lastForcedAt is at or after the active draft's openDrafts[].since in cadence state.json (stamped once by draft new, kept by draft approve; the work order's 'first PROGRESS write' is recorded nowhere), it passes that fact as a new optional collectAnomalies input (notify/collect.ts, the live anomaly path; settle's emit.anomalies seam is a no-op per D-CA). collectAnomalies emits an error-severity 'checkpoint-force-released' anomaly (additive AnomalyTypeZ member), and a fifth anomalyToGateBypass arm maps it to { gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }, so phase 283's cap holds the phase at mixed. GateBypass.gate is z.string(), so no summary-schema change; core never imports checkpoint. Core touches: packages/types/src/anomaly.ts, packages/core/src/notify/collect.ts, packages/core/src/services/settle.ts. Operator choice 2026-10-22.
 
+### dec-20261029-001 — Studio save/load moves into core: 340 content-hash draft-read gate, then 341 cadence state save/load/list in .cadence/snapshots/ keeping the newest 3
+
+- decided: 2026-10-29T21:46:55.149Z
+
+Operator, 2026-10-29. Studio's scripts/cadence-state.ts carries gitignored state.json between PCs; a mid-BUILD restore trips the mtime-only draft-read gate after git re-checkout. 340 makes draft-read compare a normalized sha256 of the DRAFT (stamped at approve) so an unedited DRAFT with a fresh mtime passes. 341 ports save/load/list to core with: a dedicated .cadence/snapshots/ dir (not handoff/), automatic pruning to the newest 3, a revision staleness guard, forward schema migration, an automatic STATE.md re-render, and --json. restore stays out of cadence resume (D10 read-only). Fields reset on load are still open for 341's DRAFT.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

@@ -60,6 +60,13 @@ export const CadenceStateZ = z.object({
    * approving. `null` means no approve has happened yet (gate silently passes).
    */
   draftReadAt: z.string().datetime({ offset: true }).nullable().default(null),
+  /**
+   * sha256 (lowercase hex) of the DRAFT.md text after `normalizeText`, stamped
+   * by `cadence draft approve` beside `draftReadAt` (phase 340). Lets the
+   * DRAFT-read gate tell a real content edit from an mtime-only touch. `null`
+   * (legacy state, or no approve yet) means the gate falls back to mtime-only.
+   */
+  draftReadHash: z.string().regex(/^[0-9a-f]{64}$/).nullable().default(null),
   openDrafts: z.array(z.object({ id: z.string(), since: z.string() })),
   decisions: z.array(DecisionZ),
   deferred: z.array(DeferredItemZ),
@@ -142,5 +149,6 @@ export function emptyState(projectName = 'unnamed'): CadenceState {
     skillAudit: { required: [], invoked: [] },
     activeTask: null,
     draftReadAt: null,
+    draftReadHash: null,
   };
 }
