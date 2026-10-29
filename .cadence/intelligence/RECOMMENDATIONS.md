@@ -1927,3 +1927,19 @@ medium finding at packages/checkpoint/src/state.ts:231: Date.parse normalizes im
 - next: cadence milestone propose
 
 medium finding at packages/checkpoint/src/stop-gate.ts:359: stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.
+
+## rec-20261029-001 — draft-read: once a draftReadHash stamp exists, refuse any hash mismatch at settle regardless of mtime
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, draft-read
+- files: packages/core/src/gates/draft-read.ts
+- evidence: Independent plan review of 340-01 (finding L2), 2026-10-29
+- next: cadence milestone propose
+
+Phase 340 hashes the DRAFT only when its mtime is newer than draftReadAt, so two holes stay open: an edit made during a long approve (plan-review) before draftReadAt is stamped, and an edit with a backdated mtime. With a stamp present, refusing on any normalized-hash mismatch would close both. Deferred from 340 because it needs a new refusal message (the current one cites mtime > draftReadAt, which would be false).
