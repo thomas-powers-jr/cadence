@@ -1,5 +1,18 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.72.0
+
+### Minor Changes
+
+`cadence settle run` now records a checkpoint Stop-gate force-release as a gate bypass (phase 336, D-CE, ec1b545, #581). This applies when a session was released at the gate's re-block ceiling without a validated handoff during the draft being settled. Settle reads the sticky `lastForcedAt` from `.cadence/checkpoint/state.json` in the checkout it runs in; the read is best-effort and never throws. A session whose working directory resolved to a different checkout records its release in that checkout's store, which this settle does not see. When `lastForcedAt` is at or after the draft's open time, `SUMMARY.gateBypasses` gains `{ gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }`, so that slice's `assurance.overall` cannot exceed `mixed`. A new `checkpoint-force-released` anomaly type carries the event, and an absent, old or malformed checkpoint record changes nothing. Core also now exports `findUnfilledSections`, so the checkpoint gate names a SESSION doc's unfilled sections with core's own detector.
+
+### Patch Changes
+
+- `cadence handoff` no longer deletes git-tracked handoff docs when it prunes past `handoff.retain` (phase 335, rec-20261016-004, 572b331, #579). Previously every handoff write with retention set hard-deleted the oldest `SESSION-*.md` docs past the budget, including ones already committed, leaving tracked deletions to `git restore`. The pruner now asks git which docs are tracked (a best-effort, read-only `git ls-files` in `.cadence/handoff/`) and keeps every tracked one; the `cadence doctor --fix` handoff-retention repair uses the same pruner and is covered too. When the budget would have removed committed docs, one stderr line says how many were kept: `handoff: kept N git-tracked SESSION doc(s) past handoff.retain; committed SESSION docs are kept, sweep them in a housekeeping PR`. If the git lookup fails (not a git repository, git unavailable, timeout), pruning behaves exactly as before. `handoff.retain`'s keep-count semantics and the always-kept active handoff are unchanged.
+- `cadence doctor` and `cadence onboard` no longer report a `host-cli` verifier as ready when its binary is not installed (phase 337, rec-20261027-001, 6cd1d97, #583). Previously readiness for `host-cli` was decided from config alone, so both commands said deep-verify was ready while `CADENCE_HOST_CLI_BIN` (or the default `claude`) could not be found, and every host-cli review then fell back to mock at settle. Readiness now looks the binary up the way the review spawn will (on `PATH`, or at the configured path; on Windows through the same `.exe`/npm `.cmd` shim resolution). When it is missing, `cadence doctor`'s `verification-readiness` check warns, naming the binary and every `host-cli` seam that will fall back to mock, with the fix: install it, point `CADENCE_HOST_CLI_BIN` at it, or switch those seams' provider. `cadence onboard` reports deep-verify as not ready when deep-verify uses `host-cli`, and its `--json` `verifier` payload gains `seamsUnresolvable`. When the binary is found, the readiness reason names it and says its login and the self-invocation guard are checked only when a review runs, instead of "credentials present". Readiness never spawns the binary; `cadence activate` and the review spawn path are unchanged.
+- Updated dependencies [ec1b545]
+  - @thomas-powers-jr/cadence-types@1.72.0
+
 ## 1.71.0
 
 ### Minor Changes
