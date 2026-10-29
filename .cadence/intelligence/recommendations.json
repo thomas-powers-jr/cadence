@@ -2627,91 +2627,6 @@
       "updatedAt": "2026-09-18T00:53:21.162Z"
     },
     {
-      "id": "rec-20260918-005",
-      "title": "DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error",
-      "summary": "Phase 310 (rec-20260907-003) normalized CRLF to LF once at parseDraftMd's entry point, but the frontmatter regex is anchored with ^--- and a leading BOM (U+FEFF) still prevents that anchor from matching, so the same operator-facing symptom the rec exists to kill is still live for a named trigger: this repo's own CLAUDE.md notes PowerShell here writes UTF-8 with BOM by default, and PowerShell redirection was one of the motivating CRLF sources. A lone \\r with no \\n (classic-Mac line endings) hits the identical root cause -- normalization only handles \\r\\n -- and is a second, lower-priority instance of the same gap. Fix: strip a leading BOM (and normalize a lone \\r) at the same parseDraftMd entry point that already normalizes \\r\\n.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "parsers",
-        "dx"
-      ],
-      "affectedFiles": [
-        "packages/core/src/parse/draft-parser.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260918-005"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-18T14:23:01.158Z",
-      "updatedAt": "2026-09-18T14:23:01.158Z"
-    },
-    {
-      "id": "rec-20260918-006",
-      "title": "draft-mutate.ts's add-ac/add-task splice regexes are \\n-only, so a CRLF draft now fails with a different misleading error post-phase-310",
-      "summary": "Phase 310 made parseDraftMd tolerate CRLF, but draft-mutate.ts's addAcceptanceCriterion/addTask call parseDraftMd (now CRLF-tolerant) and then splice into the ORIGINAL un-normalized raw string using \\n-only regexes (e.g. /(## Acceptance Criteria\\n\\n)([\\s\\S]*?)(\\n\\n## Tasks)/). On a CRLF-terminated draft this splice regex no longer matches, so the mutation throws 'DRAFT.md missing a ## Acceptance Criteria section' -- a new misleading error, though notably it fails loud rather than corrupting the file or writing mixed line endings. Explicitly out of scope for phase 310 (DRAFT boundary: 'Do NOT touch the DRAFT writer/serializer'). Fix: either normalize the raw the same way before splicing, or serialize consistently.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "parsers",
-        "dx"
-      ],
-      "affectedFiles": [
-        "packages/core/src/parse/draft-mutate.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260918-006"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-18T14:23:09.612Z",
-      "updatedAt": "2026-09-18T14:23:09.612Z"
-    },
-    {
-      "id": "rec-20260918-007",
-      "title": "spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts",
-      "summary": "spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same ^---\\n([\\s\\S]*?)\\n---\\n frontmatter regex (and parseFrontmatter/stripFrontmatter/extractSection helpers) that draft-parser.ts had before phase 310 -- same bug shape, same fix (normalize \\r\\n to \\n once at each parse entry point), not yet applied. Explicitly deferred by phase 310's DRAFT boundary ('no recommendation covers them; leave for a future phase') -- this rec makes that deferral durable rather than an unlogged gap.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "parsers",
-        "dx"
-      ],
-      "affectedFiles": [
-        "packages/core/src/parse/spec-parser.ts",
-        "packages/core/src/parse/ui-spec-parser.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260918-007"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-09-18T14:23:17.963Z",
-      "updatedAt": "2026-09-18T14:23:17.963Z"
-    },
-    {
       "id": "rec-20260918-008",
       "title": "skillAudit.required is identity-ambiguous: a bare requirement can be satisfied by a same-named skill from an unrelated plugin",
       "summary": "hooks/handlers.ts:495 records ctx.raw.skill verbatim (the requested name), not the resolved skill; skill-match.ts's satisfies() accepts inv === req OR inv.endsWith(':' + req). So a repo declaring skillAudit.required: [systematic-debugging] is satisfied by the Superpowers plugin's namespaced superpowers:systematic-debugging, observed live during phase 313. Split off rec-20260917-006's temporal half (phase 315 fixes that); this is the identity half, called out by rec-20260917-006 as latent today, not exercised -- no current pack requires a name colliding with an installed plugin skill. Needs a decision on whether satisfies() should require an exact match, a source-qualified match, or something else, before any fix.",
@@ -3538,10 +3453,10 @@
       ],
       "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-10-23T13:46:08.517Z",
-      "updatedAt": "2026-10-23T13:46:08.517Z",
       "scoutId": "scout-20261023-1346",
-      "sourceFindingId": "11056663c3a301271ee8e2373e3f5d36a7d80698ef36eaf89613367a1e016514"
+      "sourceFindingId": "11056663c3a301271ee8e2373e3f5d36a7d80698ef36eaf89613367a1e016514",
+      "createdAt": "2026-10-23T13:46:08.517Z",
+      "updatedAt": "2026-10-23T13:46:08.517Z"
     }
   ],
   "archived": [
@@ -11630,11 +11545,11 @@
       "assumptionIds": [],
       "decisionIds": [],
       "convertedToPhaseId": "337-host-cli-binary-readiness",
-      "createdAt": "2026-10-27T14:41:18.541Z",
-      "updatedAt": "2026-10-27T15:46:54.639Z",
       "shippedRef": "phase 337 / branch feat/337-host-cli-binary-readiness",
       "archivedAt": "2026-10-27T15:46:54.639Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-27T14:41:18.541Z",
+      "updatedAt": "2026-10-27T15:46:54.639Z"
     },
     {
       "id": "rec-20261027-002",
@@ -11670,6 +11585,101 @@
       "archiveReason": "shipped",
       "createdAt": "2026-10-27T16:19:31.890Z",
       "updatedAt": "2026-10-27T16:55:31.317Z"
+    },
+    {
+      "id": "rec-20260918-005",
+      "title": "DRAFT.md with UTF-8 BOM (+ optionally CRLF) still throws the misleading 'missing frontmatter' error",
+      "summary": "Phase 310 (rec-20260907-003) normalized CRLF to LF once at parseDraftMd's entry point, but the frontmatter regex is anchored with ^--- and a leading BOM (U+FEFF) still prevents that anchor from matching, so the same operator-facing symptom the rec exists to kill is still live for a named trigger: this repo's own CLAUDE.md notes PowerShell here writes UTF-8 with BOM by default, and PowerShell redirection was one of the motivating CRLF sources. A lone \\r with no \\n (classic-Mac line endings) hits the identical root cause -- normalization only handles \\r\\n -- and is a second, lower-priority instance of the same gap. Fix: strip a leading BOM (and normalize a lone \\r) at the same parseDraftMd entry point that already normalizes \\r\\n.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/parse/draft-parser.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "339-crlf-bom-parsers",
+      "shippedRef": "phase 339 (339-01, settled 2026-10-29; 5/5 ACs executed evidence, no bypasses): DRAFT/SPEC/UI-SPEC parsing and draft mutation tolerate CRLF, lone CR and a UTF-8 BOM",
+      "archivedAt": "2026-10-29T19:32:40.824Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-18T14:23:01.158Z",
+      "updatedAt": "2026-10-29T19:32:40.824Z"
+    },
+    {
+      "id": "rec-20260918-006",
+      "title": "draft-mutate.ts's add-ac/add-task splice regexes are \\n-only, so a CRLF draft now fails with a different misleading error post-phase-310",
+      "summary": "Phase 310 made parseDraftMd tolerate CRLF, but draft-mutate.ts's addAcceptanceCriterion/addTask call parseDraftMd (now CRLF-tolerant) and then splice into the ORIGINAL un-normalized raw string using \\n-only regexes (e.g. /(## Acceptance Criteria\\n\\n)([\\s\\S]*?)(\\n\\n## Tasks)/). On a CRLF-terminated draft this splice regex no longer matches, so the mutation throws 'DRAFT.md missing a ## Acceptance Criteria section' -- a new misleading error, though notably it fails loud rather than corrupting the file or writing mixed line endings. Explicitly out of scope for phase 310 (DRAFT boundary: 'Do NOT touch the DRAFT writer/serializer'). Fix: either normalize the raw the same way before splicing, or serialize consistently.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/parse/draft-mutate.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-006"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "shippedRef": "phase 339 (339-01, settled 2026-10-29; 5/5 ACs executed evidence, no bypasses): DRAFT/SPEC/UI-SPEC parsing and draft mutation tolerate CRLF, lone CR and a UTF-8 BOM",
+      "archivedAt": "2026-10-29T19:32:41.157Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-09-18T14:23:09.612Z",
+      "updatedAt": "2026-10-29T19:32:41.157Z"
+    },
+    {
+      "id": "rec-20260918-007",
+      "title": "spec-parser.ts and ui-spec-parser.ts have the identical CRLF frontmatter-rejection bug phase 310 fixed for draft-parser.ts",
+      "summary": "spec-parser.ts and ui-spec-parser.ts each carry an independent copy of the same ^---\\n([\\s\\S]*?)\\n---\\n frontmatter regex (and parseFrontmatter/stripFrontmatter/extractSection helpers) that draft-parser.ts had before phase 310 -- same bug shape, same fix (normalize \\r\\n to \\n once at each parse entry point), not yet applied. Explicitly deferred by phase 310's DRAFT boundary ('no recommendation covers them; leave for a future phase') -- this rec makes that deferral durable rather than an unlogged gap.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "parsers",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/parse/spec-parser.ts",
+        "packages/core/src/parse/ui-spec-parser.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260918-007"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-09-18T14:23:17.963Z",
+      "updatedAt": "2026-10-29T19:32:41.489Z",
+      "shippedRef": "phase 339 (339-01, settled 2026-10-29; 5/5 ACs executed evidence, no bypasses): DRAFT/SPEC/UI-SPEC parsing and draft mutation tolerate CRLF, lone CR and a UTF-8 BOM",
+      "archivedAt": "2026-10-29T19:32:41.489Z",
+      "archiveReason": "shipped"
     }
   ]
 }

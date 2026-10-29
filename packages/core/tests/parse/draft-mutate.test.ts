@@ -223,3 +223,94 @@ Then the record persists
     expect(parseDraftMd(out)).toEqual(parseDraftMd(HAND_EDITED));
   });
 });
+
+// Phase 339 (rec-20260918-006): the mutations splice on normalized text and
+// write back in the input's detected style, so a CRLF or BOM draft edited on
+// Windows keeps its encoding and changes only the edited bytes.
+describe('draft mutations on CRLF / BOM drafts (phase 339)', () => {
+  const BOM = '\uFEFF';
+  const crlf = (s: string): string => s.replace(/\n/g, '\r\n');
+  const ENCODINGS: Array<[string, (lf: string) => string, { bom: boolean; crlf: boolean }]> = [
+    ['CRLF', (lf) => crlf(lf), { bom: false, crlf: true }],
+    ['BOM+CRLF', (lf) => BOM + crlf(lf), { bom: true, crlf: true }],
+    ['BOM+LF', (lf) => BOM + lf, { bom: true, crlf: false }],
+    // One CRLF line in an otherwise-LF file: detected as crlf, written as all-CRLF.
+    ['mixed', (lf) => lf.replace('\n', '\r\n'), { bom: false, crlf: true }],
+  ];
+  const MUTATIONS: Array<[string, (raw: string) => string]> = [
+    ['setObjective', (raw) => setObjective(raw, 'Make widget sparkle.')],
+    [
+      'addAcceptanceCriterion',
+      (raw) => addAcceptanceCriterion(raw, { name: 'Dims', given: 'glow is on', when: 'user dims', then: 'photons drop' }),
+    ],
+    [
+      'addTask',
+      (raw) => addTask(raw, { files: ['src/dim.ts'], action: 'add dimmer', verify: 'vitest passes', done: ['AC-1'] }),
+    ],
+  ];
+  const strip = (s: string): string => (s.startsWith(BOM) ? s.slice(1) : s);
+
+  for (const [mName, mutate] of MUTATIONS) {
+    for (const [eName, encode, style] of ENCODINGS) {
+      it(`339-01/AC-5: ${mName} succeeds on a ${eName} draft and writes back in that style`, () => {
+        const out = mutate(encode(DRAFT));
+        const lfOut = mutate(DRAFT);
+        expect(out.startsWith(BOM)).toBe(style.bom);
+        expect(out).not.toContain('\r\r');
+        if (style.crlf) {
+          expect(out).not.toMatch(/(^|[^\r])\n/);
+          expect(strip(out)).toBe(crlf(lfOut));
+        } else {
+          expect(out).not.toContain('\r');
+          expect(strip(out)).toBe(lfOut);
+        }
+      });
+    }
+  }
+
+  it('339-01/AC-5: a lone-CR draft is written back as LF by every mutation', () => {
+    const loneCr = DRAFT.replace(/\n/g, '\r');
+    for (const [, mutate] of MUTATIONS) {
+      const out = mutate(loneCr);
+      expect(out).not.toContain('\r');
+      expect(out).toBe(mutate(DRAFT));
+    }
+  });
+
+  it('339-01/AC-5: an LF draft with an \\r-free payload is written byte-for-byte as before', () => {
+    expect(setObjective(DRAFT, 'Make widget sparkle.')).toBe(
+      DRAFT.replace('Make widget glow.', 'Make widget sparkle.'),
+    );
+    expect(addAcceptanceCriterion(DRAFT, { name: 'Dims', given: 'g', when: 'w', then: 't' })).toBe(
+      DRAFT.replace(
+        'Then widget emits photons\n',
+        'Then widget emits photons\n\n### AC-2: Dims\nGiven g\nWhen w\nThen t\n',
+      ),
+    );
+    expect(addTask(DRAFT, { files: ['src/d.ts'], action: 'a', verify: 'v', done: ['AC-1'] })).toBe(
+      DRAFT.replace(
+        '- done: AC-1\n',
+        '- done: AC-1\n\n### T2: \n- files: `src/d.ts`\n- action: a\n- verify: v\n- done: AC-1\n',
+      ),
+    );
+    // A payload's leading U+FEFF is content, not an encoding marker: kept as before.
+    expect(setObjective(DRAFT, `${BOM}lead`)).toBe(DRAFT.replace('Make widget glow.', `${BOM}lead`));
+  });
+
+  it('339-01/AC-5: a payload carrying CRLF never yields \\r\\r in a CRLF draft or a stray \\r in an LF draft', () => {
+    const intoCrlf = setObjective(crlf(DRAFT), 'line one\r\nline two');
+    expect(intoCrlf).not.toContain('\r\r');
+    expect(intoCrlf).toBe(crlf(setObjective(DRAFT, 'line one\nline two')));
+
+    const intoLf = addTask(DRAFT, {
+      files: ['src/a.ts'],
+      action: 'first\r\nsecond',
+      verify: 'ok\r',
+      done: ['AC-1'],
+    });
+    expect(intoLf).not.toContain('\r');
+    const acIntoCrlf = addAcceptanceCriterion(crlf(DRAFT), { given: 'a\r\nb', when: 'w', then: 't' });
+    expect(acIntoCrlf).not.toContain('\r\r');
+    expect(acIntoCrlf).not.toMatch(/(^|[^\r])\n/);
+  });
+});

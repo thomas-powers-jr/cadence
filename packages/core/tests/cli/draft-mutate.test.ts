@@ -135,6 +135,35 @@ describe('cadence draft add-ac', () => {
     });
   });
 
+  it('339-01/AC-4 339-01/AC-5: add-ac succeeds on a PENDING CRLF+BOM draft and the file stays CRLF with its BOM', async () => {
+    // Before phase 339 this was refused as "draft status is unknown".
+    active = await tempRepo({ initialized: true });
+    const crlfBom = '\uFEFF' + PENDING_DRAFT.replace(/\n/g, '\r\n');
+    const path = await seedDraft(active.root, crlfBom);
+    const r = await run(
+      [
+        'draft', 'add-ac', '01-foundation', '01',
+        '--given=a fresh session', '--when=user retries', '--then=it succeeds', '--name=Retries',
+      ],
+      active.root,
+    );
+    expect(r.stderr).not.toContain('status is unknown');
+    expect(r.code).toBe(0);
+    const content = await readFile(path, 'utf8');
+    expect(content.startsWith('\uFEFF')).toBe(true);
+    expect(content).not.toMatch(/(^|[^\r])\n/);
+    expect(content).not.toContain('\r\r');
+    const d = parseDraftMd(content);
+    expect(d.acceptanceCriteria).toHaveLength(2);
+    expect(d.acceptanceCriteria[1]).toEqual({
+      id: 'AC-2',
+      name: 'Retries',
+      given: 'a fresh session',
+      when: 'user retries',
+      then: 'it succeeds',
+    });
+  });
+
   it('AC-4: refuses on a non-PENDING draft and leaves the file unmodified', async () => {
     active = await tempRepo({ initialized: true });
     const path = await seedDraft(active.root, APPROVED_DRAFT);

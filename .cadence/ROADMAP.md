@@ -3945,6 +3945,37 @@ a fresh downstream install already resolves to a patched 4.6.x. Tier
   by phase 337's rec on its then-unmerged branch, and the CLI only sees the
   ledger on its own branch.
 
+### Phase 339 — DRAFT/SPEC/UI-SPEC parsing and draft mutation tolerate CRLF, lone CR and a UTF-8 BOM (rec-20260918-005/006/007)
+
+**Objective.** A DRAFT.md, SPEC.md or UI-SPEC.md saved on Windows still
+failed with misleading errors after phase 310's CRLF fix. A UTF-8 BOM
+(PowerShell's default) broke every parser's `^---` frontmatter anchor, and
+lone-CR endings were not normalized. `parseSpecMd` and `parseUiSpecMd` had
+the original CRLF bug, and so did `frontmatterStatus`, which made `cadence
+draft set-objective/add-ac/add-task` refuse a PENDING CRLF draft as "status
+unknown". The three mutations' `\n`-only splice regexes failed on CRLF
+too. One pure normalizer in `parse/text-normalize.ts` now strips a leading
+BOM and turns CRLF, then lone CR, into LF. Every parse entry point and
+`frontmatterStatus` run it first. The mutations splice on normalized text
+and write back in the detected style, the operator's 2026-10-29 choice: a
+pure-CRLF file stays CRLF, a BOM is kept, and pure-LF output for a
+payload with no `\r` is byte-identical to before. Tier `standard`.
+
+**As built.**
+- `parse/text-normalize.ts` exports `normalizeText` (BOM strip plus line-ending
+  fold, returning the detected `{ bom, eol }`), its inverse `applyTextStyle`,
+  and `foldLineEndings`. The mutations fold payload strings' line endings with
+  `foldLineEndings` only, keeping a payload's leading U+FEFF as content, so an
+  LF draft edited with a `\r`-free payload stays byte-identical. A HEAD-vs-new
+  comparison over 44 mutation and error-path cases found 0 differences.
+- Reviews caught three test files whose BOM constant had been written as a raw
+  U+FEFF character rather than the `'\uFEFF'` escape. If an editor ever
+  stripped that character, the constant would become `''`, and every input
+  would read as BOM-prefixed. All are escapes now.
+- The three fixture-precondition tests carry no AC token, so settle's
+  coverage scan links each AC to an encoding-equivalence test first, avoiding
+  phase 336's deep-verify rejection.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

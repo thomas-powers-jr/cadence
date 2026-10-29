@@ -1,5 +1,6 @@
 import { DraftZ, type Draft, type Task } from '@thomas-powers-jr/cadence-types';
 import { CadenceError } from '../errors.js';
+import { normalizeText } from './text-normalize.js';
 
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n/;
 
@@ -122,8 +123,10 @@ export function parseDraftMd(rawInput: string): Draft {
   // in parseFrontmatter/extractSection/parseTasks/etc.) sees LF uniformly —
   // a DRAFT.md rewritten in text mode on Windows otherwise fails with a
   // misleading "missing frontmatter" error, or leaves stray \r characters
-  // embedded in multi-line field values (rec-20260907-003).
-  const raw = rawInput.replace(/\r\n/g, '\n');
+  // embedded in multi-line field values (rec-20260907-003). Phase 339 widens
+  // this to the shared normalizer, which also strips a leading UTF-8 BOM and
+  // folds lone CR (rec-20260918-005).
+  const raw = normalizeText(rawInput).text;
   const fm = parseFrontmatter(raw);
   const body = stripFrontmatter(raw);
   const titleMatch = /^#\s+\S+\s+—\s+(.+)$/m.exec(body);

@@ -686,3 +686,115 @@ Then widget emits photons
     expect(err.message).toContain('AC-K1');
   });
 });
+
+// Phase 339 (rec-20260918-005) — phase 310 only folded CRLF. A DRAFT.md saved
+// by PowerShell carries a UTF-8 BOM, and some tools emit lone-CR endings; both
+// still failed with "missing frontmatter". Every encoding must parse to the
+// same Draft as its LF form.
+const BOM = '\uFEFF';
+
+const ENCODINGS: ReadonlyArray<readonly [string, (lf: string) => string]> = [
+  ['BOM+LF', (lf) => BOM + lf],
+  ['BOM+CRLF', (lf) => BOM + lf.replace(/\n/g, '\r\n')],
+  ['CRLF', (lf) => lf.replace(/\n/g, '\r\n')],
+  ['lone-CR', (lf) => lf.replace(/\n/g, '\r')],
+];
+
+/** Every string reachable from `v`, so no parsed field escapes the \r/BOM check. */
+function collectStrings(v: unknown): string[] {
+  if (typeof v === 'string') return [v];
+  if (Array.isArray(v)) return v.flatMap(collectStrings);
+  if (v !== null && typeof v === 'object') return Object.values(v).flatMap(collectStrings);
+  return [];
+}
+
+const RICH_DRAFT = `---
+phase: 01-foundation
+id: 01-01
+tier: standard
+status: PENDING
+---
+
+# 01-01 — Encoding-tolerant demo
+
+## Objective
+
+Make the widget glow.
+It must also handle the wrapped case.
+
+## Acceptance Criteria
+
+### AC-1: Glows
+Given a precondition that spans
+more than one line of prose
+When an action happens
+Then the outcome is observed
+
+### AC-2: Dims
+Given the widget is glowing
+When the user disables glow mode
+Then the widget stops emitting photons
+
+## Tasks
+
+### T1: Add glow flag
+- files: \`src/widget.ts\`, \`tests/widget.test.ts\`
+- action: add the boolean glow prop
+- verify: vitest passes
+- done: AC-1
+
+### T2: Add dim path
+- files: \`src/widget.ts\`
+- action: wire the disable branch
+- verify: vitest passes
+- depends: T1
+- done: AC-2
+- stop: the dim test passes
+
+## Boundaries
+
+- Do not change \`src/legacy.ts\`
+- Do not add a runtime dependency
+`;
+
+describe('parseDraftMd BOM / CRLF / lone-CR tolerance (phase 339)', () => {
+  const lfResult = parseDraftMd(RICH_DRAFT);
+
+  it('phase 339 fixture precondition: the LF fixture itself is rich (multi-line Given, depends + stop, boundaries)', () => {
+    expect(lfResult.acceptanceCriteria).toHaveLength(2);
+    expect(lfResult.acceptanceCriteria[0]!.given).toContain('\n');
+    expect(lfResult.tasks).toHaveLength(2);
+    expect(lfResult.tasks[1]!.depends).toEqual(['T1']);
+    expect(lfResult.tasks[1]!.stop).toBe('the dim test passes');
+    expect(lfResult.boundaries).toHaveLength(2);
+  });
+
+  for (const [label, encode] of ENCODINGS) {
+    it(`339-01/AC-2: a ${label} DRAFT.md parses field-for-field identically to its LF form, with no \\r or BOM in any string`, () => {
+      const result = parseDraftMd(encode(RICH_DRAFT));
+      expect(result).toEqual(lfResult);
+      expect(result.acceptanceCriteria.length).toBeGreaterThan(0);
+      expect(result.tasks.length).toBeGreaterThan(0);
+      expect(result.boundaries.length).toBeGreaterThan(0);
+      for (const s of collectStrings(result)) {
+        expect(s).not.toContain('\r');
+        expect(s).not.toContain(BOM);
+      }
+    });
+
+    it(`339-01/AC-2: a ${label} DRAFT.md with missing or malformed frontmatter still throws the existing CadenceError`, () => {
+      const noFrontmatter = RICH_DRAFT.replace(/^---\n[\s\S]*?\n---\n/, '');
+      const noClosingDelimiter = RICH_DRAFT.replace(/^status: PENDING\n---\n/m, 'status: PENDING\n');
+      for (const broken of [noFrontmatter, noClosingDelimiter]) {
+        let caught: unknown;
+        try {
+          parseDraftMd(encode(broken));
+        } catch (e) {
+          caught = e;
+        }
+        expect(caught).toBeInstanceOf(CadenceError);
+        expect((caught as Error).message).toBe('DRAFT.md missing frontmatter');
+      }
+    });
+  }
+});

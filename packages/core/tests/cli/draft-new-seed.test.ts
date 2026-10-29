@@ -105,6 +105,33 @@ describe('cadence draft new (Phase 38.1 — SPEC→DRAFT auto-seed)', () => {
     expect(draft).not.toContain('_(one sentence)_');
   });
 
+  // Phase 339 — frontmatterStatus read a CRLF+BOM SPEC's status as unknown,
+  // so `draft new` silently scaffolded empty instead of seeding.
+  it('339-01/AC-4: an APPROVED CRLF+BOM SPEC seeds the draft exactly as its LF twin does', async () => {
+    active = await tempRepo({ initialized: true });
+    await initGitRepo(active.root);
+    await writeSpec(active.root, APPROVED_SPEC);
+    const lf = await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root);
+    expect(lf.code).toBe(0);
+    const lfDraft = await readFile(join(active.root, DRAFT_PATH), 'utf8');
+    await active.cleanup();
+
+    active = await tempRepo({ initialized: true });
+    await initGitRepo(active.root);
+    await writeSpec(active.root, '\uFEFF' + APPROVED_SPEC.replace(/\n/g, '\r\n'));
+    const r = await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root);
+    expect(r.code).toBe(0);
+    expect(r.stdout).toMatch(
+      /draft new: seeded objective \+ 2 AC\(s\) from approved SPEC 01-01/,
+    );
+    expect(r.stderr).not.toMatch(/draft new: SPEC/);
+
+    const draft = await readFile(join(active.root, DRAFT_PATH), 'utf8');
+    expect(draft).toBe(lfDraft);
+    expect(draft).toContain('### AC-1: alpha\nGiven a\nWhen b\nThen c');
+    expect(draft).toContain('### AC-2: beta\nGiven d\nWhen e\nThen f');
+  });
+
   it('AC-3: PENDING sibling SPEC → warn + empty scaffold', async () => {
     active = await tempRepo({ initialized: true });
     await initGitRepo(active.root);

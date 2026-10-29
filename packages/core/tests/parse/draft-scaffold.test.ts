@@ -173,3 +173,24 @@ describe('frontmatterStatus (AC-1)', () => {
     expect(frontmatterStatus('---\nphase: p\n---\n')).toBeUndefined();
   });
 });
+
+// Phase 339 — frontmatterStatus gates `draft add-ac`/`set-objective`/`add-task`
+// and `draft new`'s SPEC seeding; a CRLF or BOM file read as "unknown" status.
+describe('frontmatterStatus through CRLF and a BOM (phase 339)', () => {
+  const BOM = '\uFEFF';
+  const variants: ReadonlyArray<readonly [string, (lf: string) => string]> = [
+    ['CRLF', (lf) => lf.replace(/\n/g, '\r\n')],
+    ['BOM+LF', (lf) => BOM + lf],
+    ['BOM+CRLF', (lf) => BOM + lf.replace(/\n/g, '\r\n')],
+  ];
+  for (const [label, encode] of variants) {
+    it(`339-01/AC-4: reads PENDING and APPROVED from a ${label} file, same as LF`, () => {
+      const pending = '---\nphase: p\nid: 99-01\nstatus: PENDING\n---\n\n# x\n';
+      const approved = pending.replace('PENDING', 'APPROVED');
+      expect(frontmatterStatus(pending)).toBe('PENDING');
+      expect(frontmatterStatus(encode(pending))).toBe('PENDING');
+      expect(frontmatterStatus(approved)).toBe('APPROVED');
+      expect(frontmatterStatus(encode(approved))).toBe('APPROVED');
+    });
+  }
+});
