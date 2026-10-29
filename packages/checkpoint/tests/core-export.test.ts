@@ -7,7 +7,7 @@ import { runGit, tempRepo } from '@thomas-powers-jr/cadence-testkit';
 // A PACKAGE import, not a relative source path: phase 331 (D-BR,
 // dec-20261013-002) makes core a runtime dependency of checkpoint for this one
 // I/O primitive, so the sensor resolves it the way an installed consumer would.
-import { atomicWriteText } from '@thomas-powers-jr/cadence-core';
+import { atomicWriteText, findUnfilledSections } from '@thomas-powers-jr/cadence-core';
 
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')) as {
   version: string;
@@ -124,5 +124,26 @@ describe('core atomicWriteText as a checkpoint runtime dependency', () => {
     } finally {
       await fixture.cleanup();
     }
+  });
+});
+
+// Phase 336 (T1): the Stop gate reports unfilled SESSION-doc sections with
+// core's own detector rather than a second copy inside checkpoint.
+describe('core findUnfilledSections as a checkpoint runtime import', () => {
+  it('336-01/AC-6: findUnfilledSections imported by package name names each section still holding a FILL IN marker', () => {
+    const doc = [
+      '---',
+      'cadence_handoff: 2',
+      '---',
+      '## TL;DR for the next session',
+      'Filled narrative.',
+      '## Carry-forward gotchas   ·  pre-filled',
+      '<!-- FILL IN: gotchas -->',
+      '## Next action',
+      '<!-- FILL IN: next action -->',
+      '<!-- FILL IN: a second marker in the same section -->',
+      '',
+    ].join('\n');
+    expect(findUnfilledSections(doc)).toEqual(['Carry-forward gotchas', 'Next action']);
   });
 });

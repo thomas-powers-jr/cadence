@@ -18,6 +18,12 @@ import { z } from 'zod';
  * when a wildcard `files:` entry matches zero touched files). Deliberately
  * NOT part of `runBoundaryCheck`'s own return array and always
  * `severity: 'warn'` — see dec-20260821-001 (D-Y).
+ *
+ * Phase 336-01 adds `checkpoint-force-released` (emitted by settle's
+ * `collectAnomalies` when the checkpoint Stop-gate's sticky `lastForcedAt`
+ * is at or after the active draft's `openDrafts[].since`; always
+ * `severity: 'error'`, mapped to a `checkpoint-stop` gate bypass) — see
+ * dec-20261022-002 (D-CE).
  */
 export const AnomalyTypeZ = z.enum([
   'ac-blocked',
@@ -38,6 +44,7 @@ export const AnomalyTypeZ = z.enum([
   'redundant-task-work',
   'auto-complex-override',
   'boundary-pattern-unmatched',
+  'checkpoint-force-released',
 ]);
 export type AnomalyType = z.infer<typeof AnomalyTypeZ>;
 

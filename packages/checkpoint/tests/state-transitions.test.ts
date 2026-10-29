@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CHECKPOINT_STATES, LEGAL_EDGES, isUnknownReading, transition } from '../src/state.js';
 import type { CheckpointState } from '../src/state.js';
+import { GUARDED_EDGES } from '../src/state.js';
+import type { TransitionContext } from '../src/state.js';
 
 /**
  * The full 6×6 matrix of ordered pairs, written out by hand. This is an
@@ -212,5 +214,92 @@ describe('idle -> armed requires a known reading', () => {
     expect(transition('armed', 'written')).toEqual({ ok: true, state: 'written' });
     expect(transition('written', 'armed')).toEqual({ ok: true, state: 'armed' });
     expect(transition('settled', 'reset')).toEqual({ ok: true, state: 'reset' });
+  });
+});
+
+/**
+ * Phase 336's two guarded edges, written out by hand beside (never inside)
+ * MATRIX: MATRIX states the plain machine, where both pairs stay rejected.
+ * Each row is one ctx; a guarded edge opens only for its own flag, exactly
+ * `=== true`, and the flags never cross.
+ */
+const GUARDED_MATRIX: ReadonlyArray<readonly [CheckpointState, CheckpointState, TransitionContext, 'accept' | 'reject']> = [
+  ['armed', 'settled', { forced: true }, 'accept'],
+  ['armed', 'settled', { ...KNOWN, forced: true }, 'accept'],
+  ['armed', 'settled', { forced: false }, 'reject'],
+  ['armed', 'settled', { sessionReset: true }, 'reject'],
+  ['armed', 'settled', {}, 'reject'],
+  ['armed', 'idle', { sessionReset: true }, 'accept'],
+  ['armed', 'idle', { ...KNOWN, sessionReset: true }, 'accept'],
+  ['armed', 'idle', { sessionReset: false }, 'reject'],
+  ['armed', 'idle', { forced: true }, 'reject'],
+  ['armed', 'idle', {}, 'reject'],
+];
+
+describe('guarded checkpoint edges (phase 336)', () => {
+  it('336-01/AC-8: GUARDED_EDGES names exactly armed -> settled (ctx.forced) and armed -> idle (ctx.sessionReset), outside LEGAL_EDGES', () => {
+    expect(GUARDED_EDGES.map(({ from, to, requires }) => `${from}->${to}:${requires}`)).toEqual([
+      'armed->settled:forced',
+      'armed->idle:sessionReset',
+    ]);
+    const plain = new Set(LEGAL_EDGES.map(([from, to]) => `${from}->${to}`));
+    for (const { from, to } of GUARDED_EDGES) expect(plain.has(`${from}->${to}`), `${from}->${to}`).toBe(false);
+    // The plain matrix still rejects both pairs.
+    expect(MATRIX).toContainEqual(['armed', 'settled', 'reject']);
+    expect(MATRIX).toContainEqual(['armed', 'idle', 'reject']);
+  });
+
+  it('336-01/AC-8: armed -> settled is accepted only with ctx.forced === true; its rejection names the pair and the flag on one line', () => {
+    for (const [from, to, ctx, verdict] of GUARDED_MATRIX.filter(([, to]) => to === 'settled')) {
+      const label = `${from}->${to} ${JSON.stringify(ctx)}`;
+      const result = transition(from, to, ctx);
+      if (verdict === 'accept') {
+        expect(result, label).toEqual({ ok: true, state: 'settled' });
+      } else {
+        expect(result.ok, label).toBe(false);
+        if (!result.ok) {
+          expect(result.reason, label).toContain('armed -> settled');
+          expect(result.reason, label).toContain('ctx.forced');
+          expect(result.reason, label).not.toContain('\n');
+        }
+      }
+    }
+    expect(transition('armed', 'settled').ok).toBe(false);
+  });
+
+  it('336-01/AC-17: armed -> idle is accepted only with ctx.sessionReset === true; its rejection names the pair and the flag on one line', () => {
+    for (const [from, to, ctx, verdict] of GUARDED_MATRIX.filter(([, to]) => to === 'idle')) {
+      const label = `${from}->${to} ${JSON.stringify(ctx)}`;
+      const result = transition(from, to, ctx);
+      if (verdict === 'accept') {
+        expect(result, label).toEqual({ ok: true, state: 'idle' });
+      } else {
+        expect(result.ok, label).toBe(false);
+        if (!result.ok) {
+          expect(result.reason, label).toContain('armed -> idle');
+          expect(result.reason, label).toContain('ctx.sessionReset');
+          expect(result.reason, label).not.toContain('\n');
+        }
+      }
+    }
+    expect(transition('armed', 'idle').ok).toBe(false);
+  });
+
+  it('336-01/AC-8 336-01/AC-17: the flags unlock no other pair and do not disturb any plain edge', () => {
+    const both: TransitionContext = { ...KNOWN, forced: true, sessionReset: true };
+    for (const [from, to, verdict] of MATRIX) {
+      const guarded = GUARDED_EDGES.some((edge) => edge.from === from && edge.to === to);
+      const result = transition(from, to, both);
+      if (verdict === 'accept') {
+        expect(result, `${from}->${to}`).toEqual({ ok: true, state: to });
+      } else if (guarded) {
+        expect(result, `${from}->${to}`).toEqual({ ok: true, state: to });
+      } else {
+        expect(result.ok, `${from}->${to} with both flags`).toBe(false);
+        if (!result.ok) expect(result.reason).toContain(`${from} -> ${to}`);
+      }
+    }
+    // idle -> armed still needs a known reading even with both flags set.
+    expect(transition('idle', 'armed', { forced: true, sessionReset: true }).ok).toBe(false);
   });
 });

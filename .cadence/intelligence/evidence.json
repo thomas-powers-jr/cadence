@@ -3078,6 +3078,22 @@
       "createdAt": "2026-10-22T16:14:21.097Z"
     },
     {
+      "id": "ev-20261023-001",
+      "recommendationId": "rec-20261023-001",
+      "kind": "cadence-artifact",
+      "summary": "phase 336-checkpoint-stop-gate, draft 336-01, SUMMARY contentHash 919240e5d62c07e5529eb62f23648205fd842e087a6d1912df194f86d94dd50c — medium finding at packages/checkpoint/src/state.ts:231: Date.parse normalizes impossible ISO dates (e.g. 2026-02-30) instead of rejecting them. A malformed lastForcedAt can therefore be accepted and create a settle bypass.",
+      "path": ".cadence/phases/336-checkpoint-stop-gate/336-01-SUMMARY.json",
+      "createdAt": "2026-10-23T13:46:08.480Z"
+    },
+    {
+      "id": "ev-20261023-002",
+      "recommendationId": "rec-20261023-002",
+      "kind": "cadence-artifact",
+      "summary": "phase 336-checkpoint-stop-gate, draft 336-01, SUMMARY contentHash 919240e5d62c07e5529eb62f23648205fd842e087a6d1912df194f86d94dd50c — medium finding at packages/checkpoint/src/stop-gate.ts:359: stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.",
+      "path": ".cadence/phases/336-checkpoint-stop-gate/336-01-SUMMARY.json",
+      "createdAt": "2026-10-23T13:46:08.517Z"
+    },
+    {
       "id": "ev-20261027-001",
       "recommendationId": "rec-20261027-001",
       "kind": "note",

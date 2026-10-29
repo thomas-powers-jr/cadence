@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 2,
+  "draftId": "336-01",
+  "completedAt": "2026-10-23T13:46:08.428Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-8",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-9",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-10",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-11",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-12",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-13",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-14",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-15",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-16",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-17",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-18",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-19",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-20",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Inline TDD: core index exports findUnfilledSections; checkpoint core-export test red then green (4/4). Full turbo lint/typecheck/test/build 28/28 green at wave close."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "D-CE settle side: checkpoint-force-released anomaly via collectAnomalies, 5th anomalyToGateBypass arm, best-effort lastForcedAt reader vs openDrafts since. Independent review CHANGES REQUIRED -> fixed (real-flow draft new/approve/build test, live strong->mixed via code-review-factory mock, docs wording) -> re-review APPROVE. Main thread: 15/15 targeted, full turbo 28/28."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Store extras (instructed/blocks/forced/forcedAt/sticky lastForcedAt), updateStoreExtras with expectedState/expectedSince, guarded armed->settled (forced) and armed->idle (sessionReset). Review APPROVE + I-1/I-2/M-1/M-2 fixed, re-review APPROVE. Main thread: checkpoint 288 passed, full turbo 28/28."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "Pure decideStop/effectivePercentage/checkHandoffDoc; fixtures from core's real renderSession. Review APPROVE; fix round (as-built amendment): declaredHandoffVersion export in validate.ts, pre-reset/future reading absent, chain cleared on silent pass, AC-2 edge tests; re-review APPROVE. Main thread: checkpoint suite 336 passed, typecheck/lint clean."
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "stop-gate shell: flags (as-built validation), payload, project via sensor's defaultProjectMarker, reading by exact name, newest SESSION doc after since decoded once, store-before-stdout, exit-0 envelope; CLI wiring + index exports. Review CHANGES REQUIRED (doc-selection tests, M-2 non-number used_percentage, real-fs AC-10) -> fixed -> re-review APPROVE. Main thread: checkpoint 378 passed, typecheck/lint clean."
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "session-start: single-winner wx lock, re-read under lock, walk settled/armed/leftovers to idle via existing edges, lastForcedAt kept, stale lock refuse+suggest, own-lock unlink bounded retry. Review CHANGES REQUIRED (spawned race size for macOS CI, allow-list anchor, fail-fast race, plain-it AC-17) -> fixed -> re-review APPROVE. Main thread: checkpoint 407 passed."
+    },
+    {
+      "id": "T7",
+      "status": "DONE",
+      "notes": "hooks-install: Stop + SessionStart entries tagged _managedBy cadence-checkpoint, merged via host-toolkit mergeManagedHookEntries, re-serialized with a semantic guard, idempotent, BOM/mode kept; host-toolkit workspace dep (+3 lockfile lines). Review APPROVE; header limits reworded in main thread. Main thread: build/lint clean, install-hooks tests green."
+    },
+    {
+      "id": "T8",
+      "status": "DONE",
+      "notes": "E2E capture against the built bins (scratchpad e2e-capture.mjs): blocked/invalid/forced/reset/released payloads recorded verbatim in docs/checkpoint/REPORT-checkpoint-phase-3.md; changeset (core+types minor); ROADMAP + MILESTONES entries. Settle-time facts (providers, assurance, gateBypasses) are filled in after settle. Full turbo 28/28 green."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "phase-build"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "stop-gate arms with instructed:true before JSON stdout; built-bin AC-1 test verifies exact block shape, exit 0, and ordering.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "effectivePercentage treats null/0 cases as unknown without fallback; linked AC-2 tests assert no plan/store op and shell behavior.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Armed uninstructed state updates instructed once, then remains silent; built-bin AC-3 test verifies exactly one block across three exits-0 runs.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Valid newer renderer v2 doc takes armed→written→settled with no stdout; linked CLI and real-store tests cover it.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "checkHandoffDoc adds version-downgrade for supported v1; linked real-store test verifies block and armed result.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Gate imports core findUnfilledSections and includes its section names in diagnostics; linked renderer/store tests verify both names and armed state.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "UTF-8 decoder handles BOM consistently; linked twin tests verify identical stdout, exit outcome, and fixed-clock store bytes.",
+      "provider": "host-cli"
+    },
+    "AC-8": {
+      "pass": true,
+      "reason": "Ceiling path directly forces armed→settled, emits only systemMessage, records force timestamps; linked tests cover reset by stop_hook_active:false.",
+      "provider": "host-cli"
+    },
+    "AC-9": {
+      "pass": true,
+      "reason": "loadReading opens only exact reading.json and never lists siblings; linked built-bin test proves invalid tmp content is ignored silently.",
+      "provider": "host-cli"
+    },
+    "AC-10": {
+      "pass": true,
+      "reason": "runStopGate catches write errors, suppresses stdout, emits one notice, and resolves 0; linked injected-EACCES test verifies this.",
+      "provider": "host-cli"
+    },
+    "AC-11": {
+      "pass": true,
+      "reason": "Exclusive wx lock plus state reread yields one reset winner; linked race tests verify loser no-write, final idle, and lock removal.",
+      "provider": "host-cli"
+    },
+    "AC-12": {
+      "pass": true,
+      "reason": "Installer recognizes matching managed entries and returns unchanged text; linked built-bin test verifies second-run notice, bytes, and mtime unchanged.",
+      "provider": "host-cli"
+    },
+    "AC-13": {
+      "pass": true,
+      "reason": "isFresh rejects readings older than maxReadingAgeS before usage evaluation; linked AC-13 test verifies no plan/store operation.",
+      "provider": "host-cli"
+    },
+    "AC-14": {
+      "pass": true,
+      "reason": "Fallback sums only input and cache input tokens over window; linked unit and shell tests verify above/below threshold outcomes.",
+      "provider": "host-cli"
+    },
+    "AC-15": {
+      "pass": true,
+      "reason": "Settle maps qualifying sticky lastForcedAt to checkpoint-stop ceiling-release error bypass; linked service test verifies exactly one entry and mixed assurance.",
+      "provider": "host-cli"
+    },
+    "AC-16": {
+      "pass": true,
+      "reason": "Checkpoint read is best-effort and only emits a fact for valid timestamps at/after draft since; linked tests cover absent, old, and malformed stores.",
+      "provider": "host-cli"
+    },
+    "AC-17": {
+      "pass": true,
+      "reason": "startup/clear/compact reset armed via guarded edge; resume/fork return before writes. Linked built-bin tests verify both outcomes.",
+      "provider": "host-cli"
+    },
+    "AC-18": {
+      "pass": true,
+      "reason": "written/reset/resumed paths are inert with a stderr notice only; linked CLI and decision tests verify empty stdout and unchanged bytes.",
+      "provider": "host-cli"
+    },
+    "AC-19": {
+      "pass": true,
+      "reason": "Existing wx lock produces one lockHeldNotice without reset or unlink; linked built-bin test verifies exact preservation and removal guidance.",
+      "provider": "host-cli"
+    },
+    "AC-20": {
+      "pass": true,
+      "reason": "Semantic parsed-value guard limits edits to checkpoint entries; merge preserves cadence/user hooks. Linked tests cover host merge, order, and tampered-plan refusal.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 332807,
+    "truncated": false,
+    "filesCount": 31,
+    "provider": "host-cli"
+  },
+  "codeReview": {
+    "packages/checkpoint/src/state.ts": [
+      {
+        "severity": "medium",
+        "message": "Date.parse normalizes impossible ISO dates (e.g. 2026-02-30) instead of rejecting them. A malformed lastForcedAt can therefore be accepted and create a settle bypass.",
+        "line": 231,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-8",
+          "tier": "executable"
+        },
+        "id": "6e39eb0438cf7d7f56d02fedae7de566ecee201d2cfc761372130437676dfefb",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/checkpoint/src/stop-gate.ts": [
+      {
+        "severity": "medium",
+        "message": "stop_hook_active is global to all Stop hooks. Another hook's block can preserve this gate's chain and trigger an early ceiling force-release without N checkpoint re-blocks.",
+        "line": 359,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-2",
+          "tier": "executable"
+        },
+        "id": "11056663c3a301271ee8e2373e3f5d36a7d80698ef36eaf89613367a1e016514",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 330,
+    "sessionSubagentSpawns": 28
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 20,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "919240e5d62c07e5529eb62f23648205fd842e087a6d1912df194f86d94dd50c"
+  }
+}

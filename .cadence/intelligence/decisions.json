@@ -1228,6 +1228,25 @@
       "status": "active",
       "decidedAt": "2026-10-16T19:16:05.296Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261022-001",
+      "title": "D-CE: a checkpoint Stop-gate force-release is recorded in checkpoint state.json and surfaced at settle as a 'checkpoint-force-released' anomaly mapped to gateBypasses",
+      "rationale": "Work order HANDOFF-v1.71-release-335-336 section 3.4, option 2. .cadence/checkpoint/state.json is the source of truth (forced: true + forcedAt). At settle run, when it shows forced with forcedAt at or after the active draft's openDrafts[].since in cadence state.json, core emits a 'checkpoint-force-released' anomaly (additive AnomalyTypeZ member) and a fifth anomalyToGateBypass arm maps it to { gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }, so phase 283's cap holds the phase at mixed. Premise correction: the work order's window anchor, the phase's first PROGRESS write, is recorded nowhere (each task's updatedAt is overwritten); openDrafts[].since is stamped once by draft new and kept by draft approve, so it is the durable phase-start fact. Not D-CA's direct push: the release happens hours earlier in another process. The live anomaly path is the pure collectAnomalies (notify/collect.ts) feeding gateBypassesFromAnomalies (settle's emit.anomalies seam is a no-op, per D-CA), so settle gathers the checkpoint fact impurely, best-effort and never throwing, and passes it in as a new optional collectAnomalies input. GateBypass.gate is z.string(), so no summary-schema change. Core reads the JSON by path and never imports checkpoint, so the dependency arrow holds. Core touches: packages/types/src/anomaly.ts, packages/core/src/notify/collect.ts, packages/core/src/services/settle.ts. Operator choice 2026-10-22.",
+      "status": "superseded",
+      "decidedAt": "2026-10-22T17:03:26.806Z",
+      "supersedes": [],
+      "supersededBy": "dec-20261022-002"
+    },
+    {
+      "id": "dec-20261022-002",
+      "title": "D-CE (rev. 1): a checkpoint Stop-gate force-release leaves a sticky lastForcedAt in checkpoint state.json; settle surfaces it as a 'checkpoint-force-released' anomaly mapped to gateBypasses",
+      "rationale": "Supersedes dec-20261022-001; option 2 of work order HANDOFF-v1.71-release-335-336 section 3.4 stands. Correction: dec-20261022-001 keyed settle on forced: true, but the realistic sequence (ceiling release, then /clear or /compact, then SessionStart walks the store to idle) clears forced hours before settle reads it, so D-CE would miss its most common case. The ceiling release writes forced: true, forcedAt, and a sticky lastForcedAt that every later checkpoint edge carries forward and none clears. At settle run, core reads .cadence/checkpoint/state.json by path, best-effort and never throwing; when lastForcedAt is at or after the active draft's openDrafts[].since in cadence state.json (stamped once by draft new, kept by draft approve; the work order's 'first PROGRESS write' is recorded nowhere), it passes that fact as a new optional collectAnomalies input (notify/collect.ts, the live anomaly path; settle's emit.anomalies seam is a no-op per D-CA). collectAnomalies emits an error-severity 'checkpoint-force-released' anomaly (additive AnomalyTypeZ member), and a fifth anomalyToGateBypass arm maps it to { gate: 'checkpoint-stop', flag: 'ceiling-release', severity: 'error' }, so phase 283's cap holds the phase at mixed. GateBypass.gate is z.string(), so no summary-schema change; core never imports checkpoint. Core touches: packages/types/src/anomaly.ts, packages/core/src/notify/collect.ts, packages/core/src/services/settle.ts. Operator choice 2026-10-22.",
+      "status": "active",
+      "decidedAt": "2026-10-22T17:15:57.387Z",
+      "supersedes": [
+        "dec-20261022-001"
+      ]
     }
   ]
 }

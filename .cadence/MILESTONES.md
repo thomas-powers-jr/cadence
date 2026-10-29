@@ -1282,6 +1282,14 @@ changeset (example/test-only change, no published-package surface).*
   is tracked; a failed lookup protects nothing, as before. When the budget
   would have pruned committed docs, one stderr notice names how many were
   kept (rec-20261016-004).
+- **Phase 336** — checkpoint arc Phase 3: the `Stop` gate. It blocks once
+  at the usage threshold and settles only on a SESSION doc that validates
+  at `cadence_handoff: 2` with no unfilled sections. At the re-block ceiling
+  it force-releases instead. A single-winner `SessionStart` reset and a
+  managed-hook installer ship with it. A force-release inside a draft's
+  window reaches `SUMMARY.gateBypasses` as `checkpoint-stop` /
+  `ceiling-release`, so that slice can't grade `strong` (D-CE,
+  `dec-20261022-002`).
 - **Phase 337** — `cadence doctor` and `cadence onboard` no longer call a
   `host-cli` verifier ready when its binary is not installed. Readiness
   looks up `CADENCE_HOST_CLI_BIN` (default `claude`) the way the review
