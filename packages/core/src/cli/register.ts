@@ -37,6 +37,7 @@ import { registerVerifyCommand } from './commands/verify.js';
 import { registerRetroCommand } from './commands/retro.js';
 import { registerAssuranceCommand } from './commands/assurance.js';
 import { registerSummaryCommand } from './commands/summary.js';
+import { registerStateCommand } from './commands/state.js';
 
 export function registerAllCommands(program: Command): void {
   registerConfigCommand(program);
@@ -77,4 +78,5 @@ export function registerAllCommands(program: Command): void {
   registerRetroCommand(program);
   registerAssuranceCommand(program);
   registerSummaryCommand(program);
+  registerStateCommand(program);
 }

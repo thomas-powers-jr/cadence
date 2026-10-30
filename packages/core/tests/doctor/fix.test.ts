@@ -32,7 +32,7 @@ function seedTrackedState(root: string): void {
 // entries and stages the tracked CADENCE-owned paths for removal via
 // `git rm --cached`, without committing anything automatically.
 describe('applyFixes — untrack-state repair (phase 196, issue #177, AC-3)', () => {
-  it('AC-3: gitignores all four entries and stages the tracked path for removal, nothing committed', async () => {
+  it('AC-3: gitignores all five entries and stages the tracked path for removal, nothing committed', async () => {
     active = await tempRepo({ initialized: true, projectName: 'fix-untrack-state' });
     seedTrackedState(active.root);
 
@@ -51,6 +51,7 @@ describe('applyFixes — untrack-state repair (phase 196, issue #177, AC-3)', ()
     expect(gitignore).toContain('.cadence/STATE.md');
     expect(gitignore).toContain('.cadence/mcp-trust.json');
     expect(gitignore).toContain('.cadence/intelligence/context/');
+    expect(gitignore).toContain('.cadence/local/');
 
     // No longer tracked (staged for removal from the index).
     const tracked = execFileSync('git', ['ls-files', '--', '.cadence/state.json'], {

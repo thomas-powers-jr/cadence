@@ -46,6 +46,7 @@ Two CLIs are documented here:
   - [retro](#retro)
   - [assurance](#assurance)
   - [summary](#summary)
+  - [state](#state)
 - [cadence-host-claude-code](#cadence-host-claude-code)
   - [install](#install)
   - [hook (host)](#hook-host)
@@ -110,6 +111,7 @@ verify
 retro
 assurance
 summary
+state
 <!-- cadence:commands:end -->
 
 ---
@@ -203,9 +205,11 @@ Scaffold a new .cadence/ directory in the current working tree
 
 **Behavior** — writes `.cadence/config.json`, `.cadence/state.json`,
 `.cadence/PROJECT.md`, a managed block in the repo-root `CLAUDE.md`, and (as of
-phase 196) `.gitignore` entries for the four CADENCE-owned ephemeral paths
-(`state.json`, `STATE.md`, `mcp-trust.json`, `intelligence/context/`) so they
-stay untracked. Name and gate-profile derivation are still
+phase 196) `.gitignore` entries for the CADENCE-owned ephemeral paths
+(`state.json`, `STATE.md`, `mcp-trust.json`, `intelligence/context/`, `local/`) so they
+stay untracked. (`local/` joined in phase 341; it holds `cadence state load`'s
+machine-local backup and sync marker. `.cadence/snapshots/` is deliberately not
+ignored: snapshots are committed.) Name and gate-profile derivation are still
 **zero-prompt**: init derives the project name and (via git history) the gate
 profile, asking nothing for either. The `--preset` flag selects a config preset;
 `--gate-profile` sets which quality gates fire by default. (`--profile` is a
@@ -1098,7 +1102,7 @@ v1 check set:
 | `node` | Node major ≥ 22 (the `engines` floor) | error |
 | `initialized` | `.cadence/` exists and `config.json` is valid | error |
 | `state` | `state.json` parses; `STATE.md` (derived view) present | error / warning |
-| `state-tracked` | *(git repos)* none of the four CADENCE-owned ephemeral paths (`state.json`, `STATE.md`, `mcp-trust.json`, `intelligence/context/`) are tracked by git — tracking any guarantees a cross-worktree merge conflict *(phase 196)* | warning |
+| `state-tracked` | *(git repos)* none of the CADENCE-owned ephemeral paths (`state.json`, `STATE.md`, `mcp-trust.json`, `intelligence/context/`, `local/`) are tracked by git — tracking any guarantees a cross-worktree merge conflict *(phase 196; `local/` phase 341)* | warning |
 | `git-hooks` | *(git repos)* `core.hooksPath` resolves to `.githooks` (the pre-push gate) | warning |
 | `host-hooks` | *(if `.claude/settings.json`)* every managed hook entry the installer writes is present — completeness, not just marker existence (phase 295); a stale-scope managed entry (present, outdated npm scope) is still `warning` | error / warning |
 | `hook-transport` | *(if `.claude/settings.json`; Claude Code only, phase 317)* reports the `shell` field on the **first** managed hook entry's command handler — hand-edited divergence across entries is not detected. Shares `host-hooks`'s install-state classification: no settings file, or any install problem `host-hooks` reports, is `ok` (not applicable — fix `host-hooks` first). No `shell` key → `ok`, stating Claude Code's documented rule (defaults to `bash`, or `powershell` on Windows when Git Bash isn't installed) rather than measuring the resolved shell; CADENCE blocks via a JSON decision on stdout either way. `"bash"`/`"powershell"` → `ok`, reporting the configured value. Any other value (including `null`, `""`, `"pwsh"`) → `warning` naming the JSON-serialized value, since Claude Code documents only `"bash"` and `"powershell"` | warning |
@@ -1151,7 +1155,7 @@ never prompts):
 
 | Fix kind | Findings | What `--fix` does |
 |---|---|---|
-| **auto** | `git-hooks`, missing `STATE.md`, missing managed `AGENTS.md`, `handoff-retention`, `state-tracked` | applied by plain `--fix` — `git config core.hooksPath .githooks`; regenerate `STATE.md` from the valid `state.json` (never rewriting `state.json`); regenerate `AGENTS.md`; set `handoff.retain` to the default (10) when unset and prune the `SESSION-*.md` archive down to that budget (the active `lastHandoff` doc is always kept, and git-tracked docs are kept, *phase 335*); write the four CADENCE-owned ephemeral paths to `.gitignore` and `git rm --cached` any that are tracked, without committing *(phase 196)* |
+| **auto** | `git-hooks`, missing `STATE.md`, missing managed `AGENTS.md`, `handoff-retention`, `state-tracked` | applied by plain `--fix` — `git config core.hooksPath .githooks`; regenerate `STATE.md` from the valid `state.json` (never rewriting `state.json`); regenerate `AGENTS.md`; set `handoff.retain` to the default (10) when unset and prune the `SESSION-*.md` archive down to that budget (the active `lastHandoff` doc is always kept, and git-tracked docs are kept, *phase 335*); write the CADENCE-owned ephemeral paths to `.gitignore` and `git rm --cached` any that are tracked, without committing *(phase 196)* |
 | **wire-host** | `host-hooks`, `host-commands`, `codex-hooks`, `codex-prompts` | applied only with `--fix --wire-host` — re-runs the relevant host installer once per host repair id (deduped) to rewrite hooks/commands |
 | **manual** | `node`, `initialized`, corrupt `state.json`, `worktree-phases`, `verification-readiness`, `codex-cadence-command`, `ledger-remote-collision`, `conduction-reachability`, `roadmap-currency`, `release-currency`, `conduction-drift-streak`, `recommendation-archive-currency`, `packs`, `pack-commands`, `hook-transport`, user-owned prompt/agent files | never auto-applied — reported as guidance with the check's remediation |
 
@@ -3080,6 +3084,150 @@ files are unreadable or some settles were refused (both are part of the
 report, not a failure). Exits `1` when `--since` is not a non-negative
 integer within JavaScript's safe-integer range (with a stderr message
 naming the bad value) or on an unexpected error.
+
+---
+
+### state
+
+```
+Usage: cadence state [options] [command]
+
+Save, list and load committed loop-state snapshots (.cadence/snapshots/)
+```
+
+**Subcommands**
+
+| Subcommand | Synopsis |
+|---|---|
+| `save` | Write `.cadence/state.json` to a committed snapshot, keeping the newest 3 |
+| `list` | List snapshots in `.cadence/snapshots/`, newest first |
+| `load [snapshot]` | Restore `.cadence/state.json` from a snapshot (the newest by default); refuses when it does not fit |
+
+**Options**
+
+| Option | Applies to | Description |
+|---|---|---|
+| `--json` | `save`, `list`, `load` | Emit machine-readable JSON instead of rendered text |
+| `--force` | `load` | Skip only the unknown-keys and local-work-since-last-sync checks |
+| `-h, --help` | all | Display help for command |
+
+**Behavior** — `.cadence/state.json` is gitignored and per-checkout, so the
+live loop position does not travel with a branch. `cadence state` carries it
+between machines (phase 341, `dec-20261029-001`): `save` on one machine, the
+operator commits and pushes the snapshot alongside a handoff, then `load` on
+the other after pulling. Committing a snapshot is the operator's step; it is
+not part of a phase's settle commit. `cadence resume` stays read-only (D10):
+restoring state is only ever this explicit command.
+
+Snapshots live in the committed `.cadence/snapshots/` directory, named
+`state-<stamp>-<host>.json`: `<stamp>` is the UTC time to the second with no
+colons (e.g. `2026-10-29T231502Z`), and `<host>` is the machine's hostname
+with every character outside `[A-Za-z0-9-]` replaced by `-`, cut to 40
+characters (`unknown-host` when nothing is left). Each file holds
+`{ snapshotVersion: 1, savedAt, host, cadenceVersion, state }`. Machine-local
+bookkeeping lives in the gitignored `.cadence/local/`, created on demand:
+
+| File | Contents |
+|---|---|
+| `.cadence/local/state.json.bak` | The exact bytes of the `state.json` the last `load` replaced |
+| `.cadence/local/state-sync.json` | `{ "revision": N }` — the local `revision` right after this machine's last `save` or `load` |
+
+`state save` reads and validates `.cadence/state.json`, writes the snapshot,
+then prunes `.cadence/snapshots/` to the newest 3 `state-*.json` files: the
+one just written (kept even if a slow clock makes it sort oldest) plus the
+newest others by name. Each pruned file is named on stderr; files not
+matching `state-*.json` are never touched. Retention is a fixed constant, not
+config. It then records the local revision in `state-sync.json`. It refuses,
+writing nothing, when `state.json` is missing or does not parse, and when a
+snapshot with the exact same name already exists (a snapshot is never
+overwritten). When `state.session.lastHandoff` is `null` it warns on stderr
+that no handoff is linked: write one with `cadence handoff`, then save again
+(stamping a handoff moves the local revision past the marker this save just
+wrote). stdout names the written file and the saved loop
+position.
+
+`state list` prints one line per `state-*.json`, newest first: the file name,
+`savedAt`, `host` and loop position. A file that does not parse as a snapshot
+is still listed, marked `UNREADABLE`, with a stderr warning. An absent or
+empty directory prints a "No snapshots" message.
+
+`state load [snapshot]` loads the newest `state-*.json` by default. A
+`snapshot` argument with no `/` or `\` is a file name inside
+`.cadence/snapshots/`; anything else is a path. A snapshot is a committed
+file that can arrive from anyone, so `load` treats it as untrusted input and
+refuses (exit 1, nothing written: `state.json`, `STATE.md` and
+`.cadence/local/` stay byte-unchanged, and under `--json` stdout is empty)
+when, in this order:
+
+1. no snapshot exists, or the named one is not found;
+2. the file is not valid JSON, its `snapshotVersion` is not `1`, or it fails
+   the snapshot schema (including a `state` that fails the `CadenceState`
+   schema);
+3. **unsafe paths** — a path-bearing field is not a plain identifier:
+   `activePhase` must be a safe phase slug; `activeDraft`, `activeSpec` and
+   `activeTask.id` must match `^[A-Za-z0-9][A-Za-z0-9._-]*$` with no `..`;
+   `session.lastHandoff` must be a bare `SESSION-*.md` file name. This is
+   checked before any path derived from the snapshot is probed, and
+   `--force` never overrides it;
+4. **unknown keys** — the snapshot's raw `state` has top-level keys this
+   cadence does not know, which loading would silently drop. The message
+   names the keys and the snapshot's `cadenceVersion`; update cadence, or
+   pass `--force` to load anyway and drop them;
+5. the local `state.json` parses and its `project.name` differs from the
+   snapshot's;
+6. the snapshot's `activePhase` has no `.cadence/phases/<activePhase>/`
+   directory on this branch — pull, or switch to the branch that carries it;
+7. **local work since last sync** — `state-sync.json` exists and the local
+   `revision` is past the revision it records, so this machine has changed
+   since its last `save` or `load`. Run `cadence state save` first, or pass
+   `--force` to replace that work (stderr says so loudly). Saving writes a
+   newer snapshot than the one being loaded, so when no `[snapshot]` was given
+   the refusal names the refused snapshot and the exact retry command,
+   `cadence state load <that name>`. Raw `revision`
+   values from two machines are never compared; with no sync marker (a
+   machine's first transfer) this check does not apply, and an unreadable
+   marker is treated as absent with a stderr warning.
+
+`--force` skips only checks 4 and 7.
+
+On success `load` writes the exact bytes of the local `state.json` (if one
+existed) to `.cadence/local/state.json.bak`, replacing any earlier backup,
+then writes the snapshot's `state` as the new `state.json` and re-renders
+`STATE.md` in the same operation (no `doctor --fix` step). Session-local
+counters reset: `session.tokenUtilization` and `session.subagentSpawns`
+become `0` and `session.subagentBaselines` becomes `{}`. `revision` becomes
+`max(local revision, snapshot revision) + 1` (a missing or unparseable local
+state counts as `0`), so a process on this machine still holding the old
+state hits the existing state-conflict refusal. Every other field is kept
+as-is, including `skillAudit`, `activeTask`, `decisions`, `deferred`,
+`session.lastHandoff`, `draftReadAt` and `draftReadHash`. Finally
+`state-sync.json` records the new revision. A local `state.json` that exists
+but does not parse is backed up the same way; `load` skips checks 5 and 7,
+warns loudly, and restores the snapshot — recovering from a broken state is
+a supported use. `load` also warns on stderr when the snapshot is mid-loop
+(`loopPosition` not `IDLE`) with a `null` `draftReadHash` (the `draft-read`
+gate falls back to its mtime-only check after this checkout, so re-approve
+the DRAFT), and when the snapshot's `cadenceVersion` is newer than the
+running cadence. stdout reports the loaded file, the position before (or
+"no state.json" / "unparseable state.json"), the position after with its revision, and the backup path
+when there is one. If another writer changes `state.json` between the plan
+and the write, `load` exits 1 with the existing state-conflict message.
+
+**`--json` output** — each subcommand prints exactly one JSON value on
+success; diagnostics and warnings always go to stderr.
+
+| Subcommand | Shape |
+|---|---|
+| `save` | `{ path, position: { loop, phase, draft }, pruned: string[], warnings: string[] }` |
+| `list` | `[{ name, savedAt, host, position }]` — an unreadable entry is `{ name, error }` |
+| `load` | `{ from, before: position \| null, after: position, backup: string \| null, warnings: string[] }` |
+
+**Exit codes** — `save` exits `0` on a written snapshot and `1` when it
+refuses (missing or unparseable `state.json`, an existing snapshot name) or
+on an unexpected error. `list` exits `0`, including for an empty directory
+and unreadable files, and `1` only on an unexpected error. `load` exits `0`
+on a restore and `1` on any refusal above, a state-write conflict, or an
+unexpected error.
 
 ---
 

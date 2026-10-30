@@ -210,10 +210,10 @@ function gitRmCached(root: string, paths: string[]): Promise<void> {
 }
 
 /**
- * The `untrack-state` repair (phase 196, issue #177): write the four
+ * The `untrack-state` repair (phase 196, issue #177): write the five
  * CADENCE-owned entries into `.gitignore` (idempotent — `ensureGitignoreEntries`
  * no-ops when they're already present), then `git rm --cached` only whichever
- * of those four paths are actually currently tracked. Nothing is committed —
+ * of those five paths are actually currently tracked. Nothing is committed —
  * `git rm --cached` only stages the removal; the operator commits
  * deliberately. Re-derives the tracked set rather than trusting the doctor
  * report's detail string, so it stays correct even if the check's finding is
