@@ -1975,3 +1975,153 @@ Phase 340 hashes the DRAFT text settle's preconditions read (settle.ts loadSettl
 - next: cadence milestone propose
 
 Phase 340 reworded the CLI --allow-stale-draft help (cli/commands/settle.ts) and docs/reference/commands.md to name the draft-read gate's content check, but packages/core/src/mcp/tools.ts (~line 335) still describes allowStaleDraft as 'Skip the DRAFT-read mtime gate'. It was outside 340's task files. One-line fix: align it with the CLI wording.
+
+## rec-20261030-001 — --json output for the mutating loop commands (draft new/set-*/add-*/check/approve, build task, settle run, spec approve)
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, cli, json-output
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 1; rec-20260701-004 converted to 134-progress-json covered progress only
+- next: cadence milestone propose
+
+Studio drives cadence-core as a subprocess and today has to regex human text such as 'Approved 342-01; loopPosition=BUILD'. None of draft new, draft set-objective/add-ac/add-task, draft check, draft approve, build task, settle run or spec approve takes --json (checked on 1.73.0). Ask: a --json mode on each, at minimum { ok, gate, reason, paths }. rec-20260701-004 (Agent-grade JSON across the loop) named this same loop-critical set but was converted to phase 134, which shipped progress --json only; this rec carries the unbuilt remainder.
+
+## rec-20261030-002 — Documented exit-code contract separating gate-refused from transport/spawn failure from usage error
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, cli, exit-codes
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 2
+- next: cadence milestone propose
+
+An automated consumer (Studio's Runner, any CI) cannot tell from the exit code whether settle refused on a gate, the host-cli subprocess failed to launch, or the invocation was malformed; all are non-zero. Ask: a documented, tested exit-code contract with distinct codes for those three classes. Needs a decision on the code values, which commands are covered, and whether this is a breaking change under the semver policy. Adjacent: rec-20260712-009 (gate lifecycle-state taxonomy in SUMMARY) is the persisted-record analogue, not the process contract.
+
+## rec-20261030-003 — Export the services layer as a library entry point with injected IO
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, core, api
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 3
+- next: cadence milestone propose
+
+Ask: export settle, draftApprove, buildTask, status and doctor from packages/core/src/services/* as a documented library entry with injected IO, so a second consumer (Studio) can stop parsing CLI text. Needs a decision: it creates a public API surface that the lockstep semver policy then has to honour, and the zero-runtime-dependency bias and the core-never-imports-host arrow constrain what the entry may pull in. Partly substitutable by the --json rec from the same intake.
+
+## rec-20261030-004 — verification.fallback: "refuse" -- a hard refusal instead of the silent-continue mock fallback
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, verify, config
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 4; operator handoff HANDOFF-stop-gate-capture-342-344 section 2
+- next: cadence milestone propose
+
+Every host-cli seam that cannot launch its binary, or trips the claude self-invocation guard, prints a loud notice and continues on mock. An automated consumer can therefore settle on a mock by accident; Studio defends against it with a sentence in its CLAUDE.md. Ask: additive config verification.fallback: 'mock' | 'refuse', default 'mock'. Under 'refuse' the seam refuses its gate with a named reason, settle exits non-zero, the SUMMARY records it, and doctor reports the setting. Do not flip the default (D-B, dec-20260808-002). Planned as phase 343.
+
+## rec-20261030-005 — doctor: report the deep-verify seam's session axis (claude self-invocation), not only code-review/security-audit
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, doctor, verify
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 5; packages/core/src/doctor/run.ts:1812 CONDUCTION_GATES lists code-review and security-audit only
+- next: cadence milestone propose
+
+Residual of Studio ask 5. Phase 337 shipped binary readiness, and verification-readiness reports a host-cli binary that will not launch. But conduction-reachability's session axis covers only code-review and security-audit (CONDUCTION_GATES, packages/core/src/doctor/run.ts:1812), so nothing in doctor --json says deep-verify will fall back to mock because settle runs inside a headless Claude Code session. Ask: the same session-axis finding for the deep-verify seam. Build together with rec-20260927-001, which makes that axis codex-aware; otherwise the new finding inherits the same false positive.
+
+## rec-20261030-006 — Per-seam host-cli binary in config.json, not only the CADENCE_HOST_CLI_BIN env var
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, config, host-cli
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 6
+- next: cadence milestone propose
+
+The host-cli binary is chosen only by the CADENCE_HOST_CLI_BIN environment variable, globally for every seam. A template cannot pin the verifier to one CLI family while the builder is another, and the choice does not travel with the repo. Ask: an optional per-seam bin in config.json. Needs a decision on precedence against the env var, and on whether a committed config naming a bin is a portability hazard across machines.
+
+## rec-20261030-007 — First-class 'AC deferred/parked' settle verdict, recorded without a --force bypass and queryable later
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, settle, verdicts
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 7
+- next: cadence milestone propose
+
+An operator who deliberately parks one AC today must --force or bypass, which caps the assurance grade and reads as a failure. Ask: a first-class verdict for an explicitly deferred AC, recorded with a reason, kept out of gateBypasses, and listable later. Needs a decision on what grade a settle with a parked AC may earn, so the verdict cannot launder a failing AC. Adjacent, not the same: rec-20261016-005 (per-finding code-review bypass) and the unobservable-AC verdict class from dec-20260812-004.
+
+## rec-20261030-008 — Non-interactive init/onboard flags for verification.testCommand and testGlobs
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, init, onboard
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 8; cadence init --help and onboard --help list no test flags on 1.73.0
+- next: cadence milestone propose
+
+cadence init and onboard take no flag for verification.testCommand or testGlobs (checked on 1.73.0), so an automated scaffold has to follow init with config set calls, and a project is briefly configured without a test command, the case build-test-must-pass prints its loud notice for. Ask: --test-command and --test-globs on init and onboard, written in the same config write.
+
+## rec-20261030-009 — Amend an approved DRAFT under an explicit recorded reason, or a documented split-into-a-new-phase recipe
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, draft, amendment
+- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 9
+- next: cadence milestone propose
+
+Studio's clarification flow needs to change a PENDING task or AC of an already-approved DRAFT. Today the options are hand-editing (which the content-hash draft-read gate from phase 340 now catches) or abandoning the slice. Ask: a mutator that amends an approved DRAFT under a recorded reason and re-stamps the hash, or a documented split recipe. Needs a decision on how an amended AC re-reaches deep-verify; that is rec-20260820-001's gap, and the two should be decided together.
+
+## rec-20261030-010 — host-cli verifiers inherit the operator's full user config (Codex ~/.codex MCPs, plugins, hooks, global AGENTS.md; Claude settings likewise)
+
+- status: candidate
+- ready: needs-evidence
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, verify, host-cli, isolation
+- evidence: cadence-studio rec-20261028-008; packages/core/src/verify/host-cli-client.ts:382-387
+- next: cadence milestone propose
+
+Studio measured (its rec-20261028-008) that CADENCE_HOST_CLI_BIN=codex settles spawn Codex with the user's full ~/.codex: MCP servers including a computer-use server, plugins, hooks, and a global AGENTS.md that made the verifier read ~/.memory/MEMORY.md unprompted. A verifier that inherits the operator's ambient instructions shares their blind spots. The claude family has the same exposure: host-cli-client.ts:387 spawns 'claude -p --output-format json [--model]' with no --setting-sources or --strict-mcp-config. Evidence still needed: whether CODEX_HOME=<scratch> keeps the global AGENTS.md from reaching the child (codex --ignore-user-config, codex-cli 0.162.1 or later, drops config.toml only). Planned as phase 344, probe first.
