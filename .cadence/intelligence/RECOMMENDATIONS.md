@@ -547,6 +547,7 @@ packages/core/src/verify/coverage-profiles/mask.ts's classify() only knows strin
 - decisions: dec-20261030-002 (active)
 - evidence: Reproduced directly: pnpm --filter cadence-core test -- tests/docs/self-application-config.test.ts with securityAudit.provider=host-cli shows the real AssertionError only when run standalone outside cadence settle; cadence settle run --allow-failing-build gave zero console output about which test failed, on the exact same repo state (2026-08-06).
 - evidence: Confirmed still valid 2026-08-21 (HANDOFF-verifier-honesty-verify-premises.md Phase L sweep, scout-20260821-verifier-honesty): packages/core/src/gates/build-test-must-pass.ts's bypass-through path (buildTestBypassed:true) has zero ctx.io.err calls -- completely silent, unlike the refusal branch which does log. packages/core/src/verify/test-runner.ts:17 confirms execSync(command, { cwd, stdio: 'ignore' }) discards subprocess output at the OS level, never captured for later surfacing. Readiness/priority unchanged (needs-decision/high) -- genuine live gap.
+- evidence: Correction to dec-20261030-002 (phase 342 independent review): the --allow-failing-build bypass was NOT used by phase 298; 298-01-SUMMARY.json records build-test-must-pass as status 'ran'. The committed SUMMARYs that record skipReason 'bypassed via --allow-failing-build' are 39, 226, 256, 296, 297 and 319. The promote stands; read the decision's '296-298' as '296, 297 and 319'.
 - next: cadence milestone propose
 
 packages/core/src/gates/build-test-must-pass.ts only writes a stderr notice on the refusal branch (line 37: '${res.command} exited ${res.exitCode}'); when a failing run is bypassed via --allow-failing-build or --force (line 47-51), the gate returns { outcome: 'pass', flags: { buildTestBypassed: true } } with NO stderr output at all. The subprocess itself is spawned via packages/core/src/verify/test-runner.ts's runTestCommand with stdio: 'ignore' -- the actual test output (which test failed, why) is never captured anywhere, not to the console, not to a log file, not into the SUMMARY. This means an operator who bypasses a failing build genuinely cannot find out which test failed without independently re-running the test command themselves outside cadence. This violates this repo's own documented convention (CLAUDE.md's 'Quiet Fallback' failure mode: 'every fallback and auto-bypass in this codebase prints a loud stderr notice and/or records provenance in the SUMMARY'). Discovered during phase 256-02's real-provider conduction (2026-08-06): the operator was asked to confirm a known, expected build-test-must-pass bypass was ONLY the anticipated self-application-config.test.ts failure and not something else -- and had to be walked through running pnpm test directly, outside cadence, to find out, since cadence itself gave zero signal. Fix direction: capture stdout/stderr from the test command (or at minimum a pass/fail-per-file summary) and print/record it on the bypass path too, not just the refusal path.
@@ -1054,6 +1055,7 @@ docs/packs-design.md §7 Slice 4 (marked 'stretch -- may land after this arc clo
 - areas: build, types
 - files: packages/core/tsconfig.json
 - evidence: Phase 296: stdin made required -> pnpm typecheck passed; direct tsc over the two test files reported TS2741 Property 'stdin' is missing in both.
+- evidence: Carried from rec-20260728-002, rejected as a duplicate by dec-20261030-008 (phase 342): that rec also covered LINT. Every package's lint script is 'eslint src', so test files are neither typechecked nor linted. The phase that builds this rec should decide whether lint widens to tests in the same change. Scope figure from 342's research: tsc --noEmit over core src+tests reported about 288 errors across 61 test files (one subagent measurement, not re-run).
 - next: cadence milestone propose
 
 pnpm typecheck runs tsc -p packages/core/tsconfig.json, whose include is ["src/**/*"]. The tests/ tree is never typechecked by any turbo task, and no eslint config supplies a type-aware project either. Test-only type regressions therefore land silently. Found while verifying phase 296: the SpawnedProcessLike comment justifies making kill optional because requiring it 'would break those files typecheck', but making a member required does not fail pnpm typecheck at all. Running tsc --noEmit directly over packages/core/tests/verify/per-task.test.ts and json-repair.test.ts does show TS2741, so the concern is real -- it is just unenforced.
@@ -1140,6 +1142,7 @@ Phase 311 closed only the --allow-skill-audit-miss third of rec-20260917-004. Th
 - evidence: Code: handlers.ts:494 dedup early-return, :495 applySkillInvoke append + SKILL_AUDIT_CAP=100; grep of skillAudit across packages/core/src shows no other writer. Corpus proof of accumulation, phases 299-311 SUMMARY.skillAudit.invoked: 301 and 302 both ['cadence-resume','pr-land'], 303 ['cadence-resume','pr-land','phase-build'] — monotonic growth within one checkout, never reset at settle. Empty rows (304-307, 309-310) are fresh per-worktree states, and 311 ['phase-build','release-cut','handoff'] carries release-cut and handoff from sessions before the one that built it — i.e. a phase that invoked nothing would still have satisfied a requirement naming them. Measured 2026-09-17 @ main ccd5572f.
 - evidence: AMBIGUOUS IN IDENTITY AS WELL AS IN TIME. Observed live 2026-09-18 while building phase 313: the Skill tool was called with skill="systematic-debugging" and RESOLVED to the Superpowers plugin copy, yet state.skillAudit.invoked recorded the bare string "systematic-debugging". So the telemetry records the name that was REQUESTED, not the skill that actually ran (single write site, hooks/handlers.ts:495, which takes ctx.raw.skill verbatim). Combined with skill-match.ts satisfies(), which matches inv === req OR inv.endsWith(":" + req), this means a requirement naming a bare skill can be satisfied by any namespaced skill sharing that suffix from any installed plugin — a repo could declare skillAudit.required for its own skill and have a third-party plugin skill of the same name satisfy it. So skillAudit.required is ambiguous in identity as well as in time: it cannot show WHICH implementation ran, only that something by that name was asked for, sometime in this checkout. Latent today, not exercised: phase 313 deliberately does not add its skill to any manifest, and no CADENCE pack currently requires a name that collides with an installed plugin skill.
 - evidence: Observed in practice 2026-10-27 (phase 338, cloud session): phase 337 recorded phase-build in state.skillAudit.invoked (via an operator-approved replay of the PostToolUse Skill hook — the session had no project hooks). Phase 338 was then built in the same checkout; its own replay was denied, so nothing was recorded for 338, and the operator chose --allow-skill-audit-miss. Settle nevertheless passed the skill audit with skillAudit.invoked=[phase-build] and gateBypasses null — the bypass never fired, and 338's SUMMARY rests on 337's evidence (phase-build was in fact invoked for 338, but that is not what the record proves). Disclosed in phase 338's commit and PR.
+- evidence: Live instance, phase 342 settle (2026-10-30, cloud checkout): 342-01-SUMMARY.json's skillAudit records phase-build as invoked and the required check passed, but phase 342 never invoked phase-build. The entry was stale history in that checkout's state.json skillAudit.invoked list (alongside release-cut, pr-land, cadence-handoff). Exactly the gap this rec describes.
 - next: cadence milestone propose
 
 state.skillAudit.invoked has exactly one writer (hooks/handlers.ts:494-495): it returns early if the skill is already present (dedup, so a skill is recorded at most once ever) and otherwise appends with a FIFO cap of 100 DISTINCT skills. Nothing in packages/core/src ever clears it — settle only reads it into SUMMARY (services/settle.ts:1488). Consequence: once a required skill is invoked once in a given .cadence/state.json, skillAudit.required is satisfied permanently in that checkout; eviction would need 100 distinct skill names, which realistically never occurs. The check therefore proves 'this skill appears in this checkout's invocation history', not 'this phase invoked it'. Scope is bounded, not total: each git worktree holds a private .cadence/, so a phase built in a fresh worktree does start from an empty list and must genuinely invoke the skill. The exposure is phases built in a long-lived checkout — which includes the primary checkout. This matters because it is the premise under which a pack or config declares skillAudit.required expecting per-phase enforcement; the declaration is still worth making (it is the only way SUMMARY.skillAudit.provenance is ever non-empty), but it should not be described as proving every phase ran through the required skill. Fixing it is a mechanism change — per-phase invocation tracking, e.g. a phase-scoped invoked set or a draftApprovedAt watermark — deliberately out of scope for the phase that declares the requirement.
@@ -1708,6 +1711,7 @@ Ask: export settle, draftApprove, buildTask, status and doctor from packages/cor
 - decay: fresh
 - areas: studio-upstream, verify, config
 - evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 4; operator handoff HANDOFF-stop-gate-capture-342-344 section 2
+- evidence: Config key not yet chosen: Studio's ask says verifier.fallback, this rec's title says verification.fallback, and both namespaces exist in packages/types/src/config.ts (verification holds testGlobs/coverageMode; verifier holds the deep-verify provider). Phase 343's DRAFT should pick the key deliberately and record why.
 - next: cadence milestone propose
 
 Every host-cli seam that cannot launch its binary, or trips the claude self-invocation guard, prints a loud notice and continues on mock. An automated consumer can therefore settle on a mock by accident; Studio defends against it with a sentence in its CLAUDE.md. Ask: additive config verification.fallback: 'mock' | 'refuse', default 'mock'. Under 'refuse' the seam refuses its gate with a named reason, settle exits non-zero, the SUMMARY records it, and doctor reports the setting. Do not flip the default (D-B, dec-20260808-002). Planned as phase 343.
@@ -1753,6 +1757,7 @@ The host-cli binary is chosen only by the CADENCE_HOST_CLI_BIN environment varia
 - decay: fresh
 - areas: studio-upstream, settle, verdicts
 - evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 7
+- evidence: Adjacent schema already exists: a dormant deferred: DeferredItem[] field in state and SUMMARY, always written as [] (services/settle.ts ~962 and ~1599) and rendered by summary-render/summary-writer. A parked-AC verdict should decide whether to reuse it.
 - next: cadence milestone propose
 
 An operator who deliberately parks one AC today must --force or bypass, which caps the assurance grade and reads as a failure. Ask: a first-class verdict for an explicitly deferred AC, recorded with a reason, kept out of gateBypasses, and listable later. Needs a decision on what grade a settle with a parked AC may earn, so the verdict cannot launder a failing AC. Adjacent, not the same: rec-20261016-005 (per-finding code-review bypass) and the unobservable-AC verdict class from dec-20260812-004.
@@ -1798,6 +1803,69 @@ Studio's clarification flow needs to change a PENDING task or AC of an already-a
 - decay: fresh
 - areas: studio-upstream, verify, host-cli, isolation
 - evidence: cadence-studio rec-20261028-008; packages/core/src/verify/host-cli-client.ts:382-387
+- evidence: Decide together with rec-20260916-004 (host-cli verifier children still fire every CADENCE hook), which Studio's roadmap §3 Phase-2 risk note also cites: the claude-family isolation flags this rec proposes (--setting-sources, --strict-mcp-config) bear directly on whether a verifier child loads the operator's hooks.
 - next: cadence milestone propose
 
 Studio measured (its rec-20261028-008) that CADENCE_HOST_CLI_BIN=codex settles spawn Codex with the user's full ~/.codex: MCP servers including a computer-use server, plugins, hooks, and a global AGENTS.md that made the verifier read ~/.memory/MEMORY.md unprompted. A verifier that inherits the operator's ambient instructions shares their blind spots. The claude family has the same exposure: host-cli-client.ts:387 spawns 'claude -p --output-format json [--model]' with no --setting-sources or --strict-mcp-config. Evidence still needed: whether CODEX_HOME=<scratch> keeps the global AGENTS.md from reaching the child (codex --ignore-user-config, codex-cli 0.162.1 or later, drops config.toml only). Planned as phase 344, probe first.
+
+## rec-20261013-002 — The braces audit-exception row's root-only justification now also applies to website/'s lockfile
+
+- status: deferred
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: security, ci
+- files: docs/security/audit-exceptions.md, scripts/check-audit-exceptions.mjs
+- decisions: dec-20261030-059 (active)
+- evidence: Phase 328 whole-branch review Minor #6 (2026-10-13): one-table design covers both lockfiles; braces row text names only root paths.
+- next: cadence milestone propose
+
+Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.
+
+## rec-20261030-011 — draft check misses a task count over maxTasks, a missing Acceptance Criteria section, and a done: naming a missing AC
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, draft, coherence
+- evidence: cadence-studio docs/engine/probes.md:85 'Upstream notes (generic wording, for the roadmap's §3 list)' -- observed by Studio's engine probe, not yet reproduced in this repo
+- next: cadence milestone propose
+
+Studio's engine probe reports that cadence draft check does not flag a task count above the tier's maxTasks, a DRAFT with no Acceptance Criteria section, or a task whose done: names an AC that does not exist. Missed by phase 342's intake (it sat in Studio's probes.md, not roadmap §3) and caught by the independent review. Reproduce here before specifying; the coherence checker may already cover part of it.
+
+## rec-20261030-012 — draft add-task needs --stop (and --name), and draft new's placeholder AC-1/T1 cannot be replaced by the structured writers
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, draft, writers
+- evidence: cadence-studio docs/engine/probes.md:85 'Upstream notes (generic wording, for the roadmap's §3 list)' -- observed by Studio's engine probe, not yet reproduced in this repo; draft.ts:106-110 lists no --name/--stop
+- next: cadence milestone propose
+
+Studio's engine probe: add-ac and add-task append after draft new's placeholder AC-1 and T1, add-task has no --name or --stop flag (confirmed at packages/core/src/cli/commands/draft.ts:106-110), so a task drawn by the writers always trips STOP_CONDITION_MISSING, and draft approve accepted a DRAFT still carrying the placeholders. Ask: --name/--stop on add-task plus a way to replace or remove the scaffold placeholders (or an empty draft new mode). The --name half overlaps raw ideas rec-20260714-002 and rec-20260712-005; the --stop and placeholder halves are not in the ledger. Phase 342's own DRAFT hit this and was hand-written for that reason.
+
+## rec-20261030-013 — settle --auto's blocked-task refusal is not recorded as a gate in SUMMARY gates[]
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: studio-upstream, settle, gates
+- evidence: cadence-studio docs/engine/probes.md:85 'Upstream notes (generic wording, for the roadmap's §3 list)' -- observed by Studio's engine probe, not yet reproduced in this repo
+- next: cadence milestone propose
+
+Studio's engine probe reports that when settle run --auto refuses because a task is BLOCKED, the refusal does not appear in SUMMARY gates[] the way other gate refusals do, so a consumer reading gates[] cannot see why settle stopped. Reproduce here before specifying; if confirmed it is an audit-trail gap in the same family as rec-20260917-005.

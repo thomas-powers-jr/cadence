@@ -47,8 +47,11 @@ function allDecisions(): LedgerDecision[] {
 
 const STUDIO_SCOUT = 'scout-20261030-studio-intake';
 
-// The 56 recs that were candidate/needs-decision on main at 655b20ef, when
-// phase 342 started. Fixed here so the assertion cannot shrink with the ledger.
+// The recs that were candidate/needs-decision on main at 655b20ef, when phase
+// 342 started. Fixed here so the assertion cannot shrink with the ledger. The
+// first 56 were in the active set; the DRAFT counted only those. The last
+// three had been soft-archived (manual) while still undecided, so the active
+// listing never showed them; the phase's independent review found them.
 const TRIAGED_IDS = [
   'rec-20260730-001', 'rec-20260806-006', 'rec-20260807-005', 'rec-20260813-005',
   'rec-20260820-001', 'rec-20260917-006', 'rec-20260726-005', 'rec-20260728-002',
@@ -64,6 +67,7 @@ const TRIAGED_IDS = [
   'rec-20261023-001', 'rec-20261023-002', 'rec-20260731-005', 'rec-20260731-006',
   'rec-20260801-007', 'rec-20260803-001', 'rec-20260804-002', 'rec-20260809-004',
   'rec-20260809-006', 'rec-20260811-004', 'rec-20260821-002', 'rec-20261015-001',
+  'rec-20260801-002', 'rec-20260801-008', 'rec-20261013-002',
 ];
 
 const TRIAGE_TITLE = /^342 triage: (promote|defer|reject|shipped) (rec-\d{8}-\d{3}) -- /;
@@ -71,8 +75,9 @@ const TRIAGE_TITLE = /^342 triage: (promote|defer|reject|shipped) (rec-\d{8}-\d{
 describe('phase 342: needs-decision backlog triage and Studio upstream intake', () => {
   it('342-01/AC-1: each Studio upstream ask is a filed rec under the intake scout id and studio-upstream area', () => {
     const studio = allRecommendations().filter((r) => r.scoutId === STUDIO_SCOUT);
-    // Nine roadmap asks plus Studio's rec-20261028-008; none was fully covered.
-    expect(studio).toHaveLength(10);
+    // Nine roadmap asks, Studio's rec-20261028-008, and the three upstream
+    // notes in Studio's docs/engine/probes.md; none was fully covered.
+    expect(studio).toHaveLength(13);
     for (const rec of studio) {
       expect(rec.affectedAreas).toContain('studio-upstream');
     }
@@ -88,6 +93,9 @@ describe('phase 342: needs-decision backlog triage and Studio upstream intake', 
     expectTitle(/init\/onboard flags for verification\.testCommand/);
     expectTitle(/Amend an approved DRAFT/);
     expectTitle(/inherit the operator's full user config/);
+    expectTitle(/draft check misses a task count over maxTasks/);
+    expectTitle(/draft add-task needs --stop/);
+    expectTitle(/blocked-task refusal is not recorded as a gate/);
 
     // The two asks that become phases 343 and 344 are filed high.
     const byTitle = (re: RegExp) => studio.find((r) => re.test(r.title));
@@ -95,11 +103,11 @@ describe('phase 342: needs-decision backlog triage and Studio upstream intake', 
     expect(byTitle(/inherit the operator's full user config/)?.priority).toBe('high');
   });
 
-  it('342-01/AC-2: every needs-decision rec at phase start carries one 342 triage decision, and its ledger state matches it', () => {
+  it('342-01/AC-2: every needs-decision rec at phase start (active or soft-archived) carries one 342 triage decision, and its ledger state matches it', () => {
     const recs = new Map(allRecommendations().map((r) => [r.id, r]));
     const decisions = new Map(allDecisions().map((d) => [d.id, d]));
-    expect(TRIAGED_IDS).toHaveLength(56);
-    expect(new Set(TRIAGED_IDS).size).toBe(56);
+    expect(TRIAGED_IDS).toHaveLength(59);
+    expect(new Set(TRIAGED_IDS).size).toBe(59);
 
     for (const id of TRIAGED_IDS) {
       const rec = recs.get(id);
@@ -112,6 +120,7 @@ describe('phase 342: needs-decision backlog triage and Studio upstream intake', 
       const decision = triage[0]!;
       const [, disposition, named] = TRIAGE_TITLE.exec(decision.title)!;
       expect(named).toBe(id);
+      expect(decision.status, decision.id).toBe('active');
       expect(decision.rationale.length).toBeGreaterThan(40);
 
       // A later decision on the same rec supersedes this phase's triage, so
@@ -119,6 +128,7 @@ describe('phase 342: needs-decision backlog triage and Studio upstream intake', 
       if (rec.decisionIds[rec.decisionIds.length - 1] !== decision.id) continue;
       switch (disposition) {
         case 'promote':
+          expect(rec.status, id).toBe('candidate');
           expect(rec.readiness, id).toBe('ready-for-cadence-spec');
           break;
         case 'defer':

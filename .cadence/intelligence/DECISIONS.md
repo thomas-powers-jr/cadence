@@ -1291,6 +1291,27 @@ Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase num
 
 Still present (scripts/check-audit-exceptions.mjs fails only on high/critical), and the moderate-severity policy is unrecorded. Recording option (a) would close it at no code cost, but that is a security-posture choice for the operator, and nothing has surfaced since phase 330. Reopen when a production-path moderate advisory is found out-of-band (Dependabot, a manual audit, or a consumer report), or when the operator records the policy.
 
+### dec-20261030-057 — 342 triage: reject rec-20260801-002 -- duplicate of shipped rec-20260801-003
+
+- recommendation: rec-20260801-002
+- decided: 2026-10-30T19:47:34.970Z
+
+This rec had been soft-archived (manual) while still candidate/needs-decision, so the active listing never showed it; phase 342's independent review found it. It is the same ask as rec-20260801-003 (wire host-cli into the remaining six verifier families), which shipped. Nothing remains to decide.
+
+### dec-20261030-058 — 342 triage: reject rec-20260801-008 -- subsumed by promoted rec-20260806-008
+
+- recommendation: rec-20260801-008
+- decided: 2026-10-30T19:47:36.468Z
+
+Soft-archived (manual) while still candidate/needs-decision, so missed by the active listing until phase 342's independent review. dec-20260801-002 already narrowed finding identity to (file, normalized message), and dec-20260801-003 deferred message-drift dedup pending an offline analyzer. rec-20260806-008, promoted to ready-for-cadence-spec in this phase (dec-20261030-019), carries exactly that analyzer, so the remaining question (re-worded findings minting new ids, seen live as rec-20260806-002/-003/-005) is decided there from real data, not here.
+
+### dec-20261030-059 — 342 triage: defer rec-20261013-002 -- latent until braces enters website/ or the row is renewed
+
+- recommendation: rec-20261013-002
+- decided: 2026-10-30T19:47:37.887Z
+
+Soft-archived (manual) while still candidate/needs-decision, so missed by the active listing until phase 342's independent review. The braces exception row's root-only justification is latent for website/: braces is not in website/pnpm-lock.yaml, and the row expires 2026-11-18 (rec-20261010-007). Reopen when braces appears in website/'s lockfile, or when the braces row is renewed past 2026-11-18; decide the scope-column question then, alongside rec-20261010-007.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

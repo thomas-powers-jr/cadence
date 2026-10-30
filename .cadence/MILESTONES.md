@@ -1325,6 +1325,11 @@ changeset (example/test-only change, no published-package surface).*
   project, a missing phase directory, or local work since this machine's
   last sync, resets session counters, and backs up the replaced state to
   the new gitignored `.cadence/local/` (dec-20261029-001).
+- **Phase 342** — decisions only. Files Cadence Studio's upstream asks
+  in this ledger (rec-20261030-001..013) and retires the `needs-decision`
+  backlog: 59 recs each get one recorded disposition
+  (dec-20261030-001..059: 11 promote, 2 shipped, 22 reject, 24 defer),
+  leaving 5 undecided, all new Studio asks. No product code changed.
 
 
 

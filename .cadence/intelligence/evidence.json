@@ -3204,6 +3204,69 @@
       "kind": "note",
       "summary": "cadence-studio rec-20261028-008; packages/core/src/verify/host-cli-client.ts:382-387",
       "createdAt": "2026-10-30T19:28:27.265Z"
+    },
+    {
+      "id": "ev-20261030-011",
+      "recommendationId": "rec-20260806-006",
+      "kind": "note",
+      "summary": "Correction to dec-20261030-002 (phase 342 independent review): the --allow-failing-build bypass was NOT used by phase 298; 298-01-SUMMARY.json records build-test-must-pass as status 'ran'. The committed SUMMARYs that record skipReason 'bypassed via --allow-failing-build' are 39, 226, 256, 296, 297 and 319. The promote stands; read the decision's '296-298' as '296, 297 and 319'.",
+      "createdAt": "2026-10-30T19:47:58.276Z"
+    },
+    {
+      "id": "ev-20261030-012",
+      "recommendationId": "rec-20260907-002",
+      "kind": "note",
+      "summary": "Carried from rec-20260728-002, rejected as a duplicate by dec-20261030-008 (phase 342): that rec also covered LINT. Every package's lint script is 'eslint src', so test files are neither typechecked nor linted. The phase that builds this rec should decide whether lint widens to tests in the same change. Scope figure from 342's research: tsc --noEmit over core src+tests reported about 288 errors across 61 test files (one subagent measurement, not re-run).",
+      "createdAt": "2026-10-30T19:47:58.686Z"
+    },
+    {
+      "id": "ev-20261030-013",
+      "recommendationId": "rec-20261030-010",
+      "kind": "note",
+      "summary": "Decide together with rec-20260916-004 (host-cli verifier children still fire every CADENCE hook), which Studio's roadmap §3 Phase-2 risk note also cites: the claude-family isolation flags this rec proposes (--setting-sources, --strict-mcp-config) bear directly on whether a verifier child loads the operator's hooks.",
+      "createdAt": "2026-10-30T19:47:59.151Z"
+    },
+    {
+      "id": "ev-20261030-014",
+      "recommendationId": "rec-20261030-004",
+      "kind": "note",
+      "summary": "Config key not yet chosen: Studio's ask says verifier.fallback, this rec's title says verification.fallback, and both namespaces exist in packages/types/src/config.ts (verification holds testGlobs/coverageMode; verifier holds the deep-verify provider). Phase 343's DRAFT should pick the key deliberately and record why.",
+      "createdAt": "2026-10-30T19:47:59.547Z"
+    },
+    {
+      "id": "ev-20261030-015",
+      "recommendationId": "rec-20261030-007",
+      "kind": "note",
+      "summary": "Adjacent schema already exists: a dormant deferred: DeferredItem[] field in state and SUMMARY, always written as [] (services/settle.ts ~962 and ~1599) and rendered by summary-render/summary-writer. A parked-AC verdict should decide whether to reuse it.",
+      "createdAt": "2026-10-30T19:47:59.973Z"
+    },
+    {
+      "id": "ev-20261030-016",
+      "recommendationId": "rec-20261030-011",
+      "kind": "note",
+      "summary": "cadence-studio docs/engine/probes.md:85 'Upstream notes (generic wording, for the roadmap's §3 list)' -- observed by Studio's engine probe, not yet reproduced in this repo",
+      "createdAt": "2026-10-30T19:48:00.423Z"
+    },
+    {
+      "id": "ev-20261030-017",
+      "recommendationId": "rec-20261030-012",
+      "kind": "note",
+      "summary": "cadence-studio docs/engine/probes.md:85 'Upstream notes (generic wording, for the roadmap's §3 list)' -- observed by Studio's engine probe, not yet reproduced in this repo; draft.ts:106-110 lists no --name/--stop",
+      "createdAt": "2026-10-30T19:48:00.868Z"
+    },
+    {
+      "id": "ev-20261030-018",
+      "recommendationId": "rec-20261030-013",
+      "kind": "note",
+      "summary": "cadence-studio docs/engine/probes.md:85 'Upstream notes (generic wording, for the roadmap's §3 list)' -- observed by Studio's engine probe, not yet reproduced in this repo",
+      "createdAt": "2026-10-30T19:48:01.548Z"
+    },
+    {
+      "id": "ev-20261030-019",
+      "recommendationId": "rec-20260917-006",
+      "kind": "note",
+      "summary": "Live instance, phase 342 settle (2026-10-30, cloud checkout): 342-01-SUMMARY.json's skillAudit records phase-build as invoked and the required check passed, but phase 342 never invoked phase-build. The entry was stale history in that checkout's state.json skillAudit.invoked list (alongside release-cut, pr-land, cadence-handoff). Exactly the gap this rec describes.",
+      "createdAt": "2026-10-30T19:55:24.478Z"
     }
   ]
 }

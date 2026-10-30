@@ -974,14 +974,15 @@
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
         "ev-20260806-009",
-        "ev-20260822-007"
+        "ev-20260822-007",
+        "ev-20261030-011"
       ],
       "assumptionIds": [],
       "decisionIds": [
         "dec-20261030-002"
       ],
       "createdAt": "2026-08-06T05:30:55.570Z",
-      "updatedAt": "2026-10-30T19:32:53.407Z"
+      "updatedAt": "2026-10-30T19:47:58.276Z"
     },
     {
       "id": "rec-20260806-007",
@@ -1878,12 +1879,13 @@
       ],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20260907-002"
+        "ev-20260907-002",
+        "ev-20261030-012"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-09-07T22:06:50.588Z",
-      "updatedAt": "2026-09-07T22:06:50.588Z"
+      "updatedAt": "2026-10-30T19:47:58.686Z"
     },
     {
       "id": "rec-20260907-006",
@@ -2039,7 +2041,8 @@
       "evidenceIds": [
         "ev-20260917-010",
         "ev-20260918-004",
-        "ev-20261027-003"
+        "ev-20261027-003",
+        "ev-20261030-019"
       ],
       "assumptionIds": [],
       "decisionIds": [
@@ -2051,7 +2054,7 @@
       ],
       "scoutId": "scout-20260917-expansion-1",
       "createdAt": "2026-09-17T23:31:37.050Z",
-      "updatedAt": "2026-10-30T19:32:57.098Z"
+      "updatedAt": "2026-10-30T19:55:24.478Z"
     },
     {
       "id": "rec-20260917-008",
@@ -3070,13 +3073,14 @@
       "affectedFiles": [],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20261030-004"
+        "ev-20261030-004",
+        "ev-20261030-014"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:28:24.745Z",
-      "updatedAt": "2026-10-30T19:28:24.745Z"
+      "updatedAt": "2026-10-30T19:47:59.547Z"
     },
     {
       "id": "rec-20261030-005",
@@ -3154,13 +3158,14 @@
       "affectedFiles": [],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20261030-007"
+        "ev-20261030-007",
+        "ev-20261030-015"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:28:26.029Z",
-      "updatedAt": "2026-10-30T19:28:26.029Z"
+      "updatedAt": "2026-10-30T19:47:59.973Z"
     },
     {
       "id": "rec-20261030-008",
@@ -3239,13 +3244,129 @@
       "affectedFiles": [],
       "suggestedBackendAction": "cadence milestone propose",
       "evidenceIds": [
-        "ev-20261030-010"
+        "ev-20261030-010",
+        "ev-20261030-013"
       ],
       "assumptionIds": [],
       "decisionIds": [],
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:28:27.265Z",
-      "updatedAt": "2026-10-30T19:28:27.265Z"
+      "updatedAt": "2026-10-30T19:47:59.151Z"
+    },
+    {
+      "id": "rec-20261013-002",
+      "title": "The braces audit-exception row's root-only justification now also applies to website/'s lockfile",
+      "summary": "Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.",
+      "source": "manual",
+      "status": "deferred",
+      "readiness": "needs-decision",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "security",
+        "ci"
+      ],
+      "affectedFiles": [
+        "docs/security/audit-exceptions.md",
+        "scripts/check-audit-exceptions.mjs"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261013-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-059"
+      ],
+      "createdAt": "2026-10-13T18:12:20.706Z",
+      "updatedAt": "2026-10-30T19:47:38.304Z"
+    },
+    {
+      "id": "rec-20261030-011",
+      "title": "draft check misses a task count over maxTasks, a missing Acceptance Criteria section, and a done: naming a missing AC",
+      "summary": "Studio's engine probe reports that cadence draft check does not flag a task count above the tier's maxTasks, a DRAFT with no Acceptance Criteria section, or a task whose done: names an AC that does not exist. Missed by phase 342's intake (it sat in Studio's probes.md, not roadmap §3) and caught by the independent review. Reproduce here before specifying; the coherence checker may already cover part of it.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "studio-upstream",
+        "draft",
+        "coherence"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-016"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261030-studio-intake",
+      "createdAt": "2026-10-30T19:48:00.423Z",
+      "updatedAt": "2026-10-30T19:48:00.423Z"
+    },
+    {
+      "id": "rec-20261030-012",
+      "title": "draft add-task needs --stop (and --name), and draft new's placeholder AC-1/T1 cannot be replaced by the structured writers",
+      "summary": "Studio's engine probe: add-ac and add-task append after draft new's placeholder AC-1 and T1, add-task has no --name or --stop flag (confirmed at packages/core/src/cli/commands/draft.ts:106-110), so a task drawn by the writers always trips STOP_CONDITION_MISSING, and draft approve accepted a DRAFT still carrying the placeholders. Ask: --name/--stop on add-task plus a way to replace or remove the scaffold placeholders (or an empty draft new mode). The --name half overlaps raw ideas rec-20260714-002 and rec-20260712-005; the --stop and placeholder halves are not in the ledger. Phase 342's own DRAFT hit this and was hand-written for that reason.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "studio-upstream",
+        "draft",
+        "writers"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-017"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261030-studio-intake",
+      "createdAt": "2026-10-30T19:48:00.868Z",
+      "updatedAt": "2026-10-30T19:48:00.868Z"
+    },
+    {
+      "id": "rec-20261030-013",
+      "title": "settle --auto's blocked-task refusal is not recorded as a gate in SUMMARY gates[]",
+      "summary": "Studio's engine probe reports that when settle run --auto refuses because a task is BLOCKED, the refusal does not appear in SUMMARY gates[] the way other gate refusals do, so a consumer reading gates[] cannot see why settle stopped. Reproduce here before specifying; if confirmed it is an audit-trail gap in the same family as rec-20260917-005.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "studio-upstream",
+        "settle",
+        "gates"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-018"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261030-studio-intake",
+      "createdAt": "2026-10-30T19:48:01.548Z",
+      "updatedAt": "2026-10-30T19:48:01.548Z"
     }
   ],
   "archived": [
@@ -7110,76 +7231,6 @@
       "archiveReason": "shipped",
       "createdAt": "2026-07-31T22:02:11.174Z",
       "updatedAt": "2026-08-01T00:32:38.968Z"
-    },
-    {
-      "id": "rec-20260801-002",
-      "title": "Wire host-cli verifier support into the remaining 6 gate families (deep-verify, code-review, plan-review, security-audit, spec-review, ui-spec-review)",
-      "summary": "Confirmed 2026-08-01: this arc's .cadence/config.json had all 7 gate-provider blocks set to mock at HEAD (7ddc72a1) -- the entire kernel-assurance-v2 arc has settled under placeholder verification the whole time. Activated the one real option available today: perTaskVerifier -> host-cli with CADENCE_HOST_CLI_BIN=codex (codex is deliberately unguarded against self-invocation, unlike the claude default -- see host-cli-client.ts's SELF_INVOCATION_ENV_VAR comment). But per docs/providers.md, host-cli is currently wired for only 1 of 7 families (HostCliPerTaskVerifier in per-task.ts); the other six -- verifier (deep-verify), codeReview, planReview, securityAudit, specReview, uiSpecReview -- have no host-cli builder and silently fall back to mock with a stderr warning if pointed at it. Real coverage on those six today would require anthropic + a paid ANTHROPIC_API_KEY (not available in this environment) or a local model endpoint (not configured). Wiring host-cli builders for the remaining families (mirroring HostCliPerTaskVerifier's shape) would let a codex-authenticated environment get real verification across the whole gate matrix with zero incremental API cost. Options: wire all six in one phase, or prioritize deep-verify + code-review first (the two gates with the most settle-time leverage) and defer the rest.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "core",
-        "verify"
-      ],
-      "affectedFiles": [
-        "packages/core/src/verify/factory.ts",
-        "packages/core/src/verify/per-task-factory.ts",
-        "packages/core/src/verify/spec-review-factory.ts",
-        "packages/core/src/verify/plan-review-factory.ts",
-        "packages/core/src/verify/security-audit-factory.ts",
-        "packages/core/src/verify/ui-spec-review-factory.ts",
-        "packages/core/src/verify/verifier-factory.ts",
-        "packages/core/src/verify/per-task.ts",
-        "docs/providers.md"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260801-015"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "archivedAt": "2026-08-01T03:12:45.630Z",
-      "archiveReason": "manual",
-      "createdAt": "2026-08-01T02:02:57.182Z",
-      "updatedAt": "2026-08-01T03:12:45.630Z"
-    },
-    {
-      "id": "rec-20260801-008",
-      "title": "Finding-identity hash includes raw LLM message text -- real-provider re-wording defeats ledger dedup",
-      "summary": "computeFindingId (packages/core/src/verify/finding-identity.ts) hashes (file, anchor.kind, anchor.ref, severity, normalizeMessage(message)) where normalizeMessage only strips/collapses whitespace -- explicitly no semantic normalization per its own docstring ('a genuinely different message must still produce a different id'). Under a real LLM-backed verifier (anthropic/local/host-cli), message and severity are live model output with no guarantee of identical wording across separate runs of the same underlying defect -- CADENCE's test suite is constitutionally mock-only (nothing may depend on anthropic or local), so this instability is structurally invisible to CI. Concrete failure: re-settling an unchanged phase under a real provider can mint a new id for an already-routed finding, and phase 242's deriveRoutingCandidates dedup (keyed on Finding.id) misses it, creating a duplicate Recommendation for the same underlying defect. Verified directly against source 2026-08-01 via independent review + spot-check.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "core"
-      ],
-      "affectedFiles": [
-        "packages/core/src/verify/finding-identity.ts",
-        "packages/core/src/intelligence/finding-routing.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260801-008",
-        "ev-20260801-010"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "scoutId": "scout-20260801-0100",
-      "archivedAt": "2026-08-01T17:28:56.400Z",
-      "archiveReason": "manual",
-      "createdAt": "2026-08-01T02:40:13.507Z",
-      "updatedAt": "2026-08-01T17:28:56.400Z"
     },
     {
       "id": "rec-20260801-009",
@@ -11062,37 +11113,6 @@
       "updatedAt": "2026-10-13T19:16:32.748Z"
     },
     {
-      "id": "rec-20261013-002",
-      "title": "The braces audit-exception row's root-only justification now also applies to website/'s lockfile",
-      "summary": "Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "low",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "security",
-        "ci"
-      ],
-      "affectedFiles": [
-        "docs/security/audit-exceptions.md",
-        "scripts/check-audit-exceptions.mjs"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261013-002"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "archivedAt": "2026-10-13T19:16:33.216Z",
-      "archiveReason": "manual",
-      "createdAt": "2026-10-13T18:12:20.706Z",
-      "updatedAt": "2026-10-13T19:16:33.216Z"
-    },
-    {
       "id": "rec-20261010-007",
       "title": "Land Dependabot #474 (@changesets/cli 3.x): drop the two pnpm.overrides keys it leaves dead, before the braces exception expires 2026-11-18",
       "summary": "After '@dependabot rebase' (2026-10-10), #474 (@changesets/cli 2.31.1 -> 3.0.2) is red on audit (security-success) and on cadence-core tests. Single root cause: changesets 3.x no longer pulls read-yaml-file or js-yaml, so the pnpm.overrides keys \"read-yaml-file@1.1.0\": \"^2.1.0\" and \"js-yaml@4.2.0\": \"^4.3.2\" resolve nothing; scripts/check-lockfile-overrides.mjs (audit job) and tests/docs/lockfile-overrides-current-state.test.ts both fail with reason unresolved-target, by design. Fix as its own phase on a fresh branch (not commits on Dependabot's branch): bump @changesets/cli to 3.x, delete both keys, regenerate pnpm-lock.yaml, update the current-state test's package list (it names js-yaml) and any check-lockfile-overrides fixtures, confirm braces is gone from the tree (pnpm why braces -r) and retire the GHSA-vfj7-8cjw-p6xm exception row in docs/security/audit-exceptions.md, then close #474 as superseded. Also confirm changesets 3.x 'changeset version' still produces the lockstep fixed-group bump and CHANGELOG shape release-integrity.mjs parses (## x.y.z). Unblocks every release after 2026-11-18.",
@@ -12201,6 +12221,80 @@
       "archiveReason": "rejected",
       "createdAt": "2026-08-11T00:41:54.411Z",
       "updatedAt": "2026-10-30T19:33:38.960Z"
+    },
+    {
+      "id": "rec-20260801-002",
+      "title": "Wire host-cli verifier support into the remaining 6 gate families (deep-verify, code-review, plan-review, security-audit, spec-review, ui-spec-review)",
+      "summary": "Confirmed 2026-08-01: this arc's .cadence/config.json had all 7 gate-provider blocks set to mock at HEAD (7ddc72a1) -- the entire kernel-assurance-v2 arc has settled under placeholder verification the whole time. Activated the one real option available today: perTaskVerifier -> host-cli with CADENCE_HOST_CLI_BIN=codex (codex is deliberately unguarded against self-invocation, unlike the claude default -- see host-cli-client.ts's SELF_INVOCATION_ENV_VAR comment). But per docs/providers.md, host-cli is currently wired for only 1 of 7 families (HostCliPerTaskVerifier in per-task.ts); the other six -- verifier (deep-verify), codeReview, planReview, securityAudit, specReview, uiSpecReview -- have no host-cli builder and silently fall back to mock with a stderr warning if pointed at it. Real coverage on those six today would require anthropic + a paid ANTHROPIC_API_KEY (not available in this environment) or a local model endpoint (not configured). Wiring host-cli builders for the remaining families (mirroring HostCliPerTaskVerifier's shape) would let a codex-authenticated environment get real verification across the whole gate matrix with zero incremental API cost. Options: wire all six in one phase, or prioritize deep-verify + code-review first (the two gates with the most settle-time leverage) and defer the rest.",
+      "source": "manual",
+      "status": "rejected",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core",
+        "verify"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/factory.ts",
+        "packages/core/src/verify/per-task-factory.ts",
+        "packages/core/src/verify/spec-review-factory.ts",
+        "packages/core/src/verify/plan-review-factory.ts",
+        "packages/core/src/verify/security-audit-factory.ts",
+        "packages/core/src/verify/ui-spec-review-factory.ts",
+        "packages/core/src/verify/verifier-factory.ts",
+        "packages/core/src/verify/per-task.ts",
+        "docs/providers.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260801-015"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-057"
+      ],
+      "archivedAt": "2026-10-30T19:47:35.546Z",
+      "archiveReason": "rejected",
+      "createdAt": "2026-08-01T02:02:57.182Z",
+      "updatedAt": "2026-10-30T19:47:35.546Z"
+    },
+    {
+      "id": "rec-20260801-008",
+      "title": "Finding-identity hash includes raw LLM message text -- real-provider re-wording defeats ledger dedup",
+      "summary": "computeFindingId (packages/core/src/verify/finding-identity.ts) hashes (file, anchor.kind, anchor.ref, severity, normalizeMessage(message)) where normalizeMessage only strips/collapses whitespace -- explicitly no semantic normalization per its own docstring ('a genuinely different message must still produce a different id'). Under a real LLM-backed verifier (anthropic/local/host-cli), message and severity are live model output with no guarantee of identical wording across separate runs of the same underlying defect -- CADENCE's test suite is constitutionally mock-only (nothing may depend on anthropic or local), so this instability is structurally invisible to CI. Concrete failure: re-settling an unchanged phase under a real provider can mint a new id for an already-routed finding, and phase 242's deriveRoutingCandidates dedup (keyed on Finding.id) misses it, creating a duplicate Recommendation for the same underlying defect. Verified directly against source 2026-08-01 via independent review + spot-check.",
+      "source": "manual",
+      "status": "rejected",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/finding-identity.ts",
+        "packages/core/src/intelligence/finding-routing.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260801-008",
+        "ev-20260801-010"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-058"
+      ],
+      "scoutId": "scout-20260801-0100",
+      "archivedAt": "2026-10-30T19:47:36.945Z",
+      "archiveReason": "rejected",
+      "createdAt": "2026-08-01T02:40:13.507Z",
+      "updatedAt": "2026-10-30T19:47:36.945Z"
     }
   ]
 }
