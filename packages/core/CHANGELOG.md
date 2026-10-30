@@ -1,5 +1,26 @@
 # @thomas-powers-jr/cadence-core
 
+## 1.73.0
+
+### Minor Changes
+
+- `settle run`'s `draft-read` gate no longer refuses a DRAFT.md whose modification time changed but whose content did not (phase 340, dec-20261029-001, c199079, #590). A `git checkout`, `git switch`, clone, pull or copy to another machine gives an unedited DRAFT a fresh mtime, and settle used to refuse it unless you passed `--allow-stale-draft`. `cadence draft approve` now also records `draftReadHash` in `state.json`: the sha256 of the DRAFT's text with a leading BOM stripped and CRLF and lone CR line endings turned into LF, so line-ending and BOM changes do not count as edits. When the DRAFT's mtime is newer than the approve time, settle refuses only if that hash no longer matches; a match passes with a notice on stderr. A real edit with a newer mtime is refused with the same message as before, and `--allow-stale-draft` still bypasses it. State approved before this change has no hash and keeps the mtime-only check. The new `draftReadHash` state field defaults to `null` when absent, so existing `state.json` files keep parsing.
+- New `cadence state save | load | list` carries the loop position between machines through committed snapshots (phase 341, dec-20261029-001, 650a4bd, #591). `.cadence/state.json` is gitignored, so it never traveled with a branch. `cadence state save` writes `.cadence/snapshots/state-<stamp>-<host>.json` and keeps the newest 3; commit it alongside a handoff, pull on the other machine, and run `cadence state load` (the newest snapshot by default, or a named one). `load` treats the snapshot as untrusted and refuses, changing nothing, when a path field is not a plain identifier (never overridable), when the snapshot has state keys this cadence does not know, when it belongs to another project, when its active phase directory is missing on this branch, or when this machine has local work since its last save or load. `--force` skips only the unknown-keys and local-work checks. A successful load keeps progress (including the active task and `draftReadHash`), resets the session's token and subagent counters, moves `revision` past both sides, re-renders `STATE.md`, and backs up the replaced `state.json` to `.cadence/local/state.json.bak`. `cadence state list` shows snapshots newest first, and all three subcommands take `--json`. `cadence init` and `cadence doctor` now also treat `.cadence/local/` as a CADENCE-owned gitignored path; `.cadence/snapshots/` stays committed. `cadence resume` is unchanged and still read-only. The types package exports the new `StateSnapshotZ` schema.
+
+### Patch Changes
+
+- DRAFT.md, SPEC.md and UI-SPEC.md files saved on Windows now parse and edit correctly (phase 339, rec-20260918-005, rec-20260918-006, rec-20260918-007, 7278a48, #588). Phase 310 had normalized CRLF only in the DRAFT parser. These cases still failed with misleading errors:
+  - a UTF-8 BOM, which PowerShell writes by default, failed every parser with "missing frontmatter";
+  - lone-CR line endings were not normalized;
+  - the SPEC and UI-SPEC parsers rejected CRLF;
+  - `cadence draft set-objective`, `add-ac` and `add-task` refused a PENDING CRLF or BOM draft with "draft status is unknown, not PENDING", or failed with "missing a ## Acceptance Criteria section".
+
+  All parse entry points and the frontmatter status reader now strip a leading BOM and turn CRLF and lone CR into LF before parsing. The three draft mutations write the file back in its original style: a CRLF file stays CRLF and a BOM is kept, so an edit changes only the edited bytes. A mixed-ending file is written back as all-CRLF, and a lone-CR file as LF. Line breaks in the text you pass to a mutation are turned into LF, then written in the file's style. An LF file is written exactly as before unless the text you pass contains a CR.
+
+- Updated dependencies [c199079]
+- Updated dependencies [650a4bd]
+  - @thomas-powers-jr/cadence-types@1.73.0
+
 ## 1.72.0
 
 ### Minor Changes
