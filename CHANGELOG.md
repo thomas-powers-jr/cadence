@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.73.0] - 2026-10-30
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.73.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **`cadence state save | load | list` carries the loop position between machines through committed snapshots.** `.cadence/state.json` is gitignored, so it never traveled with a branch. `cadence state save` writes `.cadence/snapshots/state-<stamp>-<host>.json` and keeps the newest 3; commit it alongside a handoff, pull on the other machine, and run `cadence state load` (the newest snapshot by default, or a named one). `load` treats the snapshot as untrusted and refuses, changing nothing, when a path field is not a plain identifier (never overridable), when the snapshot has state keys this cadence does not know, when it belongs to another project, when its active phase directory is missing on this branch, or when this machine has local work since its last save or load; `--force` skips only the unknown-keys and local-work checks. A successful load keeps progress, resets the session's token and subagent counters, moves `revision` past both sides, re-renders `STATE.md`, and backs up the replaced state to the new gitignored `.cadence/local/`. `cadence resume` stays read-only. The types package exports `StateSnapshotZ`. (Phase `341`, dec-20261029-001, #591.)
+
+### Changed
+
+- **`settle run`'s `draft-read` gate refuses only when the DRAFT's content changed since approve, not just its modification time.** A checkout, switch, clone, pull or copy gives an unedited DRAFT a fresh mtime, which used to need `--allow-stale-draft`. `cadence draft approve` now records `draftReadHash` (sha256 of the DRAFT with a leading BOM stripped and line endings normalized to LF); when the mtime is newer, settle refuses only if that hash no longer matches. State approved before this change keeps the mtime-only check. (Phase `340`, dec-20261029-001, #590.)
+
+### Fixed
+
+- **DRAFT.md, SPEC.md and UI-SPEC.md files saved on Windows now parse and edit correctly.** A UTF-8 BOM, lone-CR line endings and CRLF in the SPEC and UI-SPEC parsers all failed with misleading errors, and `cadence draft set-objective`, `add-ac` and `add-task` refused CRLF or BOM drafts. Every parse entry point now strips a leading BOM and normalizes line endings first, and the draft mutations write the file back in its original style. (Phase `339`, rec-20260918-005, rec-20260918-006, rec-20260918-007, #588.)
+
 ## [1.72.0] - 2026-10-29
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.72.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
