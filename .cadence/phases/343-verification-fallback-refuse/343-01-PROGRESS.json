@@ -20,6 +20,14 @@
       "updatedAt": "2026-10-30T20:39:54.977Z",
       "execution": "inline",
       "isolation": "none"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "VerifierFallbackRefusedError + VerifierSelectOptions.fallback; host-cli call-time refuse mode strips host-cli-client's trailing mock-fallback sentence; 7 selection sites pass the setting. New tests red first (4/8 failed), then 39/39 verifier-factory green, re-run in main thread. Independent review: no Critical/Important; M1 (wiring tests for security-audit/spec-review/ui-spec-review) carried into T4.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T20:42:06.399Z",
+      "execution": "dispatch",
+      "isolation": "none"
     }
   }
 }
