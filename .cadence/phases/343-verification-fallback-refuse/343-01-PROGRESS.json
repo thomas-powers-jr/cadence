@@ -28,6 +28,14 @@
       "updatedAt": "2026-10-30T20:42:06.399Z",
       "execution": "dispatch",
       "isolation": "none"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "doctor verification-fallback check (always pass, best-effort) after verification-readiness; readiness warnings say 'will refuse' under refuse, byte-identical under mock/absent. Tests red first (9 failed), then 35/35; live doctor --json shows the check. Independent review: no Critical/Important; M3 wording fixed in main thread (for example ..., self-invocation guard); M1/M2 noted for SUMMARY; M4 depends on T3.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T20:43:29.100Z",
+      "execution": "dispatch",
+      "isolation": "none"
     }
   }
 }

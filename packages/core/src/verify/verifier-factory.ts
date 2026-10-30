@@ -377,6 +377,47 @@ function wrapWithFallback<V>(
   }) as V;
 }
 
+/**
+ * Phase 343 (T3): the selection-time counterpart of `wrapWithFallback`'s
+ * refuse mode. Under `verification.fallback: "refuse"`, a selection-time
+ * downgrade (anthropic with no key, local with no endpoint/model, a family
+ * with no host-cli builder) returns this Proxy over `mock` instead of the
+ * banner + tagged mock. Refusal is lazy (decision (c)): selecting, awaiting,
+ * returning from an async function, `JSON.stringify` or `util.inspect` never
+ * throw, so a gate that never calls the verifier never refuses. Only calling
+ * one of the verifier's methods throws `VerifierFallbackRefusedError`.
+ *
+ * "Method" means any string-keyed function-valued property reachable through
+ * the prototype chain — own OR prototype (class-based mocks such as
+ * `MockVerifier` keep `verify` on the prototype) — except `constructor` and
+ * anything inherited from `Object.prototype` (`toString`, `valueOf`,
+ * `hasOwnProperty`, …), plus `then` / `toJSON` should a mock ever define them,
+ * since the runtime calls those implicitly. Symbol-keyed properties
+ * (`Symbol.toPrimitive`, `util.inspect.custom`, …) and non-function values
+ * pass through untouched. The refusing function is returned, not thrown at
+ * `get` time, so reading `v.verify` is harmless; invoking it throws.
+ */
+const IMPLICITLY_CALLED_METHODS = new Set<string>(['constructor', 'then', 'toJSON']);
+
+function refusingProxy<V>(mock: V, label: string, message: string, cause: unknown): V {
+  return new Proxy(mock as object, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (
+        typeof value !== 'function' ||
+        typeof prop !== 'string' ||
+        IMPLICITLY_CALLED_METHODS.has(prop) ||
+        prop in Object.prototype
+      ) {
+        return value;
+      }
+      return (): never => {
+        throw new VerifierFallbackRefusedError(label, message, cause);
+      };
+    },
+  }) as V;
+}
+
 export function createVerifierFactory<C, V>(
   spec: VerifierFactorySpec<C, V>,
 ): (config: C | null, opts?: VerifierSelectOptions) => V {
@@ -386,10 +427,22 @@ export function createVerifierFactory<C, V>(
     const env = opts.env ?? process.env;
     const cwd = opts.cwd ?? process.cwd();
     const warn = opts.warn ?? ((m: string) => process.stderr.write(m + '\n'));
+    // Phase 343 (T3): under refuse, a selection-time downgrade skips the
+    // banner and returns a lazily-refusing Proxy over the mock.
+    const refuseAtSelection = (provider: string, prerequisite: string): V =>
+      refusingProxy(
+        spec.mock(),
+        spec.label,
+        `${spec.label}: ${provider} provider unavailable and verification.fallback is refuse: ${prerequisite}`,
+        prerequisite,
+      );
 
     if (provider === 'anthropic') {
       const apiKey = discoverKey('ANTHROPIC_API_KEY', env, cwd).value;
       if (!apiKey) {
+        if (opts.fallback === 'refuse') {
+          return refuseAtSelection('anthropic', 'ANTHROPIC_API_KEY is unset');
+        }
         warn(
           buildDowngradeBanner(
             `${spec.label}: anthropic provider requested but ANTHROPIC_API_KEY is unset (a Claude Code/IDE login does not satisfy this — anthropic calls the Anthropic SDK directly and needs a separately API-billed key) — falling back to mock provider.`,
@@ -415,6 +468,9 @@ export function createVerifierFactory<C, V>(
       const baseURL = discoverKey('CADENCE_LOCAL_BASE_URL', env, cwd).value;
       const model = slice?.model ?? discoverKey('CADENCE_LOCAL_MODEL', env, cwd).value;
       if (!baseURL || !model) {
+        if (opts.fallback === 'refuse') {
+          return refuseAtSelection('local', 'CADENCE_LOCAL_BASE_URL / model unset');
+        }
         warn(
           buildDowngradeBanner(
             `${spec.label}: local provider requested but CADENCE_LOCAL_BASE_URL / model unset — falling back to mock provider.`,
@@ -432,6 +488,9 @@ export function createVerifierFactory<C, V>(
 
     if (provider === 'host-cli') {
       if (!spec.hostCli) {
+        if (opts.fallback === 'refuse') {
+          return refuseAtSelection('host-cli', 'this verifier family has no host-cli builder');
+        }
         warn(
           buildDowngradeBanner(
             `${spec.label}: host-cli provider requested but this verifier family has not wired a host-cli builder yet — falling back to mock provider.`,

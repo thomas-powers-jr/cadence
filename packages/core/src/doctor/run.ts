@@ -981,7 +981,7 @@ export async function checkVerificationFallback(root: string): Promise<DoctorChe
     if (fallback === 'refuse') {
       return pass(
         'verification-fallback',
-        'Effective verification.fallback: "refuse" — a verifier seam whose real provider cannot run (missing credentials, a host CLI binary that will not launch) will refuse instead of returning a mock verdict.',
+        'Effective verification.fallback: "refuse" — a verifier seam whose real provider cannot run (for example missing credentials, a host CLI binary that will not launch, or the self-invocation guard) will refuse instead of returning a mock verdict.',
       );
     }
     const origin = fallback === undefined ? 'the default; key absent' : 'set explicitly';
