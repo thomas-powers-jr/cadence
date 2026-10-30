@@ -3134,6 +3134,76 @@
       "kind": "note",
       "summary": "Independent review of 340-01 T4+T5 (LOW 1), 2026-10-29",
       "createdAt": "2026-10-29T22:53:22.699Z"
+    },
+    {
+      "id": "ev-20261030-001",
+      "recommendationId": "rec-20261030-001",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 1; rec-20260701-004 converted to 134-progress-json covered progress only",
+      "createdAt": "2026-10-30T19:28:23.436Z"
+    },
+    {
+      "id": "ev-20261030-002",
+      "recommendationId": "rec-20261030-002",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 2",
+      "createdAt": "2026-10-30T19:28:23.919Z"
+    },
+    {
+      "id": "ev-20261030-003",
+      "recommendationId": "rec-20261030-003",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 3",
+      "createdAt": "2026-10-30T19:28:24.309Z"
+    },
+    {
+      "id": "ev-20261030-004",
+      "recommendationId": "rec-20261030-004",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 4; operator handoff HANDOFF-stop-gate-capture-342-344 section 2",
+      "createdAt": "2026-10-30T19:28:24.745Z"
+    },
+    {
+      "id": "ev-20261030-005",
+      "recommendationId": "rec-20261030-005",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 5; packages/core/src/doctor/run.ts:1812 CONDUCTION_GATES lists code-review and security-audit only",
+      "createdAt": "2026-10-30T19:28:25.195Z"
+    },
+    {
+      "id": "ev-20261030-006",
+      "recommendationId": "rec-20261030-006",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 6",
+      "createdAt": "2026-10-30T19:28:25.592Z"
+    },
+    {
+      "id": "ev-20261030-007",
+      "recommendationId": "rec-20261030-007",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 7",
+      "createdAt": "2026-10-30T19:28:26.029Z"
+    },
+    {
+      "id": "ev-20261030-008",
+      "recommendationId": "rec-20261030-008",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 8; cadence init --help and onboard --help list no test flags on 1.73.0",
+      "createdAt": "2026-10-30T19:28:26.426Z"
+    },
+    {
+      "id": "ev-20261030-009",
+      "recommendationId": "rec-20261030-009",
+      "kind": "note",
+      "summary": "cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 9",
+      "createdAt": "2026-10-30T19:28:26.859Z"
+    },
+    {
+      "id": "ev-20261030-010",
+      "recommendationId": "rec-20261030-010",
+      "kind": "note",
+      "summary": "cadence-studio rec-20261028-008; packages/core/src/verify/host-cli-client.ts:382-387",
+      "createdAt": "2026-10-30T19:28:27.265Z"
     }
   ]
 }

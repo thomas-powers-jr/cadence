@@ -1,0 +1,13 @@
+{
+  "draftId": "342-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Filed rec-20261030-001..010 under scout-20261030-studio-intake (area studio-upstream). Dedup: ask 1 is the unbuilt remainder of rec-20260701-004 (converted to phase 134, progress --json only); ask 5 filed as residual only (CONDUCTION_GATES lacks deep-verify), paired with rec-20260927-001; asks 7 and 9 name adjacent rec-20261016-005 and rec-20260820-001; asks 2,3,4,6,8,10 had no overlap. No item was fully covered, so no covered-decision was needed.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T19:28:40.704Z",
+      "execution": "inline",
+      "isolation": "none"
+    }
+  }
+}
