@@ -495,7 +495,8 @@ describe('stateLoadService refusals (AC-3)', () => {
     await mkdir(cad(root, 'local'), { recursive: true });
     await writeFile(cad(root, 'local', 'state-sync.json'), '{ "revision": 10 }\n');
     await putSnapshot(root, NAME, snapshotDoc(emptyState('demo')));
-    await expectRefused(root, {}, new RegExp(`load it by name: \`cadence state load ${NAME.replace(/\./g, '\\.')}\``));
+    const stderr = await expectRefused(root, {}, /load it by name/);
+    expect(stderr).toContain(`load it by name: \`cadence state load ${NAME}\``);
   });
 
   it('341-01/AC-3: a named-snapshot local-work refusal adds no retry hint', async () => {
