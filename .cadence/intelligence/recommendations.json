@@ -3077,7 +3077,11 @@
         "ev-20261030-014"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20261030-060",
+        "dec-20261030-061",
+        "dec-20261030-062"
+      ],
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:28:24.745Z",
       "updatedAt": "2026-10-30T19:47:59.547Z"
@@ -3367,6 +3371,61 @@
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:48:01.548Z",
       "updatedAt": "2026-10-30T19:48:01.548Z"
+    },
+    {
+      "id": "rec-20261030-014",
+      "title": "Flip verification.fallback's default to refuse",
+      "summary": "Phase 343 ships verification.fallback with an absent default meaning mock, so nothing changes for existing users (D-B, dec-20260808-002 territory). Making refuse the default would end silent mock settles for everyone, at the cost of breaking every repo whose host-cli seam cannot launch today. Reopen after Cadence Studio Phase 8 ships: by then Studio will have run refuse in anger and its experience is the evidence for or against the flip.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "verify",
+        "config",
+        "defaults"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-020"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-30T20:36:23.669Z",
+      "updatedAt": "2026-10-30T20:36:23.669Z"
+    },
+    {
+      "id": "rec-20261030-015",
+      "title": "config explain and activate still say seams will fall back to mock under verification.fallback refuse",
+      "summary": "Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "config-explain",
+        "activate",
+        "verify"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-021",
+        "ev-20261030-022"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-10-30T20:36:24.055Z",
+      "updatedAt": "2026-10-30T20:39:54.454Z"
     }
   ],
   "archived": [

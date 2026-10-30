@@ -3267,6 +3267,27 @@
       "kind": "note",
       "summary": "Live instance, phase 342 settle (2026-10-30, cloud checkout): 342-01-SUMMARY.json's skillAudit records phase-build as invoked and the required check passed, but phase 342 never invoked phase-build. The entry was stale history in that checkout's state.json skillAudit.invoked list (alongside release-cut, pr-land, cadence-handoff). Exactly the gap this rec describes.",
       "createdAt": "2026-10-30T19:55:24.478Z"
+    },
+    {
+      "id": "ev-20261030-020",
+      "recommendationId": "rec-20261030-014",
+      "kind": "note",
+      "summary": "Operator handoff HANDOFF-stop-gate-capture-342-344 §2 boundary: file the default flip with the trigger 'after Studio Phase 8'",
+      "createdAt": "2026-10-30T20:36:23.669Z"
+    },
+    {
+      "id": "ev-20261030-021",
+      "recommendationId": "rec-20261030-015",
+      "kind": "note",
+      "summary": "Phase 343 DRAFT review finding M2; boundary in 343-01-DRAFT.md",
+      "createdAt": "2026-10-30T20:36:24.055Z"
+    },
+    {
+      "id": "ev-20261030-022",
+      "recommendationId": "rec-20261030-015",
+      "kind": "note",
+      "summary": "Clarification from phase 343's T1 review: config-explain/build.ts ~114 is about CADENCE_LOCAL_API_KEY being unset ('may be rejected or fall back'), while the local downgrade refuse governs is triggered by a missing endpoint, not a missing key. Check which condition each line describes before rewording.",
+      "createdAt": "2026-10-30T20:39:54.454Z"
     }
   ]
 }

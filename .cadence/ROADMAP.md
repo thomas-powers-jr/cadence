@@ -4066,6 +4066,42 @@ that pins it are the deliverable. Tier `standard`.
 - The full table and the before/after histogram are in
   `phases/342-ledger-triage-studio-intake/342-01-TRIAGE.md`.
 
+### Phase 343 — `verification.fallback: "refuse"` turns a silent mock downgrade into a refusal (rec-20261030-004)
+
+**Objective.** When a verifier seam could not reach its configured real
+provider (a missing Anthropic key, an unset local endpoint, a host CLI binary
+that will not launch, a timeout, or the claude self-invocation guard), it
+printed a loud notice and continued on mock, so an automated consumer such as
+Cadence Studio or a CI job could settle on a mock by accident. This phase adds
+an additive config setting `verification.fallback: "mock" | "refuse"`. Absent
+or `"mock"` is byte-identical to 1.73.0; under `"refuse"` the call fails with
+an error naming the seam and the cause instead of delegating to mock. Tier
+`complex`.
+
+**As built.**
+- The setting is optional and is never written by `defaultConfig` or `cadence
+  init`. The key sits under `verification`, not `verifier`, because it
+  governs all seven seams (dec-20261030-060).
+- `createVerifierFactory` is the single chokepoint; every production selection
+  site passes the setting through `VerifierSelectOptions.fallback`. A host-cli
+  `HostCliError` throws `VerifierFallbackRefusedError` at call time, with
+  host-cli-client's trailing "Falling back to mock" sentence stripped from the
+  cause. The selection-time downgrades return a lazily refusing proxy, so a
+  seam that is never called never refuses (dec-20261030-062).
+- No `ProviderSelectionTag` value was added: a refused call has no verdict to
+  tag, so it is recorded as a gate refusal, and a bypassed refusal rides the
+  existing `verifierFailure` / `reviewVerifierFailure` records
+  (dec-20261030-061).
+- deep-verify, code-review and security-audit refuse at settle, with their
+  existing bypass flags. per-task-verify, plan-review, spec-review and
+  ui-spec-review exit 1 from `build task`, `draft approve` or `spec approve`
+  without changing loop state, and have no bypass.
+- `doctor` gained an informational `verification-fallback` check, and its
+  `verification-readiness` warnings say a seam will refuse under `"refuse"`.
+- Filed, not built: the default flip (rec-20261030-014, reopen after Cadence
+  Studio Phase 8) and the remaining fallback wording in `config explain` and
+  `activate` (rec-20261030-015).
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

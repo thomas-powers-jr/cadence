@@ -848,6 +848,17 @@ export async function checkVerificationReadiness(
   try {
     const config = await loadConfig(root);
     const r = assessReadiness(config, env, root);
+    // Phase 343 (T5): under `verification.fallback: "refuse"` an unreachable
+    // seam refuses instead of falling back to mock, so the warnings below must
+    // not promise a fallback. Absent / "mock" keeps every byte of the wording.
+    const refuse = config.verification.fallback === 'refuse';
+    const refusePhrase = 'will refuse (verification.fallback is "refuse")';
+    const willFallBack = refuse ? refusePhrase : 'will fall back to mock';
+    const willSilentlyFallBack = refuse ? refusePhrase : 'will silently fall back to mock';
+    // `assessReadiness`'s host-cli reason (activate/assess.ts, shared with
+    // `cadence activate`) itself says "will fall back to mock"; reword it here
+    // only under refuse so the shared text stays untouched.
+    const reason = refuse ? r.reason.replace(/will fall back to mock/g, refusePhrase) : r.reason;
     if (r.provider === 'mock') {
       // Phase 104: source the honesty wording from the single MOCK_VERIFIER_NOTICE.
       // Phase 264 (T4): append the neutral MOCK_VERIFIER_CAPABILITY fact alongside
@@ -874,7 +885,7 @@ export async function checkVerificationReadiness(
         return fail(
           'verification-readiness',
           'warning',
-          `deep-verify is set to 'anthropic' but its credentials are missing — it will fall back to mock. Being logged into Claude Code does not supply ${envVar}; that is a separate credential. ${MOCK_VERIFIER_CAPABILITY.message}`,
+          `deep-verify is set to 'anthropic' but its credentials are missing — it ${willFallBack}. Being logged into Claude Code does not supply ${envVar}; that is a separate credential. ${MOCK_VERIFIER_CAPABILITY.message}`,
           `Set ${envVar}, or run \`cadence activate --provider host-cli\` to reuse your Claude Code login instead.`,
         );
       }
@@ -883,7 +894,7 @@ export async function checkVerificationReadiness(
       return fail(
         'verification-readiness',
         'warning',
-        `deep-verify is set to '${r.provider}' but its credentials are missing — it will fall back to mock. ${MOCK_VERIFIER_CAPABILITY.message}`,
+        `deep-verify is set to '${r.provider}' but its credentials are missing — it ${willFallBack}. ${MOCK_VERIFIER_CAPABILITY.message}`,
         `Set ${envVar} (or run \`cadence activate\`).`,
       );
     }
@@ -902,7 +913,7 @@ export async function checkVerificationReadiness(
       const binNote = r.provider === 'host-cli' ? '' : ` The host CLI binary is "${bin}".`;
       const downgradedNote =
         r.seamsDowngraded.length > 0
-          ? ` Also, ${r.seamsDowngraded.length} other ${r.seamsDowngraded.length === 1 ? 'seam' : 'seams'} will silently fall back to mock for want of credentials: ${r.seamsDowngraded
+          ? ` Also, ${r.seamsDowngraded.length} other ${r.seamsDowngraded.length === 1 ? 'seam' : 'seams'} ${willSilentlyFallBack} for want of credentials: ${r.seamsDowngraded
               .map((seam) => `${seam} ('${seamProvider(config, seam)}')`)
               .join(', ')}.`
           : '';
@@ -918,7 +929,7 @@ export async function checkVerificationReadiness(
       return fail(
         'verification-readiness',
         'warning',
-        `${r.reason}${binNote} ${r.seamsUnresolvable.length} host-cli ${unresolvablePlural} will fall back to mock when a review runs, because that binary will not launch: ${unresolvable}.${downgradedNote}${claudeCodeHint} ${MOCK_VERIFIER_CAPABILITY.message}`,
+        `${reason}${binNote} ${r.seamsUnresolvable.length} host-cli ${unresolvablePlural} ${willFallBack} when a review runs, because that binary will not launch: ${unresolvable}.${downgradedNote}${claudeCodeHint} ${MOCK_VERIFIER_CAPABILITY.message}`,
         `Install "${bin}" or point CADENCE_HOST_CLI_BIN at it, or switch those seams' provider. \`cadence config explain\` lists each seam's effective provider.${credentialRemediation}`,
       );
     }
@@ -943,7 +954,7 @@ export async function checkVerificationReadiness(
       return fail(
         'verification-readiness',
         'warning',
-        `${r.reason} But ${r.seamsDowngraded.length} other ${plural} will silently fall back to mock for want of credentials: ${named}.${claudeCodeHint} ${MOCK_VERIFIER_CAPABILITY.message}`,
+        `${reason} But ${r.seamsDowngraded.length} other ${plural} ${willSilentlyFallBack} for want of credentials: ${named}.${claudeCodeHint} ${MOCK_VERIFIER_CAPABILITY.message}`,
         `Supply the missing credentials, or run \`cadence activate --provider host-cli --all\` to reuse your host CLI login for every seam. \`cadence config explain\` lists each seam's effective provider.`,
       );
     }
@@ -952,6 +963,36 @@ export async function checkVerificationReadiness(
     return pass(
       'verification-readiness',
       'Verification readiness not determinable (best-effort) — skipped.',
+    );
+  }
+}
+
+/**
+ * Report the effective `verification.fallback` (phase 343, T5). Always a pass
+ * — the setting is informational, not a defect: `mock` (the default, also when
+ * the key is absent) keeps the historical fallback and notes that `refuse`
+ * exists for automated consumers; `refuse` says unreachable seams will refuse.
+ * Read-only, best-effort, never throws (doctor convention).
+ */
+export async function checkVerificationFallback(root: string): Promise<DoctorCheck> {
+  try {
+    const config = await loadConfig(root);
+    const fallback = config.verification.fallback;
+    if (fallback === 'refuse') {
+      return pass(
+        'verification-fallback',
+        'Effective verification.fallback: "refuse" — a verifier seam whose real provider cannot run (for example missing credentials, a host CLI binary that will not launch, or the self-invocation guard) will refuse instead of returning a mock verdict.',
+      );
+    }
+    const origin = fallback === undefined ? 'the default; key absent' : 'set explicitly';
+    return pass(
+      'verification-fallback',
+      `Effective verification.fallback: "mock" (${origin}) — a verifier seam whose real provider cannot run falls back to the mock verifier with a warning. Set verification.fallback to "refuse" for automated consumers that must never receive a mock verdict.`,
+    );
+  } catch {
+    return pass(
+      'verification-fallback',
+      'Verification fallback not determinable (best-effort) — skipped.',
     );
   }
 }
@@ -2769,6 +2810,7 @@ export async function runDoctor(
     await checkPhaseFreshness(root),
     await checkHandoffRetention(root),
     await checkVerificationReadiness(root),
+    await checkVerificationFallback(root),
     await checkRecommendationShippedDrift(root),
     await checkRecommendationArchiveCurrency(root),
     await checkOrphanedEvidence(root),
