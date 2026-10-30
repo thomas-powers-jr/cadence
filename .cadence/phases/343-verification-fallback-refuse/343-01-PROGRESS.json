@@ -36,6 +36,21 @@
       "updatedAt": "2026-10-30T20:43:29.100Z",
       "execution": "dispatch",
       "isolation": "none"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "refusingProxy over spec.mock(): selection/await/inspect/JSON never throw, any non-Object.prototype string-keyed method (incl. prototype methods) throws VerifierFallbackRefusedError. Red first (4/15 failed), then 46/46 verifier-factory, re-run in main thread. Independent review: no Critical/Important; Minor (a) fixed in main thread (anthropic refusal keeps the 'Claude Code login is not an API key' hint); (b)-(d) cosmetic, noted.",
+      "touchedFiles": [
+        ".changeset/verification-fallback-refuse.md",
+        "docs/providers.md",
+        "docs/reference/commands.md",
+        "docs/reference/config.md",
+        "packages/core/tests/docs/phase343-verification-fallback-docs.test.ts",
+        "packages/core/tests/services/settle-fallback-refuse.test.ts"
+      ],
+      "updatedAt": "2026-10-30T20:47:40.610Z",
+      "execution": "dispatch",
+      "isolation": "none"
     }
   }
 }

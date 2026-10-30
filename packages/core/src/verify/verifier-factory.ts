@@ -441,7 +441,10 @@ export function createVerifierFactory<C, V>(
       const apiKey = discoverKey('ANTHROPIC_API_KEY', env, cwd).value;
       if (!apiKey) {
         if (opts.fallback === 'refuse') {
-          return refuseAtSelection('anthropic', 'ANTHROPIC_API_KEY is unset');
+          return refuseAtSelection(
+            'anthropic',
+            'ANTHROPIC_API_KEY is unset (a Claude Code/IDE login does not satisfy this; anthropic needs a separately API-billed key)',
+          );
         }
         warn(
           buildDowngradeBanner(
