@@ -87,7 +87,8 @@ export interface VerifierFactorySpec<C, V> {
    * mode instead of calling an HTTP endpoint. Optional (unlike `mock` /
    * `anthropic` / `local`): a verifier family that hasn't wired a
    * `host-cli`-backed verifier class yet simply falls back to `mock` with a
-   * warning (see `createVerifierFactory`) rather than failing to compile —
+   * warning, or refuses under `verification.fallback: "refuse"` (see
+   * `createVerifierFactory`), rather than failing to compile —
    * this lets `host-cli` land as a provider without forcing every family's
    * factory file to change in lockstep.
    */
@@ -117,6 +118,9 @@ export function buildLocalHeaders(
  * needs `ANTHROPIC_API_KEY`; the `local` provider needs `CADENCE_LOCAL_BASE_URL`
  * and a model (`slice.model ?? CADENCE_LOCAL_MODEL`); a missing prerequisite
  * falls back to `mock` with one stderr warning so the caller knows it downgraded.
+ * Under `opts.fallback === 'refuse'` (phase 343) no downgrade happens: a missing
+ * prerequisite returns a `refusingProxy`, and a host-cli `HostCliError` throws
+ * `VerifierFallbackRefusedError`, both naming the seam and the cause.
  */
 /**
  * Mirrors the selection algorithm's first line without building a verifier or
@@ -267,7 +271,8 @@ function tagProviderSelection<T>(result: T, tag: ProviderSelectionTag): T {
  * its methods is caught and the call is transparently redirected to
  * `fallbackOpts.fallback`'s same-named method instead of crashing the gate
  * or hanging. `createVerifierFactory` calls this on EVERY return path — the
- * three real-provider builds, the three selection-time mock downgrades, and
+ * three real-provider builds, the three selection-time mock downgrades (under
+ * `verification.fallback: "refuse"` those return `refusingProxy` instead), and
  * the plain `spec.mock()` explicit-mock/host-cli branches — not only the
  * `host-cli` family, since 263-01's tagging computation is universal across
  * all seven verifier seams (only `fallbackOpts` — real call-time delegation
@@ -513,8 +518,9 @@ export function createVerifierFactory<C, V>(
       // T3: the binary's existence/auth status is only knowable once a real
       // call is attempted (see `wrapWithFallback`'s doc comment) — wrap here
       // rather than probing synchronously, so a missing/unauthenticated
-      // binary degrades to `mock` per-call with a loud warning instead of
-      // throwing out of the gate or hanging on interactive auth (AC-2).
+      // binary degrades to `mock` per-call with a loud warning (or, under
+      // `verification.fallback: "refuse"`, throws `VerifierFallbackRefusedError`)
+      // instead of crashing the gate or hanging on interactive auth (AC-2).
       return wrapWithFallback(primary, 'configured', {
         fallback: spec.mock(),
         warn,

@@ -240,8 +240,8 @@ Bounds the convergent review loops (spec-review and plan-review).
 
 | Value | Behavior |
 |---|---|
-| `"mock"` | The call continues on the `mock` provider with a loud stderr notice, and the SUMMARY records the gate's `providerSelection` as `fallback`. This is the behavior when the key is absent, which is the default: `cadence init` does not write the key and no preset sets it. |
-| `"refuse"` | The call never delegates to `mock`. It fails with an error naming the seam and the cause, such as `deep-verify: host-cli unavailable and verification.fallback is refuse (not-found): …` or `code-review: anthropic provider unavailable and verification.fallback is refuse: …`. |
+| `"mock"` | The call continues on the `mock` provider with a loud stderr notice, and the result is tagged with `providerSelection: fallback` where that provenance is persisted (see [providers.md — providerSelection](../providers.md#providerselection--configured-vs-fallback-vs-empty-diff-provenance-phase-263)). This is the behavior when the key is absent, which is the default: `cadence init` does not write the key and no preset sets it. |
+| `"refuse"` | The call never delegates to `mock`. It fails with an error naming the seam and the cause, such as `code-review: host-cli unavailable and verification.fallback is refuse (self-invocation): …` or `spec-review: anthropic provider unavailable and verification.fallback is refuse: ANTHROPIC_API_KEY is unset …`. The seam name is the provider block's label; the deep-verify seam's label is `verifier`, so its gate reports `deep-verify: verifier failed — verifier: host-cli unavailable …`. |
 
 The setting is one repo-wide key that governs all seven verifier seams, each configured by its own [gate provider block](#gate-provider-blocks):
 
@@ -257,7 +257,7 @@ The setting is one repo-wide key that governs all seven verifier seams, each con
 
 Refusal is lazy. Selecting a seam's provider never refuses; only an actual call to that seam's review agent does. A gate that does not fire in your profile and tier cell therefore never refuses, even when its provider block points at an unreachable provider.
 
-A seam whose provider is explicitly configured as `mock` is unaffected by `"refuse"`: an explicit `mock` is a choice, not a fallback, and it runs exactly as it does under `"mock"`. A real provider that runs and returns a verdict is unaffected too.
+A seam whose provider is explicitly configured as `mock` is unaffected by `"refuse"`: an explicit `mock` is a choice, not a fallback, and it runs exactly as it does under `"mock"`. The same holds for a seam with no provider configured at all, because every seam's provider defaults to `mock`: `"refuse"` only stops a downgrade from a real provider, so it does not by itself guarantee that a review used one. Pair it with real providers on the seams you depend on, and check `cadence doctor`'s `verification-readiness`. A real provider that runs and returns a verdict is unaffected too.
 
 The existing bypass flags still apply to a refused call:
 

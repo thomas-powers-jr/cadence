@@ -555,8 +555,10 @@ shapes:
 
 `deep-verify`, `code-review` and `security-audit` turn that error into a gate
 refusal, so `cadence settle run` exits non-zero. Their existing bypass flags
-(`--allow-verifier-failure`, `--allow-code-review-failure`,
-`--allow-security-audit-failure`, `--force`) still apply. `per-task-verify`,
+still apply: `--allow-verifier-failure` for `deep-verify` (`--force` does not
+bypass a deep-verify verifier failure), and `--allow-code-review-failure`,
+`--allow-security-audit-failure` or `--force` for `code-review` and
+`security-audit`. `per-task-verify`,
 `plan-review`, `spec-review` and `ui-spec-review` make their command exit 1
 without changing loop state, and have no bypass. The refusal is lazy, like the
 fallback it replaces: it happens only when a seam is actually called.
@@ -564,7 +566,9 @@ fallback it replaces: it happens only when a seam is actually called.
 `"mock"`, or leaving the key out, keeps the fallback behavior described above
 unchanged; that is the default. A seam whose provider is explicitly set to
 `mock` is unaffected by `"refuse"`, because an explicit `mock` is a choice,
-not a fallback. `cadence doctor` reports the effective value in its
+not a fallback. So is a seam with no provider configured, since every seam
+defaults to `mock`: `"refuse"` stops a downgrade from a real provider, it does
+not make a seam real. `cadence doctor` reports the effective value in its
 `verification-fallback` check.
 
 `"refuse"` is intended for automated consumers, such as CI jobs or Cadence
