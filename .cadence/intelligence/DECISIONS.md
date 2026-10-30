@@ -899,6 +899,419 @@ Supersedes dec-20261022-001; option 2 of work order HANDOFF-v1.71-release-335-33
 
 Operator, 2026-10-29. Studio's scripts/cadence-state.ts carries gitignored state.json between PCs; a mid-BUILD restore trips the mtime-only draft-read gate after git re-checkout. 340 makes draft-read compare a normalized sha256 of the DRAFT (stamped at approve) so an unedited DRAFT with a fresh mtime passes. 341 ports save/load/list to core with: a dedicated .cadence/snapshots/ dir (not handoff/), automatic pruning to the newest 3, a revision staleness guard, forward schema migration, an automatic STATE.md re-render, and --json. restore stays out of cadence resume (D10 read-only). Fields reset on load are still open for 341's DRAFT.
 
+### dec-20261030-001 — 342 triage: defer rec-20260730-001 -- fix is real but nothing runs verify phase across a mode switch
+
+- recommendation: rec-20260730-001
+- decided: 2026-10-30T19:32:45.918Z
+
+Still present: verify/phase-replay.ts:288 reads config.coverageMode and ignores the summary.coverageMode provenance. But no CI workflow runs `cadence verify phase`, and no SUMMARY in this repo was recorded under mention mode (0 vs 98 under assertion), so the defect has no live victim. Reopen when a consumer project or CI job runs `cadence verify phase` after switching a repo from mention to assertion mode.
+
+### dec-20261030-002 — 342 triage: promote rec-20260806-006 -- silent --allow-failing-build bypass, used in phases 296-298
+
+- recommendation: rec-20260806-006
+- decided: 2026-10-30T19:32:52.928Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Still present: gates/build-test-must-pass.ts:47-51 returns a flagged pass on bypass with no stderr line, and verify/test-runner.ts runs the command with stdio ignore, so nobody sees which test failed. Phases 296, 297 and 298 each settled through this bypass. Bundle with rec-20260726-005 as one bypass-honesty slice: a stderr notice plus a captured output tail on the bypass path.
+
+### dec-20261030-003 — 342 triage: reject rec-20260807-005 -- premise false: fresh init already defaults to phase-qualified
+
+- recommendation: rec-20260807-005
+- decided: 2026-10-30T19:32:53.810Z
+
+Premise false, as dec-20260821-004 already recorded: cadence init has written coverageScheme 'phase-qualified' for fresh repos since phase 239 (cli/commands/init.ts:481). The schema's 'bare' default exists only for back-compat with pre-239 projects, and no such project has hit the collision. Re-file narrowly if one does.
+
+### dec-20261030-004 — 342 triage: shipped rec-20260813-005 -- delivered by phase 309
+
+- recommendation: rec-20260813-005
+- decided: 2026-10-30T19:32:54.832Z
+
+Delivered by phase 309-resume-handoff-pointer-staleness (filed separately as rec-20260917-001, shipped): handoff/locate.ts now ranks the lastHandoff target against every SESSION doc and reports supersededPointer, and resume prints a notice and serves the fresher doc.
+
+### dec-20261030-005 — 342 triage: defer rec-20260820-001 -- one occurrence in 70 days; decide with Studio ask rec-20261030-009
+
+- recommendation: rec-20260820-001
+- decided: 2026-10-30T19:32:55.780Z
+
+Still present: gates/deep-verify.ts sends the verifier only each AC's given/when/then, so As-built amendments never reach it. One occurrence (phase 282) in about 70 days. Studio's amend-an-approved-DRAFT ask (rec-20261030-009) needs the same answer, so the two should be decided together. Reopen when rec-20261030-009 is decided, or when another SUMMARY records a --force that exists only to override deep-verify on an As-built-amended AC.
+
+### dec-20261030-006 — 342 triage: promote rec-20260917-006 -- phase 315 was designed but never built; the gap is live
+
+- recommendation: rec-20260917-006
+- decided: 2026-10-30T19:32:56.725Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Still present and live: hooks/handlers.ts returns early once a skill is in state.skillAudit.invoked, and no invocations map exists in src. Phase 315's design (dec-20260918-002..005: a timestamped invocations map watermarked against draftReadAt) was decided but never built, since no 315-* phase directory exists. This repo enables the cadence/core-skills pack, which requires phase-build, so the check passes permanently in any long-lived checkout. The design work is done, so the phase is small.
+
+### dec-20261030-007 — 342 triage: promote rec-20260726-005 -- --force over coverage gaps records nothing
+
+- recommendation: rec-20260726-005
+- decided: 2026-10-30T19:32:57.509Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Still present: gates/coverage.ts:80 sets coverageBypassed only for --allow-missing-coverage, so a bare --force through real assertion-mode gaps is recorded as status 'ran', and notify/collect.ts's force-used record does not count coverage. A concrete audit-trail hole. Follow phase 226's pattern of naming the flag that actually fired, and bundle with rec-20260806-006.
+
+### dec-20261030-008 — 342 triage: reject rec-20260728-002 -- duplicate of rec-20260907-002
+
+- recommendation: rec-20260728-002
+- decided: 2026-10-30T19:32:58.507Z
+
+Duplicate of rec-20260907-002 (core tests are never typechecked), which is narrower, ready-for-cadence-spec and top-ranked; the work lives there. Scope fact carried over for that phase: `tsc --noEmit` over core src plus tests reports 288 errors across 61 test files today, so wiring test typecheck first means that cleanup.
+
+### dec-20261030-009 — 342 triage: defer rec-20260729-003 -- gap count is informational only
+
+- recommendation: rec-20260729-003
+- decided: 2026-10-30T19:32:59.525Z
+
+Still present: verify/criteria-gap.ts:172-173 picks one anchor per file. But gapCount only reaches stderr (gates/code-review.ts:159-164); it never gates or grades. Folds together with rec-20260729-005. Reopen when the gap count gets a consumer that gates or grades on it, or when a real verifier starts returning a per-finding criterion citation.
+
+### dec-20261030-010 — 342 triage: defer rec-20260729-005 -- working as specified; informational count only
+
+- recommendation: rec-20260729-005
+- decided: 2026-10-30T19:33:00.429Z
+
+Still present (verify/criteria-gap.ts:113 anchors a boundary by filename substring), but the rec itself says this matches the §7.1 spec, and it only changes an informational stderr count. Same reopen trigger as rec-20260729-003, and fold the two when reopened: reopen when the gap count gets a gating or grading consumer.
+
+### dec-20261030-011 — 342 triage: shipped rec-20260731-007 -- phase 242 adopted merge-by-identity
+
+- recommendation: rec-20260731-007
+- decided: 2026-10-30T19:33:01.253Z
+
+Phase 242-findings-to-ledger-auto-routing designed for this explicitly: routing merges same-identity findings and records the occurrence count (intelligence/finding-routing.ts:21-35), and dec-20260731-001 records merge-by-identity as the deliberate semantic, with its own revisit trigger.
+
+### dec-20261030-012 — 342 triage: reject rec-20260804-003 -- the deferred status it asks for already exists
+
+- recommendation: rec-20260804-003
+- decided: 2026-10-30T19:33:02.009Z
+
+The mechanism the rec asks for already exists: a non-terminal 'deferred' status (types/intelligence.ts), and the audit dedup step matches against recommendations.json, which includes the archived array. This is one mislabelled record (rec-20260801-010), not a mechanism gap.
+
+### dec-20261030-013 — 342 triage: reject rec-20260804-004 -- local worktree housekeeping, not ledger work
+
+- recommendation: rec-20260804-004
+- decided: 2026-10-30T19:33:02.939Z
+
+This is operator housekeeping on one PC, not a code defect: the two worktrees cannot be seen from a cloud clone, feat/kernel-assurance-v2 has since moved to 4f7b71bd, and phase 249 is on main. The operator should check `git worktree list` on the PC and remove them only after confirming no session holds them (Zombie Session rule).
+
+### dec-20261030-014 — 342 triage: reject rec-20260806-001 -- duplicate of rec-20260927-001
+
+- recommendation: rec-20260806-001
+- decided: 2026-10-30T19:33:03.761Z
+
+Duplicate of rec-20260927-001: the same conduction-reachability session-axis false positive under CADENCE_HOST_CLI_BIN=codex (now doctor/run.ts:1856), with current file and line and a fix direction (reuse inferFamily), already ready-for-cadence-spec. Studio's rec-20261030-005 pairs with it.
+
+### dec-20261030-015 — 342 triage: reject rec-20260806-002 -- historical runbook, deleted before 256-02 settled
+
+- recommendation: rec-20260806-002
+- decided: 2026-10-30T19:33:04.612Z
+
+Historical artifact. The runbook it cites (256 CONDUCTION-RUNBOOK.md) was deleted before 256-02's settle commit (84dfa14f), per that DRAFT's own cleanup step, and the feared end state is absent: .cadence/config.json keeps securityAudit.provider mock. Same defect as rec-20260806-003 and -005.
+
+### dec-20261030-016 — 342 triage: reject rec-20260806-003 -- duplicate of rec-20260806-002
+
+- recommendation: rec-20260806-003
+- decided: 2026-10-30T19:33:05.472Z
+
+Duplicate of rec-20260806-002 (same runbook line 106, reworded by a later settle) and a historical artifact: the runbook was deleted before 256-02 settled. It is also evidence for rec-20260806-008's message-drift problem.
+
+### dec-20261030-017 — 342 triage: reject rec-20260806-005 -- same deleted runbook, reworded
+
+- recommendation: rec-20260806-005
+- decided: 2026-10-30T19:33:06.380Z
+
+The same runbook defect as rec-20260806-002/-003, reworded (Step 6 for Step 5b, line 180). The runbook was deleted before 256-02 settled; nothing remains to fix.
+
+### dec-20261030-018 — 342 triage: promote rec-20260806-007 -- persistent code-review attempt budget is undocumented
+
+- recommendation: rec-20260806-007
+- decided: 2026-10-30T19:33:07.244Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Still present: the code-review attempt count persists across settle invocations in <draft>-CODE-REVIEW.json (services/settle.ts ~847-862) and counts bypassed attempts (verify/converge.ts ~214-237), and docs/reference/config.md describes convergence.maxAttempts as spec/plan-review only. It recurred (331-01 ended at 7/3 attempts). Promote the documentation half; excluding bypassed attempts from the count is a behaviour change that phase must decide in its DRAFT.
+
+### dec-20261030-019 — 342 triage: promote rec-20260806-008 -- dec-20260801-003 trigger met many times over
+
+- recommendation: rec-20260806-008
+- decided: 2026-10-30T19:33:08.061Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. dec-20260801-003's revisit trigger is met many times over: host-cli code-review findings persist in about ten drafts' SUMMARYs (256, 272, 274, 284, 285, 286, 316, 327, 331, 336), so the single-fixture objection no longer holds, and rec-20260806-002/-003/-005 are three ledger recs for one reworded finding. Promote the step dec-20260801-003 itself named first: the offline drift analyzer over the SUMMARY corpus, deciding any dedup change from its output.
+
+### dec-20261030-020 — 342 triage: defer rec-20260808-001 -- pending-changesets already covers the common case
+
+- recommendation: rec-20260808-001
+- decided: 2026-10-30T19:33:08.941Z
+
+No tag-distance check exists, but release-currency's pending-changesets half already catches the common case, because every feature PR carries a changeset, and a naive git-log tag-distance check would warn today on chore-only handoff commits (v1.73.0..HEAD holds two). Reopen when a release ships, or nearly ships, publishable content that reached main without a changeset.
+
+### dec-20261030-021 — 342 triage: defer rec-20260809-005 -- test-seam-only, fails safe, no recurrence since 265
+
+- recommendation: rec-20260809-005
+- decided: 2026-10-30T19:33:09.763Z
+
+Still present (four prompter factories; only init memoizes), but it affects only the CADENCE_PROMPTER_SCRIPT test seam, fails safe, and has not recurred since phase 265. Reopen when a third command or test needs two sequential scripted answers in one invocation, or a scripted CI run fails from prompter desync.
+
+### dec-20261030-022 — 342 triage: promote rec-20260811-003 -- conduction-drift-streak warns chronically
+
+- recommendation: rec-20260811-003
+- decided: 2026-10-30T19:33:10.713Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. The warning is live today: doctor reports conduction-drift-streak after 5 consecutive mock-identity settles, against the threshold of 3 (doctor/run.ts ~2285). dec-20260813-003 confirmed with data that it warns chronically and left this rec open for a re-tune. A check that always warns is noise; re-tune or redesign it against the measured corpus.
+
+### dec-20261030-023 — 342 triage: defer rec-20260812-001 -- rare: retention protects the current lastHandoff
+
+- recommendation: rec-20260812-001
+- decided: 2026-10-30T19:33:11.551Z
+
+Still present (handoff/locate.ts drops danglingPointer when no SESSION doc exists), but handoff retention (phase 335) protects the current lastHandoff, so the all-docs-gone case is rare and has not been hit. Reopen when an operator hits 'no handoff found' while state.json's lastHandoff is set, or when a prune or migration path that can empty .cadence/handoff/ ships.
+
+### dec-20261030-024 — 342 triage: reject rec-20260813-001 -- duplicate of rec-20260813-004
+
+- recommendation: rec-20260813-001
+- decided: 2026-10-30T19:33:12.370Z
+
+Duplicate of rec-20260813-004 (the same engine.ts mutable-gate-table finding, filed by hand). Only a test imports ALWAYS_FIRE/DELTAS, and no runtime code mutates them. Any readonly change belongs under rec-20260813-004.
+
+### dec-20261030-025 — 342 triage: defer rec-20260815-003 -- codex host-cli now supplies real provenance
+
+- recommendation: rec-20260815-003
+- decided: 2026-10-30T19:33:13.301Z
+
+There is still no channel to record an out-of-band independent review, but the motivating blocker has largely gone: phases 296 and 337 made codex host-cli routinely usable, and phases 331-336 settled with provider host-cli. It is a large anti-forgery design question with no current consumer, bounded by dec-20260803-001. Reopen when a settle runs where neither host-cli family can review and an Agent-tool review has to stand in, or when an operator asks for assurance credit for such a review.
+
+### dec-20261030-026 — 342 triage: reject rec-20260820-002 -- wording slip in an append-only record, already annotated
+
+- recommendation: rec-20260820-002
+- decided: 2026-10-30T19:33:14.191Z
+
+A wording slip in an append-only rec summary ('four' As-built amendment blocks where 282-01-DRAFT.md has three). Already annotated by ev-20260820-004, so it is not worth a phase.
+
+### dec-20261030-027 — 342 triage: promote rec-20260821-001 -- commands.md misstates bare-scheme --explain
+
+- recommendation: rec-20260821-001
+- decided: 2026-10-30T19:33:15.049Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Verified: docs/reference/commands.md (~2516) says --explain takes bare AC-N 'under either scheme, never a caller-supplied <phase>/AC-N', but phase 285's AC-3 tests that the bare scheme accepts a qualified-looking argument literally. A one-sentence doc fix that can ride with any docs-touching phase.
+
+### dec-20261030-028 — 342 triage: promote rec-20260822-002 -- MCP drops stderr notices on success
+
+- recommendation: rec-20260822-002
+- decided: 2026-10-30T19:33:15.947Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Still present: packages/core/src/mcp/server.ts:26 picks (io.stdout() || io.stderr()), so a stderr notice disappears from every MCP tool response whenever stdout is non-empty. A real Quiet Fallback with a one-line root cause, fixed in the shared helper and checked against each tool's response shape.
+
+### dec-20261030-029 — 342 triage: defer rec-20260822-007 -- one known case; a manual reject sufficed
+
+- recommendation: rec-20260822-007
+- decided: 2026-10-30T19:33:16.897Z
+
+Partly present: routing runs only on the success path (services/settle.ts finalizeAndCloseSettle), and nothing reconciles a routed rec that a later run no longer reproduces. One known case (rec-20260822-006) in about 70 days, and a manual reject handled it. Reopen when a second auto-routed review rec turns out at triage to be already fixed in its own phase.
+
+### dec-20261030-030 — 342 triage: defer rec-20260822-008 -- nothing reads per-round deep-verify verdicts yet
+
+- recommendation: rec-20260822-008
+- decided: 2026-10-30T19:33:17.781Z
+
+Still present: SUMMARY keeps only the final deepVerify record (types/summary.ts:353), with no round history. But no tool or audit reads per-round verdicts. Reopen when a deep-verify verdict again contradicts an earlier round on unchanged evidence, or when an automated audit over deepVerify is built.
+
+### dec-20261030-031 — 342 triage: defer rec-20260907-006 -- the routinely-bypassed premise did not hold
+
+- recommendation: rec-20260907-006
+- decided: 2026-10-30T19:33:18.644Z
+
+VerifyInput (verify/verifier.ts:38-47) still has no slot for command output. But the 'routinely bypassed' premise did not hold: phases 300-341 used one evidence-floor bypass (309, AC-6), and the dependency phases skipped deep-verify. Reopen after two or more evidence-floor bypasses on runtime-state ACs within one release window.
+
+### dec-20261030-032 — 342 triage: reject rec-20260916-003 -- helper shipped; enforcement owned by rec-20261008-007
+
+- recommendation: rec-20260916-003
+- decided: 2026-10-30T19:33:19.634Z
+
+Mostly fixed: phase 303 shipped the changesetEvidencePresent / synthesizeConsumedChangeset helper (packages/core/tests/support/changeset-evidence.ts), and recent tests carry the fallback. The remaining enforcement (a guard against bare readFileSync of a changeset) is owned by rec-20261008-007, the more concrete successor.
+
+### dec-20261030-033 — 342 triage: defer rec-20260917-003 -- no pack needs an optional skill
+
+- recommendation: rec-20260917-003
+- decided: 2026-10-30T19:33:20.540Z
+
+Still present (PackManifestZ is .strict() with six keys), but there is no consumer: the only pack, cadence/core-skills, requires just phase-build. Reopen when a pack author needs to ship a skill that is optional per phase.
+
+### dec-20261030-034 — 342 triage: promote rec-20260917-005 -- --allow-stale-draft and --allow-open-tasks record nothing
+
+- recommendation: rec-20260917-005
+- decided: 2026-10-30T19:33:21.434Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Narrowed scope: still present. --allow-stale-draft (gates/draft-read.ts:38-46) returns a plain pass, and --allow-open-tasks (gates/structural-verifier.ts) passes with no stderr line and no record. Neither reaches gateBypasses. Promote only the concrete half: give both flags a gateBypasses entry the way settle.ts already does for pack-resolution and skill-audit, and give --allow-open-tasks a stderr line. Unifying gateBypasses with gates[].skipReason, and the unenforceable skill-audit path, stay out of scope; open a new rec for them if wanted.
+
+### dec-20261030-035 — 342 triage: defer rec-20260918-001 -- three assumptions ever; workaround documented
+
+- recommendation: rec-20260918-001
+- decided: 2026-10-30T19:33:22.327Z
+
+Still present (assumption validate/reject take no note; AssumptionZ has no note field), but the ledger holds three assumptions in total, and the workaround (an evidence note on the anchor rec) is documented in the systematic-debugging skill. Reopen when a reviewer cannot reconstruct why an assumption was closed, or when the ledger reaches about 20 assumptions.
+
+### dec-20261030-036 — 342 triage: defer rec-20260918-008 -- latent: no required name collides today
+
+- recommendation: rec-20260918-008
+- decided: 2026-10-30T19:33:23.089Z
+
+Still present (verify/skill-match.ts accepts an exact or ':'-suffix match), but latent: the only required skill is phase-build, and no installed plugin collides with it. Reopen when a required skill name collides with an installed namespaced plugin skill, or when a false-satisfied skill audit is seen.
+
+### dec-20261030-037 — 342 triage: defer rec-20260926-002 -- needs schema design; no failure seen
+
+- recommendation: rec-20260926-002
+- decided: 2026-10-30T19:33:23.996Z
+
+Still present: hook blocks are emitted (hooks/render-result.ts) but never recorded where settle can read them. It is the follow-up dec-20260926-003 filed, and needs a state-schema design with no failure observed yet. Reopen on a single observed CADENCE-blocked edit appearing in a settled diff, or a hook-transport bug report.
+
+### dec-20261030-038 — 342 triage: reject rec-20260927-002 -- the minimal option (document the override) is done
+
+- recommendation: rec-20260927-002
+- decided: 2026-10-30T19:33:24.805Z
+
+The rec's own minimal option is done: docs/providers.md documents CADENCE_HOST_CLI_TIMEOUT_MS. Later host-cli code-review settles (327, 331, 335, 336) completed without a timeout, so there is no evidence for raising the default. File a fresh rec if a timeout-caused fallback is confirmed.
+
+### dec-20261030-039 — 342 triage: defer rec-20261010-004 -- no consumer for a generated assurance page
+
+- recommendation: rec-20261010-004
+- decided: 2026-10-30T19:33:25.681Z
+
+Still present: docs/evidence/ holds only dated snapshots. No README or write-up quotes an assurance snapshot. Reopen when README or a public write-up starts quoting one.
+
+### dec-20261030-040 — 342 triage: reject rec-20261010-005 -- unreachable without a 309-digit phase number
+
+- recommendation: rec-20261010-005
+- decided: 2026-10-30T19:33:26.581Z
+
+Real only for a phase directory whose number has 309 or more digits, which no repository will produce. Not worth a phase; a one-line Number.isFinite check can ride along if anyone edits services/assurance-report.ts:98-102.
+
+### dec-20261030-041 — 342 triage: defer rec-20261010-006 -- gated on measurement by D-BV and dec-20260813-003
+
+- recommendation: rec-20261010-006
+- decided: 2026-10-30T19:33:27.439Z
+
+Still absent from doctor, and gated by two decisions: dec-20261010-003 shipped the report descriptive-only, and dec-20260813-003 forbids inventing an unmeasured threshold. Reopen when someone measures strong-grade and security-audit rates with `assurance report --since` and proposes floors from that data.
+
+### dec-20261030-042 — 342 triage: defer rec-20261016-003 -- a fixed historical set since phase 332
+
+- recommendation: rec-20261016-003
+- decided: 2026-10-30T19:33:28.384Z
+
+Still present (re-derivation reads only summary.gateBypasses), but since phase 332 fixed the recorder the affected records are a fixed historical set (256-02 and 331-01 graded strong despite a bypassed sidecar entry). It is report-only under D-U and D-BZ. Reopen when the assurance report becomes published evidence (rec-20261010-004 reopens).
+
+### dec-20261030-043 — 342 triage: defer rec-20261016-005 -- design question; one known instance
+
+- recommendation: rec-20261016-005
+- decided: 2026-10-30T19:33:29.325Z
+
+Still present (gates/code-review.ts:170-172 passes every failing HIGH under the flag), and phase 332 explicitly left the per-finding bypass to this rec. It is a design question with one known instance (331-01). Reopen when a second settle shows an authorized bypass passing an unauthorized HIGH finding, or when the operator decides the identity-hash key.
+
+### dec-20261030-044 — 342 triage: defer rec-20261021-001 -- optimization; the CI timeouts it caused are fixed
+
+- recommendation: rec-20261021-001
+- decided: 2026-10-30T19:33:30.242Z
+
+Still present: cli/register.ts imports all 40 command modules eagerly, and `cadence --version` takes about 350-400 ms against about 30 ms for bare node here. But it is an optimization touching every command module, and phase 333 already fixed the CI timeouts it caused. Reopen when CLI-spawning test timeouts return, or when hook-spawn latency is visible in a host.
+
+### dec-20261030-045 — 342 triage: reject rec-20261023-001 -- premise false: normalization can only tighten settle
+
+- recommendation: rec-20261023-001
+- decided: 2026-10-30T19:33:31.162Z
+
+The 'creates a settle bypass' premise is false. Date.parse does normalize impossible dates forward (packages/checkpoint/src/state.ts:231-233), but a forward-normalized lastForcedAt can only over-count a force-release, never hide one, and the only writer stamps a real ISO time. Reaching it needs a hand-edit of checkpoint state.
+
+### dec-20261030-046 — 342 triage: defer rec-20261023-002 -- overcount of at most one; needs a second Stop hook
+
+- recommendation: rec-20261023-002
+- decided: 2026-10-30T19:33:32.061Z
+
+Still present (packages/checkpoint/src/stop-gate.ts:316 trusts the global stop_hook_active), but the phase-3 report bounds the effect at an overcount of at most one per chain, and it only arises when another Stop hook coexists with checkpoint. The operator's pending live Stop-gate capture is the natural place to observe it. Reopen when a spurious checkpoint ceiling-release is observed in a repo with another Stop hook installed.
+
+### dec-20261030-047 — 342 triage: reject rec-20260731-005 -- keeping a rejected finding suppressed is defensible
+
+- recommendation: rec-20260731-005
+- decided: 2026-10-30T19:33:32.922Z
+
+Present by design (services/settle.ts dedups against archived sourceFindingIds, with no rejected exemption), and no recurrence case in about 90 days. Keeping a rejected finding suppressed is a defensible semantic: it was judged not worth fixing. At most, a doc note can ride with the next change to that code.
+
+### dec-20261030-048 — 342 triage: reject rec-20260731-006 -- routing volume is tiny in practice
+
+- recommendation: rec-20260731-006
+- decided: 2026-10-30T19:33:33.681Z
+
+Present (sequential uncapped routing loop in services/settle.ts), but the ledger holds 12 routed recs in total, and no single settle produced more than 2; routing is bounded by the verifier's own output. File again if a single settle routes 10 or more findings.
+
+### dec-20261030-049 — 342 triage: reject rec-20260801-007 -- one item moot, two cosmetic after 90 days
+
+- recommendation: rec-20260801-007
+- decided: 2026-10-30T19:33:34.490Z
+
+Item 2 is moot: the verifierRollup key in assurance-record.ts uses a NUL separator, not a space. Item 1 is a gap already disclosed in eslint.config.js, never exploited. Item 3, the two hand-synced MAX_RECOGNIZED_SCHEMA_VERSION constants, has no third call site after 90 days and folds into whichever phase introduces SUMMARY schemaVersion 3.
+
+### dec-20261030-050 — 342 triage: reject rec-20260803-001 -- placeholder refs are no longer minted
+
+- recommendation: rec-20260803-001
+- decided: 2026-10-30T19:33:35.319Z
+
+The command gap remains (promote refuses terminal recs), but the source stopped: refs since about phase 330 name the phase id and settle date rather than 'PR pending'. The 20 legacy refs are cosmetic, and each still names the phase that leads to its PR. A field-correction seam, if ever wanted, belongs to rec-20260821-004's broader 'edit rec fields' ask.
+
+### dec-20261030-051 — 342 triage: defer rec-20260804-002 -- real but trivial and unhit; fold into the audit rec
+
+- recommendation: rec-20260804-002
+- decided: 2026-10-30T19:33:36.148Z
+
+Still present (scripts/check-audit-exceptions.mjs stops at the first non-row line, and the template comment sits directly below the table), but nobody has hit it: the comment tells authors to append above it, and the table is currently empty. Reopen when an audit exception row is next added, or when rec-20261015-001 reopens; then fold in the fix of moving the comment above the table.
+
+### dec-20261030-052 — 342 triage: promote rec-20260809-004 -- READMEs still claim init --demo is zero-prompt
+
+- recommendation: rec-20260809-004
+- decided: 2026-10-30T19:33:36.951Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Verified: README.md:177 and packages/core/README.md:62 still say `cadence init --demo  # zero prompts`, while init prompts for the verifier provider under a TTY (cli/commands/init.ts:508-533). A two-line doc fix pinned by the README doc tests; it can ride with any docs-touching phase.
+
+### dec-20261030-053 — 342 triage: reject rec-20260809-006 -- decision list already answers provenance
+
+- recommendation: rec-20260809-006
+- decided: 2026-10-30T19:33:37.757Z
+
+Present (onboard reports assessReadiness only), but there has been no consumer in about 80 days, and `cadence decision list` already answers how and when the provider was chosen.
+
+### dec-20261030-054 — 342 triage: reject rec-20260811-004 -- one instance; milestone defer is the escape hatch
+
+- recommendation: rec-20260811-004
+- decided: 2026-10-30T19:33:38.553Z
+
+Present (milestone close accepts only exported), with exactly one instance (mil-rec-rec-20260808-003) in about 80 days. dec-20260813-004 recorded the documented-blocker posture, and `milestone defer` moves it out of proposed. A new transition is not worth its code.
+
+### dec-20261030-055 — 342 triage: promote rec-20260821-002 -- wildcard boundary advisory re-fires across tasks
+
+- recommendation: rec-20260821-002
+- decided: 2026-10-30T19:33:39.462Z
+
+Promoted to ready-for-cadence-spec for a phase after 343/344; the next phase number is assigned at draft time. Confirmed: services/build-task.ts:241 builds declaredFiles from every task's files while touchedFiles is the current task's delta, so a satisfied wildcard (typically .changeset/*.md, used in drafts 293, 295, 300, 304, 309) re-warns on every later task. That is the noise dec-20260821-001 set out to avoid. Small fix: scope the advisory to the current task's files.
+
+### dec-20261030-056 — 342 triage: defer rec-20261015-001 -- needs a security-posture decision; nothing surfaced since 330
+
+- recommendation: rec-20261015-001
+- decided: 2026-10-30T19:33:40.367Z
+
+Still present (scripts/check-audit-exceptions.mjs fails only on high/critical), and the moderate-severity policy is unrecorded. Recording option (a) would close it at no code cost, but that is a security-posture choice for the operator, and nothing has surfaced since phase 330. Reopen when a production-path moderate advisory is found out-of-band (Dependabot, a manual audit, or a consumer report), or when the operator records the policy.
+
+### dec-20261030-057 — 342 triage: reject rec-20260801-002 -- duplicate of shipped rec-20260801-003
+
+- recommendation: rec-20260801-002
+- decided: 2026-10-30T19:47:34.970Z
+
+This rec had been soft-archived (manual) while still candidate/needs-decision, so the active listing never showed it; phase 342's independent review found it. It is the same ask as rec-20260801-003 (wire host-cli into the remaining six verifier families), which shipped. Nothing remains to decide.
+
+### dec-20261030-058 — 342 triage: reject rec-20260801-008 -- subsumed by promoted rec-20260806-008
+
+- recommendation: rec-20260801-008
+- decided: 2026-10-30T19:47:36.468Z
+
+Soft-archived (manual) while still candidate/needs-decision, so missed by the active listing until phase 342's independent review. dec-20260801-002 already narrowed finding identity to (file, normalized message), and dec-20260801-003 deferred message-drift dedup pending an offline analyzer. rec-20260806-008, promoted to ready-for-cadence-spec in this phase (dec-20261030-019), carries exactly that analyzer, so the remaining question (re-worded findings minting new ids, seen live as rec-20260806-002/-003/-005) is decided there from real data, not here.
+
+### dec-20261030-059 — 342 triage: defer rec-20261013-002 -- latent until braces enters website/ or the row is renewed
+
+- recommendation: rec-20261013-002
+- decided: 2026-10-30T19:47:37.887Z
+
+Soft-archived (manual) while still candidate/needs-decision, so missed by the active listing until phase 342's independent review. The braces exception row's root-only justification is latent for website/: braces is not in website/pnpm-lock.yaml, and the row expires 2026-11-18 (rec-20261010-007). Reopen when braces appears in website/'s lockfile, or when the braces row is renewed past 2026-11-18; decide the scope-column question then, alongside rec-20261010-007.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

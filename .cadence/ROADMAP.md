@@ -4037,6 +4037,35 @@ gate is what lets a mid-BUILD restore settle cleanly. Tier `standard`.
   constant, recorded in DESIGN.md as dropped rather than deferred. The CLI
   is the only surface: no MCP tool, slash command or host-adapter change.
 
+### Phase 342 — retire the needs-decision backlog and intake Cadence Studio's upstream asks (decisions only)
+
+**Objective.** Cadence Studio's roadmap §3 listed nine upstream asks, and
+Studio's own ledger held a tenth (rec-20261028-008, host-cli verifiers
+inheriting the operator's Codex config). None of them was in this ledger.
+Separately, 56 candidate recs had sat at `needs-decision`, some for 90
+days. This phase files the Studio asks, deduplicated against active and
+archived recs, and gives every undecided rec exactly one recorded
+disposition (promote, defer with a reopen trigger, reject with a reason,
+or shipped with a ref). It ships no product code; the ledger and the test
+that pins it are the deliverable. Tier `standard`.
+
+**As built.**
+- 13 Studio recs, rec-20261030-001..013, filed under
+  `scout-20261030-studio-intake`. The last three came from Studio's
+  `docs/engine/probes.md`, which the independent review found had never
+  reached §3. rec-20261030-004 (`fallback: "refuse"`) and -010 (verifier
+  isolation) are phases 343 and 344.
+- 59 triage decisions, dec-20261030-001..059: 11 promote, 2 shipped,
+  22 reject, 24 defer. The population was 59, not the DRAFT's 56: three
+  undecided recs had been soft-archived, so the active listing hid them.
+  `needs-decision` fell from 59 to 5, all of them new Studio asks.
+- The tree contradicted the ledger once: phase 315's design
+  (dec-20260918-002..005) was never built, so rec-20260917-006 is
+  promoted, not shipped. This phase's own settle shows the bug live:
+  skill-audit counted `phase-build` as invoked from stale checkout history.
+- The full table and the before/after histogram are in
+  `phases/342-ledger-triage-studio-intake/342-01-TRIAGE.md`.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

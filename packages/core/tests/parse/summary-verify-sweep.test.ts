@@ -222,4 +222,15 @@ describe('cadence summary verify-all - repo-wide sweep over every existing summa
     expect(failed).toBe(0);
     expect(result.code).toBe(0);
   });
+
+  it("342-01/AC-4: phase 342's ledger-only triage — 56 decisions, 10 filed recs and their readiness/status changes — touched no historical SUMMARY.json", () => {
+    // Same shared beforeAll sweep, reused rather than re-run. Phase 342
+    // writes only .cadence/intelligence/* through the CLI plus this test and
+    // phase342-ledger-triage.test.ts; none of those is a SUMMARY.json, so the
+    // sweep must come back exactly as clean as before.
+    expect(checked).toBeGreaterThanOrEqual(294);
+    expect(failed).toBe(0);
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toMatch(/: MISMATCH$/m);
+  });
 });
