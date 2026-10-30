@@ -18,6 +18,24 @@ export interface StateBackend {
    */
   commit(state: CadenceState, opts?: { force?: boolean }): Promise<void>;
   /**
+   * Explicit-revision replace (phase 341, `cadence state load`). Additive
+   * beside `commit()`, whose semantics it does not change: where `commit()`
+   * compares to `state.revision` and bumps it, `replaceState` checks the
+   * on-disk file against `expected` — what the caller saw when it planned —
+   * and writes `state.revision` EXACTLY as given (the planner already set it
+   * to `max(local, snapshot) + 1`).
+   *
+   * `expected` is `{ revision }` (a parseable file at that revision),
+   * `'absent'` (no file) or `'corrupt'` (a file that still fails to parse).
+   * Any mismatch refuses with the same `StateConflictError` `commit()`
+   * throws. Otherwise writes `state.json` + the derived `STATE.md` through
+   * `commit()`'s own write path.
+   */
+  replaceState(
+    state: CadenceState,
+    expected: { revision: number } | 'absent' | 'corrupt',
+  ): Promise<void>;
+  /**
    * Telemetry-exempt write path (Phase 194 / issue #234). For purely
    * informational `session` counters — `session.subagentSpawns` and (phase
    * 305 / issue #500) `session.tokenUtilization`, clamped to its 0..1 range —

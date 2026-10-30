@@ -270,9 +270,9 @@ export async function listTrackedCadenceOwnedPaths(root: string): Promise<string
 
 /**
  * Phase 196 (issue #177): CADENCE-owned ephemeral state (`state.json`,
- * `STATE.md`, `mcp-trust.json`, `intelligence/context/`) must never be a
- * tracked file — tracking it guarantees a real git merge conflict the moment
- * two CADENCE worktrees on different phases sync. Best-effort and never
+ * `STATE.md`, `mcp-trust.json`, `intelligence/context/`, and since phase 341
+ * `local/`) must never be a tracked file — tracking it guarantees a real git
+ * merge conflict the moment two CADENCE worktrees on different phases sync. Best-effort and never
  * throws: outside a git repository (or with git unavailable) this degrades to
  * a pass, since there is nothing to determine either way.
  */

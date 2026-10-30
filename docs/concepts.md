@@ -389,6 +389,18 @@ Two state files are always present and regenerated on every state write:
 | `.cadence/state.json` | Machine-readable loop state (loop position, active draft, task, tier, …) |
 | `.cadence/STATE.md` | Derived human-readable view — do not edit by hand |
 
+Two more directories carry state between machines (phase 341, `cadence state
+save | load | list`):
+
+| Directory | Purpose |
+|---|---|
+| `.cadence/snapshots/` | Snapshots of `state.json` written by `cadence state save`, committed by the operator alongside a handoff so the loop position travels with the branch. `save` keeps the newest 3 |
+| `.cadence/local/` | Machine-local and gitignored: `state.json.bak` (the state the last `cadence state load` replaced) and `state-sync.json` (the local revision at this machine's last save or load) |
+
+`cadence resume` never restores state; `cadence state load` is the explicit,
+refuse-first restore. See
+[docs/reference/commands.md — state](reference/commands.md#state).
+
 The `.cadence/shakedown/` directory is used for hand-crafted exercise notes
 (e.g. live gate exercises, TTY verification reports). It is not managed by the
 engine.

@@ -1,0 +1,65 @@
+{
+  "draftId": "341-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "StateSnapshotZ added to types; 7 tests; types suite 383 passed, build/typecheck/lint clean; independent review: no Critical/Important",
+      "touchedFiles": [
+        "packages/types/src/index.ts",
+        "packages/types/src/snapshot.ts",
+        "packages/types/tests/snapshot.test.ts"
+      ],
+      "updatedAt": "2026-10-30T13:48:31.030Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Pure snapshot planners (src/state/snapshot.ts), 58 tests; typecheck+lint clean; independent review no Critical; added corrupt-local and unsafe-before-unknown-keys order tests (mutation-checked). Review note for T3: assertSnapshotPathsSafe must run before any phase-dir probe.",
+      "touchedFiles": [
+        "packages/core/src/state/snapshot.ts",
+        "packages/core/tests/state/snapshot.test.ts"
+      ],
+      "updatedAt": "2026-10-30T13:55:42.548Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Snapshot service (save/load/list) + additive StateBackend.replaceState; 126 tests in state+service suites; typecheck+lint clean; safety check precedes phase-dir probe (mutation-checked); independent review: no Critical/Important, 5 Minor accepted (spec-compliant / pre-existing race).",
+      "touchedFiles": [
+        "packages/core/src/state/backend.ts",
+        "packages/core/src/state/simple.ts",
+        "packages/core/tests/state/simple.test.ts",
+        "packages/core/src/services/state-snapshot.ts",
+        "packages/core/tests/services/state-snapshot.test.ts"
+      ],
+      "updatedAt": "2026-10-30T14:06:46.381Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "cadence state CLI registered; .cadence/local/ gitignored (init + repo); doctor coverage via shared entry list; 277 targeted tests + typecheck clean; only full-suite failure is the expected cli-reference docs pairing closed by T5; independent review: no findings.",
+      "touchedFiles": [
+        ".gitignore",
+        "packages/core/src/cli/register.ts",
+        "packages/core/src/doctor/fix.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/init/gitignore.ts",
+        "packages/core/tests/doctor/fix.test.ts",
+        "packages/core/tests/doctor/run.test.ts",
+        "packages/core/tests/init/gitignore.test.ts",
+        "packages/core/src/cli/commands/state.ts",
+        "packages/core/tests/cli/state-snapshot.test.ts"
+      ],
+      "updatedAt": "2026-10-30T14:17:17.905Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "Docs (commands.md ### state + gitignore/doctor enumerations, concepts State files, DESIGN D10 as-built note), docs test, ROADMAP/MILESTONES, changeset. Whole-branch review: 1 Important (bare-load retry after save picked own snapshot) fixed + re-reviewed clean, mutation-checked. Full uncached turbo lint/typecheck/test/build: 28/28.",
+      "touchedFiles": [
+        "DESIGN.md",
+        "docs/concepts.md",
+        "docs/reference/commands.md",
+        ".changeset/state-save-load.md",
+        "packages/core/tests/docs/phase341-state-save-load-docs.test.ts"
+      ],
+      "updatedAt": "2026-10-30T14:38:44.746Z"
+    }
+  }
+}

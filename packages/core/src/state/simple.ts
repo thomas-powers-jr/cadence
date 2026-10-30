@@ -7,6 +7,36 @@ import { atomicWriteJSON, atomicWriteText } from './atomic-write.js';
 import { renderStateMd } from '../render/state-md.js';
 import type { StateBackend } from './backend.js';
 
+/** An on-disk `state.json` as `replaceState` sees it. */
+type ProbedState = number | 'absent' | 'corrupt';
+
+function describeHad(v: ProbedState): string {
+  if (v === 'absent') return 'no state.json';
+  if (v === 'corrupt') return 'an unparseable state.json';
+  return `revision ${v}`;
+}
+
+function describeCurrent(v: ProbedState): string {
+  if (v === 'absent') return 'no state.json';
+  if (v === 'corrupt') return 'an unparseable state.json';
+  return String(v);
+}
+
+/**
+ * The conflict `commit()` and `replaceState()` throw. With two revisions the
+ * message is byte-identical to `commit()`'s historical text. `absent` /
+ * `corrupt` sides are described in words and carry revision `-1`.
+ */
+function stateConflict(had: ProbedState, current: ProbedState): StateConflictError {
+  return new StateConflictError(
+    `state.json changed since you read it (you had ${describeHad(had)}, current is ${describeCurrent(current)}) — re-run this command to pick up the latest state.`,
+    {
+      expectedRevision: typeof had === 'number' ? had : -1,
+      actualRevision: typeof current === 'number' ? current : -1,
+    },
+  );
+}
+
 export class SimpleStateBackend implements StateBackend {
   constructor(private readonly repoRoot: string) {}
 
@@ -69,10 +99,7 @@ export class SimpleStateBackend implements StateBackend {
       const onDisk = await this.readState();
       if (onDisk.revision !== state.revision) {
         if (!opts.force) {
-          throw new StateConflictError(
-            `state.json changed since you read it (you had revision ${state.revision}, current is ${onDisk.revision}) — re-run this command to pick up the latest state.`,
-            { expectedRevision: state.revision, actualRevision: onDisk.revision },
-          );
+          throw stateConflict(state.revision, onDisk.revision);
         }
         process.stderr.write(
           `cadence: force bypassing a state.json conflict (you had revision ${state.revision}, current is ${onDisk.revision}) — overwriting\n`,
@@ -80,6 +107,43 @@ export class SimpleStateBackend implements StateBackend {
       }
       state.revision = onDisk.revision + 1;
     }
+    await this.writeStateAndView(state);
+  }
+
+  /**
+   * Explicit-revision replace (phase 341). See the `StateBackend` interface
+   * doc. Checks the on-disk `state.json` against `expected`, refusing with
+   * the same `StateConflictError` `commit()` throws on any mismatch, then
+   * writes `state` with its `revision` untouched plus the derived `STATE.md`
+   * through `commit()`'s write path. Like `commit()`, this is a check-then-
+   * write without a lock: it narrows the race to one read→write round trip.
+   */
+  async replaceState(
+    state: CadenceState,
+    expected: { revision: number } | 'absent' | 'corrupt',
+  ): Promise<void> {
+    const onDisk = await this.probeOnDisk();
+    const want: ProbedState = typeof expected === 'string' ? expected : expected.revision;
+    if (onDisk !== want) {
+      throw stateConflict(want, onDisk);
+    }
+    await this.writeStateAndView(state);
+  }
+
+  /** What `state.json` holds right now: its revision, or absent/corrupt. */
+  private async probeOnDisk(): Promise<ProbedState> {
+    const statePath = join(await this.resolveStateDir(), 'state.json');
+    if (!existsSync(statePath)) return 'absent';
+    try {
+      return (await this.readState()).revision;
+    } catch (err) {
+      if (err instanceof StateCorruptError) return 'corrupt';
+      throw err;
+    }
+  }
+
+  /** `commit()`'s write path: `state.json` then the derived `STATE.md`. */
+  private async writeStateAndView(state: CadenceState): Promise<void> {
     await this.writeState(state);
     await atomicWriteText(
       join(await this.resolveStateDir(), 'STATE.md'),

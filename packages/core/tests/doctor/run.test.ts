@@ -210,7 +210,7 @@ describe('runDoctor — state-tracked (phase 196, issue #177, AC-2)', () => {
     expect(report.ok).toBe(true); // warning, not error — must not fail the report
   });
 
-  it('AC-2: none of the four CADENCE-owned paths tracked → passes', async () => {
+  it('AC-2: none of the five CADENCE-owned paths tracked → passes', async () => {
     active = await tempRepo({ initialized: true, projectName: 'doc-state-untracked' });
     execFileSync('git', ['init', '-q'], { cwd: active.root });
 

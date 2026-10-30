@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "draftId": "341-01",
+  "completedAt": "2026-10-30T14:38:56.325Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "StateSnapshotZ added to types; 7 tests; types suite 383 passed, build/typecheck/lint clean; independent review: no Critical/Important"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Pure snapshot planners (src/state/snapshot.ts), 58 tests; typecheck+lint clean; independent review no Critical; added corrupt-local and unsafe-before-unknown-keys order tests (mutation-checked). Review note for T3: assertSnapshotPathsSafe must run before any phase-dir probe."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "Snapshot service (save/load/list) + additive StateBackend.replaceState; 126 tests in state+service suites; typecheck+lint clean; safety check precedes phase-dir probe (mutation-checked); independent review: no Critical/Important, 5 Minor accepted (spec-compliant / pre-existing race)."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "cadence state CLI registered; .cadence/local/ gitignored (init + repo); doctor coverage via shared entry list; 277 targeted tests + typecheck clean; only full-suite failure is the expected cli-reference docs pairing closed by T5; independent review: no findings."
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "Docs (commands.md ### state + gitignore/doctor enumerations, concepts State files, DESIGN D10 as-built note), docs test, ROADMAP/MILESTONES, changeset. Whole-branch review: 1 Important (bare-load retry after save picked own snapshot) fixed + re-reviewed clean, mutation-checked. Full uncached turbo lint/typecheck/test/build: 28/28."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "release-cut",
+      "phase-build",
+      "pr-land",
+      "cadence-handoff"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 44,
+    "sessionSubagentSpawns": 38
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 6,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "445f3210b7b2cfb111f704a2762d63fdc9972078fdd652de34149a168ccc3fa0"
+  }
+}

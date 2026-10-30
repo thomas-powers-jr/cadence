@@ -4005,6 +4005,38 @@ profile cells are unchanged, and the schema change is additive. Tier
   where the mtime-only gate refused it). rec-20261029-003 tracks the MCP
   settle tool's `allowStaleDraft` description, which still says "mtime gate".
 
+### Phase 341 — `cadence state save | load | list` carries loop state between machines through committed snapshots (dec-20261029-001)
+
+**Objective.** `.cadence/state.json` is gitignored, so the live loop
+position did not travel with a branch, and moving work to another machine
+mid-loop lost it. Cadence Studio had built its own `cadence-state save |
+load | list` script to carry a committed snapshot between PCs; this phase
+moves that capability into core as `cadence state save | load | list`.
+`save` writes `.cadence/snapshots/state-<stamp>-<host>.json`, a committed
+directory, and keeps the newest 3. `load` is its own command, so `cadence
+resume` stays read-only (D10). It treats the snapshot as untrusted input:
+path-bearing fields must be plain identifiers (never overridable), and it
+refuses on unknown state keys, another project, a missing phase directory
+on this branch, or local work since this machine's last save or load. That
+last check uses a machine-local sync marker in the new gitignored
+`.cadence/local/` and never compares raw `revision` values across machines.
+On success the session counters reset, progress is kept, and `revision`
+becomes `max(local, snapshot) + 1`. Phase 340's content-hash `draft-read`
+gate is what lets a mid-BUILD restore settle cleanly. Tier `standard`.
+
+**As built.**
+- `StateSnapshotZ` lives in the types package; the pure planners
+  (`state/snapshot.ts`, `SNAPSHOT_KEEP = 3`) take every fact as an argument,
+  and the service in `services/state-snapshot.ts` gathers them.
+- The backend gained an additive `replaceState(state, expected)`, which
+  writes an exact `revision` and refuses with the existing state-conflict
+  error when the file no longer matches `expected` (a revision, `'absent'`
+  or `'corrupt'`). `commit()` is unchanged.
+- `.cadence/local/` joined the cadence-owned gitignore entries, and
+  `doctor`'s `state-tracked` check covers it. Snapshot retention is a
+  constant, recorded in DESIGN.md as dropped rather than deferred. The CLI
+  is the only surface: no MCP tool, slash command or host-adapter change.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

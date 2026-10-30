@@ -1317,6 +1317,14 @@ changeset (example/test-only change, no published-package surface).*
   differs; a match passes with a stderr notice. State approved before the
   stamp keeps the mtime-only check (dec-20261029-001; follow-ups
   rec-20261029-001, rec-20261029-002).
+- **Phase 341** — new `cadence state save | load | list` carries the loop
+  position between machines through snapshots committed in
+  `.cadence/snapshots/` (the newest 3 are kept). `load` is a separate,
+  refuse-first restore, so `cadence resume` stays read-only: it refuses
+  unsafe path fields (never overridable), unknown state keys, another
+  project, a missing phase directory, or local work since this machine's
+  last sync, resets session counters, and backs up the replaced state to
+  the new gitignored `.cadence/local/` (dec-20261029-001).
 
 
 
