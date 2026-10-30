@@ -51,6 +51,24 @@
       "updatedAt": "2026-10-30T20:47:40.610Z",
       "execution": "dispatch",
       "isolation": "none"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "settle-fallback-refuse.test.ts (5) + approve-build-fallback-refuse.test.ts (5) drive real settleService/draftApproveService/buildTaskService with CLAUDECODE stubbed; AC-1, AC-2, AC-7 plus security-audit/spec-review/ui-spec-review wiring all held with no src change. Behaviour tests of already-built code, so green first time. 25/25 fallback-refuse re-run in main thread. Per-task review folded into the whole-branch review.",
+      "touchedFiles": [
+        "packages/core/tests/services/approve-build-fallback-refuse.test.ts"
+      ],
+      "updatedAt": "2026-10-30T20:50:21.220Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "verification.fallback documented in config.md (row + Verification fallback section), providers.md (Refusing instead of falling back), commands.md (verification-fallback doctor row, never (info); readiness note); docs test derives enum and seams from code; minor changeset core+types. tests/docs 63/63 files, 407 tests re-run in main thread. Per-task review folded into the whole-branch review (docs re-read last).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T20:50:21.584Z",
+      "execution": "dispatch",
+      "isolation": "none"
     }
   }
 }
