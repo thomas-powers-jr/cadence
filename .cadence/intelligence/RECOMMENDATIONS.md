@@ -1710,6 +1710,7 @@ Ask: export settle, draftApprove, buildTask, status and doctor from packages/cor
 - confidence: 70%
 - decay: fresh
 - areas: studio-upstream, verify, config
+- decisions: dec-20261030-060 (active), dec-20261030-061 (active), dec-20261030-062 (active)
 - evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 4; operator handoff HANDOFF-stop-gate-capture-342-344 section 2
 - evidence: Config key not yet chosen: Studio's ask says verifier.fallback, this rec's title says verification.fallback, and both namespaces exist in packages/types/src/config.ts (verification holds testGlobs/coverageMode; verifier holds the deep-verify provider). Phase 343's DRAFT should pick the key deliberately and record why.
 - next: cadence milestone propose
@@ -1869,3 +1870,33 @@ Studio's engine probe: add-ac and add-task append after draft new's placeholder 
 - next: cadence milestone propose
 
 Studio's engine probe reports that when settle run --auto refuses because a task is BLOCKED, the refusal does not appear in SUMMARY gates[] the way other gate refusals do, so a consumer reading gates[] cannot see why settle stopped. Reproduce here before specifying; if confirmed it is an audit-trail gap in the same family as rec-20260917-005.
+
+## rec-20261030-014 — Flip verification.fallback's default to refuse
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, config, defaults
+- evidence: Operator handoff HANDOFF-stop-gate-capture-342-344 §2 boundary: file the default flip with the trigger 'after Studio Phase 8'
+- next: cadence milestone propose
+
+Phase 343 ships verification.fallback with an absent default meaning mock, so nothing changes for existing users (D-B, dec-20260808-002 territory). Making refuse the default would end silent mock settles for everyone, at the cost of breaking every repo whose host-cli seam cannot launch today. Reopen after Cadence Studio Phase 8 ships: by then Studio will have run refuse in anger and its experience is the evidence for or against the flip.
+
+## rec-20261030-015 — config explain and activate still say seams will fall back to mock under verification.fallback refuse
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: config-explain, activate, verify
+- evidence: Phase 343 DRAFT review finding M2; boundary in 343-01-DRAFT.md
+- next: cadence milestone propose
+
+Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.
