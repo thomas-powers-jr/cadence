@@ -3281,6 +3281,13 @@
       "kind": "note",
       "summary": "Phase 343 DRAFT review finding M2; boundary in 343-01-DRAFT.md",
       "createdAt": "2026-10-30T20:36:24.055Z"
+    },
+    {
+      "id": "ev-20261030-022",
+      "recommendationId": "rec-20261030-015",
+      "kind": "note",
+      "summary": "Clarification from phase 343's T1 review: config-explain/build.ts ~114 is about CADENCE_LOCAL_API_KEY being unset ('may be rejected or fall back'), while the local downgrade refuse governs is triggered by a missing endpoint, not a missing key. Check which condition each line describes before rewording.",
+      "createdAt": "2026-10-30T20:39:54.454Z"
     }
   ]
 }

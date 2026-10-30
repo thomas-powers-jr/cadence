@@ -56,7 +56,12 @@ export function buildDraftContext(args: {
     verifiers: {
       planReview: {
         verify: (input) =>
-          (planReviewMemo ??= selectPlanReviewVerifier(config, { cwd })).verify(input),
+          (planReviewMemo ??= selectPlanReviewVerifier(config, {
+            cwd,
+            ...(config?.verification?.fallback !== undefined
+              ? { fallback: config.verification.fallback }
+              : {}),
+          })).verify(input),
       },
     },
     emit: {

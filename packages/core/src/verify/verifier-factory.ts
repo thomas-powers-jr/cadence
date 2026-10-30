@@ -15,7 +15,35 @@ export interface VerifierSelectOptions {
   /** Where a `.env` file is discovered (default `process.cwd()`) — a key found
    *  there is treated the same as one exported into the env (AC-1). */
   cwd?: string;
+  /** Phase 343: the effective `verification.fallback` setting. Absent or
+   *  `'mock'` keeps the loud mock downgrade; `'refuse'` makes a verifier call
+   *  that cannot reach its configured real provider throw
+   *  `VerifierFallbackRefusedError` instead of delegating to mock. */
+  fallback?: 'mock' | 'refuse';
 }
+
+/**
+ * Phase 343: thrown by a verifier call under `verification.fallback: "refuse"`
+ * when its configured real provider is unavailable — in place of the loud
+ * mock downgrade. `label` names the seam (`spec.label`); `cause` is the
+ * underlying failure (a `HostCliError` on the call-time host-cli path).
+ */
+export class VerifierFallbackRefusedError extends Error {
+  readonly label: string;
+  override readonly cause: unknown;
+
+  constructor(label: string, message: string, cause: unknown) {
+    super(message);
+    this.name = 'VerifierFallbackRefusedError';
+    this.label = label;
+    this.cause = cause;
+  }
+}
+
+/** Strips host-cli-client's trailing "Falling back to mock …." sentence (the
+ *  self-invocation message ends with one) so a refusal never claims a mock
+ *  fallback that did not happen. */
+const TRAILING_MOCK_FALLBACK_SENTENCE = /\s*Falling back to mock[^.]*\.\s*$/;
 
 /**
  * Describes one verifier family: how to read its `{ provider, model }` config
@@ -286,7 +314,14 @@ function tagProviderSelection<T>(result: T, tag: ProviderSelectionTag): T {
 function wrapWithFallback<V>(
   primary: V,
   initialTag: ProviderSelectionTag,
-  fallbackOpts?: { fallback: V; warn: (message: string) => void; label: string },
+  fallbackOpts?: {
+    fallback: V;
+    warn: (message: string) => void;
+    label: string;
+    /** Phase 343: `'refuse'` throws `VerifierFallbackRefusedError` on a
+     *  `HostCliError` instead of warning and delegating to `fallback`. */
+    mode?: 'mock' | 'refuse';
+  },
 ): V {
   // `V` is unconstrained at the `createVerifierFactory<C, V>` call site (any
   // verifier family's interface), but every family's builder in practice
@@ -298,6 +333,14 @@ function wrapWithFallback<V>(
 
   const delegateToFallback = (prop: PropertyKey, args: unknown[], err: unknown): unknown => {
     if (!fallbackOpts || !(err instanceof HostCliError)) throw err;
+    if (fallbackOpts.mode === 'refuse') {
+      const cause = err.message.replace(TRAILING_MOCK_FALLBACK_SENTENCE, '');
+      throw new VerifierFallbackRefusedError(
+        fallbackOpts.label,
+        `${fallbackOpts.label}: host-cli unavailable and verification.fallback is refuse (${err.reason}): ${cause}`,
+        err,
+      );
+    }
     stuckFallback = true;
     fallbackOpts.warn(
       `${fallbackOpts.label}: host-cli provider failed (${err.reason}: ${err.message}) — falling back to mock provider for this call.`,
@@ -414,6 +457,7 @@ export function createVerifierFactory<C, V>(
         fallback: spec.mock(),
         warn,
         label: spec.label,
+        ...(opts.fallback === 'refuse' ? { mode: 'refuse' as const } : {}),
       });
     }
 

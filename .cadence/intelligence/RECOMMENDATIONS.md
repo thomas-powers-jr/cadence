@@ -1897,6 +1897,7 @@ Phase 343 ships verification.fallback with an absent default meaning mock, so no
 - decay: fresh
 - areas: config-explain, activate, verify
 - evidence: Phase 343 DRAFT review finding M2; boundary in 343-01-DRAFT.md
+- evidence: Clarification from phase 343's T1 review: config-explain/build.ts ~114 is about CADENCE_LOCAL_API_KEY being unset ('may be rejected or fall back'), while the local downgrade refuse governs is triggered by a missing endpoint, not a missing key. Check which condition each line describes before rewording.
 - next: cadence milestone propose
 
 Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.

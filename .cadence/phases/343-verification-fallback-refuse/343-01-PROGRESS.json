@@ -1,0 +1,25 @@
+{
+  "draftId": "343-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "verification.fallback optional enum (types/src/config.ts), absent from both default layers; types test 3/3 and init test 1/1 green (init is a regression guard, green by design). dec-20261030-060..062 recorded; rec-20261030-014 (default flip, reopen after Studio Phase 8) and rec-20261030-015 (config explain/activate wording) filed. Independent review: no Critical/Important.",
+      "touchedFiles": [
+        "packages/core/tests/cli/init-verification-fallback.test.ts",
+        "packages/types/src/config.ts",
+        "packages/types/tests/config-verification-fallback.test.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/gates/build-context.ts",
+        "packages/core/src/gates/draft-context.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/services/spec-approve-ports.ts",
+        "packages/core/src/verify/verifier-factory.ts",
+        "packages/core/tests/doctor/verification-fallback.test.ts",
+        "packages/core/tests/verify/verifier-factory-fallback-refuse.test.ts"
+      ],
+      "updatedAt": "2026-10-30T20:39:54.977Z",
+      "execution": "inline",
+      "isolation": "none"
+    }
+  }
+}

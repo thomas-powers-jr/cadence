@@ -805,7 +805,13 @@ function buildSettleContext(
       deep: {
         verify: (input) => {
           if (!deepVerifierMemo) {
-            deepVerifierMemo = selectVerifier(cadenceConfig, { ...verifierOverride, cwd });
+            deepVerifierMemo = selectVerifier(cadenceConfig, {
+              ...verifierOverride,
+              cwd,
+              ...(cadenceConfig?.verification?.fallback !== undefined
+                ? { fallback: cadenceConfig.verification.fallback }
+                : {}),
+            });
           }
           return deepVerifierMemo.verify(input);
         },
@@ -813,7 +819,12 @@ function buildSettleContext(
       codeReview: {
         verify: (input) => {
           if (!codeReviewVerifierMemo) {
-            codeReviewVerifierMemo = selectCodeReviewVerifier(cadenceConfig, { cwd });
+            codeReviewVerifierMemo = selectCodeReviewVerifier(cadenceConfig, {
+              cwd,
+              ...(cadenceConfig?.verification?.fallback !== undefined
+                ? { fallback: cadenceConfig.verification.fallback }
+                : {}),
+            });
           }
           return codeReviewVerifierMemo.verify(input);
         },
@@ -821,7 +832,12 @@ function buildSettleContext(
       securityAudit: {
         verify: (input, opts) => {
           if (!securityAuditVerifierMemo) {
-            securityAuditVerifierMemo = selectSecurityAuditVerifier(cadenceConfig, { cwd });
+            securityAuditVerifierMemo = selectSecurityAuditVerifier(cadenceConfig, {
+              cwd,
+              ...(cadenceConfig?.verification?.fallback !== undefined
+                ? { fallback: cadenceConfig.verification.fallback }
+                : {}),
+            });
           }
           return securityAuditVerifierMemo.verify(input, opts);
         },
