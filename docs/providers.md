@@ -30,6 +30,7 @@ For a conceptual overview of providers and the gate universe they serve, see
   - [Self-invocation guard](#self-invocation-guard)
   - [Readiness reporting caveat](#readiness-reporting-caveat)
   - [Deferred: batching](#deferred-batching)
+- [Refusing instead of falling back](#refusing-instead-of-falling-back)
 - [Per-gate provider configuration](#per-gate-provider-configuration)
 - [Which gate fires in which cell](#which-gate-fires-in-which-cell)
 - [Producing a real-provider code-review or security-audit finding (conduction, Phase 251)](#producing-a-real-provider-code-review-or-security-audit-finding-conduction-phase-251)
@@ -523,6 +524,54 @@ Batching multiple ACs into a single subprocess spawn per gate run is
 explicitly deferred — not implemented by this provider today. (Quota
 transparency, previously listed here as deferred alongside batching, is now
 implemented — see [Quota-transparency notice](#quota-transparency-notice).)
+
+---
+
+## Refusing instead of falling back
+
+Every downgrade described above (a missing Anthropic key, an unset local
+endpoint, and each host-cli failure reason, including the self-invocation
+guard) continues the call on `mock` with a loud stderr notice. That keeps an
+interactive session moving, but it means an unattended run can settle on a
+mock verdict by accident. Set `verification.fallback` to `"refuse"` to turn
+every such downgrade into a failure:
+
+```json
+{
+  "verification": {
+    "fallback": "refuse"
+  }
+}
+```
+
+Under `"refuse"` a verifier seam never delegates to `mock`. The call fails
+with an error that names the seam, the setting and the cause, in one of two
+shapes:
+
+```
+<seam>: host-cli unavailable and verification.fallback is refuse (<reason>): <cause>
+<seam>: <provider> provider unavailable and verification.fallback is refuse: <missing prerequisite>
+```
+
+`deep-verify`, `code-review` and `security-audit` turn that error into a gate
+refusal, so `cadence settle run` exits non-zero. Their existing bypass flags
+(`--allow-verifier-failure`, `--allow-code-review-failure`,
+`--allow-security-audit-failure`, `--force`) still apply. `per-task-verify`,
+`plan-review`, `spec-review` and `ui-spec-review` make their command exit 1
+without changing loop state, and have no bypass. The refusal is lazy, like the
+fallback it replaces: it happens only when a seam is actually called.
+
+`"mock"`, or leaving the key out, keeps the fallback behavior described above
+unchanged; that is the default. A seam whose provider is explicitly set to
+`mock` is unaffected by `"refuse"`, because an explicit `mock` is a choice,
+not a fallback. `cadence doctor` reports the effective value in its
+`verification-fallback` check.
+
+`"refuse"` is intended for automated consumers, such as CI jobs or Cadence
+Studio, that must never settle on a mock by accident. The full reference,
+including which seams it governs and where each one's refusal surfaces, is in
+[docs/reference/config.md — Verification
+fallback](reference/config.md#verification-fallback).
 
 ---
 
