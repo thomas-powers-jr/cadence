@@ -1901,3 +1901,37 @@ Phase 343 ships verification.fallback with an absent default meaning mock, so no
 - next: cadence milestone propose
 
 Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.
+
+## rec-20261101-001 — Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, checkpoint, handoff, host-adapters
+- files: packages/host-toolkit/src/routing.ts, packages/host-codex/src/event-map.ts, packages/core/src/hooks/handlers.ts, packages/checkpoint/src/session-start.ts
+- evidence: routing.ts:36-42 installs SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStop only; phase-0 §M3 observed order PreCompact -> SessionStart(compact) -> PostCompact with payload { session_id, transcript_path, cwd, trigger, custom_instructions, ... }
+- evidence: Sibling: rec-20261101-002 (block an auto PreCompact until a fresh handoff exists, needs-evidence). Split on purpose: this record-only half needs nothing from the untested auto-PreCompact blocking question, so it is not held behind that rec's evidence.
+- next: cadence milestone propose
+
+Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.
+
+## rec-20261101-002 — Checkpoint gate on auto-compaction: block an auto PreCompact until a fresh handoff exists
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, checkpoint, host-adapters
+- files: packages/checkpoint/src/stop-gate.ts, packages/checkpoint/src/install-hooks.ts
+- evidence: REPORT-checkpoint-phase-0.md M10 'Not reached'; REPORT-checkpoint-phase-0.4a.md: PreCompact documented as blocking on exit 2 / JSON decision, manual /compact block not honoured in the probe, JSON mode untested
+- evidence: Sibling: rec-20261101-001 (record-only PreCompact handoff, ready-for-cadence-spec). If 001 ships first, this gate can reuse its PreCompact event mapping and handoff writer and add only the blocking decision.
+- next: cadence milestone propose
+
+Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can lose the race to auto-compaction; a PreCompact gate would close it by blocking an auto-triggered compaction until a fresh handoff exists, sharing the Stop gate's ceiling and force-release semantics (including the sticky lastForcedAt from dec-20261022-002) so it can never wedge a session. A checkpoint Phase 4 change, not a Phase 3 fix. Evidence needed first: an auto-triggered PreCompact has never been observed (gap M10, docs/checkpoint/REPORT-checkpoint-phase-0.md), so it is unknown whether blocking one works or what its payload holds; phase 0.4a's exit-code-2 block of a manual /compact did not hold (likely the same exit-code collapse that hit Stop), and JSON-decision blocking for PreCompact was never tested. Reopen with the operator's live Stop-gate capture: let one session run into auto-compaction and record the event order, the trigger value, whether a handoff existed, and whether a JSON block holds.

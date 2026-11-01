@@ -3288,6 +3288,34 @@
       "kind": "note",
       "summary": "Clarification from phase 343's T1 review: config-explain/build.ts ~114 is about CADENCE_LOCAL_API_KEY being unset ('may be rejected or fall back'), while the local downgrade refuse governs is triggered by a missing endpoint, not a missing key. Check which condition each line describes before rewording.",
       "createdAt": "2026-10-30T20:39:54.454Z"
+    },
+    {
+      "id": "ev-20261101-001",
+      "recommendationId": "rec-20261101-001",
+      "kind": "note",
+      "summary": "routing.ts:36-42 installs SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStop only; phase-0 §M3 observed order PreCompact -> SessionStart(compact) -> PostCompact with payload { session_id, transcript_path, cwd, trigger, custom_instructions, ... }",
+      "createdAt": "2026-11-01T01:31:35.148Z"
+    },
+    {
+      "id": "ev-20261101-002",
+      "recommendationId": "rec-20261101-002",
+      "kind": "note",
+      "summary": "REPORT-checkpoint-phase-0.md M10 'Not reached'; REPORT-checkpoint-phase-0.4a.md: PreCompact documented as blocking on exit 2 / JSON decision, manual /compact block not honoured in the probe, JSON mode untested",
+      "createdAt": "2026-11-01T01:31:35.895Z"
+    },
+    {
+      "id": "ev-20261101-003",
+      "recommendationId": "rec-20261101-001",
+      "kind": "note",
+      "summary": "Sibling: rec-20261101-002 (block an auto PreCompact until a fresh handoff exists, needs-evidence). Split on purpose: this record-only half needs nothing from the untested auto-PreCompact blocking question, so it is not held behind that rec's evidence.",
+      "createdAt": "2026-11-01T01:31:41.715Z"
+    },
+    {
+      "id": "ev-20261101-004",
+      "recommendationId": "rec-20261101-002",
+      "kind": "note",
+      "summary": "Sibling: rec-20261101-001 (record-only PreCompact handoff, ready-for-cadence-spec). If 001 ships first, this gate can reuse its PreCompact event mapping and handoff writer and add only the blocking decision.",
+      "createdAt": "2026-11-01T01:31:42.190Z"
     }
   ]
 }
