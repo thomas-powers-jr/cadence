@@ -1700,23 +1700,6 @@ An automated consumer (Studio's Runner, any CI) cannot tell from the exit code w
 
 Ask: export settle, draftApprove, buildTask, status and doctor from packages/core/src/services/* as a documented library entry with injected IO, so a second consumer (Studio) can stop parsing CLI text. Needs a decision: it creates a public API surface that the lockstep semver policy then has to honour, and the zero-runtime-dependency bias and the core-never-imports-host arrow constrain what the entry may pull in. Partly substitutable by the --json rec from the same intake.
 
-## rec-20261030-004 — verification.fallback: "refuse" -- a hard refusal instead of the silent-continue mock fallback
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: studio-upstream, verify, config
-- decisions: dec-20261030-060 (active), dec-20261030-061 (active), dec-20261030-062 (active)
-- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 4; operator handoff HANDOFF-stop-gate-capture-342-344 section 2
-- evidence: Config key not yet chosen: Studio's ask says verifier.fallback, this rec's title says verification.fallback, and both namespaces exist in packages/types/src/config.ts (verification holds testGlobs/coverageMode; verifier holds the deep-verify provider). Phase 343's DRAFT should pick the key deliberately and record why.
-- next: cadence milestone propose
-
-Every host-cli seam that cannot launch its binary, or trips the claude self-invocation guard, prints a loud notice and continues on mock. An automated consumer can therefore settle on a mock by accident; Studio defends against it with a sentence in its CLAUDE.md. Ask: additive config verification.fallback: 'mock' | 'refuse', default 'mock'. Under 'refuse' the seam refuses its gate with a named reason, settle exits non-zero, the SUMMARY records it, and doctor reports the setting. Do not flip the default (D-B, dec-20260808-002). Planned as phase 343.
-
 ## rec-20261030-005 — doctor: report the deep-verify seam's session axis (claude self-invocation), not only code-review/security-audit
 
 - status: candidate

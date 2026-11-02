@@ -3054,39 +3054,6 @@
       "updatedAt": "2026-10-30T19:28:24.309Z"
     },
     {
-      "id": "rec-20261030-004",
-      "title": "verification.fallback: \"refuse\" -- a hard refusal instead of the silent-continue mock fallback",
-      "summary": "Every host-cli seam that cannot launch its binary, or trips the claude self-invocation guard, prints a loud notice and continues on mock. An automated consumer can therefore settle on a mock by accident; Studio defends against it with a sentence in its CLAUDE.md. Ask: additive config verification.fallback: 'mock' | 'refuse', default 'mock'. Under 'refuse' the seam refuses its gate with a named reason, settle exits non-zero, the SUMMARY records it, and doctor reports the setting. Do not flip the default (D-B, dec-20260808-002). Planned as phase 343.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "studio-upstream",
-        "verify",
-        "config"
-      ],
-      "affectedFiles": [],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261030-004",
-        "ev-20261030-014"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261030-060",
-        "dec-20261030-061",
-        "dec-20261030-062"
-      ],
-      "scoutId": "scout-20261030-studio-intake",
-      "createdAt": "2026-10-30T19:28:24.745Z",
-      "updatedAt": "2026-10-30T19:47:59.547Z"
-    },
-    {
       "id": "rec-20261030-005",
       "title": "doctor: report the deep-verify seam's session axis (claude self-invocation), not only code-review/security-audit",
       "summary": "Residual of Studio ask 5. Phase 337 shipped binary readiness, and verification-readiness reports a host-cli binary that will not launch. But conduction-reachability's session axis covers only code-review and security-audit (CONDUCTION_GATES, packages/core/src/doctor/run.ts:1812), so nothing in doctor --json says deep-verify will fall back to mock because settle runs inside a headless Claude Code session. Ask: the same session-axis finding for the deep-verify seam. Build together with rec-20260927-001, which makes that axis codex-aware; otherwise the new finding inherits the same false positive.",
@@ -12419,6 +12386,42 @@
       "archiveReason": "rejected",
       "createdAt": "2026-08-01T02:40:13.507Z",
       "updatedAt": "2026-10-30T19:47:36.945Z"
+    },
+    {
+      "id": "rec-20261030-004",
+      "title": "verification.fallback: \"refuse\" -- a hard refusal instead of the silent-continue mock fallback",
+      "summary": "Every host-cli seam that cannot launch its binary, or trips the claude self-invocation guard, prints a loud notice and continues on mock. An automated consumer can therefore settle on a mock by accident; Studio defends against it with a sentence in its CLAUDE.md. Ask: additive config verification.fallback: 'mock' | 'refuse', default 'mock'. Under 'refuse' the seam refuses its gate with a named reason, settle exits non-zero, the SUMMARY records it, and doctor reports the setting. Do not flip the default (D-B, dec-20260808-002). Planned as phase 343.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "studio-upstream",
+        "verify",
+        "config"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-004",
+        "ev-20261030-014"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-060",
+        "dec-20261030-061",
+        "dec-20261030-062"
+      ],
+      "scoutId": "scout-20261030-studio-intake",
+      "createdAt": "2026-10-30T19:28:24.745Z",
+      "updatedAt": "2026-11-02T17:12:05.801Z",
+      "shippedRef": "phase 343 (#597)",
+      "archivedAt": "2026-11-02T17:12:05.801Z",
+      "archiveReason": "shipped"
     }
   ]
 }
