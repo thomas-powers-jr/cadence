@@ -3316,6 +3316,13 @@
       "kind": "note",
       "summary": "Sibling: rec-20261101-001 (record-only PreCompact handoff, ready-for-cadence-spec). If 001 ships first, this gate can reuse its PreCompact event mapping and handoff writer and add only the blocking decision.",
       "createdAt": "2026-11-01T01:31:42.190Z"
+    },
+    {
+      "id": "ev-20261102-001",
+      "recommendationId": "rec-20261102-001",
+      "kind": "note",
+      "summary": "Phase 345 (345-01) Boundaries: Codex keeps PreCompact unmapped; host-codex/tests/event-map.test.ts pins mapEvent('PreCompact') === null.",
+      "createdAt": "2026-11-02T19:13:27.685Z"
     }
   ]
 }

@@ -3425,9 +3425,9 @@
       ],
       "assumptionIds": [],
       "decisionIds": [],
+      "convertedToPhaseId": "345-precompact-record",
       "createdAt": "2026-11-01T01:31:35.148Z",
-      "updatedAt": "2026-11-02T18:15:21.059Z",
-      "convertedToPhaseId": "345-precompact-record"
+      "updatedAt": "2026-11-02T18:15:21.059Z"
     },
     {
       "id": "rec-20261101-002",
@@ -3459,6 +3459,37 @@
       "decisionIds": [],
       "createdAt": "2026-11-01T01:31:35.895Z",
       "updatedAt": "2026-11-01T01:31:42.190Z"
+    },
+    {
+      "id": "rec-20261102-001",
+      "title": "Codex PreCompact: map it to pre-compact once a Codex PreCompact payload has been captured",
+      "summary": "Phase 345 wired PreCompact to the record-only pre-compact event for Claude Code only. packages/host-codex/src/event-map.ts still leaves PreCompact unmapped on purpose, and CODEX_EXPECTED_HOOKS has no PreCompact entry, because no Codex PreCompact payload has ever been captured (its trigger field, its blocking semantics and its exit-code behaviour are unknown). Ask: capture one Codex PreCompact payload (manual and, if possible, auto), then map PreCompact -> pre-compact in host-codex with compactTrigger forwarded, add it to CODEX_EXPECTED_HOOKS and core's doctor copy, and give the Codex shim the same pre-compact exit clamp (host-toolkit resolveHookShimExit). Core needs no change: the pre-compact handler is host-agnostic.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "host-adapters",
+        "hooks",
+        "codex"
+      ],
+      "affectedFiles": [
+        "packages/host-codex/src/event-map.ts",
+        "packages/host-toolkit/src/routing.ts",
+        "packages/core/src/doctor/host-hooks.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261102-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-02T19:13:27.685Z",
+      "updatedAt": "2026-11-02T19:13:27.685Z"
     }
   ],
   "archived": [

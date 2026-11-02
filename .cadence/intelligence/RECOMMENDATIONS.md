@@ -1918,3 +1918,19 @@ Neither cadence core nor the checkpoint package reacts to compaction. No host ad
 - next: cadence milestone propose
 
 Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can lose the race to auto-compaction; a PreCompact gate would close it by blocking an auto-triggered compaction until a fresh handoff exists, sharing the Stop gate's ceiling and force-release semantics (including the sticky lastForcedAt from dec-20261022-002) so it can never wedge a session. A checkpoint Phase 4 change, not a Phase 3 fix. Evidence needed first: an auto-triggered PreCompact has never been observed (gap M10, docs/checkpoint/REPORT-checkpoint-phase-0.md), so it is unknown whether blocking one works or what its payload holds; phase 0.4a's exit-code-2 block of a manual /compact did not hold (likely the same exit-code collapse that hit Stop), and JSON-decision blocking for PreCompact was never tested. Reopen with the operator's live Stop-gate capture: let one session run into auto-compaction and record the event order, the trigger value, whether a handoff existed, and whether a JSON block holds.
+
+## rec-20261102-001 — Codex PreCompact: map it to pre-compact once a Codex PreCompact payload has been captured
+
+- status: candidate
+- ready: needs-evidence
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: host-adapters, hooks, codex
+- files: packages/host-codex/src/event-map.ts, packages/host-toolkit/src/routing.ts, packages/core/src/doctor/host-hooks.ts
+- evidence: Phase 345 (345-01) Boundaries: Codex keeps PreCompact unmapped; host-codex/tests/event-map.test.ts pins mapEvent('PreCompact') === null.
+- next: cadence milestone propose
+
+Phase 345 wired PreCompact to the record-only pre-compact event for Claude Code only. packages/host-codex/src/event-map.ts still leaves PreCompact unmapped on purpose, and CODEX_EXPECTED_HOOKS has no PreCompact entry, because no Codex PreCompact payload has ever been captured (its trigger field, its blocking semantics and its exit-code behaviour are unknown). Ask: capture one Codex PreCompact payload (manual and, if possible, auto), then map PreCompact -> pre-compact in host-codex with compactTrigger forwarded, add it to CODEX_EXPECTED_HOOKS and core's doctor copy, and give the Codex shim the same pre-compact exit clamp (host-toolkit resolveHookShimExit). Core needs no change: the pre-compact handler is host-agnostic.
