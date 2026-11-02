@@ -239,6 +239,20 @@ export const CadenceConfigZ = z.object({
        */
       testCommand: z.string().optional(),
       /**
+       * What a verifier seam does when it cannot reach its configured real
+       * provider (phase 343). Governs all seven seams (`verifier`,
+       * `perTaskVerifier`, `codeReview`, `securityAudit`, `planReview`,
+       * `specReview`, `uiSpecReview`), which is why it lives here and not in
+       * any one seam's slice. Absent or `mock` — the historical behaviour: a
+       * loud notice, then the call continues on mock. `refuse` — the call
+       * throws instead, so the gate refuses (or the command exits 1) rather
+       * than settling on a mock by accident. A provider explicitly configured
+       * as `mock` is a choice, not a fallback, and is unaffected. Kept out of
+       * the object-level default and `defaultConfig`, like `testCommand`, so
+       * no existing config or fresh init changes.
+       */
+      fallback: z.enum(['mock', 'refuse']).optional(),
+      /**
        * Operator-extensible assertion-coverage profiles for languages no
        * built-in profile claims (phase 167, T7). Add-only: an entry
        * claiming an extension a BUILT-IN profile already owns (`.ts`,

@@ -1700,22 +1700,6 @@ An automated consumer (Studio's Runner, any CI) cannot tell from the exit code w
 
 Ask: export settle, draftApprove, buildTask, status and doctor from packages/core/src/services/* as a documented library entry with injected IO, so a second consumer (Studio) can stop parsing CLI text. Needs a decision: it creates a public API surface that the lockstep semver policy then has to honour, and the zero-runtime-dependency bias and the core-never-imports-host arrow constrain what the entry may pull in. Partly substitutable by the --json rec from the same intake.
 
-## rec-20261030-004 — verification.fallback: "refuse" -- a hard refusal instead of the silent-continue mock fallback
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: studio-upstream, verify, config
-- evidence: cadence-studio docs/roadmap/2026-10-26-poc-roadmap.md §3 item 4; operator handoff HANDOFF-stop-gate-capture-342-344 section 2
-- evidence: Config key not yet chosen: Studio's ask says verifier.fallback, this rec's title says verification.fallback, and both namespaces exist in packages/types/src/config.ts (verification holds testGlobs/coverageMode; verifier holds the deep-verify provider). Phase 343's DRAFT should pick the key deliberately and record why.
-- next: cadence milestone propose
-
-Every host-cli seam that cannot launch its binary, or trips the claude self-invocation guard, prints a loud notice and continues on mock. An automated consumer can therefore settle on a mock by accident; Studio defends against it with a sentence in its CLAUDE.md. Ask: additive config verification.fallback: 'mock' | 'refuse', default 'mock'. Under 'refuse' the seam refuses its gate with a named reason, settle exits non-zero, the SUMMARY records it, and doctor reports the setting. Do not flip the default (D-B, dec-20260808-002). Planned as phase 343.
-
 ## rec-20261030-005 — doctor: report the deep-verify seam's session axis (claude self-invocation), not only code-review/security-audit
 
 - status: candidate
@@ -1869,3 +1853,68 @@ Studio's engine probe: add-ac and add-task append after draft new's placeholder 
 - next: cadence milestone propose
 
 Studio's engine probe reports that when settle run --auto refuses because a task is BLOCKED, the refusal does not appear in SUMMARY gates[] the way other gate refusals do, so a consumer reading gates[] cannot see why settle stopped. Reproduce here before specifying; if confirmed it is an audit-trail gap in the same family as rec-20260917-005.
+
+## rec-20261030-014 — Flip verification.fallback's default to refuse
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, config, defaults
+- evidence: Operator handoff HANDOFF-stop-gate-capture-342-344 §2 boundary: file the default flip with the trigger 'after Studio Phase 8'
+- next: cadence milestone propose
+
+Phase 343 ships verification.fallback with an absent default meaning mock, so nothing changes for existing users (D-B, dec-20260808-002 territory). Making refuse the default would end silent mock settles for everyone, at the cost of breaking every repo whose host-cli seam cannot launch today. Reopen after Cadence Studio Phase 8 ships: by then Studio will have run refuse in anger and its experience is the evidence for or against the flip.
+
+## rec-20261030-015 — config explain and activate still say seams will fall back to mock under verification.fallback refuse
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: config-explain, activate, verify
+- evidence: Phase 343 DRAFT review finding M2; boundary in 343-01-DRAFT.md
+- evidence: Clarification from phase 343's T1 review: config-explain/build.ts ~114 is about CADENCE_LOCAL_API_KEY being unset ('may be rejected or fall back'), while the local downgrade refuse governs is triggered by a missing endpoint, not a missing key. Check which condition each line describes before rewording.
+- next: cadence milestone propose
+
+Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.
+
+## rec-20261101-001 — Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, checkpoint, handoff, host-adapters
+- files: packages/host-toolkit/src/routing.ts, packages/host-codex/src/event-map.ts, packages/core/src/hooks/handlers.ts, packages/checkpoint/src/session-start.ts
+- evidence: routing.ts:36-42 installs SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStop only; phase-0 §M3 observed order PreCompact -> SessionStart(compact) -> PostCompact with payload { session_id, transcript_path, cwd, trigger, custom_instructions, ... }
+- evidence: Sibling: rec-20261101-002 (block an auto PreCompact until a fresh handoff exists, needs-evidence). Split on purpose: this record-only half needs nothing from the untested auto-PreCompact blocking question, so it is not held behind that rec's evidence.
+- next: cadence milestone propose
+
+Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.
+
+## rec-20261101-002 — Checkpoint gate on auto-compaction: block an auto PreCompact until a fresh handoff exists
+
+- status: candidate
+- ready: needs-evidence
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: hooks, checkpoint, host-adapters
+- files: packages/checkpoint/src/stop-gate.ts, packages/checkpoint/src/install-hooks.ts
+- evidence: REPORT-checkpoint-phase-0.md M10 'Not reached'; REPORT-checkpoint-phase-0.4a.md: PreCompact documented as blocking on exit 2 / JSON decision, manual /compact block not honoured in the probe, JSON mode untested
+- evidence: Sibling: rec-20261101-001 (record-only PreCompact handoff, ready-for-cadence-spec). If 001 ships first, this gate can reuse its PreCompact event mapping and handoff writer and add only the blocking decision.
+- next: cadence milestone propose
+
+Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can lose the race to auto-compaction; a PreCompact gate would close it by blocking an auto-triggered compaction until a fresh handoff exists, sharing the Stop gate's ceiling and force-release semantics (including the sticky lastForcedAt from dec-20261022-002) so it can never wedge a session. A checkpoint Phase 4 change, not a Phase 3 fix. Evidence needed first: an auto-triggered PreCompact has never been observed (gap M10, docs/checkpoint/REPORT-checkpoint-phase-0.md), so it is unknown whether blocking one works or what its payload holds; phase 0.4a's exit-code-2 block of a manual /compact did not hold (likely the same exit-code collapse that hit Stop), and JSON-decision blocking for PreCompact was never tested. Reopen with the operator's live Stop-gate capture: let one session run into auto-compaction and record the event order, the trigger value, whether a handoff existed, and whether a JSON block holds.

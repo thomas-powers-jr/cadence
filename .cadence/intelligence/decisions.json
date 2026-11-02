@@ -1786,6 +1786,33 @@
       "status": "active",
       "decidedAt": "2026-10-30T19:47:37.887Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261030-060",
+      "recommendationId": "rec-20261030-004",
+      "title": "343 (a): the fallback setting is verification.fallback, not verifier.fallback",
+      "rationale": "Phase 343. verifier is the deep-verify seam's own config slice, a sibling of perTaskVerifier, codeReview, securityAudit, planReview, specReview and uiSpecReview. The fallback setting governs all seven seams, so putting it under verifier would read as deep-verify-only. verification already holds cross-cutting verification settings (testGlobs, coverageMode, testCommand). Resolves ev-20261030-014's open question.",
+      "status": "active",
+      "decidedAt": "2026-10-30T20:36:22.355Z",
+      "supersedes": []
+    },
+    {
+      "id": "dec-20261030-061",
+      "recommendationId": "rec-20261030-004",
+      "title": "343 (b): no new ProviderSelectionTag value; a refused call is recorded as a gate refusal",
+      "rationale": "Phase 343. A call refused under verification.fallback refuse returns no verdict, so there is nothing for providerSelection to tag; adding an enum value would describe a result that does not exist. At settle the refusal is recorded where every gate refusal already is: the refused-settle SUMMARY's gate entry (status refused, with the reason naming the seam and cause). A refusal the operator bypasses (--allow-verifier-failure, --allow-code-review-failure, --allow-security-audit-failure, --force) rides the existing verifierFailure / reviewVerifierFailure flags and gateBypasses entries. Keeps D-A (dec-20260808-001) intact: the mock provider's identity and the tag set are untouched.",
+      "status": "active",
+      "decidedAt": "2026-10-30T20:36:22.862Z",
+      "supersedes": []
+    },
+    {
+      "id": "dec-20261030-062",
+      "recommendationId": "rec-20261030-004",
+      "title": "343 (c): refusal is lazy, at call time; seams without a gate failure path refuse through the command's error exit",
+      "rationale": "Phase 343. Selection never throws or warns under refuse; only a method call does, so a gate that does not run cannot refuse and an unused seam's missing key costs nothing. deep-verify, code-review and security-audit already turn a thrown verifier error into a refusal with their --allow-*-failure bypasses. per-task-verify, plan-review, spec-review and ui-spec-review have no failure path: the typed error reaches build task / draft approve / spec approve's catch and exits 1 without mutating loop state. Their --allow-per-task-failure / --allow-plan-review-failure / spec-review flags bypass a refuse verdict, not a refused call, and are deliberately not extended in this phase. An operator who wants to proceed sets fallback back to mock.",
+      "status": "active",
+      "decidedAt": "2026-10-30T20:36:23.262Z",
+      "supersedes": []
     }
   ]
 }

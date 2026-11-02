@@ -15,7 +15,35 @@ export interface VerifierSelectOptions {
   /** Where a `.env` file is discovered (default `process.cwd()`) — a key found
    *  there is treated the same as one exported into the env (AC-1). */
   cwd?: string;
+  /** Phase 343: the effective `verification.fallback` setting. Absent or
+   *  `'mock'` keeps the loud mock downgrade; `'refuse'` makes a verifier call
+   *  that cannot reach its configured real provider throw
+   *  `VerifierFallbackRefusedError` instead of delegating to mock. */
+  fallback?: 'mock' | 'refuse';
 }
+
+/**
+ * Phase 343: thrown by a verifier call under `verification.fallback: "refuse"`
+ * when its configured real provider is unavailable — in place of the loud
+ * mock downgrade. `label` names the seam (`spec.label`); `cause` is the
+ * underlying failure (a `HostCliError` on the call-time host-cli path).
+ */
+export class VerifierFallbackRefusedError extends Error {
+  readonly label: string;
+  override readonly cause: unknown;
+
+  constructor(label: string, message: string, cause: unknown) {
+    super(message);
+    this.name = 'VerifierFallbackRefusedError';
+    this.label = label;
+    this.cause = cause;
+  }
+}
+
+/** Strips host-cli-client's trailing "Falling back to mock …." sentence (the
+ *  self-invocation message ends with one) so a refusal never claims a mock
+ *  fallback that did not happen. */
+const TRAILING_MOCK_FALLBACK_SENTENCE = /\s*Falling back to mock[^.]*\.\s*$/;
 
 /**
  * Describes one verifier family: how to read its `{ provider, model }` config
@@ -59,7 +87,8 @@ export interface VerifierFactorySpec<C, V> {
    * mode instead of calling an HTTP endpoint. Optional (unlike `mock` /
    * `anthropic` / `local`): a verifier family that hasn't wired a
    * `host-cli`-backed verifier class yet simply falls back to `mock` with a
-   * warning (see `createVerifierFactory`) rather than failing to compile —
+   * warning, or refuses under `verification.fallback: "refuse"` (see
+   * `createVerifierFactory`), rather than failing to compile —
    * this lets `host-cli` land as a provider without forcing every family's
    * factory file to change in lockstep.
    */
@@ -89,6 +118,9 @@ export function buildLocalHeaders(
  * needs `ANTHROPIC_API_KEY`; the `local` provider needs `CADENCE_LOCAL_BASE_URL`
  * and a model (`slice.model ?? CADENCE_LOCAL_MODEL`); a missing prerequisite
  * falls back to `mock` with one stderr warning so the caller knows it downgraded.
+ * Under `opts.fallback === 'refuse'` (phase 343) no downgrade happens: a missing
+ * prerequisite returns a `refusingProxy`, and a host-cli `HostCliError` throws
+ * `VerifierFallbackRefusedError`, both naming the seam and the cause.
  */
 /**
  * Mirrors the selection algorithm's first line without building a verifier or
@@ -239,7 +271,8 @@ function tagProviderSelection<T>(result: T, tag: ProviderSelectionTag): T {
  * its methods is caught and the call is transparently redirected to
  * `fallbackOpts.fallback`'s same-named method instead of crashing the gate
  * or hanging. `createVerifierFactory` calls this on EVERY return path — the
- * three real-provider builds, the three selection-time mock downgrades, and
+ * three real-provider builds, the three selection-time mock downgrades (under
+ * `verification.fallback: "refuse"` those return `refusingProxy` instead), and
  * the plain `spec.mock()` explicit-mock/host-cli branches — not only the
  * `host-cli` family, since 263-01's tagging computation is universal across
  * all seven verifier seams (only `fallbackOpts` — real call-time delegation
@@ -286,7 +319,14 @@ function tagProviderSelection<T>(result: T, tag: ProviderSelectionTag): T {
 function wrapWithFallback<V>(
   primary: V,
   initialTag: ProviderSelectionTag,
-  fallbackOpts?: { fallback: V; warn: (message: string) => void; label: string },
+  fallbackOpts?: {
+    fallback: V;
+    warn: (message: string) => void;
+    label: string;
+    /** Phase 343: `'refuse'` throws `VerifierFallbackRefusedError` on a
+     *  `HostCliError` instead of warning and delegating to `fallback`. */
+    mode?: 'mock' | 'refuse';
+  },
 ): V {
   // `V` is unconstrained at the `createVerifierFactory<C, V>` call site (any
   // verifier family's interface), but every family's builder in practice
@@ -298,6 +338,14 @@ function wrapWithFallback<V>(
 
   const delegateToFallback = (prop: PropertyKey, args: unknown[], err: unknown): unknown => {
     if (!fallbackOpts || !(err instanceof HostCliError)) throw err;
+    if (fallbackOpts.mode === 'refuse') {
+      const cause = err.message.replace(TRAILING_MOCK_FALLBACK_SENTENCE, '');
+      throw new VerifierFallbackRefusedError(
+        fallbackOpts.label,
+        `${fallbackOpts.label}: host-cli unavailable and verification.fallback is refuse (${err.reason}): ${cause}`,
+        err,
+      );
+    }
     stuckFallback = true;
     fallbackOpts.warn(
       `${fallbackOpts.label}: host-cli provider failed (${err.reason}: ${err.message}) — falling back to mock provider for this call.`,
@@ -334,6 +382,47 @@ function wrapWithFallback<V>(
   }) as V;
 }
 
+/**
+ * Phase 343 (T3): the selection-time counterpart of `wrapWithFallback`'s
+ * refuse mode. Under `verification.fallback: "refuse"`, a selection-time
+ * downgrade (anthropic with no key, local with no endpoint/model, a family
+ * with no host-cli builder) returns this Proxy over `mock` instead of the
+ * banner + tagged mock. Refusal is lazy (decision (c)): selecting, awaiting,
+ * returning from an async function, `JSON.stringify` or `util.inspect` never
+ * throw, so a gate that never calls the verifier never refuses. Only calling
+ * one of the verifier's methods throws `VerifierFallbackRefusedError`.
+ *
+ * "Method" means any string-keyed function-valued property reachable through
+ * the prototype chain — own OR prototype (class-based mocks such as
+ * `MockVerifier` keep `verify` on the prototype) — except `constructor` and
+ * anything inherited from `Object.prototype` (`toString`, `valueOf`,
+ * `hasOwnProperty`, …), plus `then` / `toJSON` should a mock ever define them,
+ * since the runtime calls those implicitly. Symbol-keyed properties
+ * (`Symbol.toPrimitive`, `util.inspect.custom`, …) and non-function values
+ * pass through untouched. The refusing function is returned, not thrown at
+ * `get` time, so reading `v.verify` is harmless; invoking it throws.
+ */
+const IMPLICITLY_CALLED_METHODS = new Set<string>(['constructor', 'then', 'toJSON']);
+
+function refusingProxy<V>(mock: V, label: string, message: string, cause: unknown): V {
+  return new Proxy(mock as object, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (
+        typeof value !== 'function' ||
+        typeof prop !== 'string' ||
+        IMPLICITLY_CALLED_METHODS.has(prop) ||
+        prop in Object.prototype
+      ) {
+        return value;
+      }
+      return (): never => {
+        throw new VerifierFallbackRefusedError(label, message, cause);
+      };
+    },
+  }) as V;
+}
+
 export function createVerifierFactory<C, V>(
   spec: VerifierFactorySpec<C, V>,
 ): (config: C | null, opts?: VerifierSelectOptions) => V {
@@ -343,10 +432,25 @@ export function createVerifierFactory<C, V>(
     const env = opts.env ?? process.env;
     const cwd = opts.cwd ?? process.cwd();
     const warn = opts.warn ?? ((m: string) => process.stderr.write(m + '\n'));
+    // Phase 343 (T3): under refuse, a selection-time downgrade skips the
+    // banner and returns a lazily-refusing Proxy over the mock.
+    const refuseAtSelection = (provider: string, prerequisite: string): V =>
+      refusingProxy(
+        spec.mock(),
+        spec.label,
+        `${spec.label}: ${provider} provider unavailable and verification.fallback is refuse: ${prerequisite}`,
+        prerequisite,
+      );
 
     if (provider === 'anthropic') {
       const apiKey = discoverKey('ANTHROPIC_API_KEY', env, cwd).value;
       if (!apiKey) {
+        if (opts.fallback === 'refuse') {
+          return refuseAtSelection(
+            'anthropic',
+            'ANTHROPIC_API_KEY is unset (a Claude Code/IDE login does not satisfy this; anthropic needs a separately API-billed key)',
+          );
+        }
         warn(
           buildDowngradeBanner(
             `${spec.label}: anthropic provider requested but ANTHROPIC_API_KEY is unset (a Claude Code/IDE login does not satisfy this — anthropic calls the Anthropic SDK directly and needs a separately API-billed key) — falling back to mock provider.`,
@@ -372,6 +476,9 @@ export function createVerifierFactory<C, V>(
       const baseURL = discoverKey('CADENCE_LOCAL_BASE_URL', env, cwd).value;
       const model = slice?.model ?? discoverKey('CADENCE_LOCAL_MODEL', env, cwd).value;
       if (!baseURL || !model) {
+        if (opts.fallback === 'refuse') {
+          return refuseAtSelection('local', 'CADENCE_LOCAL_BASE_URL / model unset');
+        }
         warn(
           buildDowngradeBanner(
             `${spec.label}: local provider requested but CADENCE_LOCAL_BASE_URL / model unset — falling back to mock provider.`,
@@ -389,6 +496,9 @@ export function createVerifierFactory<C, V>(
 
     if (provider === 'host-cli') {
       if (!spec.hostCli) {
+        if (opts.fallback === 'refuse') {
+          return refuseAtSelection('host-cli', 'this verifier family has no host-cli builder');
+        }
         warn(
           buildDowngradeBanner(
             `${spec.label}: host-cli provider requested but this verifier family has not wired a host-cli builder yet — falling back to mock provider.`,
@@ -408,12 +518,14 @@ export function createVerifierFactory<C, V>(
       // T3: the binary's existence/auth status is only knowable once a real
       // call is attempted (see `wrapWithFallback`'s doc comment) — wrap here
       // rather than probing synchronously, so a missing/unauthenticated
-      // binary degrades to `mock` per-call with a loud warning instead of
-      // throwing out of the gate or hanging on interactive auth (AC-2).
+      // binary degrades to `mock` per-call with a loud warning (or, under
+      // `verification.fallback: "refuse"`, throws `VerifierFallbackRefusedError`)
+      // instead of crashing the gate or hanging on interactive auth (AC-2).
       return wrapWithFallback(primary, 'configured', {
         fallback: spec.mock(),
         warn,
         label: spec.label,
+        ...(opts.fallback === 'refuse' ? { mode: 'refuse' as const } : {}),
       });
     }
 

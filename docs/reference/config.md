@@ -149,6 +149,7 @@ Boundary definitions for each tier. The coherence-check gate validates DRAFT fro
 | `verification.coverageMode` | `"mention"` \| `"assertion"` | `"assertion"` for a fresh `cadence init` when the detected project language is js/ts, `"mention"` for every other detected or unknown language (Phase 166); the schema-level fallback for configs that predate this field stays `"mention"` | How the `test-coverage` gate counts an `AC-N` token. `mention` counts any occurrence of the token anywhere in a matched test file, including comments. `assertion` counts it only when it sits inside an asserting test block for that file's language; a comment-only or assertion-less mention is reported as a *weak link* and the gate refuses with a distinct hint (closing the "mentioned-but-not-tested" false positive). `assertion` mode has real span-parsing support for five built-in languages — js/ts, python, go, rust, php — dispatched per file by extension; see the [supported-language matrix](#supported-language-matrix-assertion-mode). Edit it with `cadence config edit coverageMode`. |
 | `verification.coverageScheme` | `"bare"` \| `"phase-qualified"` | `"bare"` — both the schema-level default and what every config that predates this field (or has no config file at all) resolves to; `"phase-qualified"` for a fresh `cadence init`, written explicitly and unconditionally regardless of detected language or preset (Phase 239) — see [cadence init behavior](#cadence-init-behavior) | Whether the `test-coverage` gate's `AC-N` token match must also carry the active slice's own id prefix. `bare` is the historical unqualified token — any `AC-N` occurrence counts as evidence, including a different phase's identically-numbered AC, since AC ids restart at `AC-1` every phase. `phase-qualified` requires the literal `<slice-id>/AC-N` form (e.g. `239-01/AC-3` — CONTEXT.md's *slice* id, not the phase directory name); a bare or foreign-phase token is dropped and does not count as evidence, and `cadence verify phase`'s replay switches from file-scoped to config-scoped-by-token accordingly — see [`verify phase`](commands.md#verify). Edit it with `cadence config edit coverageScheme`. |
 | `verification.coverageProfiles` | `CoverageProfileConfig[]` | `[]` | Operator-defined custom assertion-mode profiles that extend `assertion` mode to a language with no built-in profile. Validated at config-load time — a bad regex, a missing required field, or an extension collision with a built-in profile refuses loudly, naming the offending field/collision and suggesting a fix. Add-only: a custom profile can never override a built-in's extensions. See [Custom coverage profiles](#custom-coverage-profiles). |
+| `verification.fallback` | `"mock"` \| `"refuse"` (optional) | absent, which behaves as `"mock"`; `cadence init` does not write the key | What a verifier seam does when its configured real provider cannot run (missing credentials, a host CLI binary that will not launch, the self-invocation guard, a timeout). `mock` falls back to the mock provider with a loud notice, as before; `refuse` makes the call fail instead, so the gate refuses or the command exits 1. Governs all seven verifier seams. See [Verification fallback](#verification-fallback). |
 
 ### Supported-language matrix (assertion mode)
 
@@ -231,6 +232,49 @@ Bounds the convergent review loops (spec-review and plan-review).
 | Field | Type | Constraints | Default | Description |
 |---|---|---|---|---|
 | `convergence.maxAttempts` | `integer` (positive) | — | `3` | Maximum review attempts before a convergent gate (`spec-review`, `plan-review`) gives up and requires a human decision. After `maxAttempts` non-passing attempts, the gate refuses unless the relevant `--allow-*-failure` flag is set. |
+
+
+### Verification fallback
+
+`verification.fallback` decides what happens when a verifier seam's configured real provider (`anthropic`, `local` or `host-cli`) cannot run: an Anthropic key is missing, a local endpoint is unset, a host CLI binary will not launch or exits non-zero, the call times out, or the claude self-invocation guard declines to spawn a nested headless session.
+
+| Value | Behavior |
+|---|---|
+| `"mock"` | The call continues on the `mock` provider with a loud stderr notice, and the result is tagged with `providerSelection: fallback` where that provenance is persisted (see [providers.md — providerSelection](../providers.md#providerselection--configured-vs-fallback-vs-empty-diff-provenance-phase-263)). This is the behavior when the key is absent, which is the default: `cadence init` does not write the key and no preset sets it. |
+| `"refuse"` | The call never delegates to `mock`. It fails with an error naming the seam and the cause, such as `code-review: host-cli unavailable and verification.fallback is refuse (self-invocation): …` or `spec-review: anthropic provider unavailable and verification.fallback is refuse: ANTHROPIC_API_KEY is unset …`. The seam name is the provider block's label; the deep-verify seam's label is `verifier`, so its gate reports `deep-verify: verifier failed — verifier: host-cli unavailable …`. |
+
+The setting is one repo-wide key that governs all seven verifier seams, each configured by its own [gate provider block](#gate-provider-blocks):
+
+| Seam (config key) | Gate | Where a refusal surfaces |
+|---|---|---|
+| `verifier` | `deep-verify` | the gate refuses at `cadence settle run`; settle exits non-zero and the refused SUMMARY records it |
+| `codeReview` | `code-review` | the gate refuses at `cadence settle run` |
+| `securityAudit` | `security-audit` | the gate refuses at `cadence settle run` |
+| `perTaskVerifier` | `per-task-verify` | `cadence build task <id> --status=DONE` exits 1 without recording the task |
+| `planReview` | `plan-review` | `cadence draft approve` exits 1 without entering BUILD |
+| `specReview` | `spec-review` | `cadence spec approve` exits 1 without approving the SPEC |
+| `uiSpecReview` | `ui-spec-review` | `cadence spec approve` exits 1 without approving the SPEC |
+
+Refusal is lazy. Selecting a seam's provider never refuses; only an actual call to that seam's review agent does. A gate that does not fire in your profile and tier cell therefore never refuses, even when its provider block points at an unreachable provider.
+
+A seam whose provider is explicitly configured as `mock` is unaffected by `"refuse"`: an explicit `mock` is a choice, not a fallback, and it runs exactly as it does under `"mock"`. The same holds for a seam with no provider configured at all, because every seam's provider defaults to `mock`: `"refuse"` only stops a downgrade from a real provider, so it does not by itself guarantee that a review used one. Pair it with real providers on the seams you depend on, and check `cadence doctor`'s `verification-readiness`. A real provider that runs and returns a verdict is unaffected too.
+
+The existing bypass flags still apply to a refused call:
+
+- `--allow-verifier-failure` for `deep-verify`: settle records the verifier failure and proceeds, exactly as it does for any other verifier transport failure.
+- `--allow-code-review-failure` or `--force` for `code-review`, and `--allow-security-audit-failure` or `--force` for `security-audit`: the bypass is recorded in the SUMMARY.
+
+The other four seams (`per-task-verify`, `plan-review`, `spec-review`, `ui-spec-review`) have no gate failure path, so their refusal surfaces as the command's exit 1 and no flag bypasses it. To proceed, fix the provider or set `verification.fallback` back to `"mock"`.
+
+```json
+{
+  "verification": {
+    "fallback": "refuse"
+  }
+}
+```
+
+`cadence doctor` reports the effective value in its `verification-fallback` check, and under `"refuse"` its `verification-readiness` warnings say a seam will refuse rather than fall back to mock — see [`doctor`](commands.md#doctor). The setting is aimed at automated consumers, such as CI jobs or Cadence Studio, that must never settle on a mock verdict by accident; see [Refusing instead of falling back](../providers.md#refusing-instead-of-falling-back).
 
 ---
 

@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 2,
+  "draftId": "343-01",
+  "completedAt": "2026-11-02T17:00:36.316Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "ran"
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "verification.fallback optional enum (types/src/config.ts), absent from both default layers; types test 3/3 and init test 1/1 green (init is a regression guard, green by design). dec-20261030-060..062 recorded; rec-20261030-014 (default flip, reopen after Studio Phase 8) and rec-20261030-015 (config explain/activate wording) filed. Independent review: no Critical/Important.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "VerifierFallbackRefusedError + VerifierSelectOptions.fallback; host-cli call-time refuse mode strips host-cli-client's trailing mock-fallback sentence; 7 selection sites pass the setting. New tests red first (4/8 failed), then 39/39 verifier-factory green, re-run in main thread. Independent review: no Critical/Important; M1 (wiring tests for security-audit/spec-review/ui-spec-review) carried into T4.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "refusingProxy over spec.mock(): selection/await/inspect/JSON never throw, any non-Object.prototype string-keyed method (incl. prototype methods) throws VerifierFallbackRefusedError. Red first (4/15 failed), then 46/46 verifier-factory, re-run in main thread. Independent review: no Critical/Important; Minor (a) fixed in main thread (anthropic refusal keeps the 'Claude Code login is not an API key' hint); (b)-(d) cosmetic, noted.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "settle-fallback-refuse.test.ts (5) + approve-build-fallback-refuse.test.ts (5) drive real settleService/draftApproveService/buildTaskService with CLAUDECODE stubbed; AC-1, AC-2, AC-7 plus security-audit/spec-review/ui-spec-review wiring all held with no src change. Behaviour tests of already-built code, so green first time. 25/25 fallback-refuse re-run in main thread. Per-task review folded into the whole-branch review.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "doctor verification-fallback check (always pass, best-effort) after verification-readiness; readiness warnings say 'will refuse' under refuse, byte-identical under mock/absent. Tests red first (9 failed), then 35/35; live doctor --json shows the check. Independent review: no Critical/Important; M3 wording fixed in main thread (for example ..., self-invocation guard); M1/M2 noted for SUMMARY; M4 depends on T3.",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "verification.fallback documented in config.md (row + Verification fallback section), providers.md (Refusing instead of falling back), commands.md (verification-fallback doctor row, never (info); readiness note); docs test derives enum and seams from code; minor changeset core+types. tests/docs 63/63 files, 407 tests re-run in main thread. Per-task review folded into the whole-branch review (docs re-read last).",
+      "execution": "dispatch",
+      "isolation": "none"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [
+      "release-cut",
+      "phase-build",
+      "pr-land",
+      "cadence-handoff"
+    ],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Settle forwards the policy; settle-fallback-refuse tests assert the refused SUMMARY, empty acResults, unverified assurance, clean stderr and verifier-failure bypass.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Factory throws the typed refusal and removes fallback wording. The guard precedes spawning; factory and settle tests cover self-invocation and the unchanged review-failure bypass.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Existing downgrade branches remain unchanged. Factory tests assert exact warnings, mock calls and fallback tags; schema and init tests confirm the key stays absent.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Refuse mode changes only failure handling. Linked factory tests exercise a successful primary tagged configured and an explicit mock returning normally, without warnings.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Missing prerequisites return a lazy refusing proxy. Parameterized tests cover selection, awaiting, inspection and JSON, then assert typed refusal on verify without invoking mock.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Doctor registers the effective-policy check and adjusts fallback warnings. Doctor and doc-content tests cover both values, defaults, seven seams, bypass flags and command documentation.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Both contexts forward the policy before state writes. Approve/build tests exercise missing host binaries, assert exit 1 and seam-specific refusal, and verify unchanged loop/task state.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 130176,
+    "truncated": false,
+    "filesCount": 23,
+    "provider": "host-cli"
+  },
+  "codeReview": {},
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 64,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 7,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "1e5f31faf8318a7de92ce1712dc07d1b692b404883cfa3aa28fead776da19b2d"
+  }
+}

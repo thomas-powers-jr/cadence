@@ -38,7 +38,13 @@ export function resolveSpecReviewPort(
   cfg: CadenceConfig | null,
   cwd: string,
 ): VerifierPort<SpecReviewInput, SpecReviewResult> {
-  return injected ?? selectSpecReviewVerifier(cfg, { cwd });
+  return (
+    injected ??
+    selectSpecReviewVerifier(cfg, {
+      cwd,
+      ...(cfg?.verification?.fallback !== undefined ? { fallback: cfg.verification.fallback } : {}),
+    })
+  );
 }
 
 /**
@@ -55,5 +61,11 @@ export function resolveUiSpecReviewPort(
   cfg: CadenceConfig | null,
   cwd: string,
 ): VerifierPort<UiSpecReviewInput, UiSpecReviewResult> {
-  return injected ?? selectUiSpecReviewVerifier(cfg, { cwd });
+  return (
+    injected ??
+    selectUiSpecReviewVerifier(cfg, {
+      cwd,
+      ...(cfg?.verification?.fallback !== undefined ? { fallback: cfg.verification.fallback } : {}),
+    })
+  );
 }

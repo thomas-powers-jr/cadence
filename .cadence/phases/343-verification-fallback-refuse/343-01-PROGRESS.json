@@ -1,0 +1,74 @@
+{
+  "draftId": "343-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "verification.fallback optional enum (types/src/config.ts), absent from both default layers; types test 3/3 and init test 1/1 green (init is a regression guard, green by design). dec-20261030-060..062 recorded; rec-20261030-014 (default flip, reopen after Studio Phase 8) and rec-20261030-015 (config explain/activate wording) filed. Independent review: no Critical/Important.",
+      "touchedFiles": [
+        "packages/core/tests/cli/init-verification-fallback.test.ts",
+        "packages/types/src/config.ts",
+        "packages/types/tests/config-verification-fallback.test.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/gates/build-context.ts",
+        "packages/core/src/gates/draft-context.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/services/spec-approve-ports.ts",
+        "packages/core/src/verify/verifier-factory.ts",
+        "packages/core/tests/doctor/verification-fallback.test.ts",
+        "packages/core/tests/verify/verifier-factory-fallback-refuse.test.ts"
+      ],
+      "updatedAt": "2026-10-30T20:39:54.977Z",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "VerifierFallbackRefusedError + VerifierSelectOptions.fallback; host-cli call-time refuse mode strips host-cli-client's trailing mock-fallback sentence; 7 selection sites pass the setting. New tests red first (4/8 failed), then 39/39 verifier-factory green, re-run in main thread. Independent review: no Critical/Important; M1 (wiring tests for security-audit/spec-review/ui-spec-review) carried into T4.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T20:42:06.399Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "doctor verification-fallback check (always pass, best-effort) after verification-readiness; readiness warnings say 'will refuse' under refuse, byte-identical under mock/absent. Tests red first (9 failed), then 35/35; live doctor --json shows the check. Independent review: no Critical/Important; M3 wording fixed in main thread (for example ..., self-invocation guard); M1/M2 noted for SUMMARY; M4 depends on T3.",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T20:43:29.100Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "refusingProxy over spec.mock(): selection/await/inspect/JSON never throw, any non-Object.prototype string-keyed method (incl. prototype methods) throws VerifierFallbackRefusedError. Red first (4/15 failed), then 46/46 verifier-factory, re-run in main thread. Independent review: no Critical/Important; Minor (a) fixed in main thread (anthropic refusal keeps the 'Claude Code login is not an API key' hint); (b)-(d) cosmetic, noted.",
+      "touchedFiles": [
+        ".changeset/verification-fallback-refuse.md",
+        "docs/providers.md",
+        "docs/reference/commands.md",
+        "docs/reference/config.md",
+        "packages/core/tests/docs/phase343-verification-fallback-docs.test.ts",
+        "packages/core/tests/services/settle-fallback-refuse.test.ts"
+      ],
+      "updatedAt": "2026-10-30T20:47:40.610Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "settle-fallback-refuse.test.ts (5) + approve-build-fallback-refuse.test.ts (5) drive real settleService/draftApproveService/buildTaskService with CLAUDECODE stubbed; AC-1, AC-2, AC-7 plus security-audit/spec-review/ui-spec-review wiring all held with no src change. Behaviour tests of already-built code, so green first time. 25/25 fallback-refuse re-run in main thread. Per-task review folded into the whole-branch review.",
+      "touchedFiles": [
+        "packages/core/tests/services/approve-build-fallback-refuse.test.ts"
+      ],
+      "updatedAt": "2026-10-30T20:50:21.220Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "verification.fallback documented in config.md (row + Verification fallback section), providers.md (Refusing instead of falling back), commands.md (verification-fallback doctor row, never (info); readiness note); docs test derives enum and seams from code; minor changeset core+types. tests/docs 63/63 files, 407 tests re-run in main thread. Per-task review folded into the whole-branch review (docs re-read last).",
+      "touchedFiles": [],
+      "updatedAt": "2026-10-30T20:50:21.584Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    }
+  }
+}

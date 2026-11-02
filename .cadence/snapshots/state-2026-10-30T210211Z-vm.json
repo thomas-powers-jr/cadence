@@ -1,0 +1,57 @@
+{
+  "snapshotVersion": 1,
+  "savedAt": "2026-10-30T21:02:11.110Z",
+  "host": "vm",
+  "cadenceVersion": "1.73.0",
+  "state": {
+    "schemaVersion": 1,
+    "revision": 61,
+    "project": {
+      "name": "CADENCE",
+      "createdAt": "2026-10-29T13:57:45.682Z"
+    },
+    "activePhase": "343-verification-fallback-refuse",
+    "activeDraft": "343-01",
+    "activeSpec": null,
+    "loopPosition": "BUILD",
+    "tier": "complex",
+    "draftReadAt": "2026-10-30T20:34:35.894Z",
+    "draftReadHash": "ca046836c5574a9880d89cb68e292d400fcf8d6b946cd28b5e73896e0a58b580",
+    "openDrafts": [
+      {
+        "id": "343-01",
+        "since": "2026-10-30T20:26:10.327Z"
+      }
+    ],
+    "decisions": [],
+    "deferred": [],
+    "session": {
+      "tokenUtilization": 0.4400000000000002,
+      "lastHandoff": "SESSION-2026-10-30-studio-switch.md",
+      "subagentSpawns": 38,
+      "subagentBaselines": {}
+    },
+    "skillAudit": {
+      "required": [
+        "phase-build"
+      ],
+      "invoked": [
+        "release-cut",
+        "phase-build",
+        "pr-land",
+        "cadence-handoff"
+      ],
+      "provenance": [
+        {
+          "skill": "phase-build",
+          "source": "pack:cadence/core-skills"
+        }
+      ]
+    },
+    "activeTask": {
+      "id": "T6",
+      "status": "DONE",
+      "touchedFiles": []
+    }
+  }
+}
