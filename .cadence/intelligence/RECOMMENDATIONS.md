@@ -1887,7 +1887,7 @@ Phase 343 makes doctor's verification-readiness say a seam will refuse rather th
 
 ## rec-20261101-001 — Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: high
 - leverage: 5/10

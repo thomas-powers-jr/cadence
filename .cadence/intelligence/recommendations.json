@@ -3399,7 +3399,7 @@
       "title": "Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)",
       "summary": "Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "ready-for-cadence-spec",
       "priority": "high",
       "leverageScore": 5,
@@ -3426,7 +3426,8 @@
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-11-01T01:31:35.148Z",
-      "updatedAt": "2026-11-01T01:31:41.715Z"
+      "updatedAt": "2026-11-02T18:15:21.059Z",
+      "convertedToPhaseId": "345-precompact-record"
     },
     {
       "id": "rec-20261101-002",
@@ -12416,12 +12417,12 @@
         "dec-20261030-061",
         "dec-20261030-062"
       ],
-      "scoutId": "scout-20261030-studio-intake",
-      "createdAt": "2026-10-30T19:28:24.745Z",
-      "updatedAt": "2026-11-02T17:12:05.801Z",
       "shippedRef": "phase 343 (#597)",
+      "scoutId": "scout-20261030-studio-intake",
       "archivedAt": "2026-11-02T17:12:05.801Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-30T19:28:24.745Z",
+      "updatedAt": "2026-11-02T17:12:05.801Z"
     }
   ]
 }
