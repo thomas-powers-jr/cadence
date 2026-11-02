@@ -237,6 +237,13 @@ export function resolveHookShimExit(
   const cause = outcome.kind === 'error' ? outcome.message : `core exited with code ${outcome.code}`;
   const failed = outcome.kind === 'error' || (outcome.code !== null && outcome.code !== 0);
   if (event === 'pre-compact') {
+    // A null code means a signal killed core: report it, still exit 0.
+    if (outcome.kind === 'exit' && outcome.code === null) {
+      return {
+        exitCode: 0,
+        stderr: 'cadence pre-compact: core was terminated by a signal; exiting 0 so compaction is never blocked\n',
+      };
+    }
     return {
       exitCode: 0,
       stderr: failed ? `cadence pre-compact: ${cause}; exiting 0 so compaction is never blocked\n` : '',

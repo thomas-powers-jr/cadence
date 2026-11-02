@@ -430,6 +430,14 @@ describe('PreCompact trigger forwarding (345-01/AC-1)', () => {
 });
 
 describe('resolveHookShimExit (345-01/AC-6)', () => {
+  it('345-01/AC-6: a core killed by a signal (null code) on pre-compact exits 0 and reports it in one line', () => {
+    const r = resolveHookShimExit('pre-compact', { kind: 'exit', code: null });
+    expect(r.exitCode).toBe(0);
+    expect(r.stderr).toMatch(/signal/);
+    expect(r.stderr.split('\n').filter((l) => l.length > 0)).toHaveLength(1);
+    expect(resolveHookShimExit('session-stop', { kind: 'exit', code: null })).toEqual({ exitCode: 0, stderr: '' });
+  });
+
   const NEVER_BLOCKED = 'exiting 0 so compaction is never blocked';
 
   it('345-01/AC-6: pre-compact with a non-zero core exit resolves to exit 0 and one stderr line naming the code', () => {
@@ -439,12 +447,8 @@ describe('resolveHookShimExit (345-01/AC-6)', () => {
     expect(r.stderr.split('\n').filter(Boolean)).toHaveLength(1);
   });
 
-  it('345-01/AC-6: pre-compact with a zero or signal (null) core exit resolves to exit 0 and no stderr', () => {
+  it('345-01/AC-6: pre-compact with a zero core exit resolves to exit 0 and no stderr', () => {
     expect(resolveHookShimExit('pre-compact', { kind: 'exit', code: 0 })).toEqual({
-      exitCode: 0,
-      stderr: '',
-    });
-    expect(resolveHookShimExit('pre-compact', { kind: 'exit', code: null })).toEqual({
       exitCode: 0,
       stderr: '',
     });

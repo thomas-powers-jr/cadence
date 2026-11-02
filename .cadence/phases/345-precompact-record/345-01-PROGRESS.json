@@ -31,6 +31,18 @@
         "packages/host-toolkit/src/routing.ts"
       ],
       "updatedAt": "2026-11-02T18:31:36.167Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "PreCompact -> pre-compact in host-toolkit routing with compactTrigger forwarded (step 8); PreCompact in both CLAUDE_CODE_EXPECTED_HOOKS copies; capabilities.hooks lists pre-compact (not blocking); shim clamps every pre-compact failure path to exit 0 via pure host-toolkit resolveHookShimExit (deviation: cli.ts runs only as a subprocess and host-claude-code branch coverage had zero headroom). Red first (toolkit 6, claude-code 13, doctor 2 failed). Re-run in main thread with --force: toolkit/claude-code/codex test+typecheck+lint 15/15; core tests/doctor 280/280. Independent review: no Critical/Important; Minor 1 fixed (signal-killed core on pre-compact now reported in one stderr line), Minors 2-3 (stdin-read failure precedes routing; docs mention of the helper) go to T6 docs.",
+      "touchedFiles": [
+        "packages/core/src/cli/commands/hook.ts",
+        "packages/core/src/hooks/handlers.ts",
+        "packages/core/src/hooks/render-result.ts",
+        "packages/core/tests/hooks/render-result.test.ts",
+        "packages/core/tests/hooks/pre-compact.test.ts"
+      ],
+      "updatedAt": "2026-11-02T18:38:23.868Z"
     }
   }
 }
