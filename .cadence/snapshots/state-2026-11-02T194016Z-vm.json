@@ -1,0 +1,44 @@
+{
+  "snapshotVersion": 1,
+  "savedAt": "2026-11-02T19:40:16.899Z",
+  "host": "vm",
+  "cadenceVersion": "1.73.0",
+  "state": {
+    "schemaVersion": 1,
+    "revision": 9,
+    "project": {
+      "name": "CADENCE",
+      "createdAt": "2026-11-02T18:14:38.063Z"
+    },
+    "activePhase": "345-precompact-record",
+    "activeDraft": "345-01",
+    "activeSpec": null,
+    "loopPosition": "BUILD",
+    "tier": "complex",
+    "draftReadAt": "2026-11-02T18:25:19.413Z",
+    "draftReadHash": "ebc8968df003819eb8af31b2288ec555d6b429d1cf23092d8bfd224045bb152a",
+    "openDrafts": [
+      {
+        "id": "345-01",
+        "since": "2026-11-02T18:15:21.038Z"
+      }
+    ],
+    "decisions": [],
+    "deferred": [],
+    "session": {
+      "tokenUtilization": 0,
+      "lastHandoff": "SESSION-2026-11-02-phase345-built-settle-on-pc.md",
+      "subagentSpawns": 0,
+      "subagentBaselines": {}
+    },
+    "skillAudit": {
+      "required": [],
+      "invoked": []
+    },
+    "activeTask": {
+      "id": "T6",
+      "status": "DONE",
+      "touchedFiles": []
+    }
+  }
+}
