@@ -7,6 +7,7 @@ import {
   hasManagedCadenceMarker,
   hasStaleScopeManagedHook,
   hostHooksInstalled,
+  CLAUDE_CODE_EXPECTED_HOOKS,
 } from '../../src/doctor/host-hooks.js';
 import { runDoctor } from '../../src/doctor/run.js';
 import { planFixes, applyFixes } from '../../src/doctor/fix.js';
@@ -181,5 +182,47 @@ describe('stale-scope host hook detection (AC-5, phase 250)', () => {
 
     const rewritten = await readFile(join(active.root, '.claude', 'settings.json'), 'utf8');
     expect(rewritten).toContain('deja hook user-prompt-submit');
+  });
+});
+
+// Phase 345 (AC-2): an install written before PreCompact was added to the
+// expected set must be reported missing that hook through doctor's existing
+// missing-hook path, fixable with `cadence doctor --fix --wire-host`.
+describe('pre-345 settings missing PreCompact (345-01/AC-2)', () => {
+  it('345-01/AC-2: the expected Claude Code hook list includes an unmatched PreCompact entry', () => {
+    expect(CLAUDE_CODE_EXPECTED_HOOKS).toContainEqual({ event: 'PreCompact', matcher: null });
+  });
+
+  it('345-01/AC-2: doctor reports an old settings file as missing PreCompact', async () => {
+    active = await tempRepo({ initialized: true });
+    // The literal managed set the installer wrote before phase 345 — spelled
+    // out rather than derived, so it stays an "old" file whatever the list
+    // becomes.
+    const cmd = 'npx @thomas-powers-jr/cadence-host-claude-code hook';
+    const managed = (matcher?: string): Record<string, unknown> => ({
+      ...(matcher !== undefined ? { matcher } : {}),
+      hooks: [{ type: 'command', command: cmd }],
+      _managedBy: 'cadence',
+    });
+    const edit = 'Edit|Write|MultiEdit|NotebookEdit';
+    const oldSettings = {
+      hooks: {
+        SessionStart: [managed()],
+        UserPromptSubmit: [managed()],
+        PreToolUse: [managed(edit)],
+        PostToolUse: [managed(edit), managed('Skill')],
+        Stop: [managed()],
+        SubagentStop: [managed()],
+        SubagentStart: [managed()],
+      },
+    };
+    await writeSettings(active.root, JSON.stringify(oldSettings));
+
+    const report = await runDoctor(active.root, ENV);
+    const check = report.checks.find((c) => c.name === 'host-hooks');
+    expect(check?.severity).toBe('error');
+    expect(check?.detail).toMatch(/1 managed hook entry is missing from settings\.json: PreCompact\./);
+    expect(check?.remediation).toMatch(/cadence doctor --fix --wire-host/);
+    expect(check?.fixId).toBe('host-install');
   });
 });

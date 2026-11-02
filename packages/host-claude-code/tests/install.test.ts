@@ -183,6 +183,35 @@ describe('installHooks', () => {
     expect(cfg.hooks.SubagentStart[0]._managedBy).toBe('cadence');
   });
 
+  it('345-01/AC-2: writes one managed PreCompact hook entry with no matcher', async () => {
+    const root = await tempDir();
+    await installHooks(root);
+    const cfg = JSON.parse(await readFile(join(root, '.claude/settings.json'), 'utf8'));
+    expect(cfg.hooks.PreCompact).toHaveLength(1);
+    expect(cfg.hooks.PreCompact[0]._managedBy).toBe('cadence');
+    expect('matcher' in cfg.hooks.PreCompact[0]).toBe(false);
+    expect(cfg.hooks.PreCompact[0].hooks[0].command).toBe(
+      'npx @thomas-powers-jr/cadence-host-claude-code hook',
+    );
+    // Beside the existing managed entries, not instead of them.
+    expect(cfg.hooks.SubagentStart).toHaveLength(1);
+    expect(cfg.hooks.SessionStart).toHaveLength(1);
+  });
+
+  it('345-01/AC-2: re-install over a pre-345 settings file adds PreCompact and keeps the rest', async () => {
+    const root = await tempDir();
+    await installHooks(root);
+    const path = join(root, '.claude/settings.json');
+    const old = JSON.parse(await readFile(path, 'utf8'));
+    delete old.hooks.PreCompact;
+    await writeFile(path, JSON.stringify(old));
+    await installHooks(root);
+    const cfg = JSON.parse(await readFile(path, 'utf8'));
+    expect(cfg.hooks.PreCompact).toHaveLength(1);
+    expect(cfg.hooks.PreCompact[0]._managedBy).toBe('cadence');
+    expect(cfg.hooks.Stop).toHaveLength(1);
+  });
+
   // AC-1 (Phase 18.1) — F2 rename rollout.
   it('evicts legacy _managedBy=keel hook entries on re-install', async () => {
     const root = await tempDir();

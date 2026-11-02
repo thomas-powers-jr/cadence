@@ -37,8 +37,19 @@ describe('mapEvent', () => {
 
   it('returns null for non-relevant events', () => {
     expect(mapEvent('Notification')).toBeNull();
-    expect(mapEvent('PreCompact')).toBeNull();
+    expect(mapEvent('PostCompact')).toBeNull();
     expect(mapEvent('NopeNope')).toBeNull();
+  });
+
+  it('345-01/AC-1: maps PreCompact → pre-compact', () => {
+    expect(mapEvent('PreCompact')).toBe('pre-compact');
+  });
+
+  it('345-01/AC-1: extractPayload forwards a string PreCompact trigger as compactTrigger', () => {
+    expect(extractPayload({ hook_event_name: 'PreCompact', trigger: 'manual' })).toEqual({
+      compactTrigger: 'manual',
+    });
+    expect(extractPayload({ hook_event_name: 'PreCompact' })).toBeUndefined();
   });
 });
 

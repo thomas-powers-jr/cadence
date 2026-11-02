@@ -28,6 +28,7 @@ describe('host-toolkit and core agree on the expected Claude Code hook set', () 
       [
         'PostToolUse::Edit|Write|MultiEdit|NotebookEdit',
         'PostToolUse::Skill',
+        'PreCompact::',
         'PreToolUse::Edit|Write|MultiEdit|NotebookEdit',
         'SessionStart::',
         'Stop::',
@@ -36,5 +37,10 @@ describe('host-toolkit and core agree on the expected Claude Code hook set', () 
         'UserPromptSubmit::',
       ].sort(),
     );
+  });
+
+  it('345-01/AC-2: both lists carry an unmatched PreCompact entry', () => {
+    expect(TOOLKIT_EXPECTED_HOOKS).toContainEqual({ event: 'PreCompact', matcher: null });
+    expect(CORE_EXPECTED_HOOKS).toContainEqual({ event: 'PreCompact', matcher: null });
   });
 });

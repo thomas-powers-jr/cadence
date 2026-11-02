@@ -9,6 +9,8 @@ export const claudeCodeCapabilities: HostCapabilities = {
     'session-stop',
     'subagent-result',
     'subagent-start',
+    // Phase 345: record-only; deliberately absent from blockingHooks.
+    'pre-compact',
   ],
   slashCommands: true,
   skillSystem: 'native',
