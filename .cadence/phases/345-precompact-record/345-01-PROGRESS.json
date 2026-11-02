@@ -13,6 +13,24 @@
         "packages/core/tests/handoff/precompact.test.ts"
       ],
       "updatedAt": "2026-11-02T18:28:53.806Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "precompact.ts: pure planPrecompactRecord/payloadFieldNames/selectPrunablePrecompact + best-effort writePrecompactRecord (refuses without .cadence/, wx + -N suffix, silent prune of newest-5, never throws) and findNewestPrecompactRecord. Red first (module missing), then 16/16. Independent review: no Critical; I1 (suffix order: '-' < '.') fixed with a stem+numeric-suffix comparator, I2 (snapshot lacked SESSION/ledger files) fixed by seeding both; minors fixed: CRLF read, U+2028/2029 escaped, stdout captured in prune-silence test, non-EEXIST write failure tested. 19/19, typecheck+lint clean, re-run in main thread. Hook-level AC-4 and banner/resume AC-7 tests belong to T4/T5.",
+      "touchedFiles": [
+        "packages/core/src/handoff/precompact.ts",
+        "packages/core/src/doctor/host-hooks.ts",
+        "packages/core/tests/doctor/host-hooks.test.ts",
+        "packages/host-claude-code/src/capabilities.ts",
+        "packages/host-claude-code/src/cli.ts",
+        "packages/host-claude-code/tests/adapter-conformance.test.ts",
+        "packages/host-claude-code/tests/event-map.test.ts",
+        "packages/host-claude-code/tests/expected-hooks-drift.test.ts",
+        "packages/host-claude-code/tests/install.test.ts",
+        "packages/host-claude-code/tests/shim.test.ts",
+        "packages/host-toolkit/src/routing.ts"
+      ],
+      "updatedAt": "2026-11-02T18:31:36.167Z"
     }
   }
 }

@@ -186,12 +186,25 @@ describe('selectPrunablePrecompact (pure)', () => {
     ]);
     expect(selectPrunablePrecompact(names.slice(0, 5))).toEqual([]);
   });
+
+  it('345-01/AC-5: orders same-millisecond records by numeric suffix (base, -2, ..., -10)', () => {
+    const base = 'PRECOMPACT-20261106T000000.000Z';
+    const names = [`${base}-10.md`, `${base}.md`, `${base}-2.md`, `${base}-3.md`];
+    expect(selectPrunablePrecompact(names, 2).sort()).toEqual([`${base}-2.md`, `${base}.md`]);
+    expect(selectPrunablePrecompact(names, 1)).toEqual([`${base}-3.md`, `${base}-2.md`, `${base}.md`]);
+  });
 });
 
 describe('writePrecompactRecord (impure shell)', () => {
   it('345-01/AC-3: writes exactly one record under .cadence/local/precompact/ (created if missing) and touches nothing else', async () => {
     const f = await repo();
+    await writeFile(join(f.root, '.cadence', 'handoff', 'SESSION-2026-11-01.md'), '---\ngenerated_at: 2026-11-01T00:00:00.000Z\n---\n# s\n');
+    await mkdir(join(f.root, '.cadence', 'intelligence'), { recursive: true });
+    await writeFile(join(f.root, '.cadence', 'intelligence', 'recommendations.json'), '{"recommendations":[]}\n');
     const before = await snapshotCadence(f.root);
+    expect([...before.keys()].some((k) => k.endsWith('SESSION-2026-11-01.md'))).toBe(true);
+    expect([...before.keys()].some((k) => k.endsWith('recommendations.json'))).toBe(true);
+    expect([...before.keys()].some((k) => k.endsWith('state.json'))).toBe(true);
     const res = await writePrecompactRecord(
       f.root,
       { trigger: 'manual', raw: { session_id: 's', trigger: 'manual' } },
@@ -292,11 +305,17 @@ describe('writePrecompactRecord (impure shell)', () => {
     }
     await writeFile(join(dir, 'keep-me.txt'), 'x');
     const errs: string[] = [];
+    const outs: string[] = [];
     const origWrite = process.stderr.write.bind(process.stderr);
+    const origOut = process.stdout.write.bind(process.stdout);
     process.stderr.write = ((chunk: string | Uint8Array) => {
       errs.push(String(chunk));
       return true;
     }) as typeof process.stderr.write;
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      outs.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
     try {
       const res = await writePrecompactRecord(
         f.root,
@@ -306,8 +325,10 @@ describe('writePrecompactRecord (impure shell)', () => {
       expect(res.ok).toBe(true);
     } finally {
       process.stderr.write = origWrite;
+      process.stdout.write = origOut;
     }
     expect(errs).toEqual([]);
+    expect(outs).toEqual([]);
     const left = (await readdir(dir)).sort();
     expect(left).toEqual([
       'PRECOMPACT-20261003T000000.000Z.md',
@@ -317,6 +338,25 @@ describe('writePrecompactRecord (impure shell)', () => {
       'PRECOMPACT-20261102T181923.456Z.md',
       'keep-me.txt',
     ]);
+  });
+
+  it('345-01/AC-3: a non-EEXIST write failure after mkdir returns ok:false naming the cause', async () => {
+    const f = await repo();
+    const res = await writePrecompactRecord(
+      f.root,
+      { trigger: 'auto' },
+      {
+        now: () => NOW,
+        readGit: async () => ({ available: false }),
+        fs: {
+          writeFileExclusive: async () => {
+            throw Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' });
+          },
+        },
+      },
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/ENOSPC/);
   });
 
   it('345-01/AC-5: a prune failure does not fail the write', async () => {
@@ -354,6 +394,29 @@ describe('findNewestPrecompactRecord', () => {
       path: '.cadence/local/precompact/PRECOMPACT-20261102T181923.456Z.md',
       trigger: 'auto',
       generatedAt: '2026-11-02T18:19:23.456Z',
+    });
+  });
+
+  it('345-01/AC-7: a same-millisecond -2 record is the newest; CRLF records and U+2028 triggers read back', async () => {
+    const f = await repo();
+    const deps = { now: () => NOW, readGit: async (): Promise<GitFacts> => ({ available: false }) };
+    await writePrecompactRecord(f.root, { trigger: 'manual' }, deps);
+    await writePrecompactRecord(f.root, { trigger: 'auto\u2028x' }, deps);
+    expect(await findNewestPrecompactRecord(f.root)).toEqual({
+      path: '.cadence/local/precompact/PRECOMPACT-20261102T181923.456Z-2.md',
+      trigger: 'auto\u2028x',
+      generatedAt: '2026-11-02T18:19:23.456Z',
+    });
+    const g = await repo();
+    await mkdir(precompactDir(g.root), { recursive: true });
+    await writeFile(
+      join(precompactDir(g.root), 'PRECOMPACT-20261102T000000.000Z.md'),
+      '---\r\ngenerated_at: 2026-11-02T00:00:00.000Z\r\ntrigger: "auto"\r\n---\r\nbody\r\n',
+    );
+    expect(await findNewestPrecompactRecord(g.root)).toEqual({
+      path: '.cadence/local/precompact/PRECOMPACT-20261102T000000.000Z.md',
+      trigger: 'auto',
+      generatedAt: '2026-11-02T00:00:00.000Z',
     });
   });
 

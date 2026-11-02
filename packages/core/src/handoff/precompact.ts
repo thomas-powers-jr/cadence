@@ -31,7 +31,21 @@ export const PRECOMPACT_ADAPTER_KEYS: readonly string[] = Object.freeze([
   'agentType',
 ]);
 
-const RECORD_RE = /^PRECOMPACT-\d{8}T\d{6}\.\d{3}Z(?:-\d+)?\.md$/;
+const RECORD_RE = /^PRECOMPACT-(\d{8}T\d{6}\.\d{3}Z)(?:-(\d+))?\.md$/;
+
+/**
+ * Order record names oldest → newest: by timestamp stem, then by numeric
+ * collision suffix (the base name counts as 1). Plain string order is wrong
+ * here because `-` sorts before `.`, and `-10` before `-2`.
+ */
+function compareRecordNames(a: string, b: string): number {
+  const ma = RECORD_RE.exec(a);
+  const mb = RECORD_RE.exec(b);
+  const sa = ma?.[1] ?? '';
+  const sb = mb?.[1] ?? '';
+  if (sa !== sb) return sa < sb ? -1 : 1;
+  return Number(ma?.[2] ?? '1') - Number(mb?.[2] ?? '1');
+}
 const UNAVAILABLE = 'unavailable';
 
 export interface PrecompactLoopFacts {
@@ -75,6 +89,11 @@ function oneLine(value: string | null | undefined, fallback: string): string {
   return flat.length > 0 ? flat : fallback;
 }
 
+/** JSON-quote a string, also escaping U+2028/U+2029 so it stays on one line for every reader. */
+function quote(value: string): string {
+  return JSON.stringify(value).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+
 /** Pure: render a record from injected facts. */
 export function planPrecompactRecord(facts: PrecompactFacts): { fileName: string; content: string } {
   const generatedAt = facts.now.toISOString();
@@ -83,7 +102,7 @@ export function planPrecompactRecord(facts: PrecompactFacts): { fileName: string
     '---',
     'cadence_precompact: 1',
     `generated_at: ${generatedAt}`,
-    `trigger: ${JSON.stringify(trigger)}`,
+    `trigger: ${quote(trigger)}`,
   ];
   if (facts.loop === null) {
     fm.push(
@@ -123,7 +142,7 @@ export function planPrecompactRecord(facts: PrecompactFacts): { fileName: string
     `# Pre-compaction record — ${generatedAt}`,
     '',
     `Written by \`cadence hook pre-compact\` just before the host compacted the session ` +
-      `(trigger: ${JSON.stringify(trigger)}). Machine facts only: nothing here was written ` +
+      `(trigger: ${quote(trigger)}). Machine facts only: nothing here was written ` +
       'by the agent, and no state or handoff file was changed.',
     '',
     '## Host payload fields (names only, never values)',
@@ -151,7 +170,7 @@ export function payloadFieldNames(raw: unknown): string[] {
 
 /** Pure: record file names beyond the newest `keep`, by file name. Other names are ignored. */
 export function selectPrunablePrecompact(names: readonly string[], keep = PRECOMPACT_KEEP): string[] {
-  const records = names.filter((n) => RECORD_RE.test(n)).sort().reverse();
+  const records = names.filter((n) => RECORD_RE.test(n)).sort(compareRecordNames).reverse();
   return records.slice(Math.max(0, keep));
 }
 
@@ -299,14 +318,14 @@ export async function findNewestPrecompactRecord(
 ): Promise<PrecompactRecordPointer | null> {
   try {
     const dir = precompactDir(repoRoot);
-    const names = (await fsReaddir(dir)).filter((n) => RECORD_RE.test(n)).sort();
+    const names = (await fsReaddir(dir)).filter((n) => RECORD_RE.test(n)).sort(compareRecordNames);
     const newest = names[names.length - 1];
     if (newest === undefined) return null;
     const content = await fsReadFile(join(dir, newest), 'utf8');
-    const fm = content.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
+    const fm = content.replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---\n/)?.[1];
     if (fm === undefined) return null;
-    const generatedAt = fm.match(/^generated_at: (.+)$/m)?.[1];
-    const triggerRaw = fm.match(/^trigger: (.+)$/m)?.[1];
+    const generatedAt = fm.match(/^generated_at: (.+)$/m)?.[1]?.trim();
+    const triggerRaw = fm.match(/^trigger: (.+)$/m)?.[1]?.trim();
     if (generatedAt === undefined || triggerRaw === undefined) return null;
     let trigger: string;
     try {
