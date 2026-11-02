@@ -4102,6 +4102,46 @@ an error naming the seam and the cause instead of delegating to mock. Tier
   Studio Phase 8) and the remaining fallback wording in `config explain` and
   `activate` (rec-20261030-015).
 
+### Phase 345 — Claude Code's PreCompact hook writes a machine-facts record before compaction (rec-20261101-001)
+
+**Objective.** Nothing in cadence reacted to compaction: no adapter installed
+`PreCompact`, so when Claude Code compacted a session (by `/compact` or
+automatically) the agent's position was lost with no record unless the
+checkpoint Stop gate happened to fire first (ev-20261101-001/-003). This phase
+maps Claude Code's `PreCompact` hook to a new `pre-compact` abstract event
+whose core handler writes a separate, machine-facts-only record and never
+blocks the compaction. The SessionStart banner and `cadence resume` point at
+the newest record when it is newer than the freshest SESSION doc. Tier
+`complex`.
+
+**As built.**
+- Operator decisions before drafting: phase number 345, not 344 (344 stays
+  reserved for verifier isolation, rec-20261030-010); a separate record
+  rather than a SESSION doc; Claude Code only, so the Codex adapter keeps
+  `PreCompact` unmapped. Wiring Codex is filed as rec-20261102-001
+  (needs-evidence: no Codex PreCompact payload has been captured yet).
+- Records are `.cadence/local/precompact/PRECOMPACT-<YYYYMMDDTHHMMSS.mmmZ>.md`
+  (a `-N` suffix on a same-millisecond collision), newest five kept. They
+  carry `generated_at`, the JSON-quoted trigger, the loop facts, local git
+  facts with no fetch, and the payload's field names only. The DRAFT first
+  put them under `.cadence/handoff/` with a new gitignore entry; the
+  independent DRAFT re-review moved them to `.cadence/local/`, gitignored
+  since phase 341, which dropped the new entry and its churn (findings I7,
+  N1-N3).
+- Core handles `pre-compact` before the dispatcher's state and config reads,
+  always exits 0, writes one stderr line and never stdout, and never creates
+  `.cadence/`.
+- The shim's exit clamp is a pure host-toolkit helper,
+  `resolveHookShimExit`, not inline logic in `cli.ts`: `cli.ts` only runs as
+  a subprocess, so its branches do not count toward coverage, and
+  host-claude-code's branch-coverage gate had no headroom. A signal-killed
+  core on `pre-compact` is reported in the same one stderr line.
+- `CLAUDE_CODE_EXPECTED_HOOKS` gained `PreCompact`, so existing installs see a
+  doctor `host-hooks` error until `cadence doctor --fix --wire-host`.
+  `docs/claude-code.md`'s stale event table (no `SubagentStart` row, wrong
+  count) was fixed, and a doc-content test pins the hook-events list in
+  `docs/reference/commands.md` to `AbstractEventZ`.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

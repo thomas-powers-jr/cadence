@@ -68,6 +68,12 @@
         "packages/core/tests/docs/hook-events.test.ts"
       ],
       "updatedAt": "2026-11-02T19:19:14.764Z"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "Docs: commands.md hook-events marker list (all 9 AbstractEventZ options, outside the commands block) + pre-compact section + limitations + resume pointer; claude-code.md event table (adds stale SubagentStart row + PreCompact), counts derived from CLAUDE_CODE_EXPECTED_HOOKS, capabilities table corrected; host-adapters.md event list, ExtractedPayload fields, host-toolkit exports incl. resolveHookShimExit; concepts.md .cadence/local/ row only. hook-events.test.ts (5 tests, 345-01/AC-8) red first 5/5, then green; core tests/docs 64 files / 412 tests. Changeset minor (core, types, host-claude-code, host-toolkit; fixed group bumps the rest) with both upgrade notes. ROADMAP/MILESTONES entries in final form; orchestrator filed rec-20261102-001 (Codex follow-up) and named it in ROADMAP. Full pipeline re-run in main thread with --force: 28/28. Per-task review folded into the whole-branch review (docs re-read last).",
+      "touchedFiles": [],
+      "updatedAt": "2026-11-02T19:29:26.355Z"
     }
   }
 }

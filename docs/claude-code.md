@@ -32,6 +32,7 @@ the same `cadence hook <event>` dispatch path — without any special API surfac
   - [Options reference](#options-reference)
   - [The --local warning](#the---local-warning)
 - [Hook groups written by install](#hook-groups-written-by-install)
+  - [PreCompact: a record before compaction](#precompact-a-record-before-compaction)
 - [The 15 slash commands](#the-15-slash-commands)
 - [How the agent drives CADENCE](#how-the-agent-drives-cadence)
 - [Gitignore guidance](#gitignore-guidance)
@@ -134,12 +135,14 @@ got committed and broke `/cadence-*` on every other machine. See
 
 ## Hook groups written by install
 
-`install` merges exactly **6 Claude Code hook groups** into `settings.json`.
+`install` merges exactly **8 Claude Code hook groups** into `settings.json`.
 Each entry is tagged `_managedBy: "cadence"` so re-running install safely
 replaces them without touching user-customized entries.
 
-Source of truth: `packages/host-claude-code/src/install.ts` (`desired` object)
-and `packages/host-claude-code/src/event-map.ts` (matcher constants).
+Source of truth: `CLAUDE_CODE_EXPECTED_HOOKS` in
+`packages/host-toolkit/src/routing.ts` (the installer builds its `desired`
+object from it, and `cadence doctor`'s `host-hooks` check holds a copy pinned to
+it by a drift test) and the event table in the same file.
 
 | Claude Code event | Matcher | Abstract event dispatched |
 |---|---|---|
@@ -150,11 +153,15 @@ and `packages/host-claude-code/src/event-map.ts` (matcher constants).
 | `PostToolUse` | `Skill` | `skill-invoke` |
 | `Stop` | (none — fires on all) | `session-stop` |
 | `SubagentStop` | (none — fires on all) | `subagent-result` |
+| `SubagentStart` | (none — fires on all) | `subagent-start` |
+| `PreCompact` | (none — fires on all) | `pre-compact` |
 
 > **Count note:** `PostToolUse` gets **two** managed entries (one for edit
 > tools, one for the Skill tool), so the `desired` object has entries under
-> 6 Claude Code event names, but the settings file ends up with 7 hook entries
-> in total across those 6 groups. The table above shows all 7.
+> 8 Claude Code event names, but the settings file ends up with 9 hook entries
+> in total across those 8 groups. The table above shows all 9. A doc-content
+> test (`packages/core/tests/docs/hook-events.test.ts`) checks the table and
+> both numbers against the code.
 
 The matcher for edit tools (`Edit|Write|MultiEdit|NotebookEdit`) comes from the
 `EDIT_TOOL_MATCHER` constant in `event-map.ts`. The Skill matcher (`Skill`)
@@ -163,6 +170,41 @@ comes from `SKILL_TOOL_MATCHER`.
 All hooks route to the same shim command. The shim reads `hook_event_name` and
 `tool_name` from stdin to decide which abstract event to dispatch to the core
 engine.
+
+### PreCompact: a record before compaction
+
+Claude Code fires `PreCompact` just before it compacts a session, whether you
+ran `/compact` (trigger `manual`) or the context filled up (trigger `auto`).
+The shim forwards the trigger to core as `compactTrigger`, and `cadence hook
+pre-compact` writes one machine-facts record to
+`.cadence/local/precompact/PRECOMPACT-<YYYYMMDDTHHMMSS.mmmZ>.md`, under the
+`.cadence/local/` directory `cadence init` gitignores. The record holds the
+trigger, the loop position and active phase, draft and spec, local git facts,
+and the hook payload's field names (never their values). Only the newest five
+records are kept. It does not write a SESSION handoff doc or change
+`state.json`. When the newest record is newer than your last handoff, the
+SessionStart banner and `cadence resume` print a `Pre-compaction record:` line
+pointing at it. The full description, including the record's fields and its
+known limitations, is in the
+[`cadence hook` reference](reference/commands.md#hook).
+
+`pre-compact` never blocks a compaction. Core always exits 0 for it, and the
+shim clamps the exit as well: for this event only, a non-zero core exit, a
+core killed by a signal, a spawn failure or a shim error all end in exit 0
+with one stderr line naming the cause. That means a newer adapter running
+against an older core, which rejects `pre-compact` with exit 2, still cannot
+block a compaction. The policy is `resolveHookShimExit` in host-toolkit; every
+other event keeps core's exit code.
+
+Limitations: the hook finds the project from the session's working
+directory, so a session whose working directory is a subdirectory with no
+`.cadence/` gets no record (one stderr line, exit 0). If the shim cannot read
+stdin at all it exits 1 before it knows the event; Claude Code treats that as
+a non-blocking error. The Codex adapter does not map `PreCompact`.
+
+Existing installs: until you re-run the installer (`cadence doctor --fix
+--wire-host`), `cadence doctor`'s `host-hooks` check reports the missing
+`PreCompact` entry as an error.
 
 ---
 
@@ -252,8 +294,8 @@ Hook capabilities declared for this host:
 
 | Capability | Value |
 |---|---|
-| Hooks available | `session-start`, `user-prompt`, `pre-tool-edit`, `post-tool-edit`, `session-stop`, `subagent-result` |
-| Blocking hooks | `pre-tool-edit`, `session-stop` |
+| Hooks available | `session-start`, `user-prompt`, `pre-tool-edit`, `post-tool-edit`, `session-stop`, `subagent-result`, `subagent-start`, `pre-compact` |
+| Blocking hooks | `pre-tool-edit`, `session-stop`, `subagent-result` |
 | Slash commands | Yes |
 | Skill system | Native |
 | Subagent spawn | Native |

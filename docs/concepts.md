@@ -395,7 +395,7 @@ save | load | list`):
 | Directory | Purpose |
 |---|---|
 | `.cadence/snapshots/` | Snapshots of `state.json` written by `cadence state save`, committed by the operator alongside a handoff so the loop position travels with the branch. `save` keeps the newest 3 |
-| `.cadence/local/` | Machine-local and gitignored: `state.json.bak` (the state the last `cadence state load` replaced) and `state-sync.json` (the local revision at this machine's last save or load) |
+| `.cadence/local/` | Machine-local and gitignored: `state.json.bak` (the state the last `cadence state load` replaced), `state-sync.json` (the local revision at this machine's last save or load), and `precompact/` (the newest five `PRECOMPACT-*.md` records `cadence hook pre-compact` writes before the host compacts a session) |
 
 `cadence resume` never restores state; `cadence state load` is the explicit,
 refuse-first restore. See
