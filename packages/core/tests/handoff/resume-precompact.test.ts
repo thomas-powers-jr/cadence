@@ -128,7 +128,7 @@ describe('345-01 AC-7: resume points at a newer record', () => {
   it('345-01/AC-7: found + newer record: the pointer line precedes the narrative; JSON carries precompactRecord', async () => {
     const root = await makeRepo();
     const path = await writeRecord(root, '2026-11-02T18:19:23.456Z', 'auto');
-    const pointer = `Pre-compaction record: ${path} (trigger: auto, 2026-11-02T18:19:23.456Z) — newer than the last handoff\n`;
+    const pointer = `Pre-compaction record: ${path} (trigger: auto, 2026-11-02T18:19:23.456Z) — newer than any SESSION handoff\n`;
 
     const text = norm((await run(['resume', '--offline'], root)).stdout, root);
     expect(text).toBe(`${pointer}\n${BEFORE_FOUND_TEXT_OFFLINE}`);
@@ -147,7 +147,7 @@ describe('345-01 AC-7: resume points at a newer record', () => {
   it('345-01/AC-7: no SESSION doc + any record: the pointer line follows the "no handoff found" line; JSON carries it', async () => {
     const root = await makeRepo({ session: null });
     const path = await writeRecord(root, '2020-01-01T00:00:00.000Z', 'manual');
-    const pointer = `Pre-compaction record: ${path} (trigger: manual, 2020-01-01T00:00:00.000Z) — newer than the last handoff\n`;
+    const pointer = `Pre-compaction record: ${path} (trigger: manual, 2020-01-01T00:00:00.000Z) — newer than any SESSION handoff\n`;
     expect((await run(['resume'], root)).stdout).toBe(`${NO_HANDOFF_LINE}${pointer}`);
     const json = JSON.parse((await run(['resume', '--json'], root)).stdout);
     expect(json).toEqual({ found: false, precompactRecord: { path, trigger: 'manual', generatedAt: '2020-01-01T00:00:00.000Z' } });
@@ -209,7 +209,7 @@ describe('345-01 AC-7: the pure comparison rule', () => {
 
   it('345-01/AC-7: renderPrecompactPointerLine names path, trigger and time on one line', () => {
     const line = renderPrecompactPointerLine({ path: '.cadence/local/precompact/P.md', trigger: 'au\nto', generatedAt: '2026-11-02T18:19:23.456Z' });
-    expect(line).toBe('Pre-compaction record: .cadence/local/precompact/P.md (trigger: au to, 2026-11-02T18:19:23.456Z) — newer than the last handoff');
+    expect(line).toBe('Pre-compaction record: .cadence/local/precompact/P.md (trigger: au to, 2026-11-02T18:19:23.456Z) — newer than any SESSION handoff');
     expect(line).not.toContain('\n');
   });
 });

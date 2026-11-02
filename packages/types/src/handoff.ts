@@ -77,6 +77,7 @@ export const PrecompactRecordPointerZ = z.object({
   trigger: z.string(),
   generatedAt: z.string(),
 });
+export type PrecompactRecordPointer = z.infer<typeof PrecompactRecordPointerZ>;
 
 /** `cadence resume --json` payload. */
 export const ResumeResultZ = z.union([
@@ -84,7 +85,8 @@ export const ResumeResultZ = z.union([
     found: z.literal(false),
     candidates: z.array(HandoffCandidateZ).optional(),
     /** Phase 345: set only (default mode) when a pre-compaction record is
-     *  newer than the freshest SESSION doc — here, when none exists. */
+     *  newer than the freshest SESSION doc. On this branch no SESSION doc was
+     *  served: none exists, or the autoList candidate menu was declined. */
     precompactRecord: PrecompactRecordPointerZ.optional(),
   }),
   z.object({

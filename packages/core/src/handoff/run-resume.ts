@@ -52,7 +52,7 @@ export function isPrecompactRecordNewer(
  *  `cadence resume` print. Whitespace runs are collapsed so it stays one line. */
 export function renderPrecompactPointerLine(record: PrecompactRecordPointer): string {
   const flat = (v: string): string => v.replace(/\s+/g, ' ').trim();
-  return `Pre-compaction record: ${flat(record.path)} (trigger: ${flat(record.trigger)}, ${flat(record.generatedAt)}) — newer than the last handoff`;
+  return `Pre-compaction record: ${flat(record.path)} (trigger: ${flat(record.trigger)}, ${flat(record.generatedAt)}) — newer than any SESSION handoff`;
 }
 
 /**

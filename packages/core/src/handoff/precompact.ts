@@ -16,7 +16,7 @@ import {
   writeFile as fsWriteFile,
 } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { GitFacts } from '@thomas-powers-jr/cadence-types';
+import type { GitFacts, PrecompactRecordPointer } from '@thomas-powers-jr/cadence-types';
 import { readGitFacts } from './git-facts.js';
 
 /** How many records the writer keeps (the newest, by file name). */
@@ -306,11 +306,8 @@ export async function writePrecompactRecord(
   }
 }
 
-export interface PrecompactRecordPointer {
-  path: string;
-  trigger: string;
-  generatedAt: string;
-}
+/** The record pointer; its schema lives in cadence-types (`PrecompactRecordPointerZ`). */
+export type { PrecompactRecordPointer } from '@thomas-powers-jr/cadence-types';
 
 /** The newest record's pointer, or null on none or any failure. Never throws. */
 export async function findNewestPrecompactRecord(

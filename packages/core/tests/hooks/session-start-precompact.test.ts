@@ -81,14 +81,14 @@ describe('345-01 AC-7: SessionStart banner pointer', () => {
       generatedAt: '2026-11-02T18:19:23.456Z',
     });
     expect(r.contextPayload).toBe(
-      `${base}\nPre-compaction record: .cadence/local/precompact/PRECOMPACT-20261102T181923.456Z.md (trigger: auto, 2026-11-02T18:19:23.456Z) — newer than the last handoff`,
+      `${base}\nPre-compaction record: .cadence/local/precompact/PRECOMPACT-20261102T181923.456Z.md (trigger: auto, 2026-11-02T18:19:23.456Z) — newer than any SESSION handoff`,
     );
   });
 
   it('345-01/AC-7: the dispatcher passes a newer record (no SESSION doc) and the CLI banner ends with the pointer', async () => {
     const root = await makeRepo(false);
     const path = await writeRecord(root, '2026-11-02T18:19:23.456Z', 'manual');
-    const line = `Pre-compaction record: ${path} (trigger: manual, 2026-11-02T18:19:23.456Z) — newer than the last handoff`;
+    const line = `Pre-compaction record: ${path} (trigger: manual, 2026-11-02T18:19:23.456Z) — newer than any SESSION handoff`;
     const d = await new HookDispatcher(root).dispatch('session-start', { cwd: root, event: 'session-start' });
     expect(d.contextPayload).toBe(`${BEFORE_BANNER.slice(0, -1)}\n${line}`);
     const r = await hook(root);
@@ -100,7 +100,7 @@ describe('345-01 AC-7: SessionStart banner pointer', () => {
     const newer = await makeRepo(true);
     const path = await writeRecord(newer, '2026-11-01T10:00:00.001Z');
     expect((await hook(newer)).stdout).toBe(
-      `${BEFORE_BANNER}Pre-compaction record: ${path} (trigger: auto, 2026-11-01T10:00:00.001Z) — newer than the last handoff\n`,
+      `${BEFORE_BANNER}Pre-compaction record: ${path} (trigger: auto, 2026-11-01T10:00:00.001Z) — newer than any SESSION handoff\n`,
     );
 
     const older = await makeRepo(true);

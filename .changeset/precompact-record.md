@@ -10,4 +10,4 @@ Claude Code compactions now leave a record (phase 345; rec-20261101-001). The Cl
 Upgrade notes:
 
 - Existing Claude Code installs lack the new `PreCompact` hook entry, so `cadence doctor`'s `host-hooks` check reports an error until you run `cadence doctor --fix --wire-host` (or re-run the Claude Code installer).
-- Projects initialized before phase 341 do not gitignore `.cadence/local/`. Add `.cadence/local/` to `.gitignore` so the records stay out of the working tree.
+- Projects initialized before phase 341 do not gitignore `.cadence/local/`. Add `.cadence/local/` to `.gitignore` so the records stay out of `git status` and out of commits.

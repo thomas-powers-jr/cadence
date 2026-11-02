@@ -625,7 +625,7 @@ writes `state.json`, `STATE.md`, any `SESSION-*.md` handoff doc or any
   SESSION doc's `generated_at` (or no SESSION doc exists), the SessionStart
   banner ends with one extra line, and `cadence resume` prints the same line
   (see [resume](#resume)):
-  `Pre-compaction record: <path> (trigger: <trigger>, <generated_at>) — newer than the last handoff`.
+  `Pre-compaction record: <path> (trigger: <trigger>, <generated_at>) — newer than any SESSION handoff`.
 - **Claude Code only.** The Claude Code adapter installs the `PreCompact`
   hook; the Codex adapter leaves `PreCompact` unmapped, so Codex sessions get
   no record. `pre-compact` is not a blocking hook in any adapter.
@@ -1949,7 +1949,7 @@ failures.
 newer than the freshest SESSION doc's `generated_at` (a SESSION doc without
 `generated_at` counts as the end of its file-name date; any record counts as
 newer when there is no SESSION doc), `resume` prints one line:
-`Pre-compaction record: <path> (trigger: <trigger>, <generated_at>) — newer than the last handoff`.
+`Pre-compaction record: <path> (trigger: <trigger>, <generated_at>) — newer than any SESSION handoff`.
 It comes after the warnings and before the replayed narrative, or after the
 `no handoff found` line when there is no SESSION doc. `resume --json`, and the
 structured result of the MCP `cadence_resume` tool, carry it as an optional
