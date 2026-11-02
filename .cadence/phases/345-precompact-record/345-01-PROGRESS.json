@@ -49,6 +49,25 @@
       "notes": "hook.ts copies a string compactTrigger into ctx and its outer catch exits 0 (one flattened line) for pre-compact; dispatcher routes pre-compact to handlePreCompact before the readState/loadConfig prologue (other events via dispatchWithState, unchanged); handlePreCompact writes one stderr line and returns ok:true; renderHookResult('pre-compact') is always exit 0, empty stdout. Red first (11 failed), then green. Re-run in main thread: full core 514 files / 5298 tests, typecheck+lint clean. Independent review: no Critical/Important, probed every AC-4 path in scratch repos (exit 0, 0 stdout bytes, 1 stderr line); M2 (multi-line catch message) and M3 (mislabelled test) fixed, re-run tests/hooks+tests/cli 1251/1251; M1 (non-JSON stdin lists a synthetic 'raw' field) and the subdirectory-cwd note go to T6 docs.",
       "touchedFiles": [],
       "updatedAt": "2026-11-02T18:57:34.889Z"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "Banner + resume pointer: pure isPrecompactRecordNewer (strict >, no SESSION doc -> newer, undated doc -> end of its file-name date) and renderPrecompactPointerLine in run-resume.ts; ResumeResultZ gains optional precompactRecord on both branches; resume prints the line before the narrative or after 'no handoff found'; --list/--pick skip the lookup; session-start banner appends one line. Before-fixtures captured from pre-change dist; byte-identity tests green on old and new code. Red first (core 9 failed, types 2 failed). Re-run in main thread: core 516 files / 5314 tests, types 392, repo typecheck+lint 18/18. Independent review: no Critical/Important; minors noted, not changed: M1 pointer compares against the local freshest doc even when --path serves a sibling's, M2 locate's string ranking vs end-of-day rule for same-day undated docs, M3 pointer after the declined autoList menu (beyond AC-7, consistent with JSON), M4 unparseable generated_at falls back to the file-name date, M5 redundant try/catch.",
+      "touchedFiles": [
+        "packages/core/src/cli/commands/resume.ts",
+        "packages/core/src/handoff/run-resume.ts",
+        "packages/core/tests/handoff/resume-precompact.test.ts",
+        "packages/core/tests/hooks/session-start-precompact.test.ts",
+        "packages/types/src/handoff.ts",
+        "packages/types/tests/handoff.test.ts",
+        "docs/claude-code.md",
+        "docs/concepts.md",
+        "docs/host-adapters.md",
+        "docs/reference/commands.md",
+        ".changeset/precompact-record.md",
+        "packages/core/tests/docs/hook-events.test.ts"
+      ],
+      "updatedAt": "2026-11-02T19:19:14.764Z"
     }
   }
 }
