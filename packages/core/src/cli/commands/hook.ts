@@ -8,6 +8,9 @@ export function registerHookCommand(program: Command): void {
     .command('hook <event>')
     .description('Dispatch an abstract hook event (called by host adapter shims)')
     .action(async (eventRaw: string) => {
+      // Phase 345: pre-compact must never block a compaction, so even an
+      // unexpected failure exits 0 (still with its one stderr line).
+      const isPreCompact = eventRaw === 'pre-compact';
       try {
         const parsed = AbstractEventZ.safeParse(eventRaw);
         if (!parsed.success) {
@@ -21,13 +24,18 @@ export function registerHookCommand(program: Command): void {
         }
         const dispatcher = new HookDispatcher(process.cwd());
         const parsedRaw = raw ? safeJson(raw) : undefined;
-        const rawObj = parsedRaw as { agentId?: unknown; agentType?: unknown } | undefined;
+        const rawObj = parsedRaw as
+          | { agentId?: unknown; agentType?: unknown; compactTrigger?: unknown }
+          | undefined;
         const ctx = {
           event: parsed.data,
           cwd: process.cwd(),
           raw: parsedRaw,
           ...(typeof rawObj?.agentId === 'string' ? { agentId: rawObj.agentId } : {}),
           ...(typeof rawObj?.agentType === 'string' ? { agentType: rawObj.agentType } : {}),
+          ...(typeof rawObj?.compactTrigger === 'string'
+            ? { compactTrigger: rawObj.compactTrigger }
+            : {}),
         };
         const result = await dispatcher.dispatch(parsed.data, ctx);
         // Blocking is delivered as a per-event JSON decision on stdout, exit 0 (not exit-code 2 -- checkpoint 0.4a proved that collapses to a non-blocking 1 on Windows/PowerShell).
@@ -39,7 +47,7 @@ export function registerHookCommand(program: Command): void {
         process.stderr.write(
           `hook dispatch failed: ${err instanceof Error ? err.message : String(err)}\n`,
         );
-        process.exitCode = 1;
+        process.exitCode = isPreCompact ? 0 : 1;
       }
     });
 }

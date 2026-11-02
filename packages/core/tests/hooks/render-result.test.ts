@@ -254,4 +254,39 @@ describe('renderHookResult', () => {
       expect(out.stderr).toMatch(/contextPayload was dropped/);
     });
   });
+
+  describe('pre-compact never blocks and never writes stdout (phase 345)', () => {
+    it('345-01/AC-4: ok:false with no blockMessage renders exit 0 and empty stdout, no legacy exit-2 notice', () => {
+      expect(renderHookResult('pre-compact', { ok: false })).toEqual({
+        stdout: '',
+        stderr: '',
+        exitCode: 0,
+      });
+    });
+
+    it('345-01/AC-4: ok:false with a blockMessage mirrors it as one stderr line, exit 0, empty stdout', () => {
+      const out = renderHookResult('pre-compact', { ok: false, blockMessage: 'no record' });
+      expect(out).toEqual({ stdout: '', stderr: 'no record\n', exitCode: 0 });
+    });
+
+    it('345-01/AC-4: ok:false with a contextPayload still writes nothing to stdout, exit 0', () => {
+      const out = renderHookResult('pre-compact', {
+        ok: false,
+        blockMessage: 'no record',
+        contextPayload: 'ctx',
+      });
+      expect(out.stdout).toBe('');
+      expect(out.exitCode).toBe(0);
+      expect(out.stderr).toBe('no record\n');
+    });
+
+    it('345-01/AC-4: ok:true renders exit 0 and empty stdout even with a contextPayload', () => {
+      expect(renderHookResult('pre-compact', { ok: true })).toEqual({
+        stdout: '',
+        stderr: '',
+        exitCode: 0,
+      });
+      expect(renderHookResult('pre-compact', { ok: true, contextPayload: 'ctx' }).stdout).toBe('');
+    });
+  });
 });

@@ -12,6 +12,7 @@ import {
   handleSubagentResult,
   handleSubagentStart,
   handleSkillInvoke,
+  handlePreCompact,
   type HookResult,
 } from './handlers.js';
 
@@ -19,6 +20,17 @@ export class HookDispatcher {
   constructor(private readonly repoRoot: string) {}
 
   async dispatch(event: AbstractEvent, ctx: HookContext): Promise<HookResult> {
+    // Phase 345: pre-compact runs before the shared readState/loadConfig
+    // prologue, so a missing or corrupt state.json or an invalid config.json
+    // can never throw for it (and never blocks a compaction).
+    if (event === 'pre-compact') return handlePreCompact(ctx, this.repoRoot);
+    return this.dispatchWithState(event, ctx);
+  }
+
+  private async dispatchWithState(
+    event: Exclude<AbstractEvent, 'pre-compact'>,
+    ctx: HookContext,
+  ): Promise<HookResult> {
     const backend = new SimpleStateBackend(this.repoRoot);
     const state = await backend.readState();
     const config = await loadConfig(this.repoRoot);
@@ -51,9 +63,6 @@ export class HookDispatcher {
         return handleSubagentStart(ctx, state, config, backend);
       case 'skill-invoke':
         return handleSkillInvoke(ctx, state, config, backend);
-      case 'pre-compact':
-        // Phase 345 T1 stub: keeps the exhaustive switch total; T4 replaces it.
-        return { ok: true };
     }
   }
 }
