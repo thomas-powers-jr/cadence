@@ -44,8 +44,10 @@ export function registerHookCommand(program: Command): void {
         if (out.stderr) process.stderr.write(out.stderr);
         if (out.exitCode !== 0) process.exitCode = out.exitCode;
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // pre-compact promises one stderr line, so flatten a multi-line message.
         process.stderr.write(
-          `hook dispatch failed: ${err instanceof Error ? err.message : String(err)}\n`,
+          `hook dispatch failed: ${isPreCompact ? message.replace(/\s*\n\s*/g, ' ') : message}\n`,
         );
         process.exitCode = isPreCompact ? 0 : 1;
       }

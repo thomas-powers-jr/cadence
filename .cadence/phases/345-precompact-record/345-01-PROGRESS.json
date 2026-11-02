@@ -43,6 +43,12 @@
         "packages/core/tests/hooks/pre-compact.test.ts"
       ],
       "updatedAt": "2026-11-02T18:38:23.868Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "hook.ts copies a string compactTrigger into ctx and its outer catch exits 0 (one flattened line) for pre-compact; dispatcher routes pre-compact to handlePreCompact before the readState/loadConfig prologue (other events via dispatchWithState, unchanged); handlePreCompact writes one stderr line and returns ok:true; renderHookResult('pre-compact') is always exit 0, empty stdout. Red first (11 failed), then green. Re-run in main thread: full core 514 files / 5298 tests, typecheck+lint clean. Independent review: no Critical/Important, probed every AC-4 path in scratch repos (exit 0, 0 stdout bytes, 1 stderr line); M2 (multi-line catch message) and M3 (mislabelled test) fixed, re-run tests/hooks+tests/cli 1251/1251; M1 (non-JSON stdin lists a synthetic 'raw' field) and the subdirectory-cwd note go to T6 docs.",
+      "touchedFiles": [],
+      "updatedAt": "2026-11-02T18:57:34.889Z"
     }
   }
 }

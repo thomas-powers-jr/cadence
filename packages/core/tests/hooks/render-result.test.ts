@@ -286,7 +286,11 @@ describe('renderHookResult', () => {
         stderr: '',
         exitCode: 0,
       });
-      expect(renderHookResult('pre-compact', { ok: true, contextPayload: 'ctx' }).stdout).toBe('');
+      expect(renderHookResult('pre-compact', { ok: true, contextPayload: 'ctx' })).toEqual({
+        stdout: '',
+        stderr: '',
+        exitCode: 0,
+      });
     });
   });
 });
