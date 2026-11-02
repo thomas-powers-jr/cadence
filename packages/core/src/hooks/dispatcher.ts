@@ -3,6 +3,8 @@ import { SimpleStateBackend } from '../state/simple.js';
 import { loadConfig } from '../config/loader.js';
 import { getLogger, configureLoggerFromConfig } from '../logging/logger.js';
 import { findLatestSettledPhase } from '../phases/latest-settled.js';
+import { findNewerPrecompactRecord } from '../handoff/run-resume.js';
+import type { PrecompactRecordPointer } from '../handoff/precompact.js';
 import {
   handleSessionStart,
   handleUserPrompt,
@@ -47,7 +49,19 @@ export class HookDispatcher {
         } catch {
           lastSettledPhase = null;
         }
-        return handleSessionStart(ctx, state, lastSettledPhase);
+        // Phase 345 (T5, AC-7): best-effort — a pointer only when the newest
+        // pre-compaction record is newer than the freshest SESSION doc; any
+        // failure contributes nothing.
+        let precompactRecord: PrecompactRecordPointer | null = null;
+        try {
+          precompactRecord = await findNewerPrecompactRecord(
+            this.repoRoot,
+            state.session.lastHandoff,
+          );
+        } catch {
+          precompactRecord = null;
+        }
+        return handleSessionStart(ctx, state, lastSettledPhase, precompactRecord);
       }
       case 'user-prompt':
         return handleUserPrompt(ctx, state, config, backend);

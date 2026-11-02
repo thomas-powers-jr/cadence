@@ -10,7 +10,8 @@ import { selectNotifier } from '../notify/factory.js';
 import { runBoundaryCheck } from '../checks/boundary.js';
 import { runRedundancyCheck, TERMINAL_TASK_STATUSES } from '../checks/task-redundancy.js';
 import type { ProgressFile } from '../status.js';
-import { writePrecompactRecord } from '../handoff/precompact.js';
+import { writePrecompactRecord, type PrecompactRecordPointer } from '../handoff/precompact.js';
+import { renderPrecompactPointerLine } from '../handoff/run-resume.js';
 
 export interface HookResult {
   ok: boolean;
@@ -123,6 +124,9 @@ export async function handleSessionStart(
   _ctx: HookContext,
   state: CadenceState,
   lastSettledPhase: string | null = null,
+  /** Phase 345 (AC-7): the newest pre-compaction record, passed only when it
+   *  is newer than the freshest SESSION doc; null/omitted adds nothing. */
+  precompactRecord: PrecompactRecordPointer | null = null,
 ): Promise<HookResult> {
   const phaseLines =
     state.loopPosition === 'IDLE'
@@ -137,6 +141,7 @@ export async function handleSessionStart(
   ];
   if (state.openDrafts.length > 0)
     lines.push(`Open drafts: ${state.openDrafts.map((d) => d.id).join(', ')}`);
+  if (precompactRecord !== null) lines.push(renderPrecompactPointerLine(precompactRecord));
   return { ok: true, contextPayload: lines.join('\n') };
 }
 

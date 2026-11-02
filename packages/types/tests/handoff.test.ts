@@ -183,3 +183,37 @@ describe('ResumeResultZ — additive candidate fields (AC-3 backward compatibili
     expect(parsed.success).toBe(true);
   });
 });
+
+describe('ResumeResultZ — precompactRecord (phase 345)', () => {
+  const pointer = {
+    path: '.cadence/local/precompact/PRECOMPACT-20261102T181923.456Z.md',
+    trigger: 'auto',
+    generatedAt: '2026-11-02T18:19:23.456Z',
+  };
+  const found = {
+    found: true,
+    handoffPath: 'p',
+    generatedAt: null,
+    doc: 'd',
+    context: null,
+    drift: null,
+    mode: 'brief',
+  };
+
+  it('345-01/AC-7: both branches accept an optional precompactRecord and keep it on parse', () => {
+    const nf = ResumeResultZ.parse({ found: false, precompactRecord: pointer });
+    expect(nf).toEqual({ found: false, precompactRecord: pointer });
+    const f = ResumeResultZ.parse({ ...found, precompactRecord: pointer });
+    expect(f.precompactRecord).toEqual(pointer);
+  });
+
+  it('345-01/AC-7: precompactRecord stays optional (pre-phase-345 payloads still parse unchanged)', () => {
+    expect(ResumeResultZ.parse({ found: false })).toEqual({ found: false });
+    expect(ResumeResultZ.parse(found)).not.toHaveProperty('precompactRecord');
+  });
+
+  it('345-01/AC-7: precompactRecord requires string path, trigger and generatedAt', () => {
+    expect(ResumeResultZ.safeParse({ found: false, precompactRecord: { path: 'x', trigger: 'auto' } }).success).toBe(false);
+    expect(ResumeResultZ.safeParse({ ...found, precompactRecord: { ...pointer, trigger: 1 } }).success).toBe(false);
+  });
+});
