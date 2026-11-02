@@ -1,0 +1,322 @@
+// packages/core/src/handoff/precompact.ts
+//
+// Phase 345: the record `cadence hook pre-compact` writes just before the host
+// compacts a session. Machine facts only, written to the already-gitignored
+// `.cadence/local/precompact/`, never a SESSION doc, never a state write.
+//
+// Pure core: `precompactFileStem`, `planPrecompactRecord`, `payloadFieldNames`,
+// `selectPrunablePrecompact`. Impure shell: `writePrecompactRecord`,
+// `findNewestPrecompactRecord`. Both shells are best-effort and never throw.
+import { existsSync } from 'node:fs';
+import {
+  mkdir as fsMkdir,
+  readFile as fsReadFile,
+  readdir as fsReaddir,
+  unlink as fsUnlink,
+  writeFile as fsWriteFile,
+} from 'node:fs/promises';
+import { join } from 'node:path';
+import type { GitFacts } from '@thomas-powers-jr/cadence-types';
+import { readGitFacts } from './git-facts.js';
+
+/** How many records the writer keeps (the newest, by file name). */
+export const PRECOMPACT_KEEP = 5;
+
+/** Keys the host adapter adds to the translated stdin; not host payload fields. */
+export const PRECOMPACT_ADAPTER_KEYS: readonly string[] = Object.freeze([
+  'compactTrigger',
+  'files',
+  'skill',
+  'agentId',
+  'agentType',
+]);
+
+const RECORD_RE = /^PRECOMPACT-\d{8}T\d{6}\.\d{3}Z(?:-\d+)?\.md$/;
+const UNAVAILABLE = 'unavailable';
+
+export interface PrecompactLoopFacts {
+  loopPosition: string;
+  activePhase: string | null;
+  activeDraft: string | null;
+  activeSpec: string | null;
+}
+
+export interface PrecompactFacts {
+  now: Date;
+  /** The host's trigger, passed through unchanged; absent → "unknown". */
+  trigger?: string;
+  payloadKeys: readonly string[];
+  /** null when state.json could not be read. */
+  loop: PrecompactLoopFacts | null;
+  /** null or `{ available: false }` when git facts could not be gathered. */
+  git: GitFacts | null;
+}
+
+/** `<repoRoot>/.cadence/local/precompact` */
+export function precompactDir(repoRoot: string): string {
+  return join(repoRoot, '.cadence', 'local', 'precompact');
+}
+
+/** Repo-relative, forward-slash path of a record (never machine-absolute). */
+function relativeRecordPath(fileName: string): string {
+  return `.cadence/local/precompact/${fileName}`;
+}
+
+/** `PRECOMPACT-YYYYMMDDTHHMMSS.mmmZ` — sorts by name, no `:` (Windows-safe). */
+export function precompactFileStem(now: Date): string {
+  const iso = now.toISOString(); // 2026-11-02T18:19:23.456Z
+  return `PRECOMPACT-${iso.replace(/[-:]/g, '')}`;
+}
+
+/** Collapse a free-text value to one line so it can never break the front matter. */
+function oneLine(value: string | null | undefined, fallback: string): string {
+  if (value === null || value === undefined) return fallback;
+  const flat = value.replace(/\s+/g, ' ').trim();
+  return flat.length > 0 ? flat : fallback;
+}
+
+/** Pure: render a record from injected facts. */
+export function planPrecompactRecord(facts: PrecompactFacts): { fileName: string; content: string } {
+  const generatedAt = facts.now.toISOString();
+  const trigger = facts.trigger ?? 'unknown';
+  const fm: string[] = [
+    '---',
+    'cadence_precompact: 1',
+    `generated_at: ${generatedAt}`,
+    `trigger: ${JSON.stringify(trigger)}`,
+  ];
+  if (facts.loop === null) {
+    fm.push(
+      `loop_position: ${UNAVAILABLE}`,
+      `active_phase: ${UNAVAILABLE}`,
+      `active_draft: ${UNAVAILABLE}`,
+      `active_spec: ${UNAVAILABLE}`,
+    );
+  } else {
+    fm.push(
+      `loop_position: ${oneLine(facts.loop.loopPosition, UNAVAILABLE)}`,
+      `active_phase: ${oneLine(facts.loop.activePhase, 'none')}`,
+      `active_draft: ${oneLine(facts.loop.activeDraft, 'none')}`,
+      `active_spec: ${oneLine(facts.loop.activeSpec, 'none')}`,
+    );
+  }
+  const git = facts.git;
+  if (git !== null && git.available) {
+    fm.push(
+      `git_branch: ${oneLine(git.branch, UNAVAILABLE)}`,
+      `git_head: ${oneLine(git.head, UNAVAILABLE)}`,
+      `git_dirty: ${git.dirty ? 'true' : 'false'}`,
+      `git_ahead: ${git.ahead}`,
+      `git_behind: ${git.behind}`,
+    );
+  } else {
+    fm.push(`git: ${UNAVAILABLE}`);
+  }
+  fm.push('---');
+
+  const fields =
+    facts.payloadKeys.length > 0
+      ? facts.payloadKeys.map((k) => `- ${oneLine(k, '?')}`).join('\n')
+      : '- (none)';
+  const body = [
+    '',
+    `# Pre-compaction record — ${generatedAt}`,
+    '',
+    `Written by \`cadence hook pre-compact\` just before the host compacted the session ` +
+      `(trigger: ${JSON.stringify(trigger)}). Machine facts only: nothing here was written ` +
+      'by the agent, and no state or handoff file was changed.',
+    '',
+    '## Host payload fields (names only, never values)',
+    '',
+    fields,
+    '',
+    '## Next step',
+    '',
+    'Run `cadence resume` to replay the freshest SESSION handoff, then `cadence progress`.',
+    '',
+  ];
+  return {
+    fileName: `${precompactFileStem(facts.now)}.md`,
+    content: `${fm.join('\n')}\n${body.join('\n')}`,
+  };
+}
+
+/** Pure: the host payload's top-level field names, sorted, minus adapter-added keys. */
+export function payloadFieldNames(raw: unknown): string[] {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  return Object.keys(raw as Record<string, unknown>)
+    .filter((k) => !PRECOMPACT_ADAPTER_KEYS.includes(k))
+    .sort();
+}
+
+/** Pure: record file names beyond the newest `keep`, by file name. Other names are ignored. */
+export function selectPrunablePrecompact(names: readonly string[], keep = PRECOMPACT_KEEP): string[] {
+  const records = names.filter((n) => RECORD_RE.test(n)).sort().reverse();
+  return records.slice(Math.max(0, keep));
+}
+
+export interface PrecompactFsDeps {
+  mkdir?: (path: string, opts: { recursive: true }) => Promise<unknown>;
+  writeFileExclusive?: (path: string, content: string) => Promise<void>;
+  readdir?: (path: string) => Promise<string[]>;
+  unlink?: (path: string) => Promise<void>;
+}
+
+export interface WritePrecompactDeps {
+  now?: () => Date;
+  readGit?: (root: string) => Promise<GitFacts | null>;
+  readLoop?: (repoRoot: string) => Promise<PrecompactLoopFacts | null>;
+  fs?: PrecompactFsDeps;
+}
+
+export interface WritePrecompactInput {
+  trigger?: string;
+  /** The raw stdin payload, read for its field names only. */
+  raw?: unknown;
+}
+
+export type WritePrecompactResult = { ok: true; path: string } | { ok: false; reason: string };
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/** Read the loop facts straight from state.json, read-only; null on any failure. */
+async function defaultReadLoop(repoRoot: string): Promise<PrecompactLoopFacts | null> {
+  try {
+    const parsed = JSON.parse(
+      await fsReadFile(join(repoRoot, '.cadence', 'state.json'), 'utf8'),
+    ) as Record<string, unknown>;
+    const str = (v: unknown): string | null => (typeof v === 'string' ? v : null);
+    const loopPosition = str(parsed.loopPosition);
+    if (loopPosition === null) return null;
+    return {
+      loopPosition,
+      activePhase: str(parsed.activePhase),
+      activeDraft: str(parsed.activeDraft),
+      activeSpec: str(parsed.activeSpec),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Write one record. Never throws and never writes to stdout or stderr: the
+ * caller reports the result in one line. Refuses (ok:false) without creating
+ * anything when `<repoRoot>/.cadence/` does not exist.
+ */
+export async function writePrecompactRecord(
+  repoRoot: string,
+  input: WritePrecompactInput,
+  deps: WritePrecompactDeps = {},
+): Promise<WritePrecompactResult> {
+  try {
+    if (!existsSync(join(repoRoot, '.cadence'))) {
+      return { ok: false, reason: `no .cadence/ directory at ${repoRoot}; nothing was written` };
+    }
+    const fs = deps.fs ?? {};
+    const mkdir = fs.mkdir ?? ((p: string, o: { recursive: true }) => fsMkdir(p, o));
+    const writeExclusive =
+      fs.writeFileExclusive ??
+      ((p: string, c: string) => fsWriteFile(p, c, { encoding: 'utf8', flag: 'wx' }));
+    const readdir = fs.readdir ?? ((p: string) => fsReaddir(p));
+    const unlink = fs.unlink ?? ((p: string) => fsUnlink(p));
+
+    const now = (deps.now ?? (() => new Date()))();
+    let loop: PrecompactLoopFacts | null = null;
+    try {
+      loop = await (deps.readLoop ?? defaultReadLoop)(repoRoot);
+    } catch {
+      loop = null;
+    }
+    let git: GitFacts | null = null;
+    try {
+      git = await (deps.readGit ?? ((root: string) => readGitFacts(root)))(repoRoot);
+    } catch {
+      git = null;
+    }
+
+    const plan = planPrecompactRecord({
+      now,
+      ...(input.trigger !== undefined ? { trigger: input.trigger } : {}),
+      payloadKeys: payloadFieldNames(input.raw),
+      loop,
+      git,
+    });
+
+    const dir = precompactDir(repoRoot);
+    try {
+      await mkdir(dir, { recursive: true });
+    } catch (err) {
+      return { ok: false, reason: `cannot create ${relativeRecordPath('')}: ${errMessage(err)}` };
+    }
+
+    const stem = plan.fileName.slice(0, -'.md'.length);
+    let written: string | null = null;
+    for (let n = 1; n <= 50 && written === null; n++) {
+      const name = n === 1 ? plan.fileName : `${stem}-${n}.md`;
+      try {
+        await writeExclusive(join(dir, name), plan.content);
+        written = name;
+      } catch (err) {
+        if ((err as { code?: unknown }).code === 'EEXIST') continue;
+        return { ok: false, reason: `cannot write ${relativeRecordPath(name)}: ${errMessage(err)}` };
+      }
+    }
+    if (written === null) {
+      return { ok: false, reason: 'too many records with the same timestamp; nothing was written' };
+    }
+
+    // Silent, best-effort retention: a prune failure never fails the write.
+    try {
+      for (const name of selectPrunablePrecompact(await readdir(dir))) {
+        if (name === written) continue;
+        try {
+          await unlink(join(dir, name));
+        } catch {
+          /* best-effort */
+        }
+      }
+    } catch {
+      /* best-effort */
+    }
+    return { ok: true, path: relativeRecordPath(written) };
+  } catch (err) {
+    return { ok: false, reason: errMessage(err) };
+  }
+}
+
+export interface PrecompactRecordPointer {
+  path: string;
+  trigger: string;
+  generatedAt: string;
+}
+
+/** The newest record's pointer, or null on none or any failure. Never throws. */
+export async function findNewestPrecompactRecord(
+  repoRoot: string,
+): Promise<PrecompactRecordPointer | null> {
+  try {
+    const dir = precompactDir(repoRoot);
+    const names = (await fsReaddir(dir)).filter((n) => RECORD_RE.test(n)).sort();
+    const newest = names[names.length - 1];
+    if (newest === undefined) return null;
+    const content = await fsReadFile(join(dir, newest), 'utf8');
+    const fm = content.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
+    if (fm === undefined) return null;
+    const generatedAt = fm.match(/^generated_at: (.+)$/m)?.[1];
+    const triggerRaw = fm.match(/^trigger: (.+)$/m)?.[1];
+    if (generatedAt === undefined || triggerRaw === undefined) return null;
+    let trigger: string;
+    try {
+      const parsed: unknown = JSON.parse(triggerRaw);
+      trigger = typeof parsed === 'string' ? parsed : triggerRaw;
+    } catch {
+      trigger = triggerRaw;
+    }
+    return { path: relativeRecordPath(newest), trigger, generatedAt };
+  } catch {
+    return null;
+  }
+}

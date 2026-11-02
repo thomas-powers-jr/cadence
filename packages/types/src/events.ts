@@ -9,6 +9,7 @@ export const AbstractEventZ = z.enum([
   'subagent-result',
   'subagent-start',
   'skill-invoke',
+  'pre-compact',
 ]);
 export type AbstractEvent = z.infer<typeof AbstractEventZ>;
 
@@ -28,5 +29,11 @@ export const HookContextZ = z.object({
    */
   agentId: z.string().optional(),
   agentType: z.string().optional(),
+  /**
+   * Phase 345: the host's compaction trigger (`auto` | `manual`, passed through
+   * unchanged) on a `pre-compact` event. Extracted and forwarded by the host
+   * adapter; core never reads it from `raw`.
+   */
+  compactTrigger: z.string().optional(),
 });
 export type HookContext = z.infer<typeof HookContextZ>;

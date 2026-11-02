@@ -51,6 +51,9 @@ export class HookDispatcher {
         return handleSubagentStart(ctx, state, config, backend);
       case 'skill-invoke':
         return handleSkillInvoke(ctx, state, config, backend);
+      case 'pre-compact':
+        // Phase 345 T1 stub: keeps the exhaustive switch total; T4 replaces it.
+        return { ok: true };
     }
   }
 }

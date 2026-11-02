@@ -1,0 +1,18 @@
+{
+  "draftId": "345-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "types: pre-compact in AbstractEventZ, optional compactTrigger on HookContextZ/ExtractedPayload; dispatcher stub keeps core building. Red first (2 failed; the non-string case also fails pre-change since z.object strips unknown keys), then types 9/9; repo typecheck+lint 18/18, host pkgs tests 10/10, core tests/hooks 91/91 re-run in main thread. Independent review: no Critical/Important; M2 fixed (event-list test pins all nine against AbstractEventZ.options); M1 (stub after prologue) is T4's job.",
+      "touchedFiles": [
+        "packages/core/src/hooks/dispatcher.ts",
+        "packages/host-toolkit/tests/routing.test.ts",
+        "packages/types/src/events.ts",
+        "packages/types/src/host.ts",
+        "packages/types/tests/events.test.ts",
+        "packages/core/tests/handoff/precompact.test.ts"
+      ],
+      "updatedAt": "2026-11-02T18:28:53.806Z"
+    }
+  }
+}
