@@ -6,7 +6,11 @@ import { dirname, join } from 'node:path';
 import { installHooks, type InstallOptions } from './install.js';
 import { installCommands, type InstallCommandsOptions } from './install-commands.js';
 import { routeHookEvent } from './shim.js';
-import { resolveHookShimExit, type HookShimOutcome } from '@thomas-powers-jr/cadence-host-toolkit';
+import {
+  planCoreSpawn,
+  resolveHookShimExit,
+  type HookShimOutcome,
+} from '@thomas-powers-jr/cadence-host-toolkit';
 import type { AbstractEvent } from '@thomas-powers-jr/cadence-types';
 
 // Read the real version from package.json so `--version` never drifts.
@@ -144,9 +148,10 @@ program
         );
       }
 
-      const child = spawn(exe, [...baseArgs, 'hook', abstractEvent], {
+      const plan = planCoreSpawn(exe, [...baseArgs, 'hook', abstractEvent], process.platform);
+      const child = spawn(plan.command, plan.args, {
         stdio: ['pipe', 'inherit', 'inherit'],
-        shell: process.platform === 'win32',
+        shell: plan.shell,
         ...(payloadCwd !== undefined ? { cwd: payloadCwd } : {}),
       });
       child.stdin.write(translatedStdin);

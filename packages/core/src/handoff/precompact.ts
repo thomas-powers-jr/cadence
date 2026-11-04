@@ -19,6 +19,9 @@ import { join } from 'node:path';
 import type { GitFacts, PrecompactRecordPointer } from '@thomas-powers-jr/cadence-types';
 import { readGitFacts } from './git-facts.js';
 
+/** Consecutive lost races on a free name before the writer gives up (never a suffix limit). */
+export const PRECOMPACT_RACE_RETRIES = 20;
+
 /** How many records the writer keeps (the newest, by file name). */
 export const PRECOMPACT_KEEP = 5;
 
@@ -271,20 +274,43 @@ export async function writePrecompactRecord(
       return { ok: false, reason: `cannot create ${relativeRecordPath('')}: ${errMessage(err)}` };
     }
 
+    // A same-millisecond collision takes the next free numeric suffix after
+    // the highest one already on disk (the base name counts as 1), so there is
+    // no fixed limit on suffixes. Only a write that loses a race to a
+    // concurrent writer on that exact name retries, and only a bounded number
+    // of times in a row.
     const stem = plan.fileName.slice(0, -'.md'.length);
+    const nextFreeName = async (): Promise<string> => {
+      let max = 1;
+      for (const n of await readdir(dir)) {
+        const m = RECORD_RE.exec(n);
+        if (m === null || `PRECOMPACT-${m[1] ?? ''}` !== stem) continue;
+        max = Math.max(max, Number(m[2] ?? '1'));
+      }
+      return `${stem}-${max + 1}.md`;
+    };
+    let name = plan.fileName;
     let written: string | null = null;
-    for (let n = 1; n <= 50 && written === null; n++) {
-      const name = n === 1 ? plan.fileName : `${stem}-${n}.md`;
+    for (let attempt = 0; attempt < PRECOMPACT_RACE_RETRIES && written === null; attempt++) {
       try {
         await writeExclusive(join(dir, name), plan.content);
         written = name;
       } catch (err) {
-        if ((err as { code?: unknown }).code === 'EEXIST') continue;
-        return { ok: false, reason: `cannot write ${relativeRecordPath(name)}: ${errMessage(err)}` };
+        if ((err as { code?: unknown }).code !== 'EEXIST') {
+          return { ok: false, reason: `cannot write ${relativeRecordPath(name)}: ${errMessage(err)}` };
+        }
+        try {
+          name = await nextFreeName();
+        } catch (listErr) {
+          return { ok: false, reason: `cannot list ${relativeRecordPath('')}: ${errMessage(listErr)}` };
+        }
       }
     }
     if (written === null) {
-      return { ok: false, reason: 'too many records with the same timestamp; nothing was written' };
+      return {
+        ok: false,
+        reason: `concurrent writers took ${PRECOMPACT_RACE_RETRIES} names in a row; nothing was written`,
+      };
     }
 
     // Silent, best-effort retention: a prune failure never fails the write.

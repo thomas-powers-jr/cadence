@@ -4120,6 +4120,15 @@ the newest record when it is newer than the freshest SESSION doc. Tier
   rather than a SESSION doc; Claude Code only, so the Codex adapter keeps
   `PreCompact` unmapped. Wiring Codex is filed as rec-20261102-001
   (needs-evidence: no Codex PreCompact payload has been captured yet).
+- The first settle attempt, on the operator's PC with Codex, was refused by
+  deep-verify on two ACs, both fixed before the settle: AC-3 (the writer
+  stopped after 50 same-millisecond suffixes; it now takes the next free
+  suffix after the highest on disk, retrying only lost races) and AC-6 (on
+  Node 24+ for Windows the shim's `shell: true` plus args spawn made Node
+  print a DEP0190 warning on every hook, so stderr was not one line; the
+  shim now spawns one joined command string via host-toolkit's
+  `planCoreSpawn`). That ships rec-20261104-001 for the Claude Code shim; the
+  Codex shim and `doctor` still spawn with `shell: true` plus args.
 - Records are `.cadence/local/precompact/PRECOMPACT-<YYYYMMDDTHHMMSS.mmmZ>.md`
   (a `-N` suffix on a same-millisecond collision), newest five kept. They
   carry `generated_at`, the JSON-quoted trigger, the loop facts, local git

@@ -340,6 +340,74 @@ describe('writePrecompactRecord (impure shell)', () => {
     ]);
   });
 
+  it('345-01/AC-3: has no suffix limit — with 60 same-millisecond records on disk the next write is -61 and nothing is overwritten', async () => {
+    const f = await repo();
+    const dir = precompactDir(f.root);
+    await mkdir(dir, { recursive: true });
+    const base = 'PRECOMPACT-20261102T181923.456Z';
+    await writeFile(join(dir, `${base}.md`), 'base\n');
+    for (let n = 2; n <= 60; n++) await writeFile(join(dir, `${base}-${n}.md`), `old ${n}\n`);
+    const res = await writePrecompactRecord(
+      f.root,
+      { trigger: 'auto' },
+      { now: () => NOW, readGit: async () => ({ available: false }), fs: { unlink: async () => {} } },
+    );
+    expect(res).toEqual({ ok: true, path: `.cadence/local/precompact/${base}-61.md` });
+    expect(await readFile(join(dir, `${base}.md`), 'utf8')).toBe('base\n');
+    expect(await readFile(join(dir, `${base}-60.md`), 'utf8')).toBe('old 60\n');
+    expect(await readFile(join(dir, `${base}-61.md`), 'utf8')).toContain('trigger: "auto"\n');
+  });
+
+  it('345-01/AC-3: a name lost to a concurrent writer is retried with the next free suffix', async () => {
+    const f = await repo();
+    let calls = 0;
+    const res = await writePrecompactRecord(
+      f.root,
+      { trigger: 'auto' },
+      {
+        now: () => NOW,
+        readGit: async () => ({ available: false }),
+        fs: {
+          writeFileExclusive: async (p: string, c: string) => {
+            calls++;
+            if (calls === 1) {
+              // A concurrent writer takes the base name between our check and write.
+              await writeFile(p, 'other\n');
+              throw Object.assign(new Error('EEXIST'), { code: 'EEXIST' });
+            }
+            await writeFile(p, c, { flag: 'wx' });
+          },
+        },
+      },
+    );
+    expect(res).toEqual({
+      ok: true,
+      path: '.cadence/local/precompact/PRECOMPACT-20261102T181923.456Z-2.md',
+    });
+  });
+
+  it('345-01/AC-3: a collision whose directory cannot then be listed returns ok:false naming the cause', async () => {
+    const f = await repo();
+    const res = await writePrecompactRecord(
+      f.root,
+      { trigger: 'auto' },
+      {
+        now: () => NOW,
+        readGit: async () => ({ available: false }),
+        fs: {
+          writeFileExclusive: async () => {
+            throw Object.assign(new Error('EEXIST'), { code: 'EEXIST' });
+          },
+          readdir: async () => {
+            throw new Error('EIO: i/o error');
+          },
+        },
+      },
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/cannot list .*EIO/);
+  });
+
   it('345-01/AC-3: a non-EEXIST write failure after mkdir returns ok:false naming the cause', async () => {
     const f = await repo();
     const res = await writePrecompactRecord(

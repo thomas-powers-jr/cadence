@@ -126,18 +126,6 @@ async function stubCore(code: number, message: string): Promise<{ dir: string; c
   return { dir, cadence: `${process.execPath} ${script}` };
 }
 
-/**
- * Drop Node's own runtime warning lines (e.g. Node >= 23's DEP0190, printed
- * when the shim spawns core with `shell: true` plus an argument list on
- * win32) so assertions see only what the shim and the stub core wrote.
- */
-function withoutNodeWarnings(stderr: string): string {
-  return stderr
-    .split(/\r?\n/)
-    .filter((l) => !/^\(node:\d+\) /.test(l) && !/^\(Use `node --trace-/.test(l))
-    .join('\n');
-}
-
 function shimLines(stderr: string, pattern: RegExp): string[] {
   return stderr.split(/\r?\n/).filter((l) => pattern.test(l));
 }
@@ -161,7 +149,7 @@ describe('shim exit clamp for pre-compact (345-01/AC-6)', () => {
     const { dir, cadence } = await stubCore(0, 'core-ok');
     const r = await runShim(['hook', '--cadence', cadence], PRE_COMPACT, dir);
     expect(r.code).toBe(0);
-    expect(withoutNodeWarnings(r.stderr).trim()).toBe('core-ok');
+    expect(r.stderr.trim()).toBe('core-ok');
   });
 
   it('345-01/AC-6: a spawn failure on pre-compact exits 0 with one shim stderr line', async () => {
@@ -193,25 +181,13 @@ describe('shim exit clamp for pre-compact (345-01/AC-6)', () => {
     const { dir, cadence } = await stubCore(2, 'blocked');
     const stop = await runShim(['hook', '--cadence', cadence], JSON.stringify({ hook_event_name: 'Stop' }), dir);
     expect(stop.code).toBe(2);
-    expect(withoutNodeWarnings(stop.stderr).trim()).toBe('blocked');
+    expect(stop.stderr.trim()).toBe('blocked');
     const start = await runShim(
       ['hook', '--cadence', cadence],
       JSON.stringify({ hook_event_name: 'SessionStart' }),
       dir,
     );
     expect(start.code).toBe(2);
-  });
-
-  it('withoutNodeWarnings strips Node runtime warnings and nothing else', () => {
-    const raw =
-      '(node:51152) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.\r\n' +
-      '(Use `node --trace-deprecation ...` to show where the warning was created)\r\n' +
-      'core-ok\r\n';
-    expect(withoutNodeWarnings(raw).trim()).toBe('core-ok');
-    expect(withoutNodeWarnings('blocked\n').trim()).toBe('blocked');
-    expect(withoutNodeWarnings('cadence pre-compact: core exited with code 2\n').trim()).toBe(
-      'cadence pre-compact: core exited with code 2',
-    );
   });
 
   it('345-01/AC-6: a spawn failure on any other event still exits 1', async () => {

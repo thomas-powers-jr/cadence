@@ -194,7 +194,10 @@ core killed by a signal, a spawn failure or a shim error all end in exit 0
 with one stderr line naming the cause. That means a newer adapter running
 against an older core, which rejects `pre-compact` with exit 2, still cannot
 block a compaction. The policy is `resolveHookShimExit` in host-toolkit; every
-other event keeps core's exit code.
+other event keeps core's exit code. On Windows the shim spawns core through
+the shell with one joined command string (host-toolkit's `planCoreSpawn`), so
+Node 24 and later print no DEP0190 deprecation warning and the one-line stderr
+promise holds there too.
 
 Limitations: the hook finds the project from the session's working
 directory, so a session whose working directory is a subdirectory with no

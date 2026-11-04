@@ -9,6 +9,7 @@ import {
   CLAUDE_CODE_EXPECTED_HOOKS,
   CODEX_EXPECTED_HOOKS,
   resolveHookShimExit,
+  planCoreSpawn,
 } from '../src/routing.js';
 
 // AC-1: routeHookEvent's dispatch algorithm and the slash-command catalog
@@ -481,5 +482,23 @@ describe('resolveHookShimExit (345-01/AC-6)', () => {
       exitCode: 1,
       stderr: 'hook shim failed: boom\n',
     });
+  });
+});
+
+describe('planCoreSpawn (345-01/AC-6)', () => {
+  it('345-01/AC-6: on win32 joins the command into one string with no args, so Node 24+ prints no DEP0190 warning', () => {
+    expect(planCoreSpawn('npx', ['@thomas-powers-jr/cadence-core', 'hook', 'pre-compact'], 'win32')).toEqual({
+      command: 'npx @thomas-powers-jr/cadence-core hook pre-compact',
+      args: [],
+      shell: true,
+    });
+  });
+
+  it('345-01/AC-6: elsewhere spawns without a shell and passes args as an array, unchanged', () => {
+    const args = ['/opt/cadence.cjs', 'hook', 'session-stop'];
+    const plan = planCoreSpawn('node', args, 'linux');
+    expect(plan).toEqual({ command: 'node', args, shell: false });
+    expect(plan.args).not.toBe(args);
+    expect(planCoreSpawn('node', args, 'darwin').shell).toBe(false);
   });
 });

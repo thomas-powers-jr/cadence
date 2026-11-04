@@ -134,15 +134,17 @@ The two shipped adapters share this plumbing through
 `@thomas-powers-jr/cadence-host-toolkit` (adapters depend on it; core never
 does). Its main entry exports the hook-routing algorithm (`routeHookEvent`,
 `mapEvent`, `extractPayload`), the managed-hook lists
-(`CLAUDE_CODE_EXPECTED_HOOKS`, `CODEX_EXPECTED_HOOKS`), the shared
-slash-command catalog, and `resolveHookShimExit`, the shim's pure exit-code
-policy. That policy relays core's exit code for every event except
-`pre-compact`, for which any non-zero core exit, signal, spawn failure or
-shim error resolves to exit 0 with one stderr line naming the cause. A shim
-that uses it cannot block a compaction even when it runs against an older
-core that rejects the event (phase 345). Its `./locate-self` and
-`./install-merge` subpaths hold the self-locating and managed-marker merge
-helpers.
+(`CLAUDE_CODE_EXPECTED_HOOKS`, `CODEX_EXPECTED_HOOKS`), the shared slash-
+command catalog, `planCoreSpawn` (how the shim spawns core; on Windows it
+passes one joined command string through the shell instead of an args array,
+which is the same command line but avoids Node 24+'s DEP0190 warning on every
+hook), and `resolveHookShimExit`, the shim's pure exit-code policy. That
+policy relays core's exit code for every event except `pre-compact`, for which
+any non-zero core exit, signal, spawn failure or shim error resolves to exit 0
+with one stderr line naming the cause. A shim that uses it cannot block a
+compaction even when it runs against an older core that rejects the event
+(phase 345). Its `./locate-self` and `./install-merge` subpaths hold the self-
+locating and managed-marker merge helpers.
 
 The shim and locate-self are **host-internal plumbing** — the contract does not
 pin their shapes, because how a host hands you a raw event and how you find your

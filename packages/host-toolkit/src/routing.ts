@@ -220,6 +220,31 @@ export interface HookShimExit {
   stderr: string;
 }
 
+/** How the shim spawns core: `{ command, args, shell }`. */
+export interface CoreSpawnPlan {
+  command: string;
+  args: string[];
+  shell: boolean;
+}
+
+/**
+ * Pure (phase 345, AC-6): plan the core spawn. On win32 the shim needs a
+ * shell (so `npx`/`.cmd` shims resolve), and with `shell: true` Node joins the
+ * file and args with spaces anyway. Passing that joined string with an empty
+ * args list is therefore the same command line, but it avoids Node 24's
+ * DEP0190 warning (printed whenever `shell: true` gets an args array), which
+ * would otherwise add two lines to every hook's stderr. Elsewhere: no shell,
+ * args passed as an array, exactly as before.
+ */
+export function planCoreSpawn(
+  exe: string,
+  args: readonly string[],
+  platform: NodeJS.Platform,
+): CoreSpawnPlan {
+  if (platform === 'win32') return { command: [exe, ...args].join(' '), args: [], shell: true };
+  return { command: exe, args: [...args], shell: false };
+}
+
 /**
  * Pure exit-code policy for a hook shim (phase 345, AC-6). `pre-compact` is
  * record-only and must never block a compaction — including when a newer
