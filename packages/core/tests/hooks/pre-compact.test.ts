@@ -221,5 +221,8 @@ describe('cadence hook pre-compact (spawned)', () => {
       'utf8',
     );
     expect(content).toMatch(/^trigger: "unknown"$/m);
+    // 345-01/AC-3: no host fields arrived, so none are listed (never a synthetic `raw`).
+    expect(content).not.toMatch(/^- raw$/m);
+    expect(content).toMatch(/^- \(none\)$/m);
   });
 });

@@ -145,6 +145,19 @@ describe('shim exit clamp for pre-compact (345-01/AC-6)', () => {
     expect(clamp[0]).toMatch(/exit(ed)?( with)?( code)? 2\b/);
   });
 
+  it('345-01/AC-6: a payload cwd that differs from the shim cwd adds no divergence line on pre-compact', async () => {
+    const { dir, cadence } = await stubCore(2, 'Unknown hook event: pre-compact');
+    const other = await mkdtemp(join(tmpdir(), 'cadence-shim-other-'));
+    stubDirs.push(other);
+    const payload = JSON.stringify({ hook_event_name: 'PreCompact', trigger: 'auto', cwd: other });
+    const r = await runShim(['hook', '--cadence', cadence], payload, dir);
+    expect(r.code).toBe(0);
+    expect(r.stderr).not.toContain('hook cwd divergence');
+    const own = r.stderr.split(/\r?\n/).filter((l) => l.length > 0 && !l.startsWith('Unknown hook event'));
+    expect(own).toHaveLength(1);
+    expect(own[0]).toMatch(/pre-compact/);
+  });
+
   it('345-01/AC-6: a core that exits 0 for pre-compact adds no shim stderr line', async () => {
     const { dir, cadence } = await stubCore(0, 'core-ok');
     const r = await runShim(['hook', '--cadence', cadence], PRE_COMPACT, dir);

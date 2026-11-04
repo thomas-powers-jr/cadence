@@ -7,6 +7,7 @@ import { installHooks, type InstallOptions } from './install.js';
 import { installCommands, type InstallCommandsOptions } from './install-commands.js';
 import { routeHookEvent } from './shim.js';
 import {
+  cwdDivergenceNotice,
   planCoreSpawn,
   resolveHookShimExit,
   type HookShimOutcome,
@@ -142,11 +143,7 @@ program
         // malformed JSON: fall through to the shim's own process.cwd()
       }
       const shimCwd = process.cwd();
-      if (payloadCwd !== undefined && payloadCwd !== shimCwd) {
-        process.stderr.write(
-          `hook cwd divergence: payload cwd=${payloadCwd}, shim process cwd=${shimCwd}; spawning with payload cwd\n`,
-        );
-      }
+      process.stderr.write(cwdDivergenceNotice(abstractEvent, payloadCwd, shimCwd));
 
       const plan = planCoreSpawn(exe, [...baseArgs, 'hook', abstractEvent], process.platform);
       const child = spawn(plan.command, plan.args, {

@@ -16,6 +16,9 @@ import {
   writeFile as fsWriteFile,
 } from 'node:fs/promises';
 import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { CadenceStateZ } from '@thomas-powers-jr/cadence-types';
 import type { GitFacts, PrecompactRecordPointer } from '@thomas-powers-jr/cadence-types';
 import { readGitFacts } from './git-facts.js';
 
@@ -58,6 +61,9 @@ export interface PrecompactLoopFacts {
   activeSpec: string | null;
 }
 
+/** Git facts plus, when known, whether the branch has an upstream (no upstream → ahead/behind unavailable). */
+export type PrecompactGitFacts = GitFacts | (Extract<GitFacts, { available: true }> & { upstream?: boolean });
+
 export interface PrecompactFacts {
   now: Date;
   /** The host's trigger, passed through unchanged; absent → "unknown". */
@@ -66,7 +72,7 @@ export interface PrecompactFacts {
   /** null when state.json could not be read. */
   loop: PrecompactLoopFacts | null;
   /** null or `{ available: false }` when git facts could not be gathered. */
-  git: GitFacts | null;
+  git: PrecompactGitFacts | null;
 }
 
 /** `<repoRoot>/.cadence/local/precompact` */
@@ -128,8 +134,8 @@ export function planPrecompactRecord(facts: PrecompactFacts): { fileName: string
       `git_branch: ${oneLine(git.branch, UNAVAILABLE)}`,
       `git_head: ${oneLine(git.head, UNAVAILABLE)}`,
       `git_dirty: ${git.dirty ? 'true' : 'false'}`,
-      `git_ahead: ${git.ahead}`,
-      `git_behind: ${git.behind}`,
+      `git_ahead: ${'upstream' in git && git.upstream === false ? UNAVAILABLE : git.ahead}`,
+      `git_behind: ${'upstream' in git && git.upstream === false ? UNAVAILABLE : git.behind}`,
     );
   } else {
     fm.push(`git: ${UNAVAILABLE}`);
@@ -187,7 +193,7 @@ export interface PrecompactFsDeps {
 
 export interface WritePrecompactDeps {
   now?: () => Date;
-  readGit?: (root: string) => Promise<GitFacts | null>;
+  readGit?: (root: string) => Promise<PrecompactGitFacts | null>;
   readLoop?: (repoRoot: string) => Promise<PrecompactLoopFacts | null>;
   fs?: PrecompactFsDeps;
 }
@@ -204,24 +210,52 @@ function errMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-/** Read the loop facts straight from state.json, read-only; null on any failure. */
+/**
+ * Read the loop facts from state.json, read-only. null on any failure,
+ * including a state.json that does not satisfy the state schema (the same
+ * file `cadence` itself would refuse to read).
+ */
 async function defaultReadLoop(repoRoot: string): Promise<PrecompactLoopFacts | null> {
   try {
-    const parsed = JSON.parse(
-      await fsReadFile(join(repoRoot, '.cadence', 'state.json'), 'utf8'),
-    ) as Record<string, unknown>;
-    const str = (v: unknown): string | null => (typeof v === 'string' ? v : null);
-    const loopPosition = str(parsed.loopPosition);
-    if (loopPosition === null) return null;
+    const parsed = CadenceStateZ.safeParse(
+      JSON.parse(await fsReadFile(join(repoRoot, '.cadence', 'state.json'), 'utf8')),
+    );
+    if (!parsed.success) return null;
+    const st = parsed.data;
     return {
-      loopPosition,
-      activePhase: str(parsed.activePhase),
-      activeDraft: str(parsed.activeDraft),
-      activeSpec: str(parsed.activeSpec),
+      loopPosition: st.loopPosition,
+      activePhase: st.activePhase,
+      activeDraft: st.activeDraft,
+      activeSpec: st.activeSpec,
     };
   } catch {
     return null;
   }
+}
+
+const pexecFile = promisify(execFile);
+
+/**
+ * Git facts for the record: `readGitFacts` (never fetches) plus two local
+ * reads it does not do: the full branch name (`readGitFacts` cuts a name at
+ * its first `.`) and whether the branch has an upstream (without one,
+ * ahead/behind are not known and the record says so). Never throws.
+ */
+async function defaultReadGit(root: string): Promise<PrecompactGitFacts | null> {
+  const facts = await readGitFacts(root);
+  if (!facts.available) return facts;
+  const git = async (args: string[]): Promise<string | null> => {
+    try {
+      const { stdout } = await pexecFile('git', args, { cwd: root, timeout: 5000, windowsHide: true });
+      const out = stdout.trim();
+      return out.length > 0 ? out : null;
+    } catch {
+      return null;
+    }
+  };
+  const branch = await git(['rev-parse', '--abbrev-ref', 'HEAD']);
+  const upstream = await git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+  return { ...facts, ...(branch !== null ? { branch } : {}), upstream: upstream !== null };
 }
 
 /**
@@ -253,9 +287,9 @@ export async function writePrecompactRecord(
     } catch {
       loop = null;
     }
-    let git: GitFacts | null = null;
+    let git: PrecompactGitFacts | null = null;
     try {
-      git = await (deps.readGit ?? ((root: string) => readGitFacts(root)))(repoRoot);
+      git = await (deps.readGit ?? defaultReadGit)(repoRoot);
     } catch {
       git = null;
     }

@@ -159,6 +159,23 @@ describe('345-01 AC-7: resume points at a newer record', () => {
     expect(ResumeResultZ.safeParse(json).success).toBe(true);
   });
 
+  it('345-01/AC-7: the freshest SESSION doc follows the end-of-date rule across docs, not string order', async () => {
+    const root = await makeRepo({ session: null });
+    const dir = join(root, '.cadence', 'handoff');
+    await writeFile(join(dir, 'SESSION-2026-11-04-a.md'), '---\ngenerated_at: 2026-11-04T09:00:00.000Z\n---\n# a\n');
+    await writeFile(join(dir, 'SESSION-2026-11-04-b.md'), '---\nlabel: b\n---\n# b, no generated_at\n');
+    await writeRecord(root, '2026-11-04T12:00:00.000Z', 'auto');
+    // -b counts as 2026-11-04T23:59:59.999Z, later than the record: no pointer.
+    expect(await findNewerPrecompactRecord(root, null)).toBeNull();
+    expect(await findNewerPrecompactRecord(root, 'SESSION-2026-11-04-a.md')).toBeNull();
+    const later = await writeRecord(root, '2026-11-05T00:00:00.000Z', 'manual');
+    expect(await findNewerPrecompactRecord(root, null)).toEqual({
+      path: later,
+      trigger: 'manual',
+      generatedAt: '2026-11-05T00:00:00.000Z',
+    });
+  });
+
   it('345-01/AC-7: a lastHandoff naming a non-SESSION file is not a SESSION doc and never suppresses the pointer', async () => {
     const root = await makeRepo({ session: null });
     const path = await writeRecord(root, '2026-11-02T00:00:00.000Z', 'auto');

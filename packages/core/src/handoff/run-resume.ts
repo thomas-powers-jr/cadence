@@ -1,6 +1,6 @@
 // packages/core/src/handoff/run-resume.ts
-import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { readFile, readdir } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import { defaultConfig, type HandoffCandidate, type ResumeResult } from '@thomas-powers-jr/cadence-types';
 import { SimpleStateBackend } from '../state/simple.js';
 import { runContext } from '../intelligence/context.js';
@@ -57,22 +57,36 @@ export function renderPrecompactPointerLine(record: PrecompactRecordPointer): st
 
 /**
  * Best-effort (phase 345, AC-7): the newest pre-compaction record when it is
- * newer than the freshest SESSION doc (as `locateFreshestHandoff` resolves it
- * for `lastHandoff`), else null. Never throws: any failure yields null.
+ * newer than the freshest SESSION doc, else null. "Freshest" uses AC-7's own
+ * rule over every `.cadence/handoff/SESSION-*.md` doc: its `generated_at`, or
+ * the end of its file-name date when it has none. Non-SESSION files (including
+ * a custom-labelled `lastHandoff`) are never SESSION docs and are ignored. A
+ * SESSION doc with no comparable instant makes the answer "not newer", so the
+ * output stays exactly as it was. Never throws: any failure yields null.
+ * `_lastHandoff` is accepted for call-site symmetry and deliberately unused.
  */
 export async function findNewerPrecompactRecord(
   root: string,
-  lastHandoff: string | null,
+  _lastHandoff: string | null,
 ): Promise<PrecompactRecordPointer | null> {
   try {
     const record = await findNewestPrecompactRecord(root);
     if (record === null) return null;
-    // AC-7 compares against SESSION docs only: a `lastHandoff` that names any
-    // other file (a custom-labelled handoff) is not a SESSION doc and is ignored.
-    const sessionPointer =
-      lastHandoff !== null && /^SESSION-.*\.md$/.test(lastHandoff) ? lastHandoff : null;
-    const located = await locateFreshestHandoff(root, sessionPointer);
-    return isPrecompactRecordNewer(record.generatedAt, located) ? record : null;
+    const recordMs = Date.parse(record.generatedAt);
+    if (Number.isNaN(recordMs)) return null;
+    const dir = join(root, '.cadence', 'handoff');
+    let names: string[] = [];
+    try {
+      names = (await readdir(dir)).filter((n) => /^SESSION-.*\.md$/.test(n));
+    } catch {
+      names = [];
+    }
+    for (const name of names) {
+      const generatedAt = readKey(await readFile(join(dir, name), 'utf8'), 'generated_at');
+      const instant = sessionDocInstant({ generatedAt, path: name });
+      if (instant === null || instant >= recordMs) return null;
+    }
+    return record;
   } catch {
     return null;
   }

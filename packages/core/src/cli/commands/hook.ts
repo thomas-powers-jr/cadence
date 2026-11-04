@@ -23,7 +23,9 @@ export function registerHookCommand(program: Command): void {
           for await (const chunk of process.stdin) raw += chunk.toString();
         }
         const dispatcher = new HookDispatcher(process.cwd());
-        const parsedRaw = raw ? safeJson(raw) : undefined;
+        // pre-compact (phase 345, AC-3): stdin that is not JSON carries no host
+        // fields at all, so it must not become a synthetic `{ raw }` payload.
+        const parsedRaw = raw ? (isPreCompact ? jsonOrUndefined(raw) : safeJson(raw)) : undefined;
         const rawObj = parsedRaw as
           | { agentId?: unknown; agentType?: unknown; compactTrigger?: unknown }
           | undefined;
@@ -52,6 +54,14 @@ export function registerHookCommand(program: Command): void {
         process.exitCode = isPreCompact ? 0 : 1;
       }
     });
+}
+
+function jsonOrUndefined(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
 }
 
 function safeJson(raw: string): unknown {

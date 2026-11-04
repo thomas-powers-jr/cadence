@@ -57,9 +57,15 @@ doc-content test keeps this list equal to it):
 
 `pre-compact` (phase 345) is hooked by the Claude Code adapter only: its
 `PreCompact` hook maps to it, and core writes a machine-facts record under the
-gitignored `.cadence/local/precompact/` (newest five kept) and always exits 0.
-The Codex adapter leaves `PreCompact` unmapped. The record's path, contents
-and limits are in the [`cadence hook` reference](reference/commands.md#hook).
+gitignored `.cadence/local/precompact/`, one file per compaction named
+`PRECOMPACT-<YYYYMMDDTHHMMSS.mmmZ>.md` (a `-N` suffix on a same-millisecond
+collision; newest five kept). Each record holds `generated_at`, the
+JSON-quoted `trigger`, the loop position, the active phase, draft and spec,
+local git facts (no fetch), and the payload's field names only, never their
+values. The hook never blocks: core always exits 0 for it, and the Claude Code
+shim clamps any failure on this event to exit 0. The Codex adapter leaves
+`PreCompact` unmapped. The full description and limits are in the
+[`cadence hook` reference](reference/commands.md#hook).
 
 Your adapter's whole job on the read path is to turn your host's lifecycle into
 these. Anything your host can't express, it simply never emits.
@@ -139,7 +145,8 @@ command catalog, `planCoreSpawn` (how the shim spawns core; on Windows it
 passes one joined command string through the shell instead of an args array,
 which is the same command line but avoids Node 24+'s DEP0190 warning on every
 hook), and `resolveHookShimExit`, the shim's pure exit-code policy. That
-policy relays core's exit code for every event except `pre-compact`, for which
+policy relays core's exit code for every event except `pre-compact` (a spawn
+failure or shim error on any other event still exits 1); for `pre-compact`
 any non-zero core exit, signal, spawn failure or shim error resolves to exit 0
 with one stderr line naming the cause. A shim that uses it cannot block a
 compaction even when it runs against an older core that rejects the event

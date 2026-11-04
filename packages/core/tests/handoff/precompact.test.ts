@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { mkdir, readFile, readdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
+import { runGit, tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import type { GitFacts } from '@thomas-powers-jr/cadence-types';
 import {
   PRECOMPACT_ADAPTER_KEYS,
@@ -107,6 +107,21 @@ describe('precompactFileStem / planPrecompactRecord (pure)', () => {
     expect(frontMatter).toContain('trigger: "auto-UNIQUE-7f3a"\n');
     expect(body).not.toContain('auto-UNIQUE-7f3a');
     expect(body).toContain('- trigger\n');
+  });
+
+  it('345-01/AC-3: with no upstream, git ahead/behind are recorded as unavailable', () => {
+    const { content } = planPrecompactRecord({
+      now: NOW,
+      trigger: 'auto',
+      payloadKeys: [],
+      loop: LOOP,
+      git: { ...GIT, upstream: false },
+    });
+    expect(content).toContain('git_branch: claude/zen-keller-cp16ug\n');
+    expect(content).toContain('git_ahead: unavailable\n');
+    expect(content).toContain('git_behind: unavailable\n');
+    const withUpstream = planPrecompactRecord({ now: NOW, payloadKeys: [], loop: LOOP, git: { ...GIT, upstream: true } });
+    expect(withUpstream.content).toContain('git_ahead: 1\n');
   });
 
   it('345-01/AC-3: a hostile trigger cannot inject front matter (JSON-quoted, one line)', () => {
@@ -253,6 +268,38 @@ describe('writePrecompactRecord (impure shell)', () => {
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.reason).toMatch(/\.cadence/);
     await expect(stat(join(f.root, '.cadence'))).rejects.toThrow();
+  });
+
+  it('345-01/AC-4: a state.json that fails the state schema is treated as unreadable (loop fields unavailable)', async () => {
+    const f = await repo();
+    await writeFile(join(f.root, '.cadence', 'state.json'), '{"loopPosition":"BUILD"}');
+    const res = await writePrecompactRecord(
+      f.root,
+      { trigger: 'auto' },
+      { now: () => NOW, readGit: async () => ({ available: false }) },
+    );
+    expect(res.ok).toBe(true);
+    const content = await readFile(
+      join(precompactDir(f.root), 'PRECOMPACT-20261102T181923.456Z.md'),
+      'utf8',
+    );
+    expect(content).toContain('loop_position: unavailable\n');
+    expect(content).toContain('active_phase: unavailable\n');
+  });
+
+  it('345-01/AC-3: real git facts keep a dotted branch name whole and mark ahead/behind unavailable without an upstream', async () => {
+    const f = await repo();
+    runGit(f.root, ['init', '-q', '-b', 'release-1.2']);
+    runGit(f.root, ['-c', 'user.email=t@example.com', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'init']);
+    const res = await writePrecompactRecord(f.root, { trigger: 'auto' }, { now: () => NOW });
+    expect(res.ok).toBe(true);
+    const content = await readFile(
+      join(precompactDir(f.root), 'PRECOMPACT-20261102T181923.456Z.md'),
+      'utf8',
+    );
+    expect(content).toContain('git_branch: release-1.2\n');
+    expect(content).toContain('git_ahead: unavailable\n');
+    expect(content).toContain('git_behind: unavailable\n');
   });
 
   it('345-01/AC-4: unreadable state still writes the record, with loop fields unavailable', async () => {

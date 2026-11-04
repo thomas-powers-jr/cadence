@@ -182,7 +182,7 @@ pre-compact` writes one machine-facts record to
 trigger, the loop position and active phase, draft and spec, local git facts,
 and the hook payload's field names (never their values). Only the newest five
 records are kept. It does not write a SESSION handoff doc or change
-`state.json`. When the newest record is newer than your last handoff, the
+`state.json`. When the newest record is newer than the freshest SESSION handoff, the
 SessionStart banner and `cadence resume` print a `Pre-compaction record:` line
 pointing at it. The full description, including the record's fields and its
 known limitations, is in the

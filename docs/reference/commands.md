@@ -635,12 +635,12 @@ Known limitations of `pre-compact`:
 - The hook resolves the project from its own working directory. A session
   whose working directory is a subdirectory with no `.cadence/` of its own
   gets no record: the hook exits 0 with one stderr line saying no `.cadence/`
-  directory exists there (the shim may also print its existing `hook cwd
-  divergence` line).
-- Stdin that is not valid JSON still produces a record, but its field list
-  shows the synthetic `raw` key rather than the host's field names. (The
-  Claude Code shim drops a non-JSON payload before it reaches core, so this
-  happens only when core is called some other way.)
+  directory exists there. (The shim never adds its `hook cwd divergence`
+  line for `pre-compact`.)
+- Stdin that is not valid JSON still produces a record; its field list reads
+  `(none)`, because no host fields arrived. (The Claude Code shim drops a
+  non-JSON payload before it reaches core, so this happens only when core is
+  called some other way.)
 - If the shim cannot read stdin at all, it fails before it knows which event
   fired and exits 1, which Claude Code treats as a non-blocking error.
 - Codex is not wired (above).
@@ -3401,7 +3401,8 @@ abstract event name, and calls `cadence hook <event>`. Not intended to be
 invoked directly by users.
 
 The shim relays core's exit code unchanged for every event except
-`pre-compact` (phase 345). For `pre-compact`, a non-zero core exit, a core
+`pre-compact` (phase 345); for other events a spawn failure or shim error
+still exits 1. For `pre-compact`, a non-zero core exit, a core
 killed by a signal, a spawn failure or a shim error all end in exit 0 with
 one stderr line naming the cause, so compaction is never blocked, including
 when a newer adapter runs against an older core that rejects the event with

@@ -10,6 +10,7 @@ import {
   CODEX_EXPECTED_HOOKS,
   resolveHookShimExit,
   planCoreSpawn,
+  cwdDivergenceNotice,
 } from '../src/routing.js';
 
 // AC-1: routeHookEvent's dispatch algorithm and the slash-command catalog
@@ -500,5 +501,26 @@ describe('planCoreSpawn (345-01/AC-6)', () => {
     expect(plan).toEqual({ command: 'node', args, shell: false });
     expect(plan.args).not.toBe(args);
     expect(planCoreSpawn('node', args, 'darwin').shell).toBe(false);
+  });
+});
+
+describe('cwdDivergenceNotice and adapter-owned compactTrigger (345-01)', () => {
+  it('345-01/AC-6: no divergence line for pre-compact; other events keep the existing line verbatim', () => {
+    expect(cwdDivergenceNotice('pre-compact', '/a', '/b')).toBe('');
+    expect(cwdDivergenceNotice('session-stop', '/a', '/b')).toBe(
+      'hook cwd divergence: payload cwd=/a, shim process cwd=/b; spawning with payload cwd\n',
+    );
+    expect(cwdDivergenceNotice('session-stop', '/a', '/a')).toBe('');
+    expect(cwdDivergenceNotice('session-stop', undefined, '/a')).toBe('');
+  });
+
+  it('345-01/AC-1: a host-sent compactTrigger never passes through; only the trigger field sets it', () => {
+    const noTrigger = routeHookEvent(JSON.stringify({ hook_event_name: 'PreCompact', compactTrigger: 'x' }));
+    expect(noTrigger.abstractEvent).toBe('pre-compact');
+    expect(JSON.parse(noTrigger.translatedStdin)).not.toHaveProperty('compactTrigger');
+    const withTrigger = routeHookEvent(
+      JSON.stringify({ hook_event_name: 'PreCompact', trigger: 'auto', compactTrigger: 'x' }),
+    );
+    expect(JSON.parse(withTrigger.translatedStdin).compactTrigger).toBe('auto');
   });
 });

@@ -196,6 +196,9 @@ export function routeHookEvent(raw: string): RouteResult {
   // 8. extract + translate the payload
   const extracted = extractPayload(parsed);
   const translated: Record<string, unknown> = { ...(parsed as Record<string, unknown>) };
+  // Phase 345 (AC-1): compactTrigger is adapter-owned; a host key of that
+  // name never passes through, so only extractPayload's value can set it.
+  delete translated.compactTrigger;
   if (extracted?.files) translated.files = extracted.files;
   if (extracted?.skill) translated.skill = extracted.skill;
   // Core's `cadence hook` reads camelCase agentId/agentType only; the
@@ -218,6 +221,20 @@ export interface HookShimExit {
   exitCode: number;
   /** Text to write to stderr as-is; `''` when there is nothing to say. */
   stderr: string;
+}
+
+/**
+ * Pure (phase 345, AC-6): the shim's `hook cwd divergence` diagnostic line, or
+ * '' when there is nothing to report. It is suppressed for `pre-compact`, whose
+ * contract is exactly one shim stderr line (and only on failure).
+ */
+export function cwdDivergenceNotice(
+  event: AbstractEvent | null,
+  payloadCwd: string | undefined,
+  shimCwd: string,
+): string {
+  if (event === 'pre-compact' || payloadCwd === undefined || payloadCwd === shimCwd) return '';
+  return `hook cwd divergence: payload cwd=${payloadCwd}, shim process cwd=${shimCwd}; spawning with payload cwd\n`;
 }
 
 /** How the shim spawns core: `{ command, args, shell }`. */
