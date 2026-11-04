@@ -67,7 +67,11 @@ export async function findNewerPrecompactRecord(
   try {
     const record = await findNewestPrecompactRecord(root);
     if (record === null) return null;
-    const located = await locateFreshestHandoff(root, lastHandoff);
+    // AC-7 compares against SESSION docs only: a `lastHandoff` that names any
+    // other file (a custom-labelled handoff) is not a SESSION doc and is ignored.
+    const sessionPointer =
+      lastHandoff !== null && /^SESSION-.*\.md$/.test(lastHandoff) ? lastHandoff : null;
+    const located = await locateFreshestHandoff(root, sessionPointer);
     return isPrecompactRecordNewer(record.generatedAt, located) ? record : null;
   } catch {
     return null;

@@ -95,6 +95,20 @@ describe('precompactFileStem / planPrecompactRecord (pure)', () => {
     expect(content).toContain('- trigger\n');
   });
 
+  it('345-01/AC-3: the trigger value appears only in the front matter, never in the body', () => {
+    const { content } = planPrecompactRecord({
+      now: NOW,
+      trigger: 'auto-UNIQUE-7f3a',
+      payloadKeys: ['trigger', 'session_id'],
+      loop: LOOP,
+      git: GIT,
+    });
+    const [, frontMatter = '', body = ''] = content.split(/^---\n/m);
+    expect(frontMatter).toContain('trigger: "auto-UNIQUE-7f3a"\n');
+    expect(body).not.toContain('auto-UNIQUE-7f3a');
+    expect(body).toContain('- trigger\n');
+  });
+
   it('345-01/AC-3: a hostile trigger cannot inject front matter (JSON-quoted, one line)', () => {
     const { content } = planPrecompactRecord({
       now: NOW,

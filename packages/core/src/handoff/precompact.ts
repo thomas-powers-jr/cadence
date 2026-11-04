@@ -144,9 +144,10 @@ export function planPrecompactRecord(facts: PrecompactFacts): { fileName: string
     '',
     `# Pre-compaction record — ${generatedAt}`,
     '',
-    `Written by \`cadence hook pre-compact\` just before the host compacted the session ` +
-      `(trigger: ${quote(trigger)}). Machine facts only: nothing here was written ` +
-      'by the agent, and no state or handoff file was changed.',
+    'Written by `cadence hook pre-compact` just before the host compacted the session. ' +
+      'Machine facts only: nothing here was written by the agent, and no state or ' +
+      'handoff file was changed. The trigger is in the front matter; the body never ' +
+      'carries a payload value.',
     '',
     '## Host payload fields (names only, never values)',
     '',

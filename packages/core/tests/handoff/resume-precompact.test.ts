@@ -17,7 +17,12 @@ import { dirname, join } from 'node:path';
 import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { defaultConfig, emptyState, ResumeResultZ } from '@thomas-powers-jr/cadence-types';
-import { runResume, isPrecompactRecordNewer, renderPrecompactPointerLine } from '../../src/handoff/run-resume.js';
+import {
+  runResume,
+  isPrecompactRecordNewer,
+  renderPrecompactPointerLine,
+  findNewerPrecompactRecord,
+} from '../../src/handoff/run-resume.js';
 import { planPrecompactRecord } from '../../src/handoff/precompact.js';
 import { bufferIO } from '../../src/services/io.js';
 
@@ -152,6 +157,26 @@ describe('345-01 AC-7: resume points at a newer record', () => {
     const json = JSON.parse((await run(['resume', '--json'], root)).stdout);
     expect(json).toEqual({ found: false, precompactRecord: { path, trigger: 'manual', generatedAt: '2020-01-01T00:00:00.000Z' } });
     expect(ResumeResultZ.safeParse(json).success).toBe(true);
+  });
+
+  it('345-01/AC-7: a lastHandoff naming a non-SESSION file is not a SESSION doc and never suppresses the pointer', async () => {
+    const root = await makeRepo({ session: null });
+    const path = await writeRecord(root, '2026-11-02T00:00:00.000Z', 'auto');
+    await writeFile(
+      join(root, '.cadence', 'handoff', 'custom-label.md'),
+      '---\ngenerated_at: 2030-01-01T00:00:00.000Z\n---\n# custom\n',
+    );
+    expect(await findNewerPrecompactRecord(root, 'custom-label.md')).toEqual({
+      path,
+      trigger: 'auto',
+      generatedAt: '2026-11-02T00:00:00.000Z',
+    });
+    // A lastHandoff that IS a SESSION doc still counts.
+    await writeFile(
+      join(root, '.cadence', 'handoff', 'SESSION-2030-01-01-later.md'),
+      '---\ngenerated_at: 2030-01-01T00:00:00.000Z\n---\n# later\n',
+    );
+    expect(await findNewerPrecompactRecord(root, 'SESSION-2030-01-01-later.md')).toBeNull();
   });
 
   it('345-01/AC-7: a SESSION doc without generated_at counts as the end of its file-name date', async () => {
