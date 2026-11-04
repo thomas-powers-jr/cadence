@@ -1,0 +1,43 @@
+{
+  "snapshotVersion": 1,
+  "savedAt": "2026-11-04T06:08:40.094Z",
+  "host": "DESKTOP-HG8IU6C",
+  "cadenceVersion": "1.73.0",
+  "state": {
+    "schemaVersion": 1,
+    "revision": 64,
+    "project": {
+      "name": "CADENCE",
+      "createdAt": "2026-11-02T18:14:38.063Z"
+    },
+    "activePhase": "345-precompact-record",
+    "activeDraft": null,
+    "activeSpec": null,
+    "loopPosition": "IDLE",
+    "tier": null,
+    "draftReadAt": "2026-11-02T18:25:19.413Z",
+    "draftReadHash": "ebc8968df003819eb8af31b2288ec555d6b429d1cf23092d8bfd224045bb152a",
+    "openDrafts": [],
+    "decisions": [],
+    "deferred": [],
+    "session": {
+      "tokenUtilization": 0,
+      "lastHandoff": "SESSION-2026-11-02-phase345-built-settle-on-pc.md",
+      "subagentSpawns": 0,
+      "subagentBaselines": {}
+    },
+    "skillAudit": {
+      "required": [
+        "phase-build"
+      ],
+      "invoked": [],
+      "provenance": [
+        {
+          "skill": "phase-build",
+          "source": "pack:cadence/core-skills"
+        }
+      ]
+    },
+    "activeTask": null
+  }
+}
