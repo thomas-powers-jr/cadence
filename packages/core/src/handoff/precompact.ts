@@ -7,7 +7,7 @@
 // Pure core: `precompactFileStem`, `planPrecompactRecord`, `payloadFieldNames`,
 // `selectPrunablePrecompact`. Impure shell: `writePrecompactRecord`,
 // `findNewestPrecompactRecord`. Both shells are best-effort and never throw.
-import { existsSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import {
   mkdir as fsMkdir,
   readFile as fsReadFile,
@@ -269,7 +269,13 @@ export async function writePrecompactRecord(
   deps: WritePrecompactDeps = {},
 ): Promise<WritePrecompactResult> {
   try {
-    if (!existsSync(join(repoRoot, '.cadence'))) {
+    let isCadenceDir = false;
+    try {
+      isCadenceDir = statSync(join(repoRoot, '.cadence')).isDirectory();
+    } catch {
+      isCadenceDir = false;
+    }
+    if (!isCadenceDir) {
       return { ok: false, reason: `no .cadence/ directory at ${repoRoot}; nothing was written` };
     }
     const fs = deps.fs ?? {};
@@ -332,6 +338,13 @@ export async function writePrecompactRecord(
         written = name;
       } catch (err) {
         if ((err as { code?: unknown }).code !== 'EEXIST') {
+          // `wx` created this file before the write failed, so it is ours: remove
+          // the partial record rather than leave it counted as the newest one.
+          try {
+            await unlink(join(dir, name));
+          } catch {
+            /* best-effort */
+          }
           return { ok: false, reason: `cannot write ${relativeRecordPath(name)}: ${errMessage(err)}` };
         }
         try {

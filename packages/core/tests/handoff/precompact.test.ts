@@ -488,6 +488,35 @@ describe('writePrecompactRecord (impure shell)', () => {
     if (!res.ok) expect(res.reason).toMatch(/ENOSPC/);
   });
 
+  it('345-01/AC-3: a write that fails after creating the file leaves no partial record behind', async () => {
+    const f = await repo();
+    const res = await writePrecompactRecord(
+      f.root,
+      { trigger: 'auto' },
+      {
+        now: () => NOW,
+        readGit: async () => ({ available: false }),
+        fs: {
+          writeFileExclusive: async (p: string) => {
+            await writeFile(p, '---\npartial', { flag: 'wx' });
+            throw Object.assign(new Error('EIO: i/o error, write'), { code: 'EIO' });
+          },
+        },
+      },
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/EIO/);
+    expect(await readdir(precompactDir(f.root))).toEqual([]);
+  });
+
+  it('345-01/AC-4: a .cadence that is a file, not a directory, is reported as no .cadence/ directory', async () => {
+    const f = await repo(false);
+    await writeFile(join(f.root, '.cadence'), 'not a directory');
+    const res = await writePrecompactRecord(f.root, { trigger: 'auto' }, { now: () => NOW });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toMatch(/no \.cadence\/ directory/);
+  });
+
   it('345-01/AC-5: a prune failure does not fail the write', async () => {
     const f = await repo();
     const dir = precompactDir(f.root);

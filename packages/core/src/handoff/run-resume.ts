@@ -85,7 +85,10 @@ export async function findNewerPrecompactRecord(
       names = [];
     }
     for (const name of names) {
-      const generatedAt = readKey(await readFile(join(dir, name), 'utf8'), 'generated_at');
+      // generated_at counts only from the doc's front matter, never its body.
+      const content = (await readFile(join(dir, name), 'utf8')).replace(/\r\n/g, '\n');
+      const frontMatter = content.match(/^---\n([\s\S]*?)\n---(?:\n|$)/)?.[1] ?? '';
+      const generatedAt = readKey(frontMatter, 'generated_at');
       const instant = sessionDocInstant({ generatedAt, path: name });
       if (instant === null || instant >= recordMs) return null;
     }

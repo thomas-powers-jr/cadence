@@ -175,6 +175,21 @@ describe('345-01 AC-7: resume points at a newer record', () => {
     expect(await findNewerPrecompactRecord(root, null)).toBeNull();
   });
 
+  it('345-01/AC-7: generated_at counts only from a SESSION doc\'s front matter, never its body', async () => {
+    const root = await makeRepo({ session: null });
+    await writeFile(
+      join(root, '.cadence', 'handoff', 'SESSION-2026-11-01-quoted.md'),
+      '---\nlabel: quoted\n---\n# body quotes a record\n\ngenerated_at: 2099-01-01T00:00:00.000Z\n',
+    );
+    const path = await writeRecord(root, '2026-11-02T00:00:00.000Z', 'auto');
+    // The doc counts as the end of 2026-11-01, so the 11-02 record is newer.
+    expect(await findNewerPrecompactRecord(root, null)).toEqual({
+      path,
+      trigger: 'auto',
+      generatedAt: '2026-11-02T00:00:00.000Z',
+    });
+  });
+
   it('345-01/AC-7: the freshest SESSION doc follows the end-of-date rule across docs, not string order', async () => {
     const root = await makeRepo({ session: null });
     const dir = join(root, '.cadence', 'handoff');
