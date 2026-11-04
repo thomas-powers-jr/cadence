@@ -1934,3 +1934,19 @@ Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can 
 - next: cadence milestone propose
 
 Phase 345 wired PreCompact to the record-only pre-compact event for Claude Code only. packages/host-codex/src/event-map.ts still leaves PreCompact unmapped on purpose, and CODEX_EXPECTED_HOOKS has no PreCompact entry, because no Codex PreCompact payload has ever been captured (its trigger field, its blocking semantics and its exit-code behaviour are unknown). Ask: capture one Codex PreCompact payload (manual and, if possible, auto), then map PreCompact -> pre-compact in host-codex with compactTrigger forwarded, add it to CODEX_EXPECTED_HOOKS and core's doctor copy, and give the Codex shim the same pre-compact exit clamp (host-toolkit resolveHookShimExit). Core needs no change: the pre-compact handler is host-agnostic.
+
+## rec-20261104-001 — Claude Code shim: stop the Node >= 23 DEP0190 warning on every hook (shell:true + args on win32)
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: host-adapters, hooks, windows
+- files: packages/host-claude-code/src/cli.ts
+- evidence: Operator PC, Node v24.20.0, Git Bash: host-claude-code tests/shim.test.ts AC-6 cases received '(node:51152) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' before the stub core's line.
+- next: cadence milestone propose
+
+packages/host-claude-code/src/cli.ts spawns core with shell: process.platform === 'win32' and an argument array. Node 23+ (seen on the operator's v24.20.0) prints '(node:N) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' plus a '(Use node --trace-deprecation ...)' line to stderr on every hook run on Windows, so every hook's stderr carries two lines of noise and phase 345's 'one stderr line' for pre-compact does not hold literally on Node >= 23 Windows. CI runs Node 22 and never sees it. Found when two 345-01 AC-6 shim tests compared stderr exactly; the tests now strip Node runtime warning lines. Ask: spawn without the deprecated shape on win32 (e.g. a single pre-quoted command string with shell:true, or resolve npx/cmd shims and spawn without a shell), keep the --cadence command semantics, and add a Windows test that asserts no DEP0190 line. Consider a Node 24 leg in CI.

@@ -3490,6 +3490,35 @@
       "decisionIds": [],
       "createdAt": "2026-11-02T19:13:27.685Z",
       "updatedAt": "2026-11-02T19:13:27.685Z"
+    },
+    {
+      "id": "rec-20261104-001",
+      "title": "Claude Code shim: stop the Node >= 23 DEP0190 warning on every hook (shell:true + args on win32)",
+      "summary": "packages/host-claude-code/src/cli.ts spawns core with shell: process.platform === 'win32' and an argument array. Node 23+ (seen on the operator's v24.20.0) prints '(node:N) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' plus a '(Use node --trace-deprecation ...)' line to stderr on every hook run on Windows, so every hook's stderr carries two lines of noise and phase 345's 'one stderr line' for pre-compact does not hold literally on Node >= 23 Windows. CI runs Node 22 and never sees it. Found when two 345-01 AC-6 shim tests compared stderr exactly; the tests now strip Node runtime warning lines. Ask: spawn without the deprecated shape on win32 (e.g. a single pre-quoted command string with shell:true, or resolve npx/cmd shims and spawn without a shell), keep the --cadence command semantics, and add a Windows test that asserts no DEP0190 line. Consider a Node 24 leg in CI.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "host-adapters",
+        "hooks",
+        "windows"
+      ],
+      "affectedFiles": [
+        "packages/host-claude-code/src/cli.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261104-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-04T00:10:56.648Z",
+      "updatedAt": "2026-11-04T00:10:56.648Z"
     }
   ],
   "archived": [

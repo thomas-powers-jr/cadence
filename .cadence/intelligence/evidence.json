@@ -3323,6 +3323,13 @@
       "kind": "note",
       "summary": "Phase 345 (345-01) Boundaries: Codex keeps PreCompact unmapped; host-codex/tests/event-map.test.ts pins mapEvent('PreCompact') === null.",
       "createdAt": "2026-11-02T19:13:27.685Z"
+    },
+    {
+      "id": "ev-20261104-001",
+      "recommendationId": "rec-20261104-001",
+      "kind": "note",
+      "summary": "Operator PC, Node v24.20.0, Git Bash: host-claude-code tests/shim.test.ts AC-6 cases received '(node:51152) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' before the stub core's line.",
+      "createdAt": "2026-11-04T00:10:56.648Z"
     }
   ]
 }
