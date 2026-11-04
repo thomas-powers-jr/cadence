@@ -75,10 +75,13 @@ export async function findNewerPrecompactRecord(
     const recordMs = Date.parse(record.generatedAt);
     if (Number.isNaN(recordMs)) return null;
     const dir = join(root, '.cadence', 'handoff');
-    let names: string[] = [];
+    // A missing handoff directory means no SESSION doc exists (the record is
+    // newer); any other read failure is a lookup failure and contributes nothing.
+    let names: string[];
     try {
       names = (await readdir(dir)).filter((n) => /^SESSION-.*\.md$/.test(n));
-    } catch {
+    } catch (err) {
+      if ((err as { code?: unknown }).code !== 'ENOENT') return null;
       names = [];
     }
     for (const name of names) {

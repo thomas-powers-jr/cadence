@@ -159,6 +159,22 @@ describe('345-01 AC-7: resume points at a newer record', () => {
     expect(ResumeResultZ.safeParse(json).success).toBe(true);
   });
 
+  it('345-01/AC-7: an unreadable handoff directory is a lookup failure (no pointer); a missing one means no SESSION doc', async () => {
+    const root = await makeRepo({ session: null });
+    const path = await writeRecord(root, '2026-11-02T00:00:00.000Z', 'auto');
+    const dir = join(root, '.cadence', 'handoff');
+    await rm(dir, { recursive: true, force: true });
+    // Missing directory: no SESSION doc exists, so the record is newer.
+    expect(await findNewerPrecompactRecord(root, null)).toEqual({
+      path,
+      trigger: 'auto',
+      generatedAt: '2026-11-02T00:00:00.000Z',
+    });
+    // A file where the directory should be: readdir fails with ENOTDIR, a lookup failure.
+    await writeFile(dir, 'not a directory');
+    expect(await findNewerPrecompactRecord(root, null)).toBeNull();
+  });
+
   it('345-01/AC-7: the freshest SESSION doc follows the end-of-date rule across docs, not string order', async () => {
     const root = await makeRepo({ session: null });
     const dir = join(root, '.cadence', 'handoff');
