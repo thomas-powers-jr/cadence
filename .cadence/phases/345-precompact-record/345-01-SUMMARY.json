@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 2,
+  "draftId": "345-01",
+  "completedAt": "2026-11-04T03:04:42.224Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-8",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli"
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "types: pre-compact in AbstractEventZ, optional compactTrigger on HookContextZ/ExtractedPayload; dispatcher stub keeps core building. Red first (2 failed; the non-string case also fails pre-change since z.object strips unknown keys), then types 9/9; repo typecheck+lint 18/18, host pkgs tests 10/10, core tests/hooks 91/91 re-run in main thread. Independent review: no Critical/Important; M2 fixed (event-list test pins all nine against AbstractEventZ.options); M1 (stub after prologue) is T4's job."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "PreCompact -> pre-compact in host-toolkit routing with compactTrigger forwarded (step 8); PreCompact in both CLAUDE_CODE_EXPECTED_HOOKS copies; capabilities.hooks lists pre-compact (not blocking); shim clamps every pre-compact failure path to exit 0 via pure host-toolkit resolveHookShimExit (deviation: cli.ts runs only as a subprocess and host-claude-code branch coverage had zero headroom). Red first (toolkit 6, claude-code 13, doctor 2 failed). Re-run in main thread with --force: toolkit/claude-code/codex test+typecheck+lint 15/15; core tests/doctor 280/280. Independent review: no Critical/Important; Minor 1 fixed (signal-killed core on pre-compact now reported in one stderr line), Minors 2-3 (stdin-read failure precedes routing; docs mention of the helper) go to T6 docs."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "precompact.ts: pure planPrecompactRecord/payloadFieldNames/selectPrunablePrecompact + best-effort writePrecompactRecord (refuses without .cadence/, wx + -N suffix, silent prune of newest-5, never throws) and findNewestPrecompactRecord. Red first (module missing), then 16/16. Independent review: no Critical; I1 (suffix order: '-' < '.') fixed with a stem+numeric-suffix comparator, I2 (snapshot lacked SESSION/ledger files) fixed by seeding both; minors fixed: CRLF read, U+2028/2029 escaped, stdout captured in prune-silence test, non-EEXIST write failure tested. 19/19, typecheck+lint clean, re-run in main thread. Hook-level AC-4 and banner/resume AC-7 tests belong to T4/T5."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "hook.ts copies a string compactTrigger into ctx and its outer catch exits 0 (one flattened line) for pre-compact; dispatcher routes pre-compact to handlePreCompact before the readState/loadConfig prologue (other events via dispatchWithState, unchanged); handlePreCompact writes one stderr line and returns ok:true; renderHookResult('pre-compact') is always exit 0, empty stdout. Red first (11 failed), then green. Re-run in main thread: full core 514 files / 5298 tests, typecheck+lint clean. Independent review: no Critical/Important, probed every AC-4 path in scratch repos (exit 0, 0 stdout bytes, 1 stderr line); M2 (multi-line catch message) and M3 (mislabelled test) fixed, re-run tests/hooks+tests/cli 1251/1251; M1 (non-JSON stdin lists a synthetic 'raw' field) and the subdirectory-cwd note go to T6 docs."
+    },
+    {
+      "id": "T5",
+      "status": "DONE",
+      "notes": "Banner + resume pointer: pure isPrecompactRecordNewer (strict >, no SESSION doc -> newer, undated doc -> end of its file-name date) and renderPrecompactPointerLine in run-resume.ts; ResumeResultZ gains optional precompactRecord on both branches; resume prints the line before the narrative or after 'no handoff found'; --list/--pick skip the lookup; session-start banner appends one line. Before-fixtures captured from pre-change dist; byte-identity tests green on old and new code. Red first (core 9 failed, types 2 failed). Re-run in main thread: core 516 files / 5314 tests, types 392, repo typecheck+lint 18/18. Independent review: no Critical/Important; minors noted, not changed: M1 pointer compares against the local freshest doc even when --path serves a sibling's, M2 locate's string ranking vs end-of-day rule for same-day undated docs, M3 pointer after the declined autoList menu (beyond AC-7, consistent with JSON), M4 unparseable generated_at falls back to the file-name date, M5 redundant try/catch."
+    },
+    {
+      "id": "T6",
+      "status": "DONE",
+      "notes": "Docs: commands.md hook-events marker list (all 9 AbstractEventZ options, outside the commands block) + pre-compact section + limitations + resume pointer; claude-code.md event table (adds stale SubagentStart row + PreCompact), counts derived from CLAUDE_CODE_EXPECTED_HOOKS, capabilities table corrected; host-adapters.md event list, ExtractedPayload fields, host-toolkit exports incl. resolveHookShimExit; concepts.md .cadence/local/ row only. hook-events.test.ts (5 tests, 345-01/AC-8) red first 5/5, then green; core tests/docs 64 files / 412 tests. Changeset minor (core, types, host-claude-code, host-toolkit; fixed group bumps the rest) with both upgrade notes. ROADMAP/MILESTONES entries in final form; orchestrator filed rec-20261102-001 (Codex follow-up) and named it in ROADMAP. Full pipeline re-run in main thread with --force: 28/28. Per-task review folded into the whole-branch review (docs re-read last)."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "Routing maps PreCompact, forwards only string triggers, core copies compactTrigger, schemas include it, and linked routing/shim/type tests exercise this.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Both expected-hook lists add unmatched PreCompact; install, capability, drift, and doctor missing-hook behavior are covered by linked tests.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Writer creates collision-safe records only under existing .cadence, records required facts/field names, and linked tests verify isolation and content.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Pre-compact bypasses shared state/config reads, always renders exit 0 with empty stdout, reports one line, and linked tests cover key failures.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Retention filters only PRECOMPACT records, keeps newest five, silently ignores prune failures, and linked tests verify pruning and untouched other files.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Shim exit policy clamps all pre-compact failures to 0 with a cause line while preserving other events; linked shim/routing tests exercise it.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Newest-record comparison, banner/resume pointer placement, JSON schema fields, unchanged list/pick paths, and failure fallback are implemented and tested.",
+      "provider": "host-cli"
+    },
+    "AC-8": {
+      "pass": true,
+      "reason": "Required docs, hook-event parity test, concepts row, and changeset upgrade notes are present; linked doc test validates event-list parity and documentation.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 179862,
+    "truncated": false,
+    "filesCount": 38,
+    "provider": "host-cli"
+  },
+  "codeReview": {
+    "packages/core/src/handoff/run-resume.ts": [
+      {
+        "severity": "medium",
+        "message": "`--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.",
+        "line": 332,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-7",
+          "tier": "executable"
+        },
+        "id": "f1b9f40179b1ca029470a55bb05fd5de405930e1e5117c2cfba8e5a0f65f6372",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ],
+    "packages/core/src/handoff/precompact.ts": [
+      {
+        "severity": "medium",
+        "message": "Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.",
+        "line": 245,
+        "anchor": {
+          "kind": "ac",
+          "ref": "AC-3",
+          "tier": "executable"
+        },
+        "id": "6fb7b629db43bc0702cf89325ed856638cb26bc6dbea0e670475f24b424471cf",
+        "target": "artifact",
+        "disposition": "open"
+      }
+    ]
+  },
+  "gateBypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build",
+      "severity": "warn"
+    }
+  ],
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 63,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 8,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6"
+  }
+}

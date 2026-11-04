@@ -3330,6 +3330,22 @@
       "kind": "note",
       "summary": "Operator PC, Node v24.20.0, Git Bash: host-claude-code tests/shim.test.ts AC-6 cases received '(node:51152) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' before the stub core's line.",
       "createdAt": "2026-11-04T00:10:56.648Z"
+    },
+    {
+      "id": "ev-20261104-002",
+      "recommendationId": "rec-20261104-002",
+      "kind": "cadence-artifact",
+      "summary": "phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.",
+      "path": ".cadence/phases/345-precompact-record/345-01-SUMMARY.json",
+      "createdAt": "2026-11-04T03:04:42.247Z"
+    },
+    {
+      "id": "ev-20261104-003",
+      "recommendationId": "rec-20261104-003",
+      "kind": "cadence-artifact",
+      "summary": "phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.",
+      "path": ".cadence/phases/345-precompact-record/345-01-SUMMARY.json",
+      "createdAt": "2026-11-04T03:04:42.276Z"
     }
   ]
 }

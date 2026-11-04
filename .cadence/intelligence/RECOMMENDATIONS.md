@@ -1885,23 +1885,6 @@ Phase 343 ships verification.fallback with an absent default meaning mock, so no
 
 Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.
 
-## rec-20261101-001 — Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)
-
-- status: converted
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: hooks, checkpoint, handoff, host-adapters
-- files: packages/host-toolkit/src/routing.ts, packages/host-codex/src/event-map.ts, packages/core/src/hooks/handlers.ts, packages/checkpoint/src/session-start.ts
-- evidence: routing.ts:36-42 installs SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStop only; phase-0 §M3 observed order PreCompact -> SessionStart(compact) -> PostCompact with payload { session_id, transcript_path, cwd, trigger, custom_instructions, ... }
-- evidence: Sibling: rec-20261101-002 (block an auto PreCompact until a fresh handoff exists, needs-evidence). Split on purpose: this record-only half needs nothing from the untested auto-PreCompact blocking question, so it is not held behind that rec's evidence.
-- next: cadence milestone propose
-
-Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.
-
 ## rec-20261101-002 — Checkpoint gate on auto-compaction: block an auto PreCompact until a fresh handoff exists
 
 - status: candidate
@@ -1935,18 +1918,34 @@ Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can 
 
 Phase 345 wired PreCompact to the record-only pre-compact event for Claude Code only. packages/host-codex/src/event-map.ts still leaves PreCompact unmapped on purpose, and CODEX_EXPECTED_HOOKS has no PreCompact entry, because no Codex PreCompact payload has ever been captured (its trigger field, its blocking semantics and its exit-code behaviour are unknown). Ask: capture one Codex PreCompact payload (manual and, if possible, auto), then map PreCompact -> pre-compact in host-codex with compactTrigger forwarded, add it to CODEX_EXPECTED_HOOKS and core's doctor copy, and give the Codex shim the same pre-compact exit clamp (host-toolkit resolveHookShimExit). Core needs no change: the pre-compact handler is host-agnostic.
 
-## rec-20261104-001 — Claude Code shim: stop the Node >= 23 DEP0190 warning on every hook (shell:true + args on win32)
+## rec-20261104-002 — Code-review finding (medium): `--path` may select a sibling handoff, but this still attaches a record from th…
 
 - status: candidate
-- ready: ready-for-cadence-spec
+- ready: needs-decision
 - priority: medium
 - leverage: 5/10
 - risk: 5/10
 - confidence: 70%
 - decay: fresh
-- areas: host-adapters, hooks, windows
-- files: packages/host-claude-code/src/cli.ts
-- evidence: Operator PC, Node v24.20.0, Git Bash: host-claude-code tests/shim.test.ts AC-6 cases received '(node:51152) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' before the stub core's line.
+- areas: packages/core
+- files: packages/core/src/handoff/run-resume.ts
+- evidence: phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.
 - next: cadence milestone propose
 
-packages/host-claude-code/src/cli.ts spawns core with shell: process.platform === 'win32' and an argument array. Node 23+ (seen on the operator's v24.20.0) prints '(node:N) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' plus a '(Use node --trace-deprecation ...)' line to stderr on every hook run on Windows, so every hook's stderr carries two lines of noise and phase 345's 'one stderr line' for pre-compact does not hold literally on Node >= 23 Windows. CI runs Node 22 and never sees it. Found when two 345-01 AC-6 shim tests compared stderr exactly; the tests now strip Node runtime warning lines. Ask: spawn without the deprecated shape on win32 (e.g. a single pre-quoted command string with shell:true, or resolve npx/cmd shims and spawn without a shell), keep the --cadence command semantics, and add a Windows test that asserts no DEP0190 line. Consider a Node 24 leg in CI.
+medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.
+
+## rec-20261104-003 — Code-review finding (medium): Git collection can run seven serial 5s calls before writing. A slow repo can ho…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/core
+- files: packages/core/src/handoff/precompact.ts
+- evidence: phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
+- next: cadence milestone propose
+
+medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.

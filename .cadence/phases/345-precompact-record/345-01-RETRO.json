@@ -1,0 +1,45 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {
+    "codeReview": {
+      "packages/core/src/handoff/run-resume.ts": [
+        {
+          "severity": "medium",
+          "message": "`--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.",
+          "line": 332,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-7",
+            "tier": "executable"
+          },
+          "id": "f1b9f40179b1ca029470a55bb05fd5de405930e1e5117c2cfba8e5a0f65f6372",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ],
+      "packages/core/src/handoff/precompact.ts": [
+        {
+          "severity": "medium",
+          "message": "Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.",
+          "line": 245,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-3",
+            "tier": "executable"
+          },
+          "id": "6fb7b629db43bc0702cf89325ed856638cb26bc6dbea0e670475f24b424471cf",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ]
+    }
+  }
+}
