@@ -3395,40 +3395,6 @@
       "updatedAt": "2026-10-30T20:39:54.454Z"
     },
     {
-      "id": "rec-20261101-001",
-      "title": "Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)",
-      "summary": "Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "hooks",
-        "checkpoint",
-        "handoff",
-        "host-adapters"
-      ],
-      "affectedFiles": [
-        "packages/host-toolkit/src/routing.ts",
-        "packages/host-codex/src/event-map.ts",
-        "packages/core/src/hooks/handlers.ts",
-        "packages/checkpoint/src/session-start.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261101-001",
-        "ev-20261101-003"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "createdAt": "2026-11-01T01:31:35.148Z",
-      "updatedAt": "2026-11-01T01:31:41.715Z"
-    },
-    {
       "id": "rec-20261101-002",
       "title": "Checkpoint gate on auto-compaction: block an auto PreCompact until a fresh handoff exists",
       "summary": "Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can lose the race to auto-compaction; a PreCompact gate would close it by blocking an auto-triggered compaction until a fresh handoff exists, sharing the Stop gate's ceiling and force-release semantics (including the sticky lastForcedAt from dec-20261022-002) so it can never wedge a session. A checkpoint Phase 4 change, not a Phase 3 fix. Evidence needed first: an auto-triggered PreCompact has never been observed (gap M10, docs/checkpoint/REPORT-checkpoint-phase-0.md), so it is unknown whether blocking one works or what its payload holds; phase 0.4a's exit-code-2 block of a manual /compact did not hold (likely the same exit-code collapse that hit Stop), and JSON-decision blocking for PreCompact was never tested. Reopen with the operator's live Stop-gate capture: let one session run into auto-compaction and record the event order, the trigger value, whether a handoff existed, and whether a JSON block holds.",
@@ -3458,6 +3424,95 @@
       "decisionIds": [],
       "createdAt": "2026-11-01T01:31:35.895Z",
       "updatedAt": "2026-11-01T01:31:42.190Z"
+    },
+    {
+      "id": "rec-20261102-001",
+      "title": "Codex PreCompact: map it to pre-compact once a Codex PreCompact payload has been captured",
+      "summary": "Phase 345 wired PreCompact to the record-only pre-compact event for Claude Code only. packages/host-codex/src/event-map.ts still leaves PreCompact unmapped on purpose, and CODEX_EXPECTED_HOOKS has no PreCompact entry, because no Codex PreCompact payload has ever been captured (its trigger field, its blocking semantics and its exit-code behaviour are unknown). Ask: capture one Codex PreCompact payload (manual and, if possible, auto), then map PreCompact -> pre-compact in host-codex with compactTrigger forwarded, add it to CODEX_EXPECTED_HOOKS and core's doctor copy, and give the Codex shim the same pre-compact exit clamp (host-toolkit resolveHookShimExit). Core needs no change: the pre-compact handler is host-agnostic.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-evidence",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "host-adapters",
+        "hooks",
+        "codex"
+      ],
+      "affectedFiles": [
+        "packages/host-codex/src/event-map.ts",
+        "packages/host-toolkit/src/routing.ts",
+        "packages/core/src/doctor/host-hooks.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261102-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-02T19:13:27.685Z",
+      "updatedAt": "2026-11-02T19:13:27.685Z"
+    },
+    {
+      "id": "rec-20261104-002",
+      "title": "Code-review finding (medium): `--path` may select a sibling handoff, but this still attaches a record from th…",
+      "summary": "medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.",
+      "source": "review",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packages/core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/handoff/run-resume.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261104-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261104-0304",
+      "sourceFindingId": "f1b9f40179b1ca029470a55bb05fd5de405930e1e5117c2cfba8e5a0f65f6372",
+      "createdAt": "2026-11-04T03:04:42.247Z",
+      "updatedAt": "2026-11-04T03:04:42.247Z"
+    },
+    {
+      "id": "rec-20261104-003",
+      "title": "Code-review finding (medium): Git collection can run seven serial 5s calls before writing. A slow repo can ho…",
+      "summary": "medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.",
+      "source": "review",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packages/core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/handoff/precompact.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261104-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261104-0304",
+      "sourceFindingId": "6fb7b629db43bc0702cf89325ed856638cb26bc6dbea0e670475f24b424471cf",
+      "createdAt": "2026-11-04T03:04:42.276Z",
+      "updatedAt": "2026-11-04T03:04:42.276Z"
     }
   ],
   "archived": [
@@ -12416,11 +12471,81 @@
         "dec-20261030-061",
         "dec-20261030-062"
       ],
-      "scoutId": "scout-20261030-studio-intake",
-      "createdAt": "2026-10-30T19:28:24.745Z",
-      "updatedAt": "2026-11-02T17:12:05.801Z",
       "shippedRef": "phase 343 (#597)",
+      "scoutId": "scout-20261030-studio-intake",
       "archivedAt": "2026-11-02T17:12:05.801Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-30T19:28:24.745Z",
+      "updatedAt": "2026-11-02T17:12:05.801Z"
+    },
+    {
+      "id": "rec-20261101-001",
+      "title": "Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)",
+      "summary": "Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "hooks",
+        "checkpoint",
+        "handoff",
+        "host-adapters"
+      ],
+      "affectedFiles": [
+        "packages/host-toolkit/src/routing.ts",
+        "packages/host-codex/src/event-map.ts",
+        "packages/core/src/hooks/handlers.ts",
+        "packages/checkpoint/src/session-start.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261101-001",
+        "ev-20261101-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "convertedToPhaseId": "345-precompact-record",
+      "shippedRef": "phase 345 (#598)",
+      "archivedAt": "2026-11-04T05:35:03.121Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-01T01:31:35.148Z",
+      "updatedAt": "2026-11-04T05:35:03.121Z"
+    },
+    {
+      "id": "rec-20261104-001",
+      "title": "Claude Code shim: stop the Node >= 23 DEP0190 warning on every hook (shell:true + args on win32)",
+      "summary": "packages/host-claude-code/src/cli.ts spawns core with shell: process.platform === 'win32' and an argument array. Node 23+ (seen on the operator's v24.20.0) prints '(node:N) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true ...' plus a '(Use node --trace-deprecation ...)' line to stderr on every hook run on Windows, so every hook's stderr carries two lines of noise and phase 345's 'one stderr line' for pre-compact does not hold literally on Node >= 23 Windows. CI runs Node 22 and never sees it. Found when two 345-01 AC-6 shim tests compared stderr exactly; the tests now strip Node runtime warning lines. Ask: spawn without the deprecated shape on win32 (e.g. a single pre-quoted command string with shell:true, or resolve npx/cmd shims and spawn without a shell), keep the --cadence command semantics, and add a Windows test that asserts no DEP0190 line. Consider a Node 24 leg in CI.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "host-adapters",
+        "hooks",
+        "windows"
+      ],
+      "affectedFiles": [
+        "packages/host-claude-code/src/cli.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261104-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-04T00:10:56.648Z",
+      "updatedAt": "2026-11-04T05:35:03.593Z",
+      "shippedRef": "phase 345 (#598)",
+      "archivedAt": "2026-11-04T05:35:03.593Z",
       "archiveReason": "shipped"
     }
   ]

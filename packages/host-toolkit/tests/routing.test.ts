@@ -6,6 +6,11 @@ import {
   routeHookEvent,
   EDIT_TOOL_MATCHER,
   COMMANDS,
+  CLAUDE_CODE_EXPECTED_HOOKS,
+  CODEX_EXPECTED_HOOKS,
+  resolveHookShimExit,
+  planCoreSpawn,
+  cwdDivergenceNotice,
 } from '../src/routing.js';
 
 // AC-1: routeHookEvent's dispatch algorithm and the slash-command catalog
@@ -52,8 +57,12 @@ describe('mapEvent (AC-1)', () => {
 
   it('returns null for non-relevant events', () => {
     expect(mapEvent('Notification')).toBeNull();
-    expect(mapEvent('PreCompact')).toBeNull();
+    expect(mapEvent('PostCompact')).toBeNull();
     expect(mapEvent('NopeNope')).toBeNull();
+  });
+
+  it('345-01/AC-1: maps PreCompact → pre-compact', () => {
+    expect(mapEvent('PreCompact')).toBe('pre-compact');
   });
 });
 
@@ -358,5 +367,160 @@ describe('COMMANDS slash-command catalog (AC-1)', () => {
     const commandNames = COMMANDS.map((c) => c.name).sort();
     const guidanceKeys = Object.keys(COMMAND_GUIDANCE).sort();
     expect(commandNames).toEqual(guidanceKeys);
+  });
+});
+
+describe('PreCompact trigger forwarding (345-01/AC-1)', () => {
+  it('345-01/AC-1: extractPayload returns compactTrigger for a string PreCompact trigger', () => {
+    expect(extractPayload({ hook_event_name: 'PreCompact', trigger: 'auto' })).toEqual({
+      compactTrigger: 'auto',
+    });
+    expect(extractPayload({ hook_event_name: 'PreCompact', trigger: 'manual' })).toEqual({
+      compactTrigger: 'manual',
+    });
+  });
+
+  it('345-01/AC-1: extractPayload yields no compactTrigger for a missing or non-string trigger', () => {
+    expect(extractPayload({ hook_event_name: 'PreCompact' })).toBeUndefined();
+    expect(extractPayload({ hook_event_name: 'PreCompact', trigger: 7 })).toBeUndefined();
+    expect(extractPayload({ hook_event_name: 'PreCompact', trigger: null })).toBeUndefined();
+  });
+
+  it('345-01/AC-1: extractPayload ignores a trigger field on any other event', () => {
+    expect(extractPayload({ hook_event_name: 'SessionStart', trigger: 'auto' })).toBeUndefined();
+  });
+
+  it('345-01/AC-1: routeHookEvent translates PreCompact to pre-compact with compactTrigger in stdin', () => {
+    const raw = JSON.stringify({
+      hook_event_name: 'PreCompact',
+      trigger: 'auto',
+      session_id: 's1',
+      custom_instructions: '',
+    });
+    const r = routeHookEvent(raw);
+    expect(r.abstractEvent).toBe('pre-compact');
+    const parsed = JSON.parse(r.translatedStdin);
+    expect(parsed.compactTrigger).toBe('auto');
+    expect(parsed.trigger).toBe('auto');
+    expect(parsed.session_id).toBe('s1');
+  });
+
+  it('345-01/AC-1: an unrecognised string trigger passes through unchanged', () => {
+    const raw = JSON.stringify({ hook_event_name: 'PreCompact', trigger: 'some-future-kind' });
+    const parsed = JSON.parse(routeHookEvent(raw).translatedStdin);
+    expect(parsed.compactTrigger).toBe('some-future-kind');
+  });
+
+  it('345-01/AC-1: a missing or non-string trigger yields no compactTrigger key', () => {
+    const noTrigger = JSON.parse(
+      routeHookEvent(JSON.stringify({ hook_event_name: 'PreCompact' })).translatedStdin,
+    );
+    expect(routeHookEvent(JSON.stringify({ hook_event_name: 'PreCompact' })).abstractEvent).toBe(
+      'pre-compact',
+    );
+    expect('compactTrigger' in noTrigger).toBe(false);
+    const numeric = JSON.parse(
+      routeHookEvent(JSON.stringify({ hook_event_name: 'PreCompact', trigger: 3 })).translatedStdin,
+    );
+    expect('compactTrigger' in numeric).toBe(false);
+  });
+
+  it('345-01/AC-2: CLAUDE_CODE_EXPECTED_HOOKS lists an unmatched PreCompact entry; Codex list does not', () => {
+    expect(CLAUDE_CODE_EXPECTED_HOOKS).toContainEqual({ event: 'PreCompact', matcher: null });
+    expect(CODEX_EXPECTED_HOOKS.some((h) => h.event === 'PreCompact')).toBe(false);
+  });
+});
+
+describe('resolveHookShimExit (345-01/AC-6)', () => {
+  it('345-01/AC-6: a core killed by a signal (null code) on pre-compact exits 0 and reports it in one line', () => {
+    const r = resolveHookShimExit('pre-compact', { kind: 'exit', code: null });
+    expect(r.exitCode).toBe(0);
+    expect(r.stderr).toMatch(/signal/);
+    expect(r.stderr.split('\n').filter((l) => l.length > 0)).toHaveLength(1);
+    expect(resolveHookShimExit('session-stop', { kind: 'exit', code: null })).toEqual({ exitCode: 0, stderr: '' });
+  });
+
+  const NEVER_BLOCKED = 'exiting 0 so compaction is never blocked';
+
+  it('345-01/AC-6: pre-compact with a non-zero core exit resolves to exit 0 and one stderr line naming the code', () => {
+    const r = resolveHookShimExit('pre-compact', { kind: 'exit', code: 2 });
+    expect(r.exitCode).toBe(0);
+    expect(r.stderr).toBe(`cadence pre-compact: core exited with code 2; ${NEVER_BLOCKED}\n`);
+    expect(r.stderr.split('\n').filter(Boolean)).toHaveLength(1);
+  });
+
+  it('345-01/AC-6: pre-compact with a zero core exit resolves to exit 0 and no stderr', () => {
+    expect(resolveHookShimExit('pre-compact', { kind: 'exit', code: 0 })).toEqual({
+      exitCode: 0,
+      stderr: '',
+    });
+  });
+
+  it('345-01/AC-6: a pre-compact spawn or shim error resolves to exit 0 and one stderr line naming the cause', () => {
+    const r = resolveHookShimExit('pre-compact', {
+      kind: 'error',
+      message: 'shim spawn failed: spawn x ENOENT',
+    });
+    expect(r).toEqual({
+      exitCode: 0,
+      stderr: `cadence pre-compact: shim spawn failed: spawn x ENOENT; ${NEVER_BLOCKED}\n`,
+    });
+  });
+
+  it('345-01/AC-6: every other event keeps the core exit code and exits 1 on an error, unchanged', () => {
+    expect(resolveHookShimExit('session-stop', { kind: 'exit', code: 2 })).toEqual({
+      exitCode: 2,
+      stderr: '',
+    });
+    expect(resolveHookShimExit('pre-tool-edit', { kind: 'exit', code: null })).toEqual({
+      exitCode: 0,
+      stderr: '',
+    });
+    expect(
+      resolveHookShimExit('session-start', { kind: 'error', message: '--cadence command is empty' }),
+    ).toEqual({ exitCode: 1, stderr: '--cadence command is empty\n' });
+    expect(resolveHookShimExit(null, { kind: 'error', message: 'hook shim failed: boom' })).toEqual({
+      exitCode: 1,
+      stderr: 'hook shim failed: boom\n',
+    });
+  });
+});
+
+describe('planCoreSpawn (345-01/AC-6)', () => {
+  it('345-01/AC-6: on win32 joins the command into one string with no args, so Node 24+ prints no DEP0190 warning', () => {
+    expect(planCoreSpawn('npx', ['@thomas-powers-jr/cadence-core', 'hook', 'pre-compact'], 'win32')).toEqual({
+      command: 'npx @thomas-powers-jr/cadence-core hook pre-compact',
+      args: [],
+      shell: true,
+    });
+  });
+
+  it('345-01/AC-6: elsewhere spawns without a shell and passes args as an array, unchanged', () => {
+    const args = ['/opt/cadence.cjs', 'hook', 'session-stop'];
+    const plan = planCoreSpawn('node', args, 'linux');
+    expect(plan).toEqual({ command: 'node', args, shell: false });
+    expect(plan.args).not.toBe(args);
+    expect(planCoreSpawn('node', args, 'darwin').shell).toBe(false);
+  });
+});
+
+describe('cwdDivergenceNotice and adapter-owned compactTrigger (345-01)', () => {
+  it('345-01/AC-6: no divergence line for pre-compact; other events keep the existing line verbatim', () => {
+    expect(cwdDivergenceNotice('pre-compact', '/a', '/b')).toBe('');
+    expect(cwdDivergenceNotice('session-stop', '/a', '/b')).toBe(
+      'hook cwd divergence: payload cwd=/a, shim process cwd=/b; spawning with payload cwd\n',
+    );
+    expect(cwdDivergenceNotice('session-stop', '/a', '/a')).toBe('');
+    expect(cwdDivergenceNotice('session-stop', undefined, '/a')).toBe('');
+  });
+
+  it('345-01/AC-1: a host-sent compactTrigger never passes through; only the trigger field sets it', () => {
+    const noTrigger = routeHookEvent(JSON.stringify({ hook_event_name: 'PreCompact', compactTrigger: 'x' }));
+    expect(noTrigger.abstractEvent).toBe('pre-compact');
+    expect(JSON.parse(noTrigger.translatedStdin)).not.toHaveProperty('compactTrigger');
+    const withTrigger = routeHookEvent(
+      JSON.stringify({ hook_event_name: 'PreCompact', trigger: 'auto', compactTrigger: 'x' }),
+    );
+    expect(JSON.parse(withTrigger.translatedStdin).compactTrigger).toBe('auto');
   });
 });

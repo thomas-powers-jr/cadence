@@ -146,7 +146,11 @@ function computeCorpus(): CorpusResult {
 
     if (gateBypasses.length > 0) {
       bypassedRecords.push({ phaseDir, id, storedOverall });
-      if (storedOverall === 'strong') {
+      // D-S (dec-20260816-006) caps a 'strong' grade only for an
+      // error-severity bypass; a warn-only bypass leaves 'strong' alone (first
+      // seen on 345-01, whose only bypass is a warn-severity skill-audit
+      // override). So only error-severity bypassed 'strong' records must drift.
+      if (storedOverall === 'strong' && gateBypasses.some((b) => b.severity === 'error')) {
         bypassedPreviouslyStrong.push({ phaseDir, id });
       }
     }

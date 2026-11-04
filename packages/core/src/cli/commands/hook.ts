@@ -8,6 +8,9 @@ export function registerHookCommand(program: Command): void {
     .command('hook <event>')
     .description('Dispatch an abstract hook event (called by host adapter shims)')
     .action(async (eventRaw: string) => {
+      // Phase 345: pre-compact must never block a compaction, so even an
+      // unexpected failure exits 0 (still with its one stderr line).
+      const isPreCompact = eventRaw === 'pre-compact';
       try {
         const parsed = AbstractEventZ.safeParse(eventRaw);
         if (!parsed.success) {
@@ -20,14 +23,21 @@ export function registerHookCommand(program: Command): void {
           for await (const chunk of process.stdin) raw += chunk.toString();
         }
         const dispatcher = new HookDispatcher(process.cwd());
-        const parsedRaw = raw ? safeJson(raw) : undefined;
-        const rawObj = parsedRaw as { agentId?: unknown; agentType?: unknown } | undefined;
+        // pre-compact (phase 345, AC-3): stdin that is not JSON carries no host
+        // fields at all, so it must not become a synthetic `{ raw }` payload.
+        const parsedRaw = raw ? (isPreCompact ? jsonOrUndefined(raw) : safeJson(raw)) : undefined;
+        const rawObj = parsedRaw as
+          | { agentId?: unknown; agentType?: unknown; compactTrigger?: unknown }
+          | undefined;
         const ctx = {
           event: parsed.data,
           cwd: process.cwd(),
           raw: parsedRaw,
           ...(typeof rawObj?.agentId === 'string' ? { agentId: rawObj.agentId } : {}),
           ...(typeof rawObj?.agentType === 'string' ? { agentType: rawObj.agentType } : {}),
+          ...(typeof rawObj?.compactTrigger === 'string'
+            ? { compactTrigger: rawObj.compactTrigger }
+            : {}),
         };
         const result = await dispatcher.dispatch(parsed.data, ctx);
         // Blocking is delivered as a per-event JSON decision on stdout, exit 0 (not exit-code 2 -- checkpoint 0.4a proved that collapses to a non-blocking 1 on Windows/PowerShell).
@@ -36,12 +46,22 @@ export function registerHookCommand(program: Command): void {
         if (out.stderr) process.stderr.write(out.stderr);
         if (out.exitCode !== 0) process.exitCode = out.exitCode;
       } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // pre-compact promises one stderr line, so flatten a multi-line message.
         process.stderr.write(
-          `hook dispatch failed: ${err instanceof Error ? err.message : String(err)}\n`,
+          `hook dispatch failed: ${isPreCompact ? message.replace(/\s*\n\s*/g, ' ') : message}\n`,
         );
-        process.exitCode = 1;
+        process.exitCode = isPreCompact ? 0 : 1;
       }
     });
+}
+
+function jsonOrUndefined(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
 }
 
 function safeJson(raw: string): unknown {

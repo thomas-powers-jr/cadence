@@ -571,6 +571,80 @@ The host adapter translates tool-specific hook payloads into an abstract event
 and invokes `cadence hook <event>`. CADENCE then runs the configured hook
 handlers from `config.json → hooks`.
 
+**Hook events** — `<event>` is one of these abstract events (`AbstractEventZ`
+in `@thomas-powers-jr/cadence-types`; a doc-content test keeps this list equal
+to it). Any other name exits 2 with `Unknown hook event: <name>`.
+
+<!-- cadence:hook-events:start -->
+- `session-start` — a session begins; prints the SessionStart banner
+- `user-prompt` — the user submitted a prompt
+- `pre-tool-edit` — an edit tool is about to run (blocking-capable)
+- `post-tool-edit` — an edit tool finished
+- `session-stop` — the agent is stopping (blocking-capable)
+- `subagent-result` — a spawned subagent returned (blocking-capable)
+- `subagent-start` — a subagent was spawned
+- `skill-invoke` — a skill was invoked
+- `pre-compact` — the host is about to compact the session; writes a record, never blocks (see below)
+<!-- cadence:hook-events:end -->
+
+**`pre-compact`** (phase 345) — the Claude Code adapter routes Claude Code's
+`PreCompact` hook here, for both `/compact` and automatic compaction. The
+handler writes one machine-facts record and changes nothing else: it never
+writes `state.json`, `STATE.md`, any `SESSION-*.md` handoff doc or any
+`.cadence/intelligence/` file.
+
+- **Path.** `.cadence/local/precompact/PRECOMPACT-<YYYYMMDDTHHMMSS.mmmZ>.md`
+  (UTC, no colons, so the name is Windows-safe and sorts by time). A record
+  written in the same millisecond as an existing one gets a `-2`, `-3`, …
+  suffix; nothing is overwritten. `.cadence/local/` is the machine-local
+  directory `cadence init` has gitignored since phase 341, so a record never
+  dirties the working tree. A project initialized before phase 341 lacks that
+  entry; add `.cadence/local/` to its `.gitignore`.
+- **Contents.** Front matter with `generated_at` (ISO time), `trigger` (the
+  host's `auto` or `manual`, passed through unchanged and JSON-quoted;
+  `"unknown"` when the host sent none), the loop position, active phase,
+  active draft and active spec read from `state.json` (each `unavailable`
+  when state cannot be read), and git facts: branch, `HEAD`, dirty flag, and
+  ahead/behind counted against local refs only (the hook never runs `git
+  fetch`); `git: unavailable` when git is absent or the directory is not a
+  repository. The body lists the host payload's top-level field names only,
+  never their values, so `custom_instructions` and `transcript_path` are never
+  copied. Keys the adapter adds (`compactTrigger`, `files`, `skill`,
+  `agentId`, `agentType`) are left out of that list.
+- **Retention.** After each write the directory keeps the newest five
+  `PRECOMPACT-*.md` records (by file name) and deletes older ones, silently.
+  Other files are never touched, and a failed prune never fails the write.
+- **Never blocks.** `cadence hook pre-compact` always exits 0 and writes
+  nothing to stdout. It writes exactly one stderr line:
+  `cadence pre-compact: wrote <path>` on success, or `cadence pre-compact: no
+  record written: <reason>` otherwise. It runs before the state and config
+  reads every other event shares, so a missing or corrupt `state.json` or an
+  invalid `config.json` still yields a record (with the loop fields
+  `unavailable`). The hook never creates `.cadence/` itself.
+- **Where it shows up.** When the newest record is newer than the freshest
+  SESSION doc's `generated_at` (or no SESSION doc exists), the SessionStart
+  banner ends with one extra line, and `cadence resume` prints the same line
+  (see [resume](#resume)):
+  `Pre-compaction record: <path> (trigger: <trigger>, <generated_at>) — newer than any SESSION handoff`.
+- **Claude Code only.** The Claude Code adapter installs the `PreCompact`
+  hook; the Codex adapter leaves `PreCompact` unmapped, so Codex sessions get
+  no record. `pre-compact` is not a blocking hook in any adapter.
+
+Known limitations of `pre-compact`:
+
+- The hook resolves the project from its own working directory. A session
+  whose working directory is a subdirectory with no `.cadence/` of its own
+  gets no record: the hook exits 0 with one stderr line saying no `.cadence/`
+  directory exists there. (The shim never adds its `hook cwd divergence`
+  line for `pre-compact`.)
+- Stdin that is not valid JSON still produces a record; its field list reads
+  `(none)`, because no host fields arrived. (The Claude Code shim drops a
+  non-JSON payload before it reaches core, so this happens only when core is
+  called some other way.)
+- If the shim cannot read stdin at all, it fails before it knows which event
+  fired and exits 1, which Claude Code treats as a non-blocking error.
+- Codex is not wired (above).
+
 ---
 
 ### build
@@ -1869,6 +1943,20 @@ fix.
 message with a `cadence handoff` hint (an empty handoff dir is not an error);
 exits 1 on the flag-conflict refusals above; exits non-zero on other genuine
 failures.
+
+**Pre-compaction pointer** (phase 345) — when the newest
+`.cadence/local/precompact/PRECOMPACT-*.md` record (see [hook](#hook)) is
+newer than the freshest SESSION doc's `generated_at` (a SESSION doc without
+`generated_at` counts as the end of its file-name date; any record counts as
+newer when there is no SESSION doc), `resume` prints one line:
+`Pre-compaction record: <path> (trigger: <trigger>, <generated_at>) — newer than any SESSION handoff`.
+It comes after the warnings and before the replayed narrative, or after the
+`no handoff found` line when there is no SESSION doc. `resume --json`, and the
+structured result of the MCP `cadence_resume` tool, carry it as an optional
+`precompactRecord` object `{ path, trigger, generatedAt }`, present
+whether or not a handoff was found. `--list` and `--pick` never carry it. When
+no record is newer, or the lookup fails, the output is exactly what it would be
+without the feature.
 
 ---
 
@@ -3311,6 +3399,15 @@ Shim invoked by Claude Code hooks: translates stdin and calls cadence hook <even
 `PostToolUse`). It reads the hook payload from stdin, translates it into an
 abstract event name, and calls `cadence hook <event>`. Not intended to be
 invoked directly by users.
+
+The shim relays core's exit code unchanged for every event except
+`pre-compact` (phase 345); for other events a spawn failure or shim error
+still exits 1. For `pre-compact`, a non-zero core exit, a core
+killed by a signal, a spawn failure or a shim error all end in exit 0 with
+one stderr line naming the cause, so compaction is never blocked, including
+when a newer adapter runs against an older core that rejects the event with
+exit 2. The policy is host-toolkit's pure `resolveHookShimExit`. See
+[hook](#hook) for the record core writes.
 
 ---
 

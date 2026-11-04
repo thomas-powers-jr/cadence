@@ -29,10 +29,22 @@ export const FALLBACK_BLOCK_REASON = 'blocked by a CADENCE hook';
  * - `ok: false` on any other event → legacy exit 2 plus a loud stderr notice
  *   that no JSON block shape is defined for it.
  *
+ * - `pre-compact` (phase 345) → never stdout and always exit 0, whatever the
+ *   result: compaction must never be blocked. An `ok: false` result's
+ *   `blockMessage` is mirrored to stderr; a `contextPayload` is dropped.
+ *
  * `blockMessage` is always mirrored to stderr as a diagnostic. No I/O here —
  * `hook.ts` writes the returned strings.
  */
 export function renderHookResult(event: AbstractEvent, result: HookResult): RenderedHookResult {
+  if (event === 'pre-compact') {
+    return {
+      stdout: '',
+      stderr: !result.ok && result.blockMessage ? result.blockMessage + '\n' : '',
+      exitCode: 0,
+    };
+  }
+
   if (result.ok) {
     return {
       stdout: result.contextPayload ? result.contextPayload + '\n' : '',

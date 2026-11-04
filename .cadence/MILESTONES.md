@@ -1336,6 +1336,13 @@ changeset (example/test-only change, no published-package surface).*
   continuing on mock, so settle (or `build task`, `draft approve`,
   `spec approve`) exits non-zero. Absent or `"mock"` keeps today's behaviour.
   `doctor` reports the effective value (rec-20261030-004).
+- **Phase 345** — Claude Code's `PreCompact` hook now writes a
+  machine-facts record to the gitignored `.cadence/local/precompact/`
+  (newest five kept) before a compaction, with the trigger, loop and git
+  facts, and the payload's field names only. It never blocks: core always
+  exits 0 and the shim clamps a failed core exit to 0. The SessionStart
+  banner and `cadence resume` point at a record newer than the last
+  handoff. Codex stays unmapped (rec-20261101-001).
 
 
 

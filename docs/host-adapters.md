@@ -20,7 +20,7 @@ interface. An adapter provides six things:
 | `contractVersion` | The contract version it targets — must equal `ADAPTER_CONTRACT_VERSION`. |
 | `capabilities` | A `HostCapabilities` descriptor of what the host environment can do. |
 | `mapEvent` | Translate a host lifecycle event name into a cadence `AbstractEvent`. |
-| `extractPayload` | Pull the normalized `ExtractedPayload` (files / skill) out of a raw host event. |
+| `extractPayload` | Pull the normalized `ExtractedPayload` (files, skill, agent identity, compaction trigger) out of a raw host event. |
 | `installHooks` | Wire the host's lifecycle hooks to the cadence shim, under a project `root`. |
 | `installCommands` | Install the host's slash-command (or equivalent) surface, under a project `root`. |
 
@@ -41,16 +41,31 @@ export interface HostAdapter<HookOpts = unknown, CommandOpts = unknown> {
 
 ## 1. Speak the abstract event vocabulary
 
-The engine never sees host-specific event names. It speaks seven
-**abstract events** (`AbstractEvent`, validated by `AbstractEventZ`):
+The engine never sees host-specific event names. It speaks these
+**abstract events** (`AbstractEvent`, validated by `AbstractEventZ`; a
+doc-content test keeps this list equal to it):
 
 - `session-start` — a session begins
 - `user-prompt` — the user submits a prompt
 - `pre-tool-edit` — about to edit a file (blocking-capable)
 - `post-tool-edit` — a file edit completed
 - `session-stop` — the session ends (blocking-capable)
-- `subagent-result` — a spawned subagent returned
+- `subagent-result` — a spawned subagent returned (blocking-capable)
+- `subagent-start` — a subagent was spawned
 - `skill-invoke` — a skill/command was invoked
+- `pre-compact` — the host is about to compact the session (record-only, never blocking)
+
+`pre-compact` (phase 345) is hooked by the Claude Code adapter only: its
+`PreCompact` hook maps to it, and core writes a machine-facts record under the
+gitignored `.cadence/local/precompact/`, one file per compaction named
+`PRECOMPACT-<YYYYMMDDTHHMMSS.mmmZ>.md` (a `-N` suffix on a same-millisecond
+collision; newest five kept). Each record holds `generated_at`, the
+JSON-quoted `trigger`, the loop position, the active phase, draft and spec,
+local git facts (no fetch), and the payload's field names only, never their
+values. The hook never blocks: core always exits 0 for it, and the Claude Code
+shim clamps any failure on this event to exit 0. The Codex adapter leaves
+`PreCompact` unmapped. The full description and limits are in the
+[`cadence hook` reference](reference/commands.md#hook).
 
 Your adapter's whole job on the read path is to turn your host's lifecycle into
 these. Anything your host can't express, it simply never emits.
@@ -95,8 +110,11 @@ the `ExtractedPayload` the dispatcher consumes:
 
 ```ts
 export interface ExtractedPayload {
-  files?: string[];   // edit-tool events
-  skill?: string;     // skill-invoke events
+  files?: string[];         // edit-tool events
+  skill?: string;           // skill-invoke events
+  agentId?: string;         // events fired inside a subagent
+  agentType?: string;
+  compactTrigger?: string;  // pre-compact: the host's trigger, unchanged
 }
 ```
 
@@ -117,6 +135,23 @@ cadence. The reference adapter:
   stdin, calls `mapEvent` + `extractPayload`, and dispatches into the core CLI.
 - **`locate-self`** (`packages/host-claude-code/src/locate-self.ts`) resolves the
   local workspace build paths for monorepo dogfood installs.
+
+The two shipped adapters share this plumbing through
+`@thomas-powers-jr/cadence-host-toolkit` (adapters depend on it; core never
+does). Its main entry exports the hook-routing algorithm (`routeHookEvent`,
+`mapEvent`, `extractPayload`), the managed-hook lists
+(`CLAUDE_CODE_EXPECTED_HOOKS`, `CODEX_EXPECTED_HOOKS`), the shared slash-
+command catalog, `planCoreSpawn` (how the shim spawns core; on Windows it
+passes one joined command string through the shell instead of an args array,
+which is the same command line but avoids Node 24+'s DEP0190 warning on every
+hook), and `resolveHookShimExit`, the shim's pure exit-code policy. That
+policy relays core's exit code for every event except `pre-compact` (a spawn
+failure or shim error on any other event still exits 1); for `pre-compact`
+any non-zero core exit, signal, spawn failure or shim error resolves to exit 0
+with one stderr line naming the cause. A shim that uses it cannot block a
+compaction even when it runs against an older core that rejects the event
+(phase 345). Its `./locate-self` and `./install-merge` subpaths hold the self-
+locating and managed-marker merge helpers.
 
 The shim and locate-self are **host-internal plumbing** — the contract does not
 pin their shapes, because how a host hands you a raw event and how you find your

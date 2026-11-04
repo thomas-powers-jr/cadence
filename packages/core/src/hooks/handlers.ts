@@ -10,6 +10,8 @@ import { selectNotifier } from '../notify/factory.js';
 import { runBoundaryCheck } from '../checks/boundary.js';
 import { runRedundancyCheck, TERMINAL_TASK_STATUSES } from '../checks/task-redundancy.js';
 import type { ProgressFile } from '../status.js';
+import { writePrecompactRecord, type PrecompactRecordPointer } from '../handoff/precompact.js';
+import { renderPrecompactPointerLine } from '../handoff/run-resume.js';
 
 export interface HookResult {
   ok: boolean;
@@ -122,6 +124,9 @@ export async function handleSessionStart(
   _ctx: HookContext,
   state: CadenceState,
   lastSettledPhase: string | null = null,
+  /** Phase 345 (AC-7): the newest pre-compaction record, passed only when it
+   *  is newer than the freshest SESSION doc; null/omitted adds nothing. */
+  precompactRecord: PrecompactRecordPointer | null = null,
 ): Promise<HookResult> {
   const phaseLines =
     state.loopPosition === 'IDLE'
@@ -136,6 +141,7 @@ export async function handleSessionStart(
   ];
   if (state.openDrafts.length > 0)
     lines.push(`Open drafts: ${state.openDrafts.map((d) => d.id).join(', ')}`);
+  if (precompactRecord !== null) lines.push(renderPrecompactPointerLine(precompactRecord));
   return { ok: true, contextPayload: lines.join('\n') };
 }
 
@@ -519,5 +525,30 @@ export async function handleSkillInvoke(
   if (state.skillAudit.invoked.includes(skill)) return { ok: true };
   state.skillAudit.invoked = applySkillInvoke(state.skillAudit.invoked, skill, SKILL_AUDIT_CAP);
   await backend.commit(state);
+  return { ok: true };
+}
+
+/**
+ * Phase 345: `pre-compact` — the host is about to compact the session. Writes
+ * one machine-facts record under `.cadence/local/precompact/` (never a SESSION
+ * doc, never a state write) and reports it in exactly one stderr line: the
+ * record's path on success, the reason otherwise. Never writes stdout and
+ * never blocks: always `{ ok: true }` with no contextPayload or blockMessage.
+ * Runs before the dispatcher's readState/loadConfig prologue, so it takes no
+ * state or config.
+ */
+export async function handlePreCompact(ctx: HookContext, repoRoot: string): Promise<HookResult> {
+  const result = await writePrecompactRecord(repoRoot, {
+    ...(ctx.compactTrigger !== undefined ? { trigger: ctx.compactTrigger } : {}),
+    raw: ctx.raw,
+  });
+  const line = result.ok
+    ? `cadence pre-compact: wrote ${result.path}`
+    : `cadence pre-compact: no record written: ${result.reason}`;
+  try {
+    process.stderr.write(line.replace(/\s*\n\s*/g, ' ') + '\n');
+  } catch {
+    /* best-effort diagnostic; never fail the hook */
+  }
   return { ok: true };
 }

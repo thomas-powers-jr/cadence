@@ -1,6 +1,6 @@
 // packages/core/src/cli/commands/resume.ts
 import type { Command } from 'commander';
-import { runResume } from '../../handoff/run-resume.js';
+import { runResume, renderPrecompactPointerLine } from '../../handoff/run-resume.js';
 import { renderCandidateMenu } from '../../handoff/pick.js';
 
 export function registerResumeCommand(program: Command): void {
@@ -75,9 +75,16 @@ export function registerResumeCommand(program: Command): void {
           if (!res.found) {
             if (res.candidates) {
               process.stdout.write(renderCandidateMenu(res.candidates));
+              if (res.precompactRecord) {
+                process.stdout.write(`${renderPrecompactPointerLine(res.precompactRecord)}\n`);
+              }
               return;
             }
             process.stdout.write('resume: no handoff found — run `cadence handoff` to create one.\n');
+            // Phase 345 (AC-7): the pointer follows the "no handoff found" line.
+            if (res.precompactRecord) {
+              process.stdout.write(`${renderPrecompactPointerLine(res.precompactRecord)}\n`);
+            }
             return;
           }
           if (res.drift) {
@@ -109,6 +116,10 @@ export function registerResumeCommand(program: Command): void {
             process.stdout.write(
               `⚠ handoff has unfilled sections: ${res.unfilled.join(', ')} — treat them as absent; the previous session did not complete its handoff.\n\n`,
             );
+          }
+          // Phase 345 (AC-7): the pointer precedes the replayed narrative.
+          if (res.precompactRecord) {
+            process.stdout.write(`${renderPrecompactPointerLine(res.precompactRecord)}\n\n`);
           }
           if (res.pickedSource === 'sibling') {
             process.stdout.write(`--- from sibling worktree: ${res.pickedWorktree} ---\n\n`);

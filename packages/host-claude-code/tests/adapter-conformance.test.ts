@@ -17,6 +17,7 @@ const CLAUDE_CODE_EVENTS = [
   'Stop',
   'SubagentStop',
   'SubagentStart',
+  'PreCompact',
 ];
 
 describe('claudeCodeAdapter conforms to HostAdapter (AC-4)', () => {
@@ -74,6 +75,20 @@ describe('claudeCodeAdapter conforms to HostAdapter (AC-4)', () => {
     const mapped = claudeCodeAdapter.mapEvent('SubagentStart');
     expect(mapped).toBe('subagent-start');
     expect(() => AbstractEventZ.parse(mapped)).not.toThrow();
+  });
+});
+
+describe('claudeCodeAdapter pre-compact wiring (phase 345)', () => {
+  it('345-01/AC-1: maps PreCompact to the pre-compact AbstractEvent', () => {
+    const mapped = claudeCodeAdapter.mapEvent('PreCompact');
+    expect(mapped).toBe('pre-compact');
+    expect(AbstractEventZ.parse(mapped)).toBe('pre-compact');
+  });
+
+  it('345-01/AC-2: capabilities.hooks lists pre-compact and blockingHooks does not', () => {
+    expect(claudeCodeCapabilities.hooks).toContain('pre-compact');
+    expect(claudeCodeCapabilities.blockingHooks).not.toContain('pre-compact');
+    expect(() => HostCapabilitiesZ.parse(claudeCodeCapabilities)).not.toThrow();
   });
 });
 

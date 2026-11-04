@@ -6,6 +6,13 @@ import { dirname, join } from 'node:path';
 import { installHooks, type InstallOptions } from './install.js';
 import { installCommands, type InstallCommandsOptions } from './install-commands.js';
 import { routeHookEvent } from './shim.js';
+import {
+  cwdDivergenceNotice,
+  planCoreSpawn,
+  resolveHookShimExit,
+  type HookShimOutcome,
+} from '@thomas-powers-jr/cadence-host-toolkit';
+import type { AbstractEvent } from '@thomas-powers-jr/cadence-types';
 
 // Read the real version from package.json so `--version` never drifts.
 // Resolves dist/cli.js → ../package.json.
@@ -92,17 +99,28 @@ program
   .description('Shim invoked by Claude Code hooks: translates stdin and calls cadence hook <event>')
   .option('--cadence <cmd>', 'base command to invoke core (default: "npx @thomas-powers-jr/cadence-core")', 'npx @thomas-powers-jr/cadence-core')
   .action(async (opts: { cadence: string }) => {
+    // Phase 345 (AC-6): the exit-code policy lives in host-toolkit's pure
+    // resolveHookShimExit — `pre-compact` never blocks a compaction (every
+    // non-zero core exit, spawn failure or shim error ends at exit 0 with one
+    // stderr line naming the cause); every other event's handling is unchanged.
+    let abstractEvent: AbstractEvent | null = null;
+    const finish = (outcome: HookShimOutcome): void => {
+      const { exitCode, stderr } = resolveHookShimExit(abstractEvent, outcome);
+      process.stderr.write(stderr);
+      process.exitCode = exitCode;
+    };
     try {
       let raw = '';
       if (!process.stdin.isTTY) {
         for await (const chunk of process.stdin) raw += chunk.toString();
       }
-      const { abstractEvent, translatedStdin } = routeHookEvent(raw);
+      const routed = routeHookEvent(raw);
+      abstractEvent = routed.abstractEvent;
+      const { translatedStdin } = routed;
       if (abstractEvent === null) return; // exit 0 silently for unmapped events
       const [exe, ...baseArgs] = opts.cadence.split(/\s+/).filter(Boolean);
       if (!exe) {
-        process.stderr.write('--cadence command is empty\n');
-        process.exitCode = 1;
+        finish({ kind: 'error', message: '--cadence command is empty' });
         return;
       }
 
@@ -125,35 +143,31 @@ program
         // malformed JSON: fall through to the shim's own process.cwd()
       }
       const shimCwd = process.cwd();
-      if (payloadCwd !== undefined && payloadCwd !== shimCwd) {
-        process.stderr.write(
-          `hook cwd divergence: payload cwd=${payloadCwd}, shim process cwd=${shimCwd}; spawning with payload cwd\n`,
-        );
-      }
+      process.stderr.write(cwdDivergenceNotice(abstractEvent, payloadCwd, shimCwd));
 
-      const child = spawn(exe, [...baseArgs, 'hook', abstractEvent], {
+      const plan = planCoreSpawn(exe, [...baseArgs, 'hook', abstractEvent], process.platform);
+      const child = spawn(plan.command, plan.args, {
         stdio: ['pipe', 'inherit', 'inherit'],
-        shell: process.platform === 'win32',
+        shell: plan.shell,
         ...(payloadCwd !== undefined ? { cwd: payloadCwd } : {}),
       });
       child.stdin.write(translatedStdin);
       child.stdin.end();
       await new Promise<void>((resolve) => {
         child.on('exit', (code) => {
-          process.exitCode = code ?? 0;
+          finish({ kind: 'exit', code });
           resolve();
         });
         child.on('error', (err) => {
-          process.stderr.write(`shim spawn failed: ${err.message}\n`);
-          process.exitCode = 1;
+          finish({ kind: 'error', message: `shim spawn failed: ${err.message}` });
           resolve();
         });
       });
     } catch (err) {
-      process.stderr.write(
-        `hook shim failed: ${err instanceof Error ? err.message : String(err)}\n`,
-      );
-      process.exitCode = 1;
+      finish({
+        kind: 'error',
+        message: `hook shim failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   });
 

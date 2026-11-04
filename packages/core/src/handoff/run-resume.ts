@@ -1,5 +1,6 @@
 // packages/core/src/handoff/run-resume.ts
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import { defaultConfig, type HandoffCandidate, type ResumeResult } from '@thomas-powers-jr/cadence-types';
 import { SimpleStateBackend } from '../state/simple.js';
 import { runContext } from '../intelligence/context.js';
@@ -13,6 +14,100 @@ import { gatherHandoffCandidates } from './candidates.js';
 import { resolvePick, promptForPick } from './pick.js';
 import { checkRemoteFreshness } from './remote-freshness.js';
 import { findUnfilledSections } from './placeholders.js';
+import { findNewestPrecompactRecord, type PrecompactRecordPointer } from './precompact.js';
+
+/** The instant a SESSION doc counts as written for AC-7 (phase 345): its
+ *  `generated_at` when parseable, else the END of its file-name date
+ *  (23:59:59.999Z), else null (no comparable instant). */
+function sessionDocInstant(session: { generatedAt: string | null; path: string }): number | null {
+  if (session.generatedAt !== null) {
+    const ms = Date.parse(session.generatedAt);
+    if (!Number.isNaN(ms)) return ms;
+  }
+  const day = basename(session.path).match(/SESSION-(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (day === undefined) return null;
+  const ms = Date.parse(`${day}T23:59:59.999Z`);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Pure (phase 345, AC-7): is a pre-compaction record written at
+ * `recordGeneratedAt` strictly newer than the freshest SESSION doc? Any
+ * record counts as newer when there is no SESSION doc (`session === null`).
+ * An unparseable record time, or a SESSION doc with no comparable instant,
+ * yields false (the output then stays exactly as it was).
+ */
+export function isPrecompactRecordNewer(
+  recordGeneratedAt: string,
+  session: { generatedAt: string | null; path: string } | null,
+): boolean {
+  const recordMs = Date.parse(recordGeneratedAt);
+  if (Number.isNaN(recordMs)) return false;
+  if (session === null) return true;
+  const sessionMs = sessionDocInstant(session);
+  return sessionMs !== null && recordMs > sessionMs;
+}
+
+/** Pure (phase 345, AC-7): the one-line pointer the SessionStart banner and
+ *  `cadence resume` print. Whitespace runs are collapsed so it stays one line. */
+export function renderPrecompactPointerLine(record: PrecompactRecordPointer): string {
+  const flat = (v: string): string => v.replace(/\s+/g, ' ').trim();
+  return `Pre-compaction record: ${flat(record.path)} (trigger: ${flat(record.trigger)}, ${flat(record.generatedAt)}) — newer than any SESSION handoff`;
+}
+
+/**
+ * Best-effort (phase 345, AC-7): the newest pre-compaction record when it is
+ * newer than the freshest SESSION doc, else null. "Freshest" uses AC-7's own
+ * rule over every `.cadence/handoff/SESSION-*.md` doc: its `generated_at`, or
+ * the end of its file-name date when it has none. Non-SESSION files (including
+ * a custom-labelled `lastHandoff`) are never SESSION docs and are ignored. A
+ * SESSION doc with no comparable instant makes the answer "not newer", so the
+ * output stays exactly as it was. Never throws: any failure yields null.
+ * `_lastHandoff` is accepted for call-site symmetry and deliberately unused.
+ */
+export async function findNewerPrecompactRecord(
+  root: string,
+  _lastHandoff: string | null,
+): Promise<PrecompactRecordPointer | null> {
+  try {
+    const record = await findNewestPrecompactRecord(root);
+    if (record === null) return null;
+    const recordMs = Date.parse(record.generatedAt);
+    if (Number.isNaN(recordMs)) return null;
+    const dir = join(root, '.cadence', 'handoff');
+    // A missing handoff directory means no SESSION doc exists (the record is
+    // newer); any other read failure is a lookup failure and contributes nothing.
+    let names: string[];
+    try {
+      names = (await readdir(dir)).filter((n) => /^SESSION-.*\.md$/.test(n));
+    } catch (err) {
+      if ((err as { code?: unknown }).code !== 'ENOENT') return null;
+      names = [];
+    }
+    for (const name of names) {
+      // generated_at counts only from the doc's front matter, never its body.
+      const content = (await readFile(join(dir, name), 'utf8')).replace(/\r\n/g, '\n');
+      const frontMatter = content.match(/^---\n([\s\S]*?)\n---(?:\n|$)/)?.[1] ?? '';
+      const generatedAt = readKey(frontMatter, 'generated_at');
+      const instant = sessionDocInstant({ generatedAt, path: name });
+      if (instant === null || instant >= recordMs) return null;
+    }
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+/** runResume's lookup: reads `lastHandoff` best-effort, like `localResolve`. */
+async function resumePrecompactRecord(root: string): Promise<PrecompactRecordPointer | null> {
+  let lastHandoff: string | null = null;
+  try {
+    lastHandoff = (await new SimpleStateBackend(root).readState()).session.lastHandoff;
+  } catch {
+    lastHandoff = null;
+  }
+  return findNewerPrecompactRecord(root, lastHandoff);
+}
 
 export interface ResumeOptions {
   /** Force output mode. Omitted → drift decides: drift → 'full', else 'brief'. */
@@ -232,10 +327,15 @@ export async function runResume(
   io: CommandIO = processIO(),
 ): Promise<ResumeResult> {
   const result = await resolveResume(root, opts, now, io);
-  if (!result.found) return result;
+
+  // Phase 345 (AC-7): default mode only — --list and --pick are unchanged.
+  const precompactRecord =
+    opts.list === true || opts.pick !== undefined ? null : await resumePrecompactRecord(root);
+  if (!result.found) return precompactRecord ? { ...result, precompactRecord } : result;
 
   const unfilled = findUnfilledSections(result.found ? result.doc : '');
-  const decorated = unfilled.length > 0 ? { ...result, unfilled } : result;
+  const withUnfilled = unfilled.length > 0 ? { ...result, unfilled } : result;
+  const decorated = precompactRecord ? { ...withUnfilled, precompactRecord } : withUnfilled;
 
   // Two-PC guard: a handoff superseded by work pushed from another clone is
   // invisible to loop-position drift. Probe origin unless opted out. The probe

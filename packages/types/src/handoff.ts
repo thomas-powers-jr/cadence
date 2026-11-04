@@ -69,11 +69,25 @@ export const RemoteFreshnessZ = z.object({
 });
 export type RemoteFreshness = z.infer<typeof RemoteFreshnessZ>;
 
+/** Phase 345: a pointer at the newest `.cadence/local/precompact/` record.
+ *  `path` is repo-relative; `trigger` is the host's compaction trigger
+ *  verbatim; `generatedAt` is the record's ISO `generated_at`. */
+export const PrecompactRecordPointerZ = z.object({
+  path: z.string(),
+  trigger: z.string(),
+  generatedAt: z.string(),
+});
+export type PrecompactRecordPointer = z.infer<typeof PrecompactRecordPointerZ>;
+
 /** `cadence resume --json` payload. */
 export const ResumeResultZ = z.union([
   z.object({
     found: z.literal(false),
     candidates: z.array(HandoffCandidateZ).optional(),
+    /** Phase 345: set only (default mode) when a pre-compaction record is
+     *  newer than the freshest SESSION doc. On this branch no SESSION doc was
+     *  served: none exists, or the autoList candidate menu was declined. */
+    precompactRecord: PrecompactRecordPointerZ.optional(),
   }),
   z.object({
     found: z.literal(true),
@@ -101,6 +115,9 @@ export const ResumeResultZ = z.union([
      *  Absent on every other resolution path — including when the pointer
      *  is dangling (see `danglingHandoffPointer`) or itself won. */
     supersededHandoffPointer: z.string().optional(),
+    /** Phase 345: set only (default mode, not --list/--pick) when the newest
+     *  pre-compaction record is newer than the freshest SESSION doc. */
+    precompactRecord: PrecompactRecordPointerZ.optional(),
   }),
 ]);
 export type ResumeResult = z.infer<typeof ResumeResultZ>;

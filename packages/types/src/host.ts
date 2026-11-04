@@ -49,6 +49,8 @@ export interface ExtractedPayload {
   /** Present when the host's raw event fired inside a subagent's tool call. */
   agentId?: string;
   agentType?: string;
+  /** Phase 345: the host's compaction trigger on a PreCompact event, passed through unchanged. */
+  compactTrigger?: string;
 }
 
 /**

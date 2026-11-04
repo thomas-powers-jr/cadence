@@ -1885,23 +1885,6 @@ Phase 343 ships verification.fallback with an absent default meaning mock, so no
 
 Phase 343 makes doctor's verification-readiness say a seam will refuse rather than fall back when verification.fallback is refuse, but leaves the same wording in cadence config explain (config-explain/build.ts ~108, ~113) and activate (activate/assess.ts ~152) unchanged, a boundary of that phase. Under refuse those surfaces now describe behaviour that will not happen. Small wording fix keyed on the effective setting, with tests that the mock/absent text is byte-identical.
 
-## rec-20261101-001 — Compaction writes no checkpoint: on PreCompact, record a minimal machine-facts handoff (record-only, never blocks)
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: hooks, checkpoint, handoff, host-adapters
-- files: packages/host-toolkit/src/routing.ts, packages/host-codex/src/event-map.ts, packages/core/src/hooks/handlers.ts, packages/checkpoint/src/session-start.ts
-- evidence: routing.ts:36-42 installs SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStop only; phase-0 §M3 observed order PreCompact -> SessionStart(compact) -> PostCompact with payload { session_id, transcript_path, cwd, trigger, custom_instructions, ... }
-- evidence: Sibling: rec-20261101-002 (block an auto PreCompact until a fresh handoff exists, needs-evidence). Split on purpose: this record-only half needs nothing from the untested auto-PreCompact blocking question, so it is not held behind that rec's evidence.
-- next: cadence milestone propose
-
-Neither cadence core nor the checkpoint package reacts to compaction. No host adapter installs PreCompact or PostCompact (host-toolkit/src/routing.ts:36-42; host-codex/src/event-map.ts:36 leaves both unmapped on purpose). The only thing that runs is SessionStart with source 'compact': core re-injects a read-only banner (hooks/handlers.ts handleSessionStart) and the checkpoint session-start handler resets its gate to idle and writes nothing (checkpoint/src/session-start.ts:27). The only path that produces a handoff is the checkpoint Stop gate at its context threshold, so when auto-compaction gets there first the agent's unrecorded working state is lost with no notice and no record (state.json, PROGRESS.json and the ledger survive on disk). Ask: map PreCompact through the adapters to a new core event whose handler writes a minimal machine-facts handoff (cadence handoff --label precompact style), records the trigger (auto or manual), never blocks, and is best-effort within the hook timeout. Adapters only translate the event; core decides (Engine-in-Adapter rule). Needs nothing from the untested auto-PreCompact blocking question: PreCompact is confirmed to fire with a known payload and order (docs/checkpoint/phase-0-interactive-findings.md §M3). Its sibling, the blocking gate, is filed separately as needs-evidence.
-
 ## rec-20261101-002 — Checkpoint gate on auto-compaction: block an auto PreCompact until a fresh handoff exists
 
 - status: candidate
@@ -1918,3 +1901,51 @@ Neither cadence core nor the checkpoint package reacts to compaction. No host ad
 - next: cadence milestone propose
 
 Sibling of the record-only PreCompact handoff rec. The checkpoint Stop gate can lose the race to auto-compaction; a PreCompact gate would close it by blocking an auto-triggered compaction until a fresh handoff exists, sharing the Stop gate's ceiling and force-release semantics (including the sticky lastForcedAt from dec-20261022-002) so it can never wedge a session. A checkpoint Phase 4 change, not a Phase 3 fix. Evidence needed first: an auto-triggered PreCompact has never been observed (gap M10, docs/checkpoint/REPORT-checkpoint-phase-0.md), so it is unknown whether blocking one works or what its payload holds; phase 0.4a's exit-code-2 block of a manual /compact did not hold (likely the same exit-code collapse that hit Stop), and JSON-decision blocking for PreCompact was never tested. Reopen with the operator's live Stop-gate capture: let one session run into auto-compaction and record the event order, the trigger value, whether a handoff existed, and whether a JSON block holds.
+
+## rec-20261102-001 — Codex PreCompact: map it to pre-compact once a Codex PreCompact payload has been captured
+
+- status: candidate
+- ready: needs-evidence
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: host-adapters, hooks, codex
+- files: packages/host-codex/src/event-map.ts, packages/host-toolkit/src/routing.ts, packages/core/src/doctor/host-hooks.ts
+- evidence: Phase 345 (345-01) Boundaries: Codex keeps PreCompact unmapped; host-codex/tests/event-map.test.ts pins mapEvent('PreCompact') === null.
+- next: cadence milestone propose
+
+Phase 345 wired PreCompact to the record-only pre-compact event for Claude Code only. packages/host-codex/src/event-map.ts still leaves PreCompact unmapped on purpose, and CODEX_EXPECTED_HOOKS has no PreCompact entry, because no Codex PreCompact payload has ever been captured (its trigger field, its blocking semantics and its exit-code behaviour are unknown). Ask: capture one Codex PreCompact payload (manual and, if possible, auto), then map PreCompact -> pre-compact in host-codex with compactTrigger forwarded, add it to CODEX_EXPECTED_HOOKS and core's doctor copy, and give the Codex shim the same pre-compact exit clamp (host-toolkit resolveHookShimExit). Core needs no change: the pre-compact handler is host-agnostic.
+
+## rec-20261104-002 — Code-review finding (medium): `--path` may select a sibling handoff, but this still attaches a record from th…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/core
+- files: packages/core/src/handoff/run-resume.ts
+- evidence: phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.
+- next: cadence milestone propose
+
+medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may select a sibling handoff, but this still attaches a record from the current root. It can claim that local record is newer than the selected newer sibling SESSION doc.
+
+## rec-20261104-003 — Code-review finding (medium): Git collection can run seven serial 5s calls before writing. A slow repo can ho…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/core
+- files: packages/core/src/handoff/precompact.ts
+- evidence: phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
+- next: cadence milestone propose
+
+medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.

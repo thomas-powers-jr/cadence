@@ -113,6 +113,7 @@ export const CLAUDE_CODE_EXPECTED_HOOKS: readonly ExpectedManagedHook[] = [
   { event: 'Stop', matcher: null },
   { event: 'SubagentStop', matcher: null },
   { event: 'SubagentStart', matcher: null },
+  { event: 'PreCompact', matcher: null },
 ];
 
 /**

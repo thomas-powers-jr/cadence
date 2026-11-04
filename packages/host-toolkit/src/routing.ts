@@ -41,6 +41,8 @@ export const CLAUDE_CODE_EXPECTED_HOOKS: readonly ExpectedManagedHook[] = [
   { event: 'Stop', matcher: null },
   { event: 'SubagentStop', matcher: null },
   { event: 'SubagentStart', matcher: null },
+  // Phase 345: record-only, never blocking — the shim clamps its exit to 0.
+  { event: 'PreCompact', matcher: null },
 ];
 
 /**
@@ -74,6 +76,8 @@ const EVENT_TABLE: Record<string, AbstractEvent> = {
   Stop: 'session-stop',
   SubagentStop: 'subagent-result',
   SubagentStart: 'subagent-start',
+  // Phase 345: Claude Code only — Codex's own table keeps PreCompact unmapped.
+  PreCompact: 'pre-compact',
 };
 
 /**
@@ -96,11 +100,23 @@ export function extractPayload(raw: unknown): ExtractedPayload | undefined {
     tool_input?: { file_path?: unknown; skill?: unknown };
     agent_id?: unknown;
     agent_type?: unknown;
+    trigger?: unknown;
   };
   const agentId = typeof r.agent_id === 'string' && r.agent_id.length > 0 ? r.agent_id : undefined;
   const agentType =
     typeof r.agent_type === 'string' && r.agent_type.length > 0 ? r.agent_type : undefined;
   const agentFields = { ...(agentId ? { agentId } : {}), ...(agentType ? { agentType } : {}) };
+
+  if (r.hook_event_name === 'PreCompact') {
+    // Phase 345: forward the compaction trigger (`auto`/`manual`, or any
+    // future string) verbatim. Only `trigger` is extracted — no other
+    // PreCompact field (custom_instructions, transcript_path) is.
+    const fields = {
+      ...(typeof r.trigger === 'string' ? { compactTrigger: r.trigger } : {}),
+      ...agentFields,
+    };
+    return Object.keys(fields).length > 0 ? fields : undefined;
+  }
 
   if (r.hook_event_name !== 'PreToolUse' && r.hook_event_name !== 'PostToolUse') {
     // SubagentStart/SubagentStop (and any other future event) only ever
@@ -180,13 +196,103 @@ export function routeHookEvent(raw: string): RouteResult {
   // 8. extract + translate the payload
   const extracted = extractPayload(parsed);
   const translated: Record<string, unknown> = { ...(parsed as Record<string, unknown>) };
+  // Phase 345 (AC-1): compactTrigger is adapter-owned; a host key of that
+  // name never passes through, so only extractPayload's value can set it.
+  delete translated.compactTrigger;
   if (extracted?.files) translated.files = extracted.files;
   if (extracted?.skill) translated.skill = extracted.skill;
   // Core's `cadence hook` reads camelCase agentId/agentType only; the
   // snake_case originals survive the spread but are invisible to it (318-01).
   if (extracted?.agentId) translated.agentId = extracted.agentId;
   if (extracted?.agentType) translated.agentType = extracted.agentType;
+  // Phase 345: core's `cadence hook pre-compact` reads camelCase compactTrigger.
+  if (extracted?.compactTrigger !== undefined) translated.compactTrigger = extracted.compactTrigger;
   return { abstractEvent, translatedStdin: JSON.stringify(translated) };
+}
+
+/** What became of one shim → core hand-off: the core child exited (with
+ *  `code`, `null` when a signal ended it), or the spawn or the shim itself
+ *  failed with `message`. */
+export type HookShimOutcome =
+  | { kind: 'exit'; code: number | null }
+  | { kind: 'error'; message: string };
+
+export interface HookShimExit {
+  exitCode: number;
+  /** Text to write to stderr as-is; `''` when there is nothing to say. */
+  stderr: string;
+}
+
+/**
+ * Pure (phase 345, AC-6): the shim's `hook cwd divergence` diagnostic line, or
+ * '' when there is nothing to report. It is suppressed for `pre-compact`, whose
+ * contract is exactly one shim stderr line (and only on failure).
+ */
+export function cwdDivergenceNotice(
+  event: AbstractEvent | null,
+  payloadCwd: string | undefined,
+  shimCwd: string,
+): string {
+  if (event === 'pre-compact' || payloadCwd === undefined || payloadCwd === shimCwd) return '';
+  return `hook cwd divergence: payload cwd=${payloadCwd}, shim process cwd=${shimCwd}; spawning with payload cwd\n`;
+}
+
+/** How the shim spawns core: `{ command, args, shell }`. */
+export interface CoreSpawnPlan {
+  command: string;
+  args: string[];
+  shell: boolean;
+}
+
+/**
+ * Pure (phase 345, AC-6): plan the core spawn. On win32 the shim needs a
+ * shell (so `npx`/`.cmd` shims resolve), and with `shell: true` Node joins the
+ * file and args with spaces anyway. Passing that joined string with an empty
+ * args list is therefore the same command line, but it avoids Node 24's
+ * DEP0190 warning (printed whenever `shell: true` gets an args array), which
+ * would otherwise add two lines to every hook's stderr. Elsewhere: no shell,
+ * args passed as an array, exactly as before.
+ */
+export function planCoreSpawn(
+  exe: string,
+  args: readonly string[],
+  platform: NodeJS.Platform,
+): CoreSpawnPlan {
+  if (platform === 'win32') return { command: [exe, ...args].join(' '), args: [], shell: true };
+  return { command: exe, args: [...args], shell: false };
+}
+
+/**
+ * Pure exit-code policy for a hook shim (phase 345, AC-6). `pre-compact` is
+ * record-only and must never block a compaction — including when a newer
+ * adapter runs against an older core that rejects the event (exit 2) — so for
+ * that event alone every non-zero exit and every error resolves to exit 0 with
+ * exactly one stderr line naming the cause. Every other event keeps its
+ * pre-345 handling: the core's own exit code (`null` → 0), or exit 1 with the
+ * error message on a spawn/shim failure. Transport policy only; the shim
+ * performs the write.
+ */
+export function resolveHookShimExit(
+  event: AbstractEvent | null,
+  outcome: HookShimOutcome,
+): HookShimExit {
+  const cause = outcome.kind === 'error' ? outcome.message : `core exited with code ${outcome.code}`;
+  const failed = outcome.kind === 'error' || (outcome.code !== null && outcome.code !== 0);
+  if (event === 'pre-compact') {
+    // A null code means a signal killed core: report it, still exit 0.
+    if (outcome.kind === 'exit' && outcome.code === null) {
+      return {
+        exitCode: 0,
+        stderr: 'cadence pre-compact: core was terminated by a signal; exiting 0 so compaction is never blocked\n',
+      };
+    }
+    return {
+      exitCode: 0,
+      stderr: failed ? `cadence pre-compact: ${cause}; exiting 0 so compaction is never blocked\n` : '',
+    };
+  }
+  if (outcome.kind === 'error') return { exitCode: 1, stderr: `${outcome.message}\n` };
+  return { exitCode: outcome.code ?? 0, stderr: '' };
 }
 
 // ---------------------------------------------------------------------------
