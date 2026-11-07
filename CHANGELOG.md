@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.74.0] - 2026-11-07
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.74.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **`verification.fallback: "refuse"` turns a silent mock downgrade into a refusal.** When a verifier seam cannot reach its configured real provider (a missing Anthropic key, an unset local endpoint, a host CLI binary that will not launch, a timeout, or the claude self-invocation guard), it has printed a loud notice and continued on mock. That stays the behavior when the key is absent or `"mock"`, and `cadence init` does not write it. With `"refuse"`, the call fails instead, naming the seam, the setting and the cause: `deep-verify`, `code-review` and `security-audit` refuse settle (their existing bypasses still apply), and `per-task-verify`, `plan-review`, `spec-review` and `ui-spec-review` make `cadence build task`, `draft approve` or `spec approve` exit 1 without changing loop state. Refusal is lazy, so a gate that does not fire never refuses. `cadence doctor` gains an informational `verification-fallback` check, and under `"refuse"` its `verification-readiness` warnings say a seam will refuse. Meant for automated consumers, such as CI or Cadence Studio, that must never settle on a mock by accident. The types package's `CadenceConfigZ` gains the optional field; existing configs parse unchanged. (Phase `343`, rec-20261030-004, dec-20261030-060, -061, -062, #597.)
+- **Claude Code compactions now leave a record.** The Claude Code adapter installs a `PreCompact` hook routed to a new `pre-compact` abstract event, forwarding the host's trigger (`auto` or `manual`) as `compactTrigger`. `cadence hook pre-compact` writes one machine-facts record to `.cadence/local/precompact/PRECOMPACT-<stamp>.md`: the trigger, the loop position and active phase, draft and spec, local git facts (no fetch) and the hook payload's field names, never their values; the newest five are kept. The hook never writes stdout, never changes `state.json`, `STATE.md`, any `SESSION-*.md` or any intelligence file, never creates `.cadence/`, and always exits 0 with one stderr line; host-toolkit's new `resolveHookShimExit` clamps a non-zero core exit to 0 for this event, so a newer adapter on an older core cannot block a compaction. When the newest record is newer than the freshest SESSION doc, the SessionStart banner and `cadence resume` print a `Pre-compaction record:` pointer, and `cadence resume --json` carries an optional `precompactRecord` `{ path, trigger, generatedAt }`. The types package gains `pre-compact` in `AbstractEventZ`, an optional `compactTrigger` on `HookContextZ`, and an optional `precompactRecord` on `ResumeResultZ`; existing data keeps parsing. The Codex adapter keeps `PreCompact` unmapped. (Phase `345`, rec-20261101-001, rec-20261104-001, #598.)
+
+### Upgrade notes
+
+- Existing Claude Code installs lack the new `PreCompact` hook entry, so `cadence doctor`'s `host-hooks` check reports an error until you run `cadence doctor --fix --wire-host` (or re-run the Claude Code installer).
+- Projects initialized before phase 341 do not gitignore `.cadence/local/`. Add `.cadence/local/` to `.gitignore` so the pre-compaction records stay out of `git status` and out of commits.
+
 ## [1.73.0] - 2026-10-30
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.73.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
