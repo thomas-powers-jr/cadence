@@ -163,6 +163,12 @@ export interface TestRunResult {
   readonly ok: boolean;
   readonly exitCode?: number;
   readonly command?: string;
+  /** Phase 346 (346-01): set only on a failing run (`ok: false`) — a bounded
+   *  tail (at most the last 40 lines and 8 KiB) of the command's combined
+   *  stdout+stderr, ANSI-stripped. Observation only: it never affects `ok`.
+   *  Absent on a passing run, on a `ran: false` run, and on a failing run
+   *  that captured no output (never an empty string). */
+  readonly outputTail?: string;
 }
 
 /**
@@ -280,6 +286,22 @@ export interface GateFlags {
    *  the registry's gate-provenance collection report "skipped (bypassed)"
    *  instead of a misleading "ran". */
   buildTestBypassed?: boolean;
+  /** Phase 346 (346-01): set on exactly the same bypass fall-through as
+   *  `buildTestBypassed` above (a failing suite let through while the gate
+   *  was NOT sealed), carrying what that bypass actually was — `flag` is the
+   *  flag that fired (`--allow-failing-build` whenever it is set, else
+   *  `--force`, the registry.ts rule), `command` and `exitCode` the failing
+   *  test run, `outputTail` its bounded output tail when one was captured.
+   *  Settle turns it into an error-severity `build-test-must-pass`
+   *  `GateBypass` whose `detail` holds the tail. A separate field rather than
+   *  widening the boolean, following the phase 332 `reviewFindingsBypass`
+   *  precedent: provenance collection keeps reading `buildTestBypassed`. */
+  buildTestBypass?: {
+    readonly flag: '--allow-failing-build' | '--force';
+    readonly command: string;
+    readonly exitCode: number;
+    readonly outputTail?: string;
+  };
   /** Phase 226 (T3): true iff boundary-scan proceeded past a real
    *  out-of-boundary finding via --force or --allow-boundary-scan-failure
    *  while the gate was NOT sealed. Same provenance-parity role as

@@ -1,0 +1,20 @@
+{
+  "draftId": "346-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Additive schemas: GateBypassZ.detail, build-test-bypassed anomaly type, TestRunResult.outputTail, GateFlags.buildTestBypass. Independent review FIX REQUIRED on one test (detail round-trip proved nothing because GateBypassZ strips unknown keys); fixed and mutation-checked (dropping detail from the schema fails it). outputTail doc clarified (absent, never empty). Re-verified in main thread: types 400/400, full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/gates/types.ts",
+        "packages/types/src/anomaly.ts",
+        "packages/types/src/summary.ts",
+        "packages/types/tests/anomaly.test.ts",
+        "packages/types/tests/summary.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:02:19.694Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    }
+  }
+}
