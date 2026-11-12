@@ -15,6 +15,18 @@
       "execution": "dispatch",
       "isolation": "none",
       "modelClass": "complex"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "runTestCommand now streams combined stdout+stderr through a bounded ring (40 lines / 8 KiB, ANSI stripped, CRLF handled), stdin ignored, verdict from the exit code alone. Independent review FIX REQUIRED (C1: a backgrounded grandchild holding the pipes made 'close' wait its whole life; reproduced 6 s vs execSync's 5 ms): fixed in the main thread by resolving on exit with a 500 ms unref'd drain, failing-first test (10 s -> under 3 s) and a mutation check; I1 stream error listeners; ANSI regex widened to match its doc; trailing blank lines no longer use the line budget (new test). Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/verify/test-runner.ts",
+        "packages/core/tests/verify/test-runner.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:19:54.162Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
     }
   }
 }
