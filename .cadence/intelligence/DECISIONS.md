@@ -1345,6 +1345,12 @@ Thomas, 2026-11-12, on two T4 findings. (1) The implementer found that settle wr
 
 2026-11-12, during T5. settle-retro.test.ts's 'clean-run digest' case built its friction-free settle by passing bare --force over the fixture's missing AC-1 coverage; its own comment said --force was chosen because it passes the coverage gate without recording a bypass. That is exactly the loophole AC-4 closes, so the case now saw a recorded test-coverage bypass. The test's intent (a settle with no friction) is right and its fixture was relying on the bug, so the fixture now commits a real asserting AC-1 test under packages/ and settles with no bypass flag at all; no assertion was loosened. T5 now declares the file (same approach as dec-20261112-001; the settle's --allow-stale-draft covers both amendments). Also in T5: an --allow-missing-coverage coverage-bypassed event stays byte-identical to today (the flag is passed only for a bare --force), honoring the Boundary.
 
+### dec-20261112-003 — 346-01 amended in BUILD: T6 declares docs/cli.md so its --allow-failing-build row matches commands.md and --help
+
+- decided: 2026-11-12T20:23:14.685Z
+
+2026-11-12, during T6. docs/cli.md keeps a bypass table whose --allow-failing-build row phase 332 kept in sync with docs/reference/commands.md and the settle --help text for the review-bypass flags; after T6 updated those two, cli.md's row would have said less (doc drift, a named failure mode). T6 now declares docs/cli.md and the row says the bypass is recorded as an error gate bypass with the output tail, capping assurance at mixed. Left alone on purpose: DESIGN.md §3.3's 'Seven event types' line above the anomaly table was already stale before this phase (the table had 10 rows, AnomalyTypeZ has 20); per the Freshen Reflex rule it is noted in the handoff rather than rewritten here. Same --allow-stale-draft coverage as dec-20261112-001.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

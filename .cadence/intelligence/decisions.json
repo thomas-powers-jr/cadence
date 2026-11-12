@@ -1829,6 +1829,14 @@
       "status": "active",
       "decidedAt": "2026-11-12T20:06:27.196Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261112-003",
+      "title": "346-01 amended in BUILD: T6 declares docs/cli.md so its --allow-failing-build row matches commands.md and --help",
+      "rationale": "2026-11-12, during T6. docs/cli.md keeps a bypass table whose --allow-failing-build row phase 332 kept in sync with docs/reference/commands.md and the settle --help text for the review-bypass flags; after T6 updated those two, cli.md's row would have said less (doc drift, a named failure mode). T6 now declares docs/cli.md and the row says the bypass is recorded as an error gate bypass with the output tail, capping assurance at mixed. Left alone on purpose: DESIGN.md §3.3's 'Seven event types' line above the anomaly table was already stale before this phase (the table had 10 rows, AnomalyTypeZ has 20); per the Freshen Reflex rule it is noted in the handoff rather than rewritten here. Same --allow-stale-draft coverage as dec-20261112-001.",
+      "status": "active",
+      "decidedAt": "2026-11-12T20:23:14.685Z",
+      "supersedes": []
     }
   ]
 }

@@ -260,7 +260,7 @@ gate when the active profile would normally enforce it.
 | `--force` | `deep-verify`, `interactive-verdict`, `code-review`, `security-audit` (all) | Force settle past any gate failure |
 | `--allow-stale-draft` | `draft-read` | DRAFT.md was edited after approve |
 | `--allow-open-tasks` | `structural-verifier` | A task is still PENDING / IN_PROGRESS |
-| `--allow-failing-build` | `verification.testCommand` exit | Settle past a non-zero build/test exit |
+| `--allow-failing-build` | `verification.testCommand` exit | Settle past a non-zero build/test exit; recorded as an `error` gate bypass with the output tail, capping assurance at `mixed` |
 | `--allow-missing-coverage` | `test-coverage` | AC token not found in any test file |
 | `--allow-verifier-failure` | `deep-verify` transport errors | Record failure but don't refuse |
 | `--allow-code-review-failure` | `code-review` HIGH-severity findings | Record findings but settle anyway; the bypass (by this flag or `--force`) is recorded as an `error`-severity `SUMMARY.gateBypasses` entry, which caps `assurance.overall` at `mixed`, never `strong` (recorded since Phase 332) |

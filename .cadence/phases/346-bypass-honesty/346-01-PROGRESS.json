@@ -71,6 +71,23 @@
       "execution": "dispatch",
       "isolation": "none",
       "modelClass": "complex"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "docs/concepts.md (two notes), DESIGN.md anomaly table (build-test-bypassed row; coverage-bypassed row covers bare --force), commands.md and settle --help for --allow-failing-build, docs/cli.md's row (declared in BUILD, dec-20261112-003), minor changeset for core and types with upgrade notes (grade cap, the committed tail may hold secrets, bare --force), doc test reading the tail bounds from the runner's constants. Independent review FIX REQUIRED: the changeset assertion would go red once the release consumes it; fixed with the phase 325/341 CHANGELOG fallback. Also: settle's own bypass line and 'when it printed any' in the concepts note; anomaly-row helper scoped to §3.3. Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "DESIGN.md",
+        "docs/cli.md",
+        "docs/concepts.md",
+        "docs/reference/commands.md",
+        "packages/core/src/cli/commands/settle.ts",
+        ".changeset/bypass-honesty.md",
+        "packages/core/tests/docs/phase346-bypass-honesty-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-12T20:32:51.948Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
     }
   }
 }

@@ -528,6 +528,29 @@ These run on every phase regardless of profile or tier.
 | `structural-verifier` | All tasks are in a terminal state (DONE / DONE\_WITH\_CONCERNS / NEEDS\_CONTEXT / BLOCKED); a `PENDING`/`IN_PROGRESS` task refuses settle (wired Phase 39.2) | `--allow-open-tasks` or `--force` (on `settle run`) |
 | `build-test-must-pass` | When `verification.testCommand` is configured, settle runs it and refuses on a non-zero exit (wired Phase 39.2). With no `testCommand` set, the gate is evaluated but cannot enforce — it still passes, but (Phase 139) writes a loud, non-blocking stderr notice instead of passing silently. `cadence init` derives `testCommand` from `package.json#scripts.test` when it can. | `--allow-failing-build` or `--force` (on `settle run`) |
 
+> **A bypassed failing suite is recorded (phase 346).** When `settle run`
+> lets a failing `verification.testCommand` through `build-test-must-pass`
+> because of `--allow-failing-build` or `--force`, the gate prints one stderr
+> notice naming the flag that fired (`--allow-failing-build` whenever it is
+> set, otherwise `--force`), the command, its exit code and the run's
+> captured output tail (when it printed any), and settle adds its usual
+> `settle bypass [error] …` line and records one entry in
+> `SUMMARY.json.gateBypasses` at `error` severity. The entry's `flag` is that same flag, its `reason` is
+> `<command> exited <code>`, and its `detail` holds the output tail: the
+> last 40 lines of the combined stdout and stderr, capped at 8 KiB, with
+> ANSI escape codes stripped and CRLF folded to LF. `SUMMARY.md` and
+> `cadence summary render` show the `detail` as an indented block under the
+> entry. Because the entry is error-severity, phase 283's cap holds
+> `assurance.overall` at `'mixed'` or below, never `'strong'`. The gate's
+> `gates[]` entry still records `status: 'skipped'` with the same flag in
+> its skip reason. Every refusal, sealed or not, also prints the output tail
+> after its existing stderr lines; its reason and outcome are unchanged. The
+> tail never enters the anomaly event: the `build-test-bypassed` anomaly
+> carries only the flag, command and exit code, so no notifier transport
+> (`stderr`, `file` or `webhook`) receives test output. The test command's
+> exit code alone still decides pass or fail. A suite that passes records no
+> entry.
+
 ### Delta gates
 
 #### Cheap
@@ -548,6 +571,16 @@ These run on every phase regardless of profile or tier.
 > config value (schema-level default `mention` — a back-compat no-op floor;
 > the `solo`/`team`/`production` presets set stricter defaults — see
 > [Presets](reference/config.md#presets)).
+
+> **A bare `--force` over coverage gaps is recorded (phase 346).** In
+> `assertion` coverage mode, when `settle run` passes `test-coverage` over
+> real gaps (an AC with no linked test, only a weak link, or only skipped
+> linked tests) because of `--force` alone, settle records one
+> `test-coverage` entry in `SUMMARY.json.gateBypasses` at `warn` severity
+> whose `flag` is `--force`, exactly as `--allow-missing-coverage` already
+> was. `--allow-missing-coverage` behaves as before and is the named flag
+> whenever it is set. Mention mode and the phase-qualified `--force` path
+> past a missing or malformed active draft id record no coverage bypass.
 
 #### Medium
 
