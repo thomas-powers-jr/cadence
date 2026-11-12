@@ -43,6 +43,23 @@ export interface CollectAnomaliesContext {
    * pure. Omit the key when there is no such fact.
    */
   checkpointForceRelease?: { lastForcedAt: string };
+  /**
+   * Phase 346 (346-01): present iff the build-test-must-pass gate let a
+   * failing test suite through (its `flags.buildTestBypass`) — `flag` is the
+   * flag that fired, `command`/`exitCode` the failing run, `outputTail` its
+   * captured output tail when there was one. Turned into one error-severity
+   * `build-test-bypassed` event that never carries the tail, in its message
+   * or its context, because events reach notifier transports (a webhook POSTs
+   * them whole) and test output can hold secrets. Settle maps the event to a
+   * `build-test-must-pass` gate bypass and attaches the tail as its `detail`
+   * from the gate's own facts. Omit the key when there was no such bypass.
+   */
+  buildTestBypass?: {
+    flag: string;
+    command: string;
+    exitCode: number;
+    outputTail?: string;
+  };
 }
 
 export interface CollectAnomaliesOptions {
@@ -98,6 +115,19 @@ export function collectAnomalies(
       severity: 'warn',
       message: 'test-coverage gate bypassed via --allow-missing-coverage',
       context: {},
+      ts: stamp(),
+    });
+  }
+
+  // build-test-bypassed — single error event when build-test-must-pass let a
+  // failing suite through (phase 346). The tail stays out of the event.
+  if (ctx.buildTestBypass) {
+    const { flag, command, exitCode } = ctx.buildTestBypass;
+    events.push({
+      type: 'build-test-bypassed',
+      severity: 'error',
+      message: `build-test-must-pass gate bypassed via ${flag}: ${command} exited ${exitCode}`,
+      context: { flag, command, exitCode },
       ts: stamp(),
     });
   }

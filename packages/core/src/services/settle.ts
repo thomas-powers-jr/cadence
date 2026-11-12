@@ -220,6 +220,22 @@ function anomalyToGateBypass(event: AnomalyEvent): GateBypass | null {
       severity: event.severity,
     };
   }
+  if (event.type === 'build-test-bypassed') {
+    // Phase 346 (346-01): the flag, command and exit code come from the
+    // event's context (collectAnomalies sets all three). The output tail is
+    // never in the event; runAnomalyAndSkillAuditChecks attaches it as
+    // `detail` from the gate's own facts.
+    const { flag, command, exitCode } = event.context;
+    return {
+      gate: 'build-test-must-pass',
+      flag: typeof flag === 'string' ? flag : '<unknown flag>',
+      reason:
+        typeof command === 'string' && typeof exitCode === 'number'
+          ? `${command} exited ${exitCode}`
+          : event.message,
+      severity: event.severity,
+    };
+  }
   if (event.type === 'checkpoint-force-released') {
     // Phase 336 (D-CE, `dec-20261022-002`): not a CLI flag — the checkpoint
     // Stop-gate's own ceiling release, recorded under its pseudo-gate name
@@ -1251,6 +1267,7 @@ async function runAnomalyAndSkillAuditChecks(
   deepVerify: SettleAccumulator['deepVerify'],
   interactiveVerify: SettleAccumulator['interactiveVerify'],
   verifierFailure: SettleAccumulator['flags']['verifierFailure'],
+  buildTestBypass: SettleAccumulator['flags']['buildTestBypass'],
   io: CommandIO,
 ): Promise<AnomalyAndSkillAuditResult> {
   // Phase 291 (Slice 2, T2) resolved packs here so the skill-audit union
@@ -1291,8 +1308,17 @@ async function runAnomalyAndSkillAuditChecks(
     ...(interactiveVerify ? { interactiveVerify } : {}),
     ...(verifierFailure ? { verifierFailure } : {}),
     ...(checkpointForceRelease ? { checkpointForceRelease } : {}),
+    // Phase 346 (346-01): the build-test-must-pass gate's bypass facts, read
+    // off the merged gate flags (no other gate sets `buildTestBypass`).
+    ...(buildTestBypass ? { buildTestBypass } : {}),
   });
-  const gateBypasses = gateBypassesFromAnomalies(anomalies);
+  // Phase 346 (346-01): the build-test-must-pass entry's `detail` is the
+  // gate's captured output tail, taken from the gate's facts rather than the
+  // anomaly, which never carries it.
+  const tail = buildTestBypass?.outputTail;
+  const gateBypasses = gateBypassesFromAnomalies(anomalies).map((b) =>
+    b.gate === 'build-test-must-pass' && tail ? { ...b, detail: tail } : b,
+  );
   for (const bypass of gateBypasses) {
     io.err(`settle bypass [${bypass.severity}] ${bypass.gate}: ${bypass.reason} (${bypass.flag})\n`);
   }
@@ -2059,6 +2085,7 @@ export async function settleService(
       deepVerify,
       interactiveVerify,
       verifierFailure,
+      acc.flags.buildTestBypass,
       io,
     );
     if (!anomalyResult.ok) {

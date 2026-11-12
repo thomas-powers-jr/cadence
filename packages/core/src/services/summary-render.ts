@@ -1,5 +1,6 @@
 import type { Summary } from '@thomas-powers-jr/cadence-types';
 import { renderFindingsSection } from '../parse/findings-render.js';
+import { renderGateBypassLines } from '../parse/summary-writer.js';
 import { formatUnobservableNote } from './ac-observability-label.js';
 import { formatVerifierRollupLabel } from './verifier-label.js';
 
@@ -51,9 +52,8 @@ export function renderSummaryForReview(s: Summary): string {
 
   if (s.gateBypasses && s.gateBypasses.length > 0) {
     lines.push('', '## Gate bypasses', '');
-    for (const b of s.gateBypasses) {
-      lines.push(`- ${b.severity.toUpperCase()} ${b.gate} via ${b.flag}: ${b.reason}`);
-    }
+    // Phase 346 (346-01): the same entry renderer as the settle-written SUMMARY.md.
+    for (const b of s.gateBypasses) lines.push(...renderGateBypassLines(b));
   }
 
   if (s.assurance) {

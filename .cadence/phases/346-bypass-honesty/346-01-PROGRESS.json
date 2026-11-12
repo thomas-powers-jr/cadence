@@ -39,6 +39,23 @@
       "execution": "dispatch",
       "isolation": "none",
       "modelClass": "complex"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "A bypassed failing suite becomes one error-severity build-test-must-pass gateBypasses entry (flag that fired, command exited N, detail = output tail); assurance capped at mixed, shown live (strong -> mixed) and by re-derivation. Main-thread fixes after the independent review (PASS): the output tail never enters the anomaly event (the webhook notifier POSTs events whole), settle attaches it as detail from the gate's facts; one shared renderGateBypassLines in parse/summary-writer.ts so the settle-written SUMMARY.md shows the tail (DRAFT amended in BUILD, dec-20261112-001); 6-space indent; a record with detail passes hash verification; '<unknown flag>' instead of a silent '--force'. Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/notify/collect.ts",
+        "packages/core/src/parse/summary-writer.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/services/summary-render.ts",
+        "packages/core/tests/parse/summary-writer.test.ts",
+        "packages/core/tests/services/settle-build-test-bypass.test.ts",
+        "packages/core/tests/services/summary-render-bypass-detail.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:54:25.586Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
     }
   }
 }
