@@ -229,11 +229,45 @@ describe('runTestCommand output tail (phase 346)', () => {
     expect(result.outputTail?.endsWith('row-40')).toBe(true);
   });
 
+  it('346-01/AC-1: stdout and stderr chunks are kept in arrival order in one tail', async () => {
+    const cmd = script(
+      `const w = (ms) => new Promise((r) => setTimeout(r, ms));
+       (async () => {
+         process.stdout.write('A\\n'); await w(150);
+         process.stderr.write('B\\n'); await w(150);
+         process.stdout.write('C\\n'); process.exitCode = 1;
+       })();`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('A\nB\nC');
+  });
+
+  it('346-01/AC-1: secrets in the output are redacted before the tail is kept', async () => {
+    const token = 'ghp_' + 'a'.repeat(36);
+    const cmd = script(
+      `process.stdout.write('token ${'$'}{${JSON.stringify(token)}}\\n'); process.stderr.write('API_KEY=supersecretvalue123\\n'); process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toContain('[REDACTED]');
+    expect(result.outputTail).not.toContain(token);
+    expect(result.outputTail).not.toContain('supersecretvalue123');
+    expect(result.outputTail).toContain('API_KEY=');
+  });
+
+  it('346-01/AC-1: a lone CR progress redraw and other control characters are removed from the tail', async () => {
+    const cmd = script(
+      `process.stdout.write('progress 1%\\rprogress 99%\\x07\\n'); process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).not.toMatch(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/);
+    expect(result.outputTail).toContain('progress 99%');
+  });
+
   it('346-01/AC-1: a backgrounded grandchild still holding the output pipes does not hold the verdict: the run resolves on the shell\'s exit', async () => {
     const pidFile = path.join(scriptDir, `grandchild-${scriptSeq}.pid`);
     const cmd = script(
       `const { spawn } = require('node:child_process');
-       const g = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 10000)'], { detached: true, stdio: 'inherit' });
+       const g = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { detached: true, stdio: 'inherit' });
        require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, String(g.pid));
        g.unref();
        process.stdout.write('parent-out-346\\n');
@@ -242,7 +276,8 @@ describe('runTestCommand output tail (phase 346)', () => {
     const started = Date.now();
     try {
       const result = await runTestCommand(process.cwd(), cmd);
-      expect(Date.now() - started).toBeLessThan(3000);
+      // Far below the grandchild's 30 s life, with room for cold node starts on slow CI legs.
+      expect(Date.now() - started).toBeLessThan(7000);
       expect(result.ok).toBe(false);
       expect(result.exitCode).toBe(3);
       expect(result.outputTail).toContain('parent-out-346');

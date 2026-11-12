@@ -8,5 +8,5 @@ Bypassing a failing test suite or real coverage gaps at settle now leaves a dura
 Upgrade notes:
 
 - A settle that bypasses a failing test suite with `--allow-failing-build` or `--force` now grades at most `mixed`, never `strong`.
-- The output tail is written into the phase's `SUMMARY.json` and `SUMMARY.md`, which the single-commit settle convention commits. Test output can contain secrets, such as environment dumps or tokens; review the `detail` block before committing a settle that bypassed a failing suite.
+- The output tail is written into the phase's `SUMMARY.json` and `SUMMARY.md`, which the single-commit settle convention commits. Test output can contain secrets; secret-shaped text (tokens, `KEY=value` pairs, private keys) is redacted with the same `redactSecrets` used for SUMMARY findings, but redaction is pattern-based; review the `detail` block before committing a settle that bypassed a failing suite.
 - A bare `--force` over coverage gaps in `assertion` mode now adds a `warn` entry to `gateBypasses`. Automation that expects no `gateBypasses` on such a settle should pass real coverage instead.

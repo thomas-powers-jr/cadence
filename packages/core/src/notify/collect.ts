@@ -64,7 +64,7 @@ export interface CollectAnomaliesContext {
    * from the gate's own facts. Omit the key when there was no such bypass.
    */
   buildTestBypass?: {
-    flag: string;
+    flag: '--allow-failing-build' | '--force';
     command: string;
     exitCode: number;
     outputTail?: string;

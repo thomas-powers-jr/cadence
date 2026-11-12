@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import type { TestRunResult } from '../gates/types.js';
+import { redactSecrets } from '../security/redact.js';
 
 /** Most lines a failing run's `outputTail` keeps. */
 export const OUTPUT_TAIL_MAX_LINES = 40;
@@ -24,6 +25,9 @@ const RAW_RING_CHARS = OUTPUT_TAIL_MAX_BYTES * 8;
  * exit code either way; this only bounds how long its last output may lag.
  */
 const PIPE_DRAIN_MS = 500;
+// The drain is not a timeout: the command itself is never killed, and the
+// grandchild is left running once its pipes are destroyed, exactly as it was
+// under execSync.
 
 /**
  * ANSI escape sequences removed from the tail:
@@ -37,6 +41,10 @@ const PIPE_DRAIN_MS = 500;
  * surrogate pair cut in half at the very start of the retained ring, which
  * can leave a fragment such as `31m` or a U+FFFD on the tail's first line.
  */
+// C0 controls except TAB and LF, DEL, and the C1 range (0x9b is the 8-bit CSI).
+// eslint-disable-next-line no-control-regex
+const CONTROL_RE = /[\x00-\x08\x0b-\x1f\x7f-\x9f]/g;
+
 const ANSI_RE = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[ -/]*[0-~]/g;
 
 /**
@@ -57,15 +65,25 @@ class TailRing {
   }
 
   /**
-   * The final tail: ANSI stripped, split on LF with a CR before each LF
-   * dropped, a trailing unterminated line kept, then cut to the last
+   * The final tail: ANSI stripped, other control characters (a lone CR
+   * progress redraw, BEL, BS, the 8-bit CSI) removed except TAB and LF,
+   * secrets redacted with the same `redactSecrets` the SUMMARY's findings
+   * use (before the caps, because redaction can lengthen text), split on LF
+   * with a CR before each LF dropped, a trailing unterminated line kept, then
+   * cut to the last
    * OUTPUT_TAIL_MAX_LINES lines and the last OUTPUT_TAIL_MAX_BYTES bytes
    * (when the byte cap cuts a line, its tail end is kept). `undefined` when
    * nothing but whitespace was captured — never an empty string.
    */
   finish(): string | undefined {
-    const text = this.buf.slice(-RAW_RING_CHARS).replace(ANSI_RE, '');
-    const lines = text.split('\n').map((l) => (l.endsWith('\r') ? l.slice(0, -1) : l));
+    const text = redactSecrets(
+      this.buf
+        .slice(-RAW_RING_CHARS)
+        .replace(ANSI_RE, '')
+        .replace(/\r\n/g, '\n')
+        .replace(CONTROL_RE, ''),
+    );
+    const lines = text.split('\n');
     // A trailing LF terminates the last line; it does not start a new one, and
     // trailing blank lines are not worth any of the line budget.
     while (lines.length > 0 && lines[lines.length - 1]?.trim() === '') lines.pop();
