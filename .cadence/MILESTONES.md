@@ -1343,6 +1343,13 @@ changeset (example/test-only change, no published-package surface).*
   exits 0 and the shim clamps a failed core exit to 0. The SessionStart
   banner and `cadence resume` point at a record newer than the last
   handoff. Codex stays unmapped (rec-20261101-001).
+- **Phase 346** — bypass honesty: a failing suite let through by
+  `--allow-failing-build` or `--force` now prints one stderr notice with the
+  run's output tail and is recorded as an `error` `SUMMARY.gateBypasses`
+  entry carrying that tail (last 40 lines / 8 KiB), capping assurance at
+  `mixed`; the tail never reaches notifier transports. A bare `--force` over
+  assertion-mode coverage gaps is recorded as a `warn` bypass
+  (rec-20260806-006, rec-20260726-005).
 
 
 

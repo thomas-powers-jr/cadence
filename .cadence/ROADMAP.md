@@ -4151,6 +4151,50 @@ the newest record when it is newer than the freshest SESSION doc. Tier
   count) was fixed, and a doc-content test pins the hook-events list in
   `docs/reference/commands.md` to `AbstractEventZ`.
 
+### Phase 346 — Bypass honesty: a bypassed failing suite or coverage gap is recorded, shown and graded (rec-20260806-006, rec-20260726-005)
+
+**Objective.** A settle that let a failing test suite through with
+`--allow-failing-build` or `--force` left no trace an operator could use: the
+`build-test-must-pass` bypass branch wrote nothing to stderr, the test runner
+ran the suite with `stdio: 'ignore'` so its output was lost, and the bypass
+reached `SUMMARY.json` only as a skipped `gates[]` entry, never
+`gateBypasses`, so such a settle could grade `strong`. A bare `--force` past
+real coverage gaps in assertion mode was not recorded either. This phase
+makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
+`complex`.
+
+**As built.**
+- Operator decisions: a bypassed failing suite is `error` severity, so the
+  phase 283 rule caps assurance at `mixed`; the output tail is carried in the
+  gateBypasses entry's new optional `detail` field.
+- `runTestCommand` now spawns through a shell (same cwd and env, no timeout,
+  stdin ignored) and streams stdout and stderr into a bounded ring: a failing
+  run's `outputTail` holds at most the last 40 lines and 8 KiB, ANSI
+  stripped, CRLF folded. The exit code alone decides pass or fail. The T2
+  review found that waiting for `close` let a backgrounded grandchild hold
+  settle open for its whole life (execSync with ignored stdio never waited on
+  pipes), so the run resolves on the shell's exit plus a 500 ms pipe drain.
+- The gate prints one stderr notice naming the flag that fired
+  (`--allow-failing-build` wins over `--force`, the registry rule), the
+  command, the exit code and the tail; every refusal, sealed or not, also
+  shows the tail with its reason and outcome unchanged.
+- Settle records one `error` `build-test-must-pass` gateBypasses entry
+  (`reason` "<command> exited <code>", `detail` the tail). The T4 review
+  found the anomaly context carried the tail and the webhook notifier POSTs
+  events whole, so the tail now never enters a `build-test-bypassed` event;
+  settle attaches it from the gate's own facts.
+- The DRAFT was amended in BUILD three times, each with a decision and
+  covered by `--allow-stale-draft` at settle: T4 declared
+  `parse/summary-writer.ts` (settle's SUMMARY.md writer, now sharing one
+  `renderGateBypassLines` with `summary render`; dec-20261112-001), T5
+  declared `settle-retro.test.ts`, whose clean-run fixture relied on the bare
+  `--force` coverage loophole and now has real AC-1 coverage
+  (dec-20261112-002), and T6 declared `docs/cli.md` (dec-20261112-003).
+- In assertion mode a bare `--force` over real gaps (absent, weak or
+  skipped-only, the gate's own refusal buckets) is now a `warn`
+  `test-coverage` bypass naming `--force`; `--allow-missing-coverage` is
+  byte-identical to before.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
