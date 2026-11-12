@@ -56,6 +56,21 @@
       "execution": "dispatch",
       "isolation": "none",
       "modelClass": "complex"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "In assertion mode, an unsealed bare --force pass over real coverage gaps (absent, weak or skipped-only, exactly the refusal's buckets) now sets coverageBypassed; registry skip reason, anomaly message and the warn gateBypasses entry name --force; --allow-missing-coverage stays byte-identical and wins when both are set; registry's build-test skip reason reads the gate's own flag. settle-retro.test.ts's clean-run fixture relied on the old loophole and now has real AC-1 coverage (no assertion loosened; T5 declares it, decision 2026-11-12). Independent review PASS; added a skipped-only gate case and aligned the flag helper's truthiness with the gate. Full turbo pipeline 28/28 (core 5407 passed).",
+      "touchedFiles": [
+        "packages/core/src/gates/coverage.ts",
+        "packages/core/src/gates/registry.ts",
+        "packages/core/tests/gates/registry.test.ts",
+        "packages/core/tests/services/settle-retro.test.ts",
+        "packages/core/tests/gates/coverage-force-bypass.test.ts"
+      ],
+      "updatedAt": "2026-11-12T20:18:57.432Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
     }
   }
 }

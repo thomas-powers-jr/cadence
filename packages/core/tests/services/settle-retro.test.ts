@@ -150,13 +150,19 @@ describe('settle writes + offers a retro artifact (Phase 174)', () => {
   it('records a clean-run digest as "no friction detected" when settle has no bypasses/rough tasks', async () => {
     const root = await setupRepo(parent);
     const { io } = captureIO();
-    // Deliberately --force instead of --allow-missing-coverage: the
-    // test-coverage gate's `coverageBypassed` flag is set unconditionally
-    // whenever --allow-missing-coverage is passed (regardless of whether a
-    // bypass was actually needed) — see gates/coverage.ts. --force alone,
-    // with a structurally-clean DONE task, passes the gate without flipping
-    // that flag, so this is the genuinely friction-free path.
-    const res = await settleService(root, { auto: true, force: true }, io);
+    // A genuinely friction-free settle: real asserting AC-1 coverage and no
+    // bypass flag at all. This used to settle with bare --force over the
+    // fixture's missing coverage, which passed the gate without recording
+    // anything; since phase 346 (346-01/AC-4) that --force pass over a real
+    // gap is recorded as a test-coverage bypass, so it is friction now.
+    await mkdir(join(root, 'packages', 'app'), { recursive: true });
+    await writeFile(
+      join(root, 'packages', 'app', 'clean.test.ts'),
+      "import { it, expect } from 'vitest';\nit('AC-1 the clean path holds', () => {\n  expect(1).toBe(1);\n});\n",
+    );
+    git(root, ['add', '.']);
+    git(root, ['commit', '-m', 'cover AC-1']);
+    const res = await settleService(root, { auto: true }, io);
     expect(res.exitCode).toBe(0);
     const md = await readFile(join(root, '.cadence', 'phases', PHASE, '174-01-RETRO.md'), 'utf8');
     expect(md).toContain('No friction detected this settle.');

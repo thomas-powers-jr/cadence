@@ -40,6 +40,7 @@ import {
 } from '../verify/verifier-factory.js';
 import type { VerifyTestRef } from '../contracts/index.js';
 import { runSettleGates } from '../gates/registry.js';
+import { coverageBypassFlag } from '../gates/coverage.js';
 import { deriveAcEvidence, checkEvidenceFloor, isUnobservableAc } from '../gates/ac-evidence.js';
 import { classifyAcObservability } from '../verify/criteria-observability.js';
 import {
@@ -189,9 +190,12 @@ function mergePassShorthands(draftAcIds: string[], explicit: AcResult[], opts: S
 function anomalyToGateBypass(event: AnomalyEvent): GateBypass | null {
   if (event.severity === 'info') return null;
   if (event.type === 'coverage-bypassed') {
+    // Phase 346 (346-01, T5): the flag that fired rides in context.flag
+    // (collect.ts); an event without it is a pre-346 --allow-missing-coverage one.
+    const flag = event.context.flag === '--force' ? '--force' : '--allow-missing-coverage';
     return {
       gate: 'test-coverage',
-      flag: '--allow-missing-coverage',
+      flag,
       reason: event.message,
       severity: event.severity,
     };
@@ -1301,6 +1305,11 @@ async function runAnomalyAndSkillAuditChecks(
     draft,
     progress,
     coverageBypassed,
+    // Phase 346 (346-01, T5): name the flag that fired (shared rule with
+    // registry.ts's gates[] skip reason). Passed only for a bare --force
+    // bypass, so an --allow-missing-coverage event stays byte-identical to
+    // today (message and empty context).
+    ...(coverageBypassed && coverageBypassFlag(opts) === '--force' ? { coverageBypassFlag: '--force' as const } : {}),
     force: opts.force === true,
     root: cwd,
     autoComplexOverride: gateSet.softCap && opts.allowAutoComplex === true,

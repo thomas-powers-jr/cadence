@@ -11,8 +11,17 @@ import { parseAcRefs } from '../parse/ac-refs.js';
 export interface CollectAnomaliesContext {
   draft: Draft;
   progress: ProgressFile;
-  /** True iff `--allow-missing-coverage` was used AND `test-coverage` was in the gate set. */
+  /** True iff the `test-coverage` gate reported a bypass (`--allow-missing-coverage`,
+   *  or, phase 346, bare `--force` over real assertion-mode gaps). */
   coverageBypassed: boolean;
+  /**
+   * Phase 346 (346-01, T5): the flag that fired for that coverage bypass. When
+   * present, the coverage-bypassed event names it in its message and carries
+   * it as `context.flag`, which settle maps onto the test-coverage gate
+   * bypass. When absent the event is exactly the pre-346 one (message names
+   * `--allow-missing-coverage`, empty context).
+   */
+  coverageBypassFlag?: '--allow-missing-coverage' | '--force';
   /** True iff `--force` was set on settle. */
   force: boolean;
   /**
@@ -110,11 +119,12 @@ export function collectAnomalies(
 
   // coverage-bypassed — single event when bypass flag flipped a gate that was active.
   if (ctx.coverageBypassed) {
+    const flag = ctx.coverageBypassFlag;
     events.push({
       type: 'coverage-bypassed',
       severity: 'warn',
-      message: 'test-coverage gate bypassed via --allow-missing-coverage',
-      context: {},
+      message: `test-coverage gate bypassed via ${flag ?? '--allow-missing-coverage'}`,
+      context: flag !== undefined ? { flag } : {},
       ts: stamp(),
     });
   }
