@@ -27,6 +27,18 @@
       "execution": "dispatch",
       "isolation": "none",
       "modelClass": "complex"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Bypass branch writes exactly one stderr notice (gate, flag that fired with --allow-failing-build winning, command, exit code, indented output tail) and returns flags.buildTestBypass; every refusal, sealed or not, appends the tail with its reason and outcome byte-identical. One phase-141 assertion (silent bypass) superseded by AC-2 and its misleading title renamed per the independent review (PASS); both-flags test made exact; refusal-vs-bypass fallback difference commented. Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/gates/build-test-must-pass.ts",
+        "packages/core/tests/gates/build-test-must-pass.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:31:35.812Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
     }
   }
 }
