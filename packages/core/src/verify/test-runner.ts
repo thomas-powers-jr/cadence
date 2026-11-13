@@ -42,9 +42,11 @@ const CONTROL_RE = /[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066
  * the last `@` in the token, so an `@` or `/` inside a password is covered
  * while `file:///…/@vitest/runner` stack frames and
  * `https://registry.npmjs.org/@types/node` are left alone.
+ * Both parts are capped at 256 characters so a long run of `x://` cannot make
+ * the scan quadratic (no real user name or password is that long).
  */
 const URL_USERINFO_RE =
-  /(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/)(?!\/)[^\s"'<>/@:]*(?::[^\s"'<>]*)?@/g;
+  /(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/)(?!\/)[^\s"'<>/@:]{0,256}(?::[^\s"'<>]{0,256})?@/g;
 /** An upper-case shell assignment anywhere in output: env dumps, npm's `sh -c` footer, `set -x` traces. */
 const OUTPUT_ASSIGNMENT_RE = /(^|[\s;&|(>+"'])([A-Z_][A-Z0-9_]*)=("[^"]*"|'[^']*'|\S+)/gm;
 /** A quoted credential-named key, as JSON and assertion diffs print objects: `"password": "x"`. */
@@ -81,7 +83,7 @@ export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv
   };
   const addUserinfo = (text: string): void => {
     for (const m of text.matchAll(
-      /(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/(?!\/)([^\s"'<>/@:]*(?::[^\s"'<>]*)?)@/g,
+      /(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/(?!\/)([^\s"'<>/@:]{0,256}(?::[^\s"'<>]{0,256})?)@/g,
     ))
       add(m[1]);
   };
