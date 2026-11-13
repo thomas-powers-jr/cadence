@@ -47,10 +47,11 @@ function withBuildTestEntry(s: Summary, detail?: string): Summary {
 }
 
 describe('summary-render gateBypasses detail (phase 346, T4)', () => {
-  it('346-01/AC-3: an entry with detail prints its bullet, then every detail line indented by six spaces', () => {
+  it('346-01/AC-3: an entry with detail prints its bullet, a blank line, then every detail line indented by six spaces (a CommonMark indented code block, not a lazy paragraph continuation)', () => {
     const md = renderSummaryForReview(withBuildTestEntry(loadFixture(), TAIL));
     const expected = [
       '- ERROR build-test-must-pass via --allow-failing-build: pnpm test exited 1',
+      '',
       '      FAIL tests/a.test.ts > adds',
       '        expected 3 to be 4',
       '      Tests  1 failed | 9 passed',
@@ -69,12 +70,9 @@ describe('summary-render gateBypasses detail (phase 346, T4)', () => {
     const fixture = loadFixture();
     const withDetail = renderSummaryForReview(withBuildTestEntry(fixture, TAIL));
     const without = renderSummaryForReview(withBuildTestEntry(fixture));
-    const detailLines = new Set(TAIL.split('\n').map((l) => `      ${l}`));
-    const stripped = withDetail
-      .split('\n')
-      .filter((l) => !detailLines.has(l))
-      .join('\n');
-    expect(stripped).toBe(without);
+    const block = ['', ...TAIL.split('\n').map((l) => `      ${l}`)].join('\n');
+    expect(withDetail).toContain(`exited 1\n${block}\n`);
+    expect(withDetail.replace(`\n${block}`, '')).toBe(without);
     expect(withDetail).not.toBe(without);
   });
 

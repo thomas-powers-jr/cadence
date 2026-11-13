@@ -9,12 +9,12 @@ export const OUTPUT_TAIL_MAX_LINES = 40;
 export const OUTPUT_TAIL_MAX_BYTES = 8 * 1024;
 
 /**
- * Raw (pre-ANSI-strip) characters the capture ring retains. Eight times the
- * byte cap, so escape-heavy output (colour codes around every word) still
- * leaves a full 8 KiB / 40-line tail once the sequences are stripped, while
- * memory stays bounded no matter how much the command prints.
+ * Characters the capture ring retains. Escape sequences are filtered out
+ * before text reaches the ring, so this is plain text; eight times the byte
+ * cap leaves room for control characters and the redaction step while memory
+ * stays bounded no matter how much the command prints.
  */
-const RAW_RING_CHARS = OUTPUT_TAIL_MAX_BYTES * 8;
+const RING_CHARS = OUTPUT_TAIL_MAX_BYTES * 8;
 
 /**
  * How long, after the shell exits, the pipes may still drain before they are
@@ -29,28 +29,110 @@ const PIPE_DRAIN_MS = 500;
 // grandchild is left running once its pipes are destroyed, exactly as it was
 // under execSync.
 
-/**
- * ANSI escape sequences removed from the tail:
- * - OSC: `ESC ]` ... terminated by BEL or ST (`ESC \`) — e.g. the
- *   `ESC ]8;;url BEL` hyperlinks vitest and friends print;
- * - CSI: `ESC [` parameter bytes, intermediate bytes, one final byte — SGR
- *   colours (`ESC [31m`), erase-line (`ESC [2K`), cursor moves (`ESC [1G`);
- * - any other escape: `ESC`, optional intermediate bytes, one final byte —
- *   `ESC c`, `ESC 7`, `ESC M`, and charset selection such as `ESC ( B`.
- * Not covered: 8-bit C1 controls (0x9B CSI etc.), and a sequence or a UTF-16
- * surrogate pair cut in half at the very start of the retained ring, which
- * can leave a fragment such as `31m` or a U+FFFD on the tail's first line.
- */
-// C0 controls except TAB and LF, DEL, and the C1 range (0x9b is the 8-bit CSI).
+// C0 controls except TAB and LF, DEL, and the C1 range. Applied after the
+// escape filter, so it only removes stray controls: a lone CR progress
+// redraw, BEL, BS.
 // eslint-disable-next-line no-control-regex
 const CONTROL_RE = /[\x00-\x08\x0b-\x1f\x7f-\x9f]/g;
 
-const ANSI_RE = /\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[ -/]*[0-~]/g;
+const ESC = 0x1b;
+const BEL = 0x07;
+/** Bytes after ESC that open a string sequence: P (DCS), X (SOS), ] (OSC), ^ (PM), _ (APC). */
+const STRING_FINALS = new Set([0x50, 0x58, 0x5d, 0x5e, 0x5f]);
+/** C1 code points that open a string sequence: DCS, SOS, OSC, PM, APC. */
+const STRING_C1 = new Set([0x90, 0x98, 0x9d, 0x9e, 0x9f]);
+
+/**
+ * Removes ANSI escape sequences from one pipe's decoded text as it streams,
+ * before anything reaches the ring, so the ring's cut can never land inside a
+ * sequence and leave its payload behind as text. One filter per pipe, so a
+ * sequence split across two chunks of the same pipe is still recognised when
+ * the other pipe's chunk arrives in between. Recognised and dropped:
+ * - string sequences: OSC `ESC ]`, DCS `ESC P`, SOS `ESC X`, PM `ESC ^`, APC
+ *   `ESC _` (or their C1 code points U+009D, U+0090, U+0098, U+009E, U+009F)
+ *   ... up to BEL, ST (`ESC \` or U+009C) — e.g. the `ESC ]8;;url BEL`
+ *   hyperlinks vitest prints; the payload may be any length. An LF, CAN or
+ *   SUB also ends one, so a stray unterminated `ESC ]` cannot swallow the
+ *   rest of the output (real payloads carry no LF); the LF is kept as text;
+ * - CSI: `ESC [` (or the C1 code point U+009B), parameter and intermediate
+ *   bytes, one final byte — SGR colours, erase-line, cursor moves;
+ * - any other escape: `ESC`, optional intermediate bytes, one final byte —
+ *   `ESC c`, `ESC 7`, `ESC M`, and charset selection such as `ESC ( B`.
+ * A sequence still open when the output ends is dropped whole. A byte that
+ * cannot continue a sequence ends it and is read again as text.
+ */
+class AnsiFilter {
+  private state: 'text' | 'esc' | 'escInter' | 'csi' | 'osc' | 'oscEsc' = 'text';
+
+  write(text: string): string {
+    let out = '';
+    let i = 0;
+    while (i < text.length) {
+      if (this.state === 'text') {
+        // Fast path: copy plain text up to the next sequence introducer.
+        let j = i;
+        while (j < text.length) {
+          const c = text.charCodeAt(j);
+          if (c === ESC || (c >= 0x90 && c <= 0x9f && STRING_C1.has(c)) || c === 0x9b) break;
+          j++;
+        }
+        out += text.slice(i, j);
+        if (j >= text.length) break;
+        const c = text.charCodeAt(j);
+        this.state = c === ESC ? 'esc' : c === 0x9b ? 'csi' : 'osc';
+        // (every other C1 introducer here is a string sequence)
+        i = j + 1;
+        continue;
+      }
+      const c = text.charCodeAt(i);
+      switch (this.state) {
+        case 'esc':
+          if (STRING_FINALS.has(c)) this.state = 'osc';
+          else if (c === 0x5b) this.state = 'csi';
+          else if (c >= 0x20 && c <= 0x2f) this.state = 'escInter';
+          else if (c >= 0x30 && c <= 0x7e) this.state = 'text';
+          else {
+            this.state = 'text';
+            continue; // not a sequence: read this character again as text
+          }
+          break;
+        case 'escInter':
+          if (c >= 0x20 && c <= 0x2f) break;
+          this.state = 'text';
+          if (c >= 0x30 && c <= 0x7e) break;
+          continue;
+        case 'csi':
+          if (c >= 0x20 && c <= 0x3f) break;
+          this.state = 'text';
+          if (c >= 0x40 && c <= 0x7e) break;
+          continue;
+        case 'osc':
+          if (c === BEL || c === 0x9c || c === 0x18 || c === 0x1a) this.state = 'text';
+          else if (c === ESC) this.state = 'oscEsc';
+          else if (c === 0x0a) {
+            this.state = 'text';
+            continue; // keep the LF as text
+          }
+          break;
+        case 'oscEsc':
+          if (c === 0x5c) {
+            this.state = 'text';
+            break;
+          }
+          // ESC not followed by `\` ends the OSC and starts a new escape.
+          this.state = 'esc';
+          continue;
+      }
+      i++;
+    }
+    return out;
+  }
+}
 
 /**
  * Bounded streaming capture of a child's combined output. Appended text is
- * kept in a ring of at most ~2×RAW_RING_CHARS characters (trimmed back to
- * RAW_RING_CHARS whenever it overflows), so neither total output size nor a
+ * kept in a ring of at most ~2×RING_CHARS characters (trimmed back to
+ * RING_CHARS whenever it overflows), so neither total output size nor a
  * single enormous newline-free line can grow memory without bound.
  */
 class TailRing {
@@ -59,35 +141,38 @@ class TailRing {
   append(text: string): void {
     if (text.length === 0) return;
     this.buf += text;
-    if (this.buf.length > RAW_RING_CHARS * 2) {
-      this.buf = this.buf.slice(-RAW_RING_CHARS);
+    if (this.buf.length > RING_CHARS * 2) {
+      this.buf = this.buf.slice(-RING_CHARS);
     }
   }
 
   /**
-   * The final tail: ANSI stripped, other control characters (a lone CR
-   * progress redraw, BEL, BS, the 8-bit CSI) removed except TAB and LF,
-   * secrets redacted with the same `redactSecrets` the SUMMARY's findings
-   * use (before the caps, because redaction can lengthen text), split on LF
-   * with a CR before each LF dropped, a trailing unterminated line kept, then
-   * cut to the last
-   * OUTPUT_TAIL_MAX_LINES lines and the last OUTPUT_TAIL_MAX_BYTES bytes
+   * The final tail of the already escape-filtered text: other control
+   * characters removed except TAB and LF (a CR before an LF first folds into
+   * the LF), secrets redacted with the same `redactSecrets` the SUMMARY's
+   * findings use (before the caps, because redaction can lengthen text), split
+   * on LF (a trailing LF ends the last line, a final unterminated line counts),
+   * cut to the last OUTPUT_TAIL_MAX_LINES lines, blank lines at the end of
+   * that window dropped, then cut to the last OUTPUT_TAIL_MAX_BYTES bytes
    * (when the byte cap cuts a line, its tail end is kept). `undefined` when
    * nothing but whitespace was captured — never an empty string.
    */
   finish(): string | undefined {
     const text = redactSecrets(
       this.buf
-        .slice(-RAW_RING_CHARS)
-        .replace(ANSI_RE, '')
+        .slice(-RING_CHARS)
         .replace(/\r\n/g, '\n')
         .replace(CONTROL_RE, ''),
     );
-    const lines = text.split('\n');
-    // A trailing LF terminates the last line; it does not start a new one, and
-    // trailing blank lines are not worth any of the line budget.
+    const all = text.split('\n');
+    // A trailing LF terminates the last line; it does not start a new one.
+    if (all.length > 0 && all[all.length - 1] === '') all.pop();
+    // The window is the last OUTPUT_TAIL_MAX_LINES lines the command printed;
+    // blank lines at its end are trimmed inside it, never refilled from
+    // older output.
+    const lines = all.slice(-OUTPUT_TAIL_MAX_LINES);
     while (lines.length > 0 && lines[lines.length - 1]?.trim() === '') lines.pop();
-    let tail = lines.slice(-OUTPUT_TAIL_MAX_LINES).join('\n');
+    let tail = lines.join('\n');
     const bytes = Buffer.from(tail, 'utf8');
     if (bytes.length > OUTPUT_TAIL_MAX_BYTES) {
       let start = bytes.length - OUTPUT_TAIL_MAX_BYTES;
@@ -165,18 +250,21 @@ export async function runTestCommand(
 
     // One decoder per pipe: a multi-byte character split across two chunks
     // of the same pipe is reassembled before it reaches the ring.
+    // One escape filter per pipe, too, for the same reason.
     const outDecoder = new StringDecoder('utf8');
     const errDecoder = new StringDecoder('utf8');
-    child.stdout.on('data', (chunk: Buffer) => ring.append(outDecoder.write(chunk)));
-    child.stderr.on('data', (chunk: Buffer) => ring.append(errDecoder.write(chunk)));
+    const outFilter = new AnsiFilter();
+    const errFilter = new AnsiFilter();
+    child.stdout.on('data', (chunk: Buffer) => ring.append(outFilter.write(outDecoder.write(chunk))));
+    child.stderr.on('data', (chunk: Buffer) => ring.append(errFilter.write(errDecoder.write(chunk))));
     // A read-side pipe error must not become an unhandled 'error' that takes
     // settle down; the exit code still decides the verdict.
     child.stdout.on('error', () => {});
     child.stderr.on('error', () => {});
 
     const flushDecoders = (): void => {
-      ring.append(outDecoder.end());
-      ring.append(errDecoder.end());
+      ring.append(outFilter.write(outDecoder.end()));
+      ring.append(errFilter.write(errDecoder.end()));
     };
     let drainTimer: NodeJS.Timeout | undefined;
     child.on('error', () => finish(1));

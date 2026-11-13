@@ -214,19 +214,85 @@ describe('runTestCommand output tail (phase 346)', () => {
     expect(result).toEqual({ ran: true, ok: false, exitCode: 1, command: 'node -e "0"\u0000' });
   });
 
-  it('346-01/AC-1: two-byte and charset escapes are stripped, and trailing blank lines do not use up the line budget', async () => {
+  it('346-01/AC-1: two-byte and charset escapes are stripped, and the tail is the last 40 lines printed, with blank lines at its end trimmed inside that window', async () => {
     const cmd = script(
       `const lines = [];
        for (let i = 1; i <= 40; i++) lines.push('row-' + i);
-       process.stdout.write('\\x1bc\\x1b7\\x1b(B' + lines.join('\\n') + '\\n\\n\\n\\n');
+       lines[39] = '\\x1bc\\x1b7\\x1b(B' + lines[39];
+       process.stdout.write(lines.join('\\n') + '\\n\\n\\n\\n');
        process.exitCode = 1;`,
     );
     const result = await runTestCommand(process.cwd(), cmd);
     expect(result.ok).toBe(false);
     expect(result.outputTail).not.toContain('\x1b');
-    expect(result.outputTail?.split('\n')).toHaveLength(40);
-    expect(result.outputTail?.startsWith('row-1')).toBe(true);
-    expect(result.outputTail?.endsWith('row-40')).toBe(true);
+    // 40 rows then 3 blank lines: the last 40 lines are row-4..row-40 and the
+    // blanks; the blanks are trimmed, never replaced by older rows.
+    expect(result.outputTail?.split('\n')).toHaveLength(37);
+    expect(result.outputTail?.startsWith('row-4\n')).toBe(true);
+    expect(result.outputTail?.endsWith('\nrow-40')).toBe(true);
+  });
+
+  it('346-01/AC-1: ST-terminated OSC, an ESC inside an OSC that opens a new sequence, and DCS/APC payloads are all stripped', async () => {
+    const cmd = script(
+      `process.stdout.write('\\x1b]8;;u\\x1b\\\\link\\x1b]0;t\\x1b[31mred\\n');
+       process.stdout.write('\\x1bPtmux;payload\\x1b\\\\dcs\\x1b_Gkitty=1\\x1b\\\\apc\\n');
+       process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('linkred\ndcsapc');
+  });
+
+  it('346-01/AC-1: a stray unterminated OSC ends at the next line, so later output survives', async () => {
+    const cmd = script(
+      `process.stdout.write('a\\n\\x1b]8;;x\\nlater\\n'); process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('a\n\nlater');
+  });
+
+  it('346-01/AC-1: an OSC payload longer than the capture ring never leaks into the tail', async () => {
+    const cmd = script(
+      `process.stdout.write('before\\n');
+       process.stdout.write('\\x1b]8;;https://example.invalid/' + 'P'.repeat(200000) + '\\x07after\\n');
+       process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('before\nafter');
+  });
+
+  it('346-01/AC-1: a sequence left open when the output ends is dropped whole', async () => {
+    const cmd = script(
+      `process.stdout.write('visible\\n\\x1b]8;;https://example.invalid/open-payload'); process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('visible');
+  });
+
+  it('346-01/AC-1: a sequence split across chunks of one pipe is stripped even when the other pipe writes in between, and 8-bit CSI is stripped', async () => {
+    const cmd = script(
+      `const w = (ms) => new Promise((r) => setTimeout(r, ms));
+       (async () => {
+         process.stdout.write('\\x1b[3'); await w(150);
+         process.stderr.write('between\\n'); await w(150);
+         process.stdout.write('1mred\\x1b[0m\\n\\u009b32mgreen\\n'); process.exitCode = 1;
+       })();`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('between\nred\ngreen');
+  });
+
+  it('346-01/AC-1: blank lines at the end of long output do not pull older lines into the 40-line window', async () => {
+    const cmd = script(
+      `const lines = [];
+       for (let i = 1; i <= 50; i++) lines.push('row-' + i);
+       process.stdout.write(lines.join('\\n') + '\\n\\n\\n\\n\\n\\n');
+       process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    const tail = result.outputTail?.split('\n') ?? [];
+    expect(tail[0]).toBe('row-16');
+    expect(tail).toHaveLength(35);
+    expect(tail[tail.length - 1]).toBe('row-50');
   });
 
   it('346-01/AC-1: stdout and stderr chunks are kept in arrival order in one tail', async () => {

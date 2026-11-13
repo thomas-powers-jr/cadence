@@ -5,8 +5,8 @@ import { formatVerifierRollupLabel } from '../services/verifier-label.js';
 
 /**
  * One gate-bypass entry as Markdown lines: its bullet, then (phase 346) its
- * optional `detail` (the build-test-must-pass output tail) with each line
- * indented 6 spaces, which is a code block inside the list item, so tail text
+ * optional `detail` (the build-test-must-pass output tail) after a blank line,
+ * each line indented 6 spaces, which is a code block inside the list item, so tail text
  * is never read as Markdown. An entry without `detail` is exactly its bullet,
  * so records written before phase 346 render byte-identically. Shared by the
  * settle-written SUMMARY.md and `cadence summary render`.
@@ -14,6 +14,9 @@ import { formatVerifierRollupLabel } from '../services/verifier-label.js';
 export function renderGateBypassLines(b: GateBypass): string[] {
   const lines = [`- ${b.severity.toUpperCase()} ${b.gate} via ${b.flag}: ${b.reason}`];
   if (b.detail) {
+    // The blank line matters: without it CommonMark reads the indented lines
+    // as a lazy continuation of the bullet's paragraph, not a code block.
+    lines.push('');
     for (const line of b.detail.replace(/(\r?\n)+$/, '').split(/\r?\n/)) lines.push(`      ${line}`);
   }
   return lines;

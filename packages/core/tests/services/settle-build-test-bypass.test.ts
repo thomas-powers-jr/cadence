@@ -295,7 +295,7 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
     it(`346-01/AC-3: under ${c.name}, the settle-written SUMMARY.md lists the entry and shows its detail as an indented block, and the record still verifies`, () => {
       const run = c.run();
       expect(run.summaryMd).toContain(
-        `- ERROR build-test-must-pass via ${c.flag}: ${FAIL_COMMAND} exited 2\n      `,
+        `- ERROR build-test-must-pass via ${c.flag}: ${FAIL_COMMAND} exited 2\n\n      `,
       );
       expect(run.summaryMd).toMatch(new RegExp(`^ {6}.*${TAIL_MARKER}`, 'm'));
       expect(verifySummaryContentHash(SummaryZ.parse(run.summary))).toBe('MATCH');

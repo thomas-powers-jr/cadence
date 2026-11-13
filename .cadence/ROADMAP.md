@@ -4194,6 +4194,15 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
   skipped-only, the gate's own refusal buckets) is now a `warn`
   `test-coverage` bypass naming `--force`; `--allow-missing-coverage` is
   byte-identical to before.
+- The first Codex deep-verify at settle rejected AC-1 and AC-3, and both
+  were real. The ring was cut before ANSI stripping, so the payload of an
+  OSC sequence longer than the ring leaked into the tail; escapes are now
+  removed by a per-pipe streaming filter before text reaches the ring, and a
+  sequence still open at the end of output is dropped whole. Trailing blank
+  lines were trimmed before the 40-line cut, which refilled the window from
+  older output; the cut now comes first. And the SUMMARY.md detail block had
+  no blank line after its bullet, so CommonMark read it as a lazy
+  continuation of the bullet's paragraph rather than a code block.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
