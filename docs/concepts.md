@@ -536,9 +536,12 @@ These run on every phase regardless of profile or tier.
 > captured output tail (when it printed any), and settle adds its usual
 > `settle bypass [error] …` line and records one entry in
 > `SUMMARY.json.gateBypasses` at `error` severity. The entry's `flag` is that same flag, its `reason` is
-> `<command> exited <code>`, and its `detail` holds the output tail: the
-> last 40 lines of the combined stdout and stderr, capped at 8 KiB, with
-> ANSI escape codes stripped and CRLF folded to LF. `SUMMARY.md` and
+> `<command> exited <code>`, and its `detail` only says how many lines of
+> output tail the notice showed. The tail itself (the last 40 lines of the
+> combined stdout and stderr, capped at 8 KiB, with ANSI escape codes
+> stripped, CRLF folded to LF and secrets redacted) is shown on stderr and
+> is not recorded: `SUMMARY.json` and `SUMMARY.md` are committed, and no
+> redaction can know every secret a suite might print. `SUMMARY.md` and
 > `cadence summary render` show the `detail` as an indented block under the
 > entry. Because the entry is error-severity, phase 283's cap holds
 > `assurance.overall` at `'mixed'` or below, never `'strong'`. The gate's

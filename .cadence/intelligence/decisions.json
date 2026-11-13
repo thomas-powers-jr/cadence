@@ -1846,6 +1846,15 @@
       "status": "active",
       "decidedAt": "2026-11-13T16:33:21.325Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261113-002",
+      "recommendationId": "rec-20260806-006",
+      "title": "346-01 amended in BUILD: the build-test output tail is shown on stderr only, never recorded in the SUMMARY",
+      "rationale": "Reverses the operator's earlier 'tail in gateBypasses' choice. Codex code-review at settle hit its 3-attempt limit, and every HIGH finding across the three attempts was a secret in a new shape surviving redaction into the committed SUMMARY.json/.md detail (inline command credentials, URL userinfo, echoed --password flags, escaped quotes in JSON). No redaction can know every secret a suite prints, so the operator chose to stop committing test output: the gate's stderr notice still shows the redacted tail, and the gateBypasses entry's detail now only says how many tail lines were shown. AC-3's 'detail holding the output tail' and the matching Boundary are amended inline. The error severity and mixed assurance cap are unchanged.",
+      "status": "active",
+      "decidedAt": "2026-11-13T18:10:56.014Z",
+      "supersedes": []
     }
   ]
 }

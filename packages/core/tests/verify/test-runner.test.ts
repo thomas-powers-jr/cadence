@@ -530,3 +530,31 @@ describe('phase 346 redaction does not over-redact', () => {
     expect(Date.now() - started).toBeLessThan(3000);
   });
 });
+
+describe('phase 346 redaction: shapes from the third Codex review', () => {
+  it('346-01/AC-1: a credential flag echoed in the output is redacted, by pattern and as a literal from the command', async () => {
+    const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const literals = sv('pnpm test --password hunter222', {});
+    expect(literals).toContain('hunter222');
+    const out = ro('> vitest run --password hunter222\nconnecting with hunter222\ncurl -u admin:pw-curl-9 http://x', literals);
+    expect(out).not.toContain('hunter222');
+    expect(out).not.toContain('pw-curl-9');
+    expect(out).toContain('--password [REDACTED]');
+  });
+
+  it('346-01/AC-1: a credential flag the suite prints itself (not from the command) is redacted by pattern', async () => {
+    const { redactOutput: ro } = await import('../../src/verify/test-runner.js');
+    const out = ro('spawning: db-cli --auth-token zzz-secret-77 --verbose', []);
+    expect(out).not.toContain('zzz-secret-77');
+    expect(out).toBe('spawning: db-cli --auth-token [REDACTED] --verbose');
+  });
+
+  it('346-01/AC-1: an escaped quote inside a quoted JSON password does not leave its suffix visible', async () => {
+    const { redactOutput: ro } = await import('../../src/verify/test-runner.js');
+    const out = ro('{ "password": "abc\\"def-suffix-9", "user": "me" }');
+    expect(out).not.toContain('def-suffix-9');
+    expect(out).not.toContain('abc');
+    expect(out).toContain('"user": "me"');
+  });
+});
+

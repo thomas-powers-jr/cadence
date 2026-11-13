@@ -1321,12 +1321,18 @@ async function runAnomalyAndSkillAuditChecks(
     // off the merged gate flags (no other gate sets `buildTestBypass`).
     ...(buildTestBypass ? { buildTestBypass } : {}),
   });
-  // Phase 346 (346-01): the build-test-must-pass entry's `detail` is the
-  // gate's captured output tail, taken from the gate's facts rather than the
-  // anomaly, which never carries it.
+  // Phase 346 (346-01, dec-20261113-002): the build-test-must-pass entry's `detail`
+  // says how many output-tail lines the gate's stderr notice showed, never the
+  // output itself: SUMMARY.json/.md are committed, and no redaction can know
+  // every secret a test suite might print.
   const tail = buildTestBypass?.outputTail;
+  const tailLines = tail ? tail.split('\n').length : 0;
+  const tailNote =
+    tailLines > 0
+      ? `output tail: ${tailLines} line${tailLines === 1 ? '' : 's'} shown on stderr at settle; not recorded, since test output can hold secrets`
+      : undefined;
   const gateBypasses = gateBypassesFromAnomalies(anomalies).map((b) =>
-    b.gate === 'build-test-must-pass' && tail ? { ...b, detail: tail } : b,
+    b.gate === 'build-test-must-pass' && tailNote ? { ...b, detail: tailNote } : b,
   );
   for (const bypass of gateBypasses) {
     io.err(`settle bypass [${bypass.severity}] ${bypass.gate}: ${bypass.reason} (${bypass.flag})\n`);

@@ -1358,6 +1358,13 @@ Thomas, 2026-11-12, on two T4 findings. (1) The implementer found that settle wr
 
 Codex code-review at settle (attempts 1 and 2) flagged inline credentials in verification.testCommand reaching the anomaly event, webhooks and SUMMARY reason. redactCommand redacts every inline assignment value, URL userinfo, credential flag values and curl -u, plus redactSecrets; the runner also removes secret-named environment values and command secrets literally from the output tail. The refusal's existing command line now passes through redactCommand too: it is unchanged for any command without a credential, and the DRAFT Boundary (reason string and outcome byte-identical) still holds. The cost is that harmless assignments such as NODE_ENV=test also show as [REDACTED]; a name allowlist always misses one (PGPASSWORD), so redacting every value was chosen.
 
+### dec-20261113-002 — 346-01 amended in BUILD: the build-test output tail is shown on stderr only, never recorded in the SUMMARY
+
+- recommendation: rec-20260806-006
+- decided: 2026-11-13T18:10:56.014Z
+
+Reverses the operator's earlier 'tail in gateBypasses' choice. Codex code-review at settle hit its 3-attempt limit, and every HIGH finding across the three attempts was a secret in a new shape surviving redaction into the committed SUMMARY.json/.md detail (inline command credentials, URL userinfo, echoed --password flags, escaped quotes in JSON). No redaction can know every secret a suite prints, so the operator chose to stop committing test output: the gate's stderr notice still shows the redacted tail, and the gateBypasses entry's detail now only says how many tail lines were shown. AC-3's 'detail holding the output tail' and the matching Boundary are amended inline. The error severity and mixed assurance cap are unchanged.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

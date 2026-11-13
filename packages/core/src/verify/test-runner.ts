@@ -51,7 +51,7 @@ const URL_USERINFO_RE =
 const OUTPUT_ASSIGNMENT_RE = /(^|[\s;&|(>+"'])([A-Z_][A-Z0-9_]*)=("[^"]*"|'[^']*'|\S+)/gm;
 /** A quoted credential-named key, as JSON and assertion diffs print objects: `"password": "x"`. */
 const QUOTED_KEY_RE =
-  /(["'][\w-]{0,64}(?:pass(?:word)?|pwd|secret|token|api[_-]?key|credentials?)["']\s*:\s*)("[^"]*"|'[^']*'|[^\s,}\]]+)/gi;
+  /(["'][\w-]{0,64}(?:pass(?:word)?|pwd|secret|token|api[_-]?key|credentials?)["']\s*:\s*)("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|[^\s,}\]]+)/gi;
 /** Any inline assignment in a command, whatever the name, optionally quoted (`set "X=y"`, `cross-env "X=y"`). */
 const COMMAND_ASSIGNMENT_RE =
   /(^|[\s;&|(])(["']?)([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s"']+)(["']?)/g;
@@ -100,9 +100,23 @@ export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv
       const value = (m[4] ?? '').replace(/^["']|["']$/g, '');
       if (SECRET_NAME_RE.test(name)) add(value);
     }
+    for (const m of command.matchAll(SECRET_FLAG_RE)) {
+      add((m[3] ?? m[5] ?? '').replace(/^["']|["']$/g, ''));
+    }
     addUserinfo(command);
   }
   return [...values].sort((a, b) => b.length - a.length);
+}
+
+/** Replacer for SECRET_FLAG_RE: keep the flag and its `=` or spacing, redact the value. */
+function redactFlagValue(
+  _m: string,
+  flag: string,
+  eq: string | undefined,
+  _v1: string | undefined,
+  sp: string | undefined,
+): string {
+  return `${flag}${eq ?? sp ?? ''}[REDACTED]`;
 }
 
 function replaceLiterals(text: string, literals: readonly string[]): string {
@@ -115,13 +129,17 @@ function replaceLiterals(text: string, literals: readonly string[]): string {
  * Redaction for a failing run's captured output, before any of it is kept:
  * the literal secret values (see `secretValues`) first, then the shared
  * `redactSecrets` patterns, URL userinfo, upper-case assignments anywhere in
- * a line, and quoted credential-named keys. Safe to apply twice.
+ * a line, quoted credential-named keys (escaped quotes inside the value
+ * included), credential-named flag values and `-u user:pw`. Safe to apply
+ * twice.
  */
 export function redactOutput(text: string, literals: readonly string[] = []): string {
   return redactSecrets(replaceLiterals(text, literals))
     .replace(URL_USERINFO_RE, '$1[REDACTED]@')
     .replace(OUTPUT_ASSIGNMENT_RE, '$1$2=[REDACTED]')
-    .replace(QUOTED_KEY_RE, '$1"[REDACTED]"');
+    .replace(QUOTED_KEY_RE, '$1"[REDACTED]"')
+    .replace(SECRET_FLAG_RE, redactFlagValue)
+    .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
 }
 
 /**
@@ -139,11 +157,7 @@ export function redactCommand(command: string, literals: readonly string[] = [])
   const redacted = command
     .replace(COMMAND_ASSIGNMENT_RE, '$1$2$3=[REDACTED]$5')
     .replace(URL_USERINFO_RE, '$1[REDACTED]@')
-    .replace(
-      SECRET_FLAG_RE,
-      (_m, flag: string, eq: string | undefined, _v1: string | undefined, sp: string | undefined) =>
-        `${flag}${eq ?? sp ?? ''}[REDACTED]`,
-    )
+    .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
   return redactSecrets(replaceLiterals(redacted, literals));
 }

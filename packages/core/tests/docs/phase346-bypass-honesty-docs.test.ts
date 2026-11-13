@@ -90,6 +90,8 @@ describe('docs: bypass honesty (346-01)', () => {
     expect(note).toContain('SUMMARY.json.gateBypasses');
     expect(note).toMatch(/`error` severity/);
     expect(note).toContain('`detail`');
+    // The tail is shown on stderr and never recorded in the committed SUMMARY (dec-20261113-002).
+    expect(note).toMatch(/is not recorded/);
     expect(note).toContain(TAIL_LINES);
     expect(note).toContain(TAIL_KIB);
     expect(note).toMatch(/ANSI/);
@@ -129,6 +131,7 @@ describe('docs: bypass honesty (346-01)', () => {
     expect(row).toContain('gateBypasses');
     expect(row).toContain('`detail`');
     expect(row).toMatch(/never in the event/);
+    expect(row).toMatch(/never in the SUMMARY/);
   });
 
   it('346-01/AC-5: DESIGN.md\'s coverage-bypassed row covers a bare --force over assertion-mode gaps at warn severity', () => {
@@ -148,6 +151,7 @@ describe('docs: bypass honesty (346-01)', () => {
     expect(row).toMatch(/`mixed`, never `strong`/);
     expect(row).toContain('--force');
     expect(row).toContain('`detail`');
+    expect(row).toMatch(/never recorded/);
   });
 
   it('346-01/AC-5: `settle run --help` for --allow-failing-build says the bypass is recorded at error severity and caps assurance at mixed', () => {

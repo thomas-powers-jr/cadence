@@ -247,7 +247,7 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
   ] as const;
 
   for (const c of cases) {
-    it(`346-01/AC-3: under ${c.name}, SUMMARY.gateBypasses holds exactly one error-severity build-test-must-pass entry naming ${c.flag}, the command and exit code, with the output tail as detail`, () => {
+    it(`346-01/AC-3: under ${c.name}, SUMMARY.gateBypasses holds exactly one error-severity build-test-must-pass entry naming ${c.flag}, the command and exit code, whose detail counts the tail lines shown on stderr and never holds the output`, () => {
       const run = c.run();
       expect(run.exitCode, run.stderr).toBe(0);
       const entries = buildTestEntries(run.summary);
@@ -261,8 +261,11 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
       expect(entry.reason).toContain(FAIL_COMMAND);
       expect(entry.reason).toContain('exited 2');
       expect(entry.reason).not.toContain(TAIL_MARKER);
-      expect(entry.detail).toContain(TAIL_MARKER);
-      expect(entry.detail).toContain('second-346');
+      expect(entry.detail).toMatch(/^output tail: \d+ lines? shown on stderr at settle; not recorded, since test output can hold secrets$/);
+      expect(JSON.stringify(run.summary)).not.toContain(TAIL_MARKER);
+      expect(JSON.stringify(run.summary)).not.toContain('second-346');
+      // The operator still sees the tail, on stderr.
+      expect(run.stderr).toContain(TAIL_MARKER);
     });
 
     it(`346-01/AC-3: under ${c.name}, the entry's flag equals the gates[] skip reason's flag and the gate's own notice flag`, () => {
@@ -292,12 +295,13 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
       expect(JSON.stringify(ev)).not.toContain(TAIL_MARKER);
     });
 
-    it(`346-01/AC-3: under ${c.name}, the settle-written SUMMARY.md lists the entry and shows its detail as an indented block, and the record still verifies`, () => {
+    it(`346-01/AC-3: under ${c.name}, the settle-written SUMMARY.md lists the entry and shows its detail note as an indented block without any test output, and the record still verifies`, () => {
       const run = c.run();
       expect(run.summaryMd).toContain(
         `- ERROR build-test-must-pass via ${c.flag}: ${FAIL_COMMAND} exited 2\n\n      `,
       );
-      expect(run.summaryMd).toMatch(new RegExp(`^ {6}.*${TAIL_MARKER}`, 'm'));
+      expect(run.summaryMd).toMatch(/^ {6}output tail: \d+ lines? shown on stderr at settle/m);
+      expect(run.summaryMd).not.toContain(TAIL_MARKER);
       expect(verifySummaryContentHash(SummaryZ.parse(run.summary))).toBe('MATCH');
     });
 

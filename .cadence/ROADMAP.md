@@ -4213,6 +4213,13 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
   value whatever the name, and the runner removes the values of
   secret-named environment variables and command assignments literally from
   the tail wherever they appear (dec-20261113-001).
+- The third Codex code-review raised two more shapes (a `--password x` flag
+  echoed in the output, an escaped quote inside a JSON password) and the
+  review hit its 3-attempt limit. Every HIGH so far had been a secret in a
+  new shape surviving into the committed tail, so the operator reversed the
+  earlier "tail in gateBypasses" choice (dec-20261113-002): the tail is shown on
+  stderr only, and the entry's `detail` says how many lines it had. Both
+  shapes are also redacted on stderr.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

@@ -544,7 +544,7 @@ packages/core/src/verify/coverage-profiles/mask.ts's classify() only knows strin
 - decay: fresh
 - areas: core
 - files: packages/core/src/gates/build-test-must-pass.ts, packages/core/src/verify/test-runner.ts
-- decisions: dec-20261030-002 (active), dec-20261113-001 (active)
+- decisions: dec-20261030-002 (active), dec-20261113-001 (active), dec-20261113-002 (active)
 - evidence: Reproduced directly: pnpm --filter cadence-core test -- tests/docs/self-application-config.test.ts with securityAudit.provider=host-cli shows the real AssertionError only when run standalone outside cadence settle; cadence settle run --allow-failing-build gave zero console output about which test failed, on the exact same repo state (2026-08-06).
 - evidence: Confirmed still valid 2026-08-21 (HANDOFF-verifier-honesty-verify-premises.md Phase L sweep, scout-20260821-verifier-honesty): packages/core/src/gates/build-test-must-pass.ts's bypass-through path (buildTestBypassed:true) has zero ctx.io.err calls -- completely silent, unlike the refusal branch which does log. packages/core/src/verify/test-runner.ts:17 confirms execSync(command, { cwd, stdio: 'ignore' }) discards subprocess output at the OS level, never captured for later surfacing. Readiness/priority unchanged (needs-decision/high) -- genuine live gap.
 - evidence: Correction to dec-20261030-002 (phase 342 independent review): the --allow-failing-build bypass was NOT used by phase 298; 298-01-SUMMARY.json records build-test-must-pass as status 'ran'. The committed SUMMARYs that record skipReason 'bypassed via --allow-failing-build' are 39, 226, 256, 296, 297 and 319. The promote stands; read the decision's '296-298' as '296, 297 and 319'.

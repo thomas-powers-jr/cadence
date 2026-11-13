@@ -1345,9 +1345,9 @@ changeset (example/test-only change, no published-package surface).*
   handoff. Codex stays unmapped (rec-20261101-001).
 - **Phase 346** — bypass honesty: a failing suite let through by
   `--allow-failing-build` or `--force` now prints one stderr notice with the
-  run's output tail and is recorded as an `error` `SUMMARY.gateBypasses`
-  entry carrying that tail (last 40 lines / 8 KiB), capping assurance at
-  `mixed`; the tail never reaches notifier transports. A bare `--force` over
+  run's output tail (last 40 lines / 8 KiB, redacted) and is recorded as an
+  `error` `SUMMARY.gateBypasses` entry, capping assurance at `mixed`; the
+  tail itself is never recorded and never reaches notifier transports. A bare `--force` over
   assertion-mode coverage gaps is recorded as a `warn` bypass
   (rec-20260806-006, rec-20260726-005).
 
