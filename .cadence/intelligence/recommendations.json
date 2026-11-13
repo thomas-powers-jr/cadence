@@ -3515,6 +3515,40 @@
       "sourceFindingId": "6fb7b629db43bc0702cf89325ed856638cb26bc6dbea0e670475f24b424471cf",
       "createdAt": "2026-11-04T03:04:42.276Z",
       "updatedAt": "2026-11-04T03:04:42.276Z"
+    },
+    {
+      "id": "rec-20261113-001",
+      "title": "A dry-run code-review / deep-verify that runs the real host-cli reviewer without writing the attempt sidecar or settling",
+      "summary": "Settle is the only way to run the real code-review and deep-verify gates (host-cli, e.g. Codex), and every failing code-review run consumes one of config.convergence.maxAttempts (default 3) in the draft's CODE-REVIEW.json sidecar. So the only way to learn what the real reviewer thinks is to spend the budget. Phase 346 (2026-11-12/13) shows the cost: each Codex finding required a cloud-session fix, a push, a pull and a full settle on the operator's PC; all three attempts were spent on successive secret-redaction shapes before the design change that removed the finding class, and one extra round was lost to a test failing inside settle. Ask: a read-only mode, e.g. 'cadence settle run --dry-run --deep' or 'cadence review [--deep]', that runs the same code-review and deep-verify prompts over the same diff basis with the configured provider, prints findings and per-AC verdicts, and writes nothing (no sidecar attempt, no SUMMARY, no state transition, no anomalies, no ledger routing). It should run the same gate preconditions so it fails fast on what settle would refuse. Related: rec-20260806-007 (the budget persisting across invocations, undocumented); this rec removes most reasons to burn it. Out of scope: changing maxAttempts semantics or the escalation itself.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "settle",
+        "code-review",
+        "deep-verify",
+        "verification",
+        "dx"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/code-review.ts",
+        "packages/core/src/verify/converge.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/cli/commands/settle.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261113-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-13T18:32:10.889Z",
+      "updatedAt": "2026-11-13T18:32:10.889Z"
     }
   ],
   "archived": [
