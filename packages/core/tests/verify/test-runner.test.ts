@@ -493,10 +493,13 @@ describe('phase 346 redaction hardening', () => {
   it('346-01/AC-1: a URL-userinfo scan over a long dotted single line stays fast', async () => {
     const { redactOutput: ro, redactCommand: rc } = await import('../../src/verify/test-runner.js');
     const started = Date.now();
-    ro('a.'.repeat(32768));
-    ro('a-'.repeat(32768));
-    rc(' -' + 'key'.repeat(20000));
-    expect(Date.now() - started).toBeLessThan(1000);
+    // 4x the ring size: linear scans take tens of ms, a quadratic one tens of
+    // seconds (7 s measured for the uncapped URL pattern), so a 3 s bound separates
+    // them on any machine under load.
+    ro('a.'.repeat(131072));
+    ro('a-'.repeat(131072));
+    rc(' -' + 'key'.repeat(80000));
+    expect(Date.now() - started).toBeLessThan(3000);
   });
 
   it('346-01/AC-1: bidi and zero-width format characters are stripped from the tail', async () => {
@@ -522,7 +525,8 @@ describe('phase 346 redaction does not over-redact', () => {
     expect(ro('GET https://registry.npmjs.org/@types/node 404')).toBe('GET https://registry.npmjs.org/@types/node 404');
     expect(ro('postgres://u:pa/ss@host/db')).toBe('postgres://[REDACTED]@host/db');
     const started = Date.now();
-    ro(':a://'.repeat(13107));
-    expect(Date.now() - started).toBeLessThan(1000);
+    // 4x the ring size (see the test above for why the bound is 3 s).
+    ro(':a://'.repeat(52428));
+    expect(Date.now() - started).toBeLessThan(3000);
   });
 });
