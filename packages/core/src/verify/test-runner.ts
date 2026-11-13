@@ -29,11 +29,122 @@ const PIPE_DRAIN_MS = 500;
 // grandchild is left running once its pipes are destroyed, exactly as it was
 // under execSync.
 
-// C0 controls except TAB and LF, DEL, and the C1 range. Applied after the
+// C0 controls except TAB and LF, DEL, the C1 range, and the zero-width and
+// bidi format characters (a Trojan-Source-style reordering in SUMMARY.md). Applied after the
 // escape filter, so it only removes stray controls: a lone CR progress
 // redraw, BEL, BS.
-// eslint-disable-next-line no-control-regex
-const CONTROL_RE = /[\x00-\x08\x0b-\x1f\x7f-\x9f]/g;
+const CONTROL_RE = /[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g;
+
+/**
+ * `scheme://userinfo@` — a URL's userinfo is a credential. The scheme cannot
+ * continue a word and is at most 32 characters, which bounds backtracking;
+ * the user part holds no `/`, `@` or `:`, and the password after `:` runs to
+ * the last `@` in the token, so an `@` or `/` inside a password is covered
+ * while `file:///…/@vitest/runner` stack frames and
+ * `https://registry.npmjs.org/@types/node` are left alone.
+ */
+const URL_USERINFO_RE =
+  /(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/)(?!\/)[^\s"'<>/@:]*(?::[^\s"'<>]*)?@/g;
+/** An upper-case shell assignment anywhere in output: env dumps, npm's `sh -c` footer, `set -x` traces. */
+const OUTPUT_ASSIGNMENT_RE = /(^|[\s;&|(>+"'])([A-Z_][A-Z0-9_]*)=("[^"]*"|'[^']*'|\S+)/gm;
+/** A quoted credential-named key, as JSON and assertion diffs print objects: `"password": "x"`. */
+const QUOTED_KEY_RE =
+  /(["'][\w-]{0,64}(?:pass(?:word)?|pwd|secret|token|api[_-]?key|credentials?)["']\s*:\s*)("[^"]*"|'[^']*'|[^\s,}\]]+)/gi;
+/** Any inline assignment in a command, whatever the name, optionally quoted (`set "X=y"`, `cross-env "X=y"`). */
+const COMMAND_ASSIGNMENT_RE =
+  /(^|[\s;&|(])(["']?)([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s"']+)(["']?)/g;
+/** A credential-named flag, matched on whole dash-separated segments so `--passWithNoTests` is left alone. */
+const SECRET_FLAG_RE =
+  /(\s--?(?:[A-Za-z0-9]+-)*(?:pass(?:word)?|pwd|token|secret|key|apikey|auth|credentials?)(?:-[A-Za-z0-9]+)*)(?:(=)("[^"]*"|'[^']*'|\S+)|(\s+)("[^"]*"|'[^']*'|[^\s-]\S*))/gi;
+/** `curl -u user:password`. */
+const BASIC_AUTH_FLAG_RE = /(\s-u\s+)[^\s:]+:\S+/g;
+/** Values never treated as literal secrets: booleans, common words, plain numbers. */
+const COMMON_VALUE_RE = /^(?:true|false|yes|no|on|off|null|undefined|test|development|production|\d+)$/i;
+/** A variable or key name that holds a credential. */
+const SECRET_NAME_RE = /pass|pwd|token|secret|key|auth|credential|private|cookie|session/i;
+
+/**
+ * Literal secret values to remove wherever they appear, whatever shape
+ * surrounds them, because patterns always miss a shape: the value of every
+ * credential-named variable in `env` (the environment the suite inherits,
+ * which is where its secrets usually come from) and in the command's inline
+ * assignments, and the userinfo of any URL in either. A value must be at
+ * least 8 characters and not a common word, number or (from the environment)
+ * a path, so `DISABLE_AUTH=true`, `GIT_ASKPASS=echo` or `SSH_AUTH_SOCK=/tmp/…`
+ * cannot erase ordinary text. Shorter values are still caught by the
+ * pattern passes wherever they sit in an assignment.
+ */
+export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv): string[] {
+  const values = new Set<string>();
+  const add = (v: string | undefined): void => {
+    if (v && v.length >= 8 && !COMMON_VALUE_RE.test(v)) values.add(v);
+  };
+  const addUserinfo = (text: string): void => {
+    for (const m of text.matchAll(
+      /(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/(?!\/)([^\s"'<>/@:]*(?::[^\s"'<>]*)?)@/g,
+    ))
+      add(m[1]);
+  };
+  for (const [name, value] of Object.entries(env)) {
+    if (!value) continue;
+    // From the environment: at least 8 characters and not a path, so a
+    // helper such as GIT_ASKPASS=echo or SSH_AUTH_SOCK=/tmp/... is left alone.
+    if (SECRET_NAME_RE.test(name) && !/^(?:[/~.]|[A-Za-z]:[\\/])/.test(value)) add(value);
+    if (value.includes('://')) addUserinfo(value);
+  }
+  if (command) {
+    for (const m of command.matchAll(COMMAND_ASSIGNMENT_RE)) {
+      const name = m[3] ?? '';
+      const value = (m[4] ?? '').replace(/^["']|["']$/g, '');
+      if (SECRET_NAME_RE.test(name)) add(value);
+    }
+    addUserinfo(command);
+  }
+  return [...values].sort((a, b) => b.length - a.length);
+}
+
+function replaceLiterals(text: string, literals: readonly string[]): string {
+  let out = text;
+  for (const v of literals) if (out.includes(v)) out = out.split(v).join('[REDACTED]');
+  return out;
+}
+
+/**
+ * Redaction for a failing run's captured output, before any of it is kept:
+ * the literal secret values (see `secretValues`) first, then the shared
+ * `redactSecrets` patterns, URL userinfo, upper-case assignments anywhere in
+ * a line, and quoted credential-named keys. Safe to apply twice.
+ */
+export function redactOutput(text: string, literals: readonly string[] = []): string {
+  return redactSecrets(replaceLiterals(text, literals))
+    .replace(URL_USERINFO_RE, '$1[REDACTED]@')
+    .replace(OUTPUT_ASSIGNMENT_RE, '$1$2=[REDACTED]')
+    .replace(QUOTED_KEY_RE, '$1"[REDACTED]"');
+}
+
+/**
+ * Redaction for the configured test command before anything records or
+ * prints it (the bypass notice and refusals, the `build-test-bypassed`
+ * anomaly that webhooks receive, the SUMMARY reason). The value of every
+ * inline assignment is redacted whatever the name (`NODE_ENV=test` included:
+ * a list of secret-looking names always misses one, such as `PGPASSWORD`),
+ * then URL userinfo, credential-named flag values, `-u user:pw`, the given
+ * literal values and the shared `redactSecrets` patterns. A command with
+ * none of these is returned unchanged; applying it twice changes nothing
+ * further for the forms it produces.
+ */
+export function redactCommand(command: string, literals: readonly string[] = []): string {
+  const redacted = command
+    .replace(COMMAND_ASSIGNMENT_RE, '$1$2$3=[REDACTED]$5')
+    .replace(URL_USERINFO_RE, '$1[REDACTED]@')
+    .replace(
+      SECRET_FLAG_RE,
+      (_m, flag: string, eq: string | undefined, _v1: string | undefined, sp: string | undefined) =>
+        `${flag}${eq ?? sp ?? ''}[REDACTED]`,
+    )
+    .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
+  return redactSecrets(replaceLiterals(redacted, literals));
+}
 
 const ESC = 0x1b;
 const BEL = 0x07;
@@ -157,12 +268,13 @@ class TailRing {
    * (when the byte cap cuts a line, its tail end is kept). `undefined` when
    * nothing but whitespace was captured — never an empty string.
    */
-  finish(): string | undefined {
-    const text = redactSecrets(
+  finish(literals: readonly string[] = []): string | undefined {
+    const text = redactOutput(
       this.buf
         .slice(-RING_CHARS)
         .replace(/\r\n/g, '\n')
         .replace(CONTROL_RE, ''),
+      literals,
     );
     const all = text.split('\n');
     // A trailing LF terminates the last line; it does not start a new one.
@@ -225,7 +337,7 @@ export async function runTestCommand(
         resolve({ ran: true, ok: true, exitCode: 0, command });
         return;
       }
-      const outputTail = ring.finish();
+      const outputTail = ring.finish(secretValues(command, process.env));
       resolve({
         ran: true,
         ok: false,

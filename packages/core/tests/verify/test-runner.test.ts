@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterAll } from 'vitest';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { runTestCommand } from '../../src/verify/test-runner.js';
+import { redactCommand, runTestCommand } from '../../src/verify/test-runner.js';
 
 // Child commands are small node scripts written to a temp dir and run as
 // `node "<file>"`, so no test depends on per-shell quoting rules (sh vs
@@ -398,5 +398,131 @@ describe('runTestCommand output tail (phase 346)', () => {
     } finally {
       delete process.env['CADENCE_346_ENV_PROBE'];
     }
+  });
+});
+
+describe('redactCommand (phase 346)', () => {
+  const cases: Array<[string, string, string]> = [
+    ['a URL with userinfo', 'DATABASE_URL=postgres://user:secret@host/db pnpm test', 'secret'],
+    ['a bare URL with userinfo', 'pnpm test --db postgres://admin:pw123@db.internal/x', 'pw123'],
+    ['an assignment whose name looks like no secret', 'PGPASSWORD=hunter22 pnpm test', 'hunter22'],
+    ['a short value', 'MYSQL_PWD=abc make test', 'abc'],
+    ['a quoted value', 'API_KEY="s3cr3t value" pnpm test', 's3cr3t'],
+    ['an npm auth token', 'npm_config__authToken=abcdef123 pnpm t', 'abcdef123'],
+    ['a chained assignment', 'cd app && TOKEN=zzz9 pnpm test', 'zzz9'],
+    ['a space-separated password flag', 'pnpm test --password hunter22', 'hunter22'],
+    ['an equals password flag', 'pnpm test --db-password=hunter22', 'hunter22'],
+    ['a token flag', 'jest --auth-token abcd', 'abcd'],
+    ['a GitHub token anywhere', 'pnpm test ghp_' + 'a'.repeat(36), 'ghp_'],
+  ];
+  for (const [name, command, secret] of cases) {
+    it(`346-01/AC-3: redacts ${name}`, () => {
+      const out = redactCommand(command);
+      expect(out).not.toContain(secret);
+      expect(out).toContain('[REDACTED]');
+    });
+  }
+
+  it('346-01/AC-3: keeps a command with no credentials unchanged, so the reason still names it', () => {
+    for (const cmd of ['pnpm test', 'pnpm turbo run test --filter=core', 'node "C:\\x\\run.js" --reporter verbose', 'make -j4 test']) {
+      expect(redactCommand(cmd)).toBe(cmd);
+    }
+  });
+
+  it('346-01/AC-3: keeps the variable name and the program visible, and is idempotent', () => {
+    const once = redactCommand('DATABASE_URL=postgres://u:p@h/db NODE_ENV=test pnpm test');
+    expect(once).toBe('DATABASE_URL=[REDACTED] NODE_ENV=[REDACTED] pnpm test');
+    expect(redactCommand(once)).toBe(once);
+  });
+});
+
+describe('runTestCommand output redaction (phase 346)', () => {
+  it('346-01/AC-1: URL userinfo and env-dump lines in the output are redacted in the tail', async () => {
+    const cmd = script(
+      `process.stderr.write('connect failed: postgres://admin:pw-in-url-9@db.internal:5432/app\\n');
+       process.stdout.write('PGPASSWORD=env-dump-secret\\nexpected 3 to be 4\\n');
+       process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).not.toContain('pw-in-url-9');
+    expect(result.outputTail).not.toContain('env-dump-secret');
+    expect(result.outputTail).toContain('postgres://[REDACTED]@db.internal:5432/app');
+    expect(result.outputTail).toContain('PGPASSWORD=[REDACTED]');
+    expect(result.outputTail).toContain('expected 3 to be 4');
+  });
+});
+
+
+describe('phase 346 redaction hardening', () => {
+  it('346-01/AC-3: quoted assignments (Windows set, cross-env, env -S) are redacted in the command', async () => {
+    const { redactCommand: rc } = await import('../../src/verify/test-runner.js');
+    for (const cmd of ['set "PGPASSWORD=hunter2" && pnpm test', 'cross-env "PGPASSWORD=hunter2" vitest', 'env -S "PGPASSWORD=hunter2 vitest"']) {
+      expect(rc(cmd)).not.toContain('hunter2');
+    }
+    expect(rc('set "PGPASSWORD=hunter2" && pnpm test')).toBe('set "PGPASSWORD=[REDACTED]" && pnpm test');
+  });
+
+  it('346-01/AC-3: ordinary flags are left alone, credential flags and curl -u are redacted', async () => {
+    const { redactCommand: rc } = await import('../../src/verify/test-runner.js');
+    for (const cmd of ['vitest run --passWithNoTests src/foo', 'tool --keyword foo --monkey bar --author me --bypass x', 'node --max-old-space-size=4096 run.js']) {
+      expect(rc(cmd)).toBe(cmd);
+    }
+    expect(rc('pnpm test --api-key abcd1234')).toBe('pnpm test --api-key [REDACTED]');
+    expect(rc('curl -u admin:hunter2 http://x')).toBe('curl -u [REDACTED] http://x');
+    expect(rc('pnpm test --db postgres://u:p@ss@host/db')).toBe('pnpm test --db postgres://[REDACTED]@host/db');
+  });
+
+  it('346-01/AC-1: secrets echoed mid-line, in JSON keys, or from the inherited environment are redacted in the output', async () => {
+    const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const literals = sv('MYSQL_PWD=cmd-secret-1 vitest', { MY_SERVICE_TOKEN: 'env-secret-value-42', GIT_ASKPASS: 'echo', SSH_AUTH_SOCK: '/tmp/agent.sock' });
+    const out = ro(
+      [
+        'npm error command sh -c PGPASSWORD=hunter2 vitest run',
+        '> MYSQL_PWD=cmd-secret-1 vitest',
+        '  { "password": "hunter2xyz", "user": "me" }',
+        'got header x-svc: env-secret-value-42 from echo /tmp/agent.sock',
+      ].join('\n'),
+      literals,
+    );
+    for (const secret of ['hunter2', 'cmd-secret-1', 'hunter2xyz', 'env-secret-value-42']) expect(out).not.toContain(secret);
+    expect(out).toContain('"user": "me"');
+    expect(out).toContain('from echo /tmp/agent.sock');
+    expect(ro(out, literals)).toBe(out);
+  });
+
+  it('346-01/AC-1: a URL-userinfo scan over a long dotted single line stays fast', async () => {
+    const { redactOutput: ro, redactCommand: rc } = await import('../../src/verify/test-runner.js');
+    const started = Date.now();
+    ro('a.'.repeat(32768));
+    ro('a-'.repeat(32768));
+    rc(' -' + 'key'.repeat(20000));
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it('346-01/AC-1: bidi and zero-width format characters are stripped from the tail', async () => {
+    const cmd = script(`process.stdout.write('safe\\u202Eevil\\u200Bx\\n'); process.exitCode = 1;`);
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('safeevilx');
+  });
+});
+
+describe('phase 346 redaction does not over-redact', () => {
+  it('346-01/AC-3: a short or common assignment value is never erased from the rest of the command or the output', async () => {
+    const { redactCommand: rc, redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const literals = sv('DISABLE_AUTH=true TOKEN=test pnpm test', {});
+    expect(literals).toEqual([]);
+    expect(rc('TOKEN=test pnpm test', literals)).toBe('TOKEN=[REDACTED] pnpm test');
+    expect(ro('AssertionError: expected true to be false', literals)).toBe('AssertionError: expected true to be false');
+  });
+
+  it('346-01/AC-1: ESM stack frames and scoped-package URLs keep their paths, while a password with a slash is still redacted', async () => {
+    const { redactOutput: ro } = await import('../../src/verify/test-runner.js');
+    const frame = 'at file:///home/u/p/node_modules/.pnpm/@vitest+runner@2.1.8/node_modules/@vitest/runner/dist/index.js:146:14';
+    expect(ro(frame)).toBe(frame);
+    expect(ro('GET https://registry.npmjs.org/@types/node 404')).toBe('GET https://registry.npmjs.org/@types/node 404');
+    expect(ro('postgres://u:pa/ss@host/db')).toBe('postgres://[REDACTED]@host/db');
+    const started = Date.now();
+    ro(':a://'.repeat(13107));
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 });

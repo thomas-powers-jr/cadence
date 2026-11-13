@@ -325,6 +325,15 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.flags?.buildTestBypass?.command).toBe('API_KEY=[REDACTED] pnpm test');
   });
 
+  it('346-01/AC-2: URL credentials in the command are redacted in the notice and the recorded bypass', async () => {
+    const errs: string[] = [];
+    const res = await runBuildTestGate(
+      ctx({ run: { ...failingNoTail, command: 'pnpm test --db postgres://user:pw-9x@host/db' }, errs, force: true }),
+    );
+    expect(errs.join('')).not.toContain('pw-9x');
+    expect(res.flags?.buildTestBypass?.command).toBe('pnpm test --db postgres://[REDACTED]@host/db');
+  });
+
   it('346-01/AC-2: bare --force bypass names --force as the flag that fired', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(ctx({ run: failingWithTail, errs, force: true }));

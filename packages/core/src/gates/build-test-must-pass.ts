@@ -1,6 +1,6 @@
 import { NO_TEST_COMMAND_NOTICE } from '@thomas-powers-jr/cadence-types';
 import { isGateSealed } from './types.js';
-import { redactSecrets } from '../security/redact.js';
+import { redactCommand, redactOutput, secretValues } from '../verify/test-runner.js';
 import type { GateImpl, GateResult } from './types.js';
 
 /**
@@ -54,7 +54,12 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
   }
   const sealed = isGateSealed(ctx, 'build-test-must-pass');
   if (!res.ok && (sealed || (!ctx.opts.allowFailingBuild && !ctx.opts.force))) {
-    ctx.io.err(`build-test-must-pass: ${res.command} exited ${res.exitCode}\n`);
+    // The command is redacted here too; a command holding no credentials prints
+    // unchanged. The gate stays pure: environment-sourced literals were already
+    // removed from the tail by the runner, so only the command's own count here.
+    const secrets = secretValues(res.command, {});
+    const shown = res.command === undefined ? res.command : redactCommand(res.command, secrets);
+    ctx.io.err(`build-test-must-pass: ${shown} exited ${res.exitCode}\n`);
     const reason = sealed
       ? 'settle run refused: the test suite must pass before settle. ' +
           'This gate is sealed (gates.sealed) and cannot be bypassed with ' +
@@ -62,9 +67,10 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
       : 'settle run refused: the test suite must pass before settle. ' +
           'Pass --allow-failing-build to bypass, or --force to settle anyway.';
     ctx.io.err(`${reason}\n`);
-    // The refusal's lines above stay byte-identical to pre-346 (DRAFT Boundary), so unlike the bypass notice they
-    // keep printing a missing command or exit code as-is rather than with the bypass branch's explicit fallbacks.
-    if (res.outputTail) ctx.io.err(formatTailBlock(res.outputTail));
+    // The refusal's reason and outcome stay byte-identical to pre-346 (DRAFT Boundary), and its command line is
+    // unchanged unless the command holds a credential (dec-20261113-001). Unlike the bypass notice it keeps
+    // printing a missing command or exit code as-is rather than with the bypass branch's explicit fallbacks.
+    if (res.outputTail) ctx.io.err(formatTailBlock(redactOutput(res.outputTail, secrets)));
     return { outcome: 'refuse', reason };
   }
   if (!res.ok) {
@@ -73,11 +79,14 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     // bypass flag was set. A genuine bypass, not a passing run.
     const flag = ctx.opts.allowFailingBuild === true ? '--allow-failing-build' : '--force';
     // The command is recorded (anomaly event, SUMMARY reason), so an inline
-    // credential such as `API_KEY=... pnpm test` is redacted here, once, for
-    // every record and the notice alike.
-    const command = redactSecrets(res.command ?? '<unknown command>');
+    // credential such as `API_KEY=... pnpm test` or a URL's `user:pw@` is
+    // redacted here, once, for every record and the notice alike.
+    // The runner is injected, so its tail is redacted again here (safe twice);
+    // the real runner already removed environment-sourced literals.
+    const secrets = secretValues(res.command, {});
+    const command = redactCommand(res.command ?? '<unknown command>', secrets);
     const exitCode = res.exitCode ?? 1;
-    const outputTail = res.outputTail;
+    const outputTail = res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets);
     ctx.io.err(
       `build-test-must-pass: BYPASSED via ${flag}: ${command} exited ${exitCode}\n` +
         (outputTail ? formatTailBlock(outputTail) : ''),

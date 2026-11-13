@@ -1837,6 +1837,15 @@
       "status": "active",
       "decidedAt": "2026-11-12T20:23:14.685Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261113-001",
+      "recommendationId": "rec-20260806-006",
+      "title": "346-01: the test command is redacted wherever it is printed or recorded, refusal line included",
+      "rationale": "Codex code-review at settle (attempts 1 and 2) flagged inline credentials in verification.testCommand reaching the anomaly event, webhooks and SUMMARY reason. redactCommand redacts every inline assignment value, URL userinfo, credential flag values and curl -u, plus redactSecrets; the runner also removes secret-named environment values and command secrets literally from the output tail. The refusal's existing command line now passes through redactCommand too: it is unchanged for any command without a credential, and the DRAFT Boundary (reason string and outcome byte-identical) still holds. The cost is that harmless assignments such as NODE_ENV=test also show as [REDACTED]; a name allowlist always misses one (PGPASSWORD), so redacting every value was chosen.",
+      "status": "active",
+      "decidedAt": "2026-11-13T16:33:21.325Z",
+      "supersedes": []
     }
   ]
 }

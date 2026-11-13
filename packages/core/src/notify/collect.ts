@@ -7,7 +7,7 @@ import type { ProgressFile } from '../status.js';
 import type { InteractiveVerdict } from '../verify/interactive.js';
 import { runBoundaryCheck } from '../checks/boundary.js';
 import { parseAcRefs } from '../parse/ac-refs.js';
-import { redactSecrets } from '../security/redact.js';
+import { redactCommand } from '../verify/test-runner.js';
 
 export interface CollectAnomaliesContext {
   draft: Draft;
@@ -137,7 +137,7 @@ export function collectAnomalies(
     // Redacted again here (idempotent): events reach notifier transports, so
     // an inline credential in the command must never ride in one, whoever
     // built the context.
-    const command = redactSecrets(ctx.buildTestBypass.command);
+    const command = redactCommand(ctx.buildTestBypass.command);
     events.push({
       type: 'build-test-bypassed',
       severity: 'error',

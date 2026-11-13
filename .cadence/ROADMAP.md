@@ -4206,9 +4206,13 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
 - The second Codex settle passed deep-verify, and its code-review raised one
   HIGH finding: the test command was recorded verbatim, so an inline
   credential (`API_KEY=... pnpm test`) reached the anomaly event, webhooks
-  and the SUMMARY reason. The gate now redacts the command once, and the
-  anomaly collector redacts it again in case a future caller builds the
-  context itself.
+  and the SUMMARY reason. Attempt 2 found URL userinfo surviving
+  `redactSecrets`, and two pre-settle reviews found more pattern misses
+  (`set "PGPASSWORD=x"`, npm's `sh -c` footer, JSON password keys). The fix
+  stopped chasing shapes: `redactCommand` redacts every inline assignment
+  value whatever the name, and the runner removes the values of
+  secret-named environment variables and command assignments literally from
+  the tail wherever they appear (dec-20261113-001).
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
