@@ -4203,6 +4203,12 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
   older output; the cut now comes first. And the SUMMARY.md detail block had
   no blank line after its bullet, so CommonMark read it as a lazy
   continuation of the bullet's paragraph rather than a code block.
+- The second Codex settle passed deep-verify, and its code-review raised one
+  HIGH finding: the test command was recorded verbatim, so an inline
+  credential (`API_KEY=... pnpm test`) reached the anomaly event, webhooks
+  and the SUMMARY reason. The gate now redacts the command once, and the
+  anomaly collector redacts it again in case a future caller builds the
+  context itself.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

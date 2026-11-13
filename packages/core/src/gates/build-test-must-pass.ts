@@ -1,5 +1,6 @@
 import { NO_TEST_COMMAND_NOTICE } from '@thomas-powers-jr/cadence-types';
 import { isGateSealed } from './types.js';
+import { redactSecrets } from '../security/redact.js';
 import type { GateImpl, GateResult } from './types.js';
 
 /**
@@ -71,7 +72,10 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     // by that branch's condition, that only happens when unsealed AND a
     // bypass flag was set. A genuine bypass, not a passing run.
     const flag = ctx.opts.allowFailingBuild === true ? '--allow-failing-build' : '--force';
-    const command = res.command ?? '<unknown command>';
+    // The command is recorded (anomaly event, SUMMARY reason), so an inline
+    // credential such as `API_KEY=... pnpm test` is redacted here, once, for
+    // every record and the notice alike.
+    const command = redactSecrets(res.command ?? '<unknown command>');
     const exitCode = res.exitCode ?? 1;
     const outputTail = res.outputTail;
     ctx.io.err(

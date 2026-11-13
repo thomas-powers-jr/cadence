@@ -7,6 +7,7 @@ import type { ProgressFile } from '../status.js';
 import type { InteractiveVerdict } from '../verify/interactive.js';
 import { runBoundaryCheck } from '../checks/boundary.js';
 import { parseAcRefs } from '../parse/ac-refs.js';
+import { redactSecrets } from '../security/redact.js';
 
 export interface CollectAnomaliesContext {
   draft: Draft;
@@ -132,7 +133,11 @@ export function collectAnomalies(
   // build-test-bypassed — single error event when build-test-must-pass let a
   // failing suite through (phase 346). The tail stays out of the event.
   if (ctx.buildTestBypass) {
-    const { flag, command, exitCode } = ctx.buildTestBypass;
+    const { flag, exitCode } = ctx.buildTestBypass;
+    // Redacted again here (idempotent): events reach notifier transports, so
+    // an inline credential in the command must never ride in one, whoever
+    // built the context.
+    const command = redactSecrets(ctx.buildTestBypass.command);
     events.push({
       type: 'build-test-bypassed',
       severity: 'error',

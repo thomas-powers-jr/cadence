@@ -411,6 +411,19 @@ describe('collectAnomalies build-test-bypassed (phase 346, T4)', () => {
     expect(hits[0]!.message).not.toContain('tail-only-line');
   });
 
+  it('346-01/AC-3: an inline credential in the command never reaches the event, its message or its context', () => {
+    const [ev] = collectAnomalies(
+      {
+        ...base,
+        buildTestBypass: { flag: '--force', command: 'GITHUB_TOKEN=ghp_abcdef123456 pnpm test', exitCode: 1 },
+      },
+      { now },
+    );
+    expect(JSON.stringify(ev)).not.toContain('ghp_abcdef123456');
+    expect(ev?.context['command']).toBe('GITHUB_TOKEN=[REDACTED] pnpm test');
+    expect(ev?.message).toContain('GITHUB_TOKEN=[REDACTED] pnpm test exited 1');
+  });
+
   it('346-01/AC-3: a bypass without a captured tail emits the same event, and nothing is emitted without a bypass', () => {
     const [ev] = collectAnomalies(
       {

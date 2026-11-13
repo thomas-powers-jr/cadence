@@ -309,6 +309,22 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     });
   });
 
+  it('346-01/AC-2: an inline credential in the command is redacted in the notice and in the recorded bypass', async () => {
+    const errs: string[] = [];
+    const res = await runBuildTestGate(
+      ctx({
+        run: { ...failingNoTail, command: 'API_KEY=supersecret123 pnpm test' },
+        errs,
+        allowFailingBuild: true,
+      }),
+    );
+    expect(errs.join('')).not.toContain('supersecret123');
+    expect(errs[0]).toBe(
+      'build-test-must-pass: BYPASSED via --allow-failing-build: API_KEY=[REDACTED] pnpm test exited 2\n',
+    );
+    expect(res.flags?.buildTestBypass?.command).toBe('API_KEY=[REDACTED] pnpm test');
+  });
+
   it('346-01/AC-2: bare --force bypass names --force as the flag that fired', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(ctx({ run: failingWithTail, errs, force: true }));
