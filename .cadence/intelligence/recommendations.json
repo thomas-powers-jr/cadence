@@ -979,7 +979,8 @@
       ],
       "assumptionIds": [],
       "decisionIds": [
-        "dec-20261030-002"
+        "dec-20261030-002",
+        "dec-20261113-001"
       ],
       "createdAt": "2026-08-06T05:30:55.570Z",
       "updatedAt": "2026-10-30T19:47:58.276Z"
@@ -12542,11 +12543,11 @@
       ],
       "assumptionIds": [],
       "decisionIds": [],
-      "createdAt": "2026-11-04T00:10:56.648Z",
-      "updatedAt": "2026-11-04T05:35:03.593Z",
       "shippedRef": "phase 345 (#598)",
       "archivedAt": "2026-11-04T05:35:03.593Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-04T00:10:56.648Z",
+      "updatedAt": "2026-11-04T05:35:03.593Z"
     }
   ]
 }

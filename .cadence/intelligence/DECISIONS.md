@@ -1351,6 +1351,13 @@ Thomas, 2026-11-12, on two T4 findings. (1) The implementer found that settle wr
 
 2026-11-12, during T6. docs/cli.md keeps a bypass table whose --allow-failing-build row phase 332 kept in sync with docs/reference/commands.md and the settle --help text for the review-bypass flags; after T6 updated those two, cli.md's row would have said less (doc drift, a named failure mode). T6 now declares docs/cli.md and the row says the bypass is recorded as an error gate bypass with the output tail, capping assurance at mixed. Left alone on purpose: DESIGN.md §3.3's 'Seven event types' line above the anomaly table was already stale before this phase (the table had 10 rows, AnomalyTypeZ has 20); per the Freshen Reflex rule it is noted in the handoff rather than rewritten here. Same --allow-stale-draft coverage as dec-20261112-001.
 
+### dec-20261113-001 — 346-01: the test command is redacted wherever it is printed or recorded, refusal line included
+
+- recommendation: rec-20260806-006
+- decided: 2026-11-13T16:33:21.325Z
+
+Codex code-review at settle (attempts 1 and 2) flagged inline credentials in verification.testCommand reaching the anomaly event, webhooks and SUMMARY reason. redactCommand redacts every inline assignment value, URL userinfo, credential flag values and curl -u, plus redactSecrets; the runner also removes secret-named environment values and command secrets literally from the output tail. The refusal's existing command line now passes through redactCommand too: it is unchanged for any command without a credential, and the DRAFT Boundary (reason string and outcome byte-identical) still holds. The cost is that harmless assignments such as NODE_ENV=test also show as [REDACTED]; a name allowlist always misses one (PGPASSWORD), so redacting every value was chosen.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
