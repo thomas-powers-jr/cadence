@@ -236,7 +236,7 @@ describe('runBuildTestGate · sealed (phase 141)', () => {
     // Phase 346 (346-01/AC-2) supersedes the phase 141 "silent bypass"
     // assertion: a bypass now writes exactly one loud notice (never the
     // sealed message).
-    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: pnpm test exited 1\n']);
+    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: pnpm test exited 1\n  output tail: (no output captured)\n']);
   });
 
   // AC-5 (regression safety): unsealed --allow-failing-build still bypasses.
@@ -320,7 +320,7 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     );
     expect(errs.join('')).not.toContain('supersecret123');
     expect(errs[0]).toBe(
-      'build-test-must-pass: BYPASSED via --allow-failing-build: API_KEY=[REDACTED] pnpm test exited 2\n',
+      'build-test-must-pass: BYPASSED via --allow-failing-build: API_KEY=[REDACTED] pnpm test exited 2\n  output tail: (no output captured)\n',
     );
     expect(res.flags?.buildTestBypass?.command).toBe('API_KEY=[REDACTED] pnpm test');
   });
@@ -356,11 +356,13 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.flags?.buildTestBypass?.flag).toBe('--allow-failing-build');
   });
 
-  it('346-01/AC-2: a bypass with no captured tail writes the notice without a tail block and omits outputTail', async () => {
+  it('346-01/AC-2: a bypass with no captured tail still names the tail in its one notice ("no output captured") and omits outputTail', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(ctx({ run: failingNoTail, errs, force: true }));
     expect(res.outcome).toBe('pass');
-    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: pnpm test exited 2\n']);
+    expect(errs).toEqual([
+      'build-test-must-pass: BYPASSED via --force: pnpm test exited 2\n  output tail: (no output captured)\n',
+    ]);
     expect(res.flags?.buildTestBypass).toEqual({ flag: '--force', command: 'pnpm test', exitCode: 2 });
     expect(res.flags?.buildTestBypass).not.toHaveProperty('outputTail');
   });
@@ -393,12 +395,36 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.flags).toBeUndefined();
   });
 
-  it('346-01/AC-2: a refusal with no captured tail writes exactly the pre-346 lines', async () => {
+  it('346-01/AC-2: a refusal with no captured tail keeps its pre-346 lines and reason, then names the tail as not captured, sealed or not', async () => {
+    for (const sealed of [false, true]) {
+      const errs: string[] = [];
+      const res = await runBuildTestGate(
+        ctx({ run: failingNoTail, errs, ...(sealed ? { force: true, config: sealedConfig } : {}) }),
+      );
+      const reason = sealed ? sealedReason : unsealedReason;
+      expect(res.outcome).toBe('refuse');
+      expect(res.reason).toBe(reason);
+      expect(errs).toEqual([
+        'build-test-must-pass: pnpm test exited 2\n',
+        `${reason}\n`,
+        '  output tail: (no output captured)\n',
+      ]);
+    }
+  });
+
+  it('346-01/AC-2: a refusal redacts a credential in its command line (dec-20261113-001) while its reason and outcome stay byte-identical', async () => {
     const errs: string[] = [];
-    const res = await runBuildTestGate(ctx({ run: failingNoTail, errs }));
+    const res = await runBuildTestGate(
+      ctx({ run: { ...failingWithTail, command: 'API_KEY=supersecret123 pnpm test' }, errs }),
+    );
     expect(res.outcome).toBe('refuse');
     expect(res.reason).toBe(unsealedReason);
-    expect(errs).toEqual(['build-test-must-pass: pnpm test exited 2\n', `${unsealedReason}\n`]);
+    expect(errs).toEqual([
+      'build-test-must-pass: API_KEY=[REDACTED] pnpm test exited 1\n',
+      `${unsealedReason}\n`,
+      tailBlock,
+    ]);
+    expect(errs.join('')).not.toContain('supersecret123');
   });
 
   it('346-01/AC-2: a passing run writes nothing and carries no bypass facts', async () => {
@@ -423,7 +449,7 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(ctx({ run: { ran: true, ok: false }, errs, force: true }));
     expect(res.outcome).toBe('pass');
-    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: <unknown command> exited 1\n']);
+    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: <unknown command> exited 1\n  output tail: (no output captured)\n']);
     expect(res.flags?.buildTestBypass).toEqual({
       flag: '--force',
       command: '<unknown command>',

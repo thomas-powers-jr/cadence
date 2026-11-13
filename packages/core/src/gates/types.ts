@@ -165,7 +165,8 @@ export interface TestRunResult {
   readonly command?: string;
   /** Phase 346 (346-01): set only on a failing run (`ok: false`) — a bounded
    *  tail (at most the last 40 lines and 8 KiB) of the command's combined
-   *  stdout+stderr, ANSI-stripped. Observation only: it never affects `ok`.
+   *  stdout+stderr, with escape sequences and control characters stripped and
+   *  secrets redacted. Observation only: it never affects `ok`.
    *  Absent on a passing run, on a `ran: false` run, and on a failing run
    *  that captured no output (never an empty string). */
   readonly outputTail?: string;
@@ -293,7 +294,8 @@ export interface GateFlags {
    *  `--force`, the registry.ts rule), `command` and `exitCode` the failing
    *  test run, `outputTail` its bounded output tail when one was captured.
    *  Settle turns it into an error-severity `build-test-must-pass`
-   *  `GateBypass` whose `detail` holds the tail. A separate field rather than
+   *  `GateBypass` whose `detail` counts the tail lines the notice showed (the
+   *  tail itself is never recorded, dec-20261113-002). A separate field rather than
    *  widening the boolean, following the phase 332 `reviewFindingsBypass`
    *  precedent: provenance collection keeps reading `buildTestBypassed`. */
   buildTestBypass?: {

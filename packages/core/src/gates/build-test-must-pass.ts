@@ -70,7 +70,8 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     // The refusal's reason and outcome stay byte-identical to pre-346 (DRAFT Boundary), and its command line is
     // unchanged unless the command holds a credential (dec-20261113-001). Unlike the bypass notice it keeps
     // printing a missing command or exit code as-is rather than with the bypass branch's explicit fallbacks.
-    if (res.outputTail) ctx.io.err(formatTailBlock(redactOutput(res.outputTail, secrets)));
+    // Every refusal names the tail, a silent run's included ("no output captured").
+    ctx.io.err(formatTailBlock(res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets)));
     return { outcome: 'refuse', reason };
   }
   if (!res.ok) {
@@ -89,7 +90,7 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     const outputTail = res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets);
     ctx.io.err(
       `build-test-must-pass: BYPASSED via ${flag}: ${command} exited ${exitCode}\n` +
-        (outputTail ? formatTailBlock(outputTail) : ''),
+        formatTailBlock(outputTail),
     );
     return {
       outcome: 'pass',
@@ -104,7 +105,14 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
 
 /** Phase 346: the delimited output-tail block shared by the bypass notice and
  *  every refusal — a header line, then each tail line indented by 4 spaces. */
-function formatTailBlock(tail: string): string {
-  const lines = tail.replace(/(\r?\n)+$/, '').split(/\r?\n/);
-  return `  output tail (last lines):\n${lines.map((l) => `    ${l}\n`).join('')}`;
+function formatTailBlock(tail: string | undefined): string {
+  if (!tail) return '  output tail: (no output captured)\n';
+  return `  output tail (last lines):\n${tailLines(tail).map((l) => `    ${l}\n`).join('')}`;
+}
+
+/** The tail's lines exactly as the notice prints them; settle counts these for
+ *  the gateBypasses detail note, so the number always matches the notice. */
+export function tailLines(tail: string | undefined): string[] {
+  if (!tail) return [];
+  return tail.replace(/(\r?\n)+$/, '').split(/\r?\n/);
 }

@@ -7,6 +7,7 @@ import { AnomalyTypeZ, SummaryZ } from '@thomas-powers-jr/cadence-types';
 import { registerAllCommands } from '../../src/cli/register.js';
 import { OUTPUT_TAIL_MAX_BYTES, OUTPUT_TAIL_MAX_LINES } from '../../src/verify/test-runner.js';
 import { changesetEvidencePresent } from '../support/changeset-evidence.js';
+import type { GateFlags, TestRunResult } from '../../src/gates/types.js';
 
 // 346-01 (phase 346) — bypass honesty. A failing suite let through by
 // `--allow-failing-build` or `--force` is recorded as an error-severity
@@ -77,7 +78,7 @@ describe('docs: bypass honesty (346-01)', () => {
     expect(AnomalyTypeZ.options).toContain('coverage-bypassed');
   });
 
-  it('346-01/AC-5: concepts.md records a bypassed failing suite in gateBypasses at error severity, with the bounded tail in detail, capping assurance at mixed', () => {
+  it('346-01/AC-5: concepts.md records a bypassed failing suite in gateBypasses at error severity, its detail counting the tail lines (the tail is not recorded), capping assurance at mixed', () => {
     const note = region(
       CONCEPTS_MD,
       '> **A bypassed failing suite is recorded (phase 346).**',
@@ -122,7 +123,7 @@ describe('docs: bypass honesty (346-01)', () => {
     expect(note).toContain('--allow-missing-coverage');
   });
 
-  it('346-01/AC-5: DESIGN.md\'s anomaly table lists build-test-bypassed (error, a build-test-must-pass gate bypass, tail in detail not in the event)', () => {
+  it('346-01/AC-5: DESIGN.md\'s anomaly table lists build-test-bypassed (error, a build-test-must-pass gate bypass whose detail counts tail lines; the tail never in the event or the SUMMARY)', () => {
     const row = anomalyRow('build-test-bypassed');
     expect(row).toContain('--allow-failing-build');
     expect(row).toContain('--force');
@@ -190,6 +191,14 @@ describe('docs: bypass honesty (346-01)', () => {
     expect(body).toContain('bare `--force`');
     expect(body).toContain(TAIL_LINES);
     expect(body).toContain(TAIL_KIB);
+  });
+
+  it('346-01/AC-5: TestRunResult.outputTail and GateFlags.buildTestBypass are optional', () => {
+    // Typecheck enforces the optionality: both objects compile without the new fields.
+    const run: TestRunResult = { ran: true, ok: false };
+    const flags: GateFlags = { buildTestBypassed: true };
+    expect('outputTail' in run).toBe(false);
+    expect(flags.buildTestBypass).toBeUndefined();
   });
 
   it('346-01/AC-5: every committed .cadence/phases/*/*-SUMMARY.json still parses with SummaryZ', () => {

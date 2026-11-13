@@ -533,7 +533,8 @@ These run on every phase regardless of profile or tier.
 > because of `--allow-failing-build` or `--force`, the gate prints one stderr
 > notice naming the flag that fired (`--allow-failing-build` whenever it is
 > set, otherwise `--force`), the command, its exit code and the run's
-> captured output tail (when it printed any), and settle adds its usual
+> captured output tail (or `output tail: (no output captured)` when it
+> printed nothing), and settle adds its usual
 > `settle bypass [error] …` line and records one entry in
 > `SUMMARY.json.gateBypasses` at `error` severity. The entry's `flag` is that same flag, its `reason` is
 > `<command> exited <code>`, and its `detail` only says how many lines of

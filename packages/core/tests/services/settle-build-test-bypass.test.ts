@@ -69,6 +69,7 @@ const SINCE = '2026-11-12T10:00:00.000Z';
 const FIXED_NOW = '2026-11-12T12:00:00.000Z';
 const FAIL_COMMAND = 'node fail-346.cjs';
 const PASS_COMMAND = 'node pass-346.cjs';
+const SILENT_FAIL_COMMAND = 'node silent-346.cjs';
 const TAIL_MARKER = 'boom-346';
 
 const DRAFT = `---
@@ -139,6 +140,7 @@ async function setupRepo(parent: string, opts: SetupOpts): Promise<string> {
     'utf8',
   );
   await writeFile(join(root, 'pass-346.cjs'), "console.log('fine-346');\n", 'utf8');
+  await writeFile(join(root, 'silent-346.cjs'), 'process.exit(2);\n', 'utf8');
   await writeFile(
     join(root, '.cadence', 'config.json'),
     JSON.stringify(fixtureConfig(root, opts), null, 2),
@@ -220,6 +222,7 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
   let allowRun: SettleRun;
   let forceRun: SettleRun;
   let passRun: SettleRun;
+  let silentRun: SettleRun;
 
   beforeAll(async () => {
     origKey = process.env.ANTHROPIC_API_KEY;
@@ -232,6 +235,21 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
       force: true,
     });
     passRun = await settleIn(await setupRepo(parent, { testCommand: PASS_COMMAND }));
+    silentRun = await settleIn(await setupRepo(parent, { testCommand: SILENT_FAIL_COMMAND }), {
+      allowFailingBuild: true,
+    });
+  });
+
+  it('346-01/AC-3: a bypassed suite that printed nothing still gets the detail note, counting 0 lines', () => {
+    expect(silentRun.exitCode, silentRun.stderr).toBe(0);
+    const entries = buildTestEntries(silentRun.summary);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ gate: 'build-test-must-pass', flag: '--allow-failing-build', severity: 'error' });
+    expect(entries[0]!.reason).toBe(`${SILENT_FAIL_COMMAND} exited 2`);
+    expect(entries[0]!.detail).toBe(
+      'output tail: 0 lines shown on stderr at settle; not recorded, since test output can hold secrets',
+    );
+    expect(silentRun.summaryMd).toContain('\n      output tail: 0 lines shown on stderr at settle');
   });
 
   afterAll(async () => {
@@ -261,7 +279,11 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
       expect(entry.reason).toContain(FAIL_COMMAND);
       expect(entry.reason).toContain('exited 2');
       expect(entry.reason).not.toContain(TAIL_MARKER);
-      expect(entry.detail).toMatch(/^output tail: \d+ lines? shown on stderr at settle; not recorded, since test output can hold secrets$/);
+      // The fixture prints two lines (boom-346, second-346); the note counts exactly what the notice showed.
+      expect(entry.detail).toBe(
+        'output tail: 2 lines shown on stderr at settle; not recorded, since test output can hold secrets',
+      );
+      expect(run.stderr).toMatch(/ {2}output tail \(last lines\):\n {4}\S.*\n {4}\S.*\n(?! {4})/);
       expect(JSON.stringify(run.summary)).not.toContain(TAIL_MARKER);
       expect(JSON.stringify(run.summary)).not.toContain('second-346');
       // The operator still sees the tail, on stderr.

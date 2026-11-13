@@ -28,6 +28,7 @@ import { LoopViolationError } from '../errors.js';
 import { deriveAcResults, type ProgressFile } from '../status.js';
 import { loadConfig } from '../config/loader.js';
 import { effectiveGateSet } from '../gates/engine.js';
+import { tailLines } from '../gates/build-test-must-pass.js';
 import { resolveInteractivity } from '../gates/interactivity.js';
 import { selectVerifier } from '../verify/factory.js';
 import { scanTestCoverage } from '../verify/coverage.js';
@@ -1325,12 +1326,11 @@ async function runAnomalyAndSkillAuditChecks(
   // says how many output-tail lines the gate's stderr notice showed, never the
   // output itself: SUMMARY.json/.md are committed, and no redaction can know
   // every secret a test suite might print.
-  const tail = buildTestBypass?.outputTail;
-  const tailLines = tail ? tail.split('\n').length : 0;
-  const tailNote =
-    tailLines > 0
-      ? `output tail: ${tailLines} line${tailLines === 1 ? '' : 's'} shown on stderr at settle; not recorded, since test output can hold secrets`
-      : undefined;
+  // Every bypassed failing suite gets the note, a silent one included (0 lines).
+  const shownLines = tailLines(buildTestBypass?.outputTail).length;
+  const tailNote = buildTestBypass
+    ? `output tail: ${shownLines} line${shownLines === 1 ? '' : 's'} shown on stderr at settle; not recorded, since test output can hold secrets`
+    : undefined;
   const gateBypasses = gateBypassesFromAnomalies(anomalies).map((b) =>
     b.gate === 'build-test-must-pass' && tailNote ? { ...b, detail: tailNote } : b,
   );
