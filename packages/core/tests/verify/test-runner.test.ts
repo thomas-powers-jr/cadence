@@ -468,7 +468,7 @@ describe('phase 346 redaction hardening', () => {
       expect(rc(cmd)).toBe(cmd);
     }
     expect(rc('pnpm test --api-key abcd1234')).toBe('pnpm test --api-key [REDACTED]');
-    expect(rc('curl -u admin:hunter2 http://x')).toBe('curl -u [REDACTED] http://x');
+    expect(rc('curl -u admin:hunter2 http://x')).toBe('curl -u [REDACTED] [REDACTED]');
     expect(rc('pnpm test --db postgres://u:p@ss@host/db')).toBe('pnpm test --db postgres://[REDACTED]@host/db');
   });
 
@@ -555,6 +555,45 @@ describe('phase 346 redaction: shapes from the third Codex review', () => {
     expect(out).not.toContain('def-suffix-9');
     expect(out).not.toContain('abc');
     expect(out).toContain('"user": "me"');
+  });
+});
+
+describe('phase 346 redaction: shapes from the fourth Codex review', () => {
+  it('346-01/AC-3: a credential in any argument holding : or @ is redacted whatever flag precedes it', async () => {
+    const { redactCommand: rc } = await import('../../src/verify/test-runner.js');
+    for (const [cmd, secret] of [
+      ['curl --user alice:password http://x', 'password'],
+      ['curl --proxy-user bob:pw-proxy-1 http://x', 'pw-proxy-1'],
+      ['curl -U bob http://x', 'bob'],
+      ['tool --creds=alice:pw-eq-2', 'pw-eq-2'],
+      ['curl -H "Authorization: Bearer tok-hdr-3" http://x', 'tok-hdr-3'],
+      ['ssh deploy@host-4 run-tests', 'deploy@host-4'],
+    ] as const) {
+      expect(rc(cmd)).not.toContain(secret);
+    }
+    expect(rc('curl --user alice:password http://x')).toBe('curl --user [REDACTED] [REDACTED]');
+    expect(rc('tool --creds=alice:pw-eq-2')).toBe('tool --creds=[REDACTED]');
+  });
+
+  it('346-01/AC-1: a known secret cut in half by the capture ring leaves no fragment in the tail', async () => {
+    const secret = 'S3CRET-' + 'x'.repeat(40) + '-TAIL';
+    // The 64 KiB window boundary falls inside the secret, and the 64 KiB after it is BEL
+    // characters that control stripping removes, so the cut fragment would reach the tail.
+    const cmd = script(
+      `const s = ${JSON.stringify(secret)};
+       process.stdout.write('a'.repeat(200000) + s + '\\n' + '\\u0007'.repeat(65536 - 20) + '\\nlast line\\n');
+       process.exitCode = 1;`,
+    );
+    const prev = process.env['MY_SERVICE_TOKEN'];
+    process.env['MY_SERVICE_TOKEN'] = secret;
+    try {
+      const result = await runTestCommand(process.cwd(), cmd);
+      expect(result.outputTail).not.toContain('-TAIL');
+      expect(result.outputTail).toContain('last line');
+    } finally {
+      if (prev === undefined) delete process.env['MY_SERVICE_TOKEN'];
+      else process.env['MY_SERVICE_TOKEN'] = prev;
+    }
   });
 });
 

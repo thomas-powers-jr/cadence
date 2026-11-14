@@ -119,6 +119,16 @@ function redactFlagValue(
   return `${flag}${eq ?? sp ?? ''}[REDACTED]`;
 }
 
+/** Removes a trailing fragment of any known secret from the start of `text`. */
+function stripLeadingFragment(text: string, literals: readonly string[]): string {
+  for (const v of literals) {
+    for (let k = v.length - 1; k >= 1; k--) {
+      if (text.startsWith(v.slice(-k))) return text.slice(k);
+    }
+  }
+  return text;
+}
+
 function replaceLiterals(text: string, literals: readonly string[]): string {
   let out = text;
   for (const v of literals) if (out.includes(v)) out = out.split(v).join('[REDACTED]');
@@ -159,7 +169,44 @@ export function redactCommand(command: string, literals: readonly string[] = [])
     .replace(URL_USERINFO_RE, '$1[REDACTED]@')
     .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
-  return redactSecrets(replaceLiterals(redacted, literals));
+  return redactSecrets(replaceLiterals(redactArgumentTokens(redacted), literals));
+}
+
+/** A shell word: quoted or unquoted runs, joined without whitespace. */
+const SHELL_WORD_RE = /(?:"[^"]*"|'[^']*'|[^\s"']+)+/g;
+/** Flags whose next word is a credential however it is spelled: curl's `-u`/`--user`, `-U`/`--proxy-user`. */
+const USER_FLAG_RE = /^(?:-u|-U|--user|--proxy-user)$/;
+/** A Windows drive path (`C:\…`, `"C:/…"`), whose colon is not a credential separator. */
+const DRIVE_PATH_RE = /^["']?[A-Za-z]:[\\/]/;
+
+/**
+ * Shape-agnostic argument redaction for a command: any word holding `:` or
+ * `@` (the `user:secret`, `Header: value`, `scheme://…` and `user@host`
+ * shapes) is replaced whole, a `name=value` word keeps its name when only the
+ * value holds them, and the word after `-u`/`--user`/`-U`/`--proxy-user` is
+ * replaced whatever it holds. A flag-name list always misses a spelling, so
+ * the separator, not the flag, decides. Already redacted words and Windows
+ * drive paths are left alone.
+ */
+function redactArgumentTokens(command: string): string {
+  let redactNext = false;
+  return command.replace(SHELL_WORD_RE, (word) => {
+    if (redactNext) {
+      redactNext = false;
+      return '[REDACTED]';
+    }
+    if (USER_FLAG_RE.test(word)) {
+      redactNext = true;
+      return word;
+    }
+    if (word.includes('[REDACTED]') || DRIVE_PATH_RE.test(word)) return word;
+    const eq = word.indexOf('=');
+    if (eq > 0 && /^-*[A-Za-z_][\w-]*$/.test(word.slice(0, eq))) {
+      const value = word.slice(eq + 1);
+      return /[:@]/.test(value) ? `${word.slice(0, eq)}=[REDACTED]` : word;
+    }
+    return /[:@]/.test(word) ? '[REDACTED]' : word;
+  });
 }
 
 const ESC = 0x1b;
@@ -264,12 +311,14 @@ class AnsiFilter {
  */
 class TailRing {
   private buf = '';
+  private cut = false;
 
   append(text: string): void {
     if (text.length === 0) return;
     this.buf += text;
     if (this.buf.length > RING_CHARS * 2) {
       this.buf = this.buf.slice(-RING_CHARS);
+      this.cut = true;
     }
   }
 
@@ -285,13 +334,17 @@ class TailRing {
    * nothing but whitespace was captured — never an empty string.
    */
   finish(literals: readonly string[] = []): string | undefined {
-    const text = redactOutput(
-      this.buf
-        .slice(-RING_CHARS)
-        .replace(/\r\n/g, '\n')
-        .replace(CONTROL_RE, ''),
-      literals,
-    );
+    let window = this.buf;
+    if (this.cut || window.length > RING_CHARS) {
+      window = window.slice(-RING_CHARS);
+      // The cut can land inside a line, and inside a secret on it: drop the
+      // partial first line when there is a later one, and in any case the
+      // trailing fragment of any known secret the window starts with.
+      const nl = window.indexOf('\n');
+      if (nl !== -1) window = window.slice(nl + 1);
+      window = stripLeadingFragment(window, literals);
+    }
+    const text = redactOutput(window.replace(/\r\n/g, '\n').replace(CONTROL_RE, ''), literals);
     const all = text.split('\n');
     // A trailing LF terminates the last line; it does not start a new one.
     if (all.length > 0 && all[all.length - 1] === '') all.pop();
