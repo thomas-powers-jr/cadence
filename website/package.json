@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@astrojs/starlight": "^0.41.11",
-    "astro": "^7.3.8"
+    "astro": "^7.4.7"
   },
   "devDependencies": {
     "starlight-typedoc": "^0.23.1",
