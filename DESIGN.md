@@ -74,7 +74,8 @@ All three surfaces gate on `'anomaly-notify'` being in the effective gate set (a
 |---|---|
 | `ac-blocked` | A task ended `BLOCKED` |
 | `ac-needs-context` | A task ended `NEEDS_CONTEXT` |
-| `coverage-bypassed` | `--allow-missing-coverage` flipped an active test-coverage gate |
+| `coverage-bypassed` | `--allow-missing-coverage` flipped an active test-coverage gate, or (phase 346) a bare `--force` passed it over real gaps in `assertion` coverage mode. `warn`; mapped to a `test-coverage` gate bypass in `SUMMARY.json.gateBypasses` whose `flag` names the flag that fired (`context.flag` is `--force` on the bare `--force` path) |
+| `build-test-bypassed` | `--allow-failing-build` or `--force` let a failing `verification.testCommand` through `build-test-must-pass` (phase 346). `error`; `context` carries `flag`, `command` and `exitCode`; mapped to a `build-test-must-pass` gate bypass in `SUMMARY.json.gateBypasses` (capping `assurance.overall` at `mixed`) whose `detail` says how many output-tail lines the gate's stderr notice showed. The tail is never in the event, its message or its context, so no notifier transport receives it, and never in the SUMMARY |
 | `files-outside-boundary` | A touched file is not in any task's declared `files:` list (settle-time reconciliation OR hook-time per-edit detection) |
 | `verifier-failure` | The `--deep` verifier transport itself failed |
 | `force-used` | `--force` bypassed at least one failing structural / deep / interactive verdict |

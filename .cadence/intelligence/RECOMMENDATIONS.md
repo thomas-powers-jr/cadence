@@ -544,7 +544,7 @@ packages/core/src/verify/coverage-profiles/mask.ts's classify() only knows strin
 - decay: fresh
 - areas: core
 - files: packages/core/src/gates/build-test-must-pass.ts, packages/core/src/verify/test-runner.ts
-- decisions: dec-20261030-002 (active)
+- decisions: dec-20261030-002 (active), dec-20261113-001 (active), dec-20261113-002 (active)
 - evidence: Reproduced directly: pnpm --filter cadence-core test -- tests/docs/self-application-config.test.ts with securityAudit.provider=host-cli shows the real AssertionError only when run standalone outside cadence settle; cadence settle run --allow-failing-build gave zero console output about which test failed, on the exact same repo state (2026-08-06).
 - evidence: Confirmed still valid 2026-08-21 (HANDOFF-verifier-honesty-verify-premises.md Phase L sweep, scout-20260821-verifier-honesty): packages/core/src/gates/build-test-must-pass.ts's bypass-through path (buildTestBypassed:true) has zero ctx.io.err calls -- completely silent, unlike the refusal branch which does log. packages/core/src/verify/test-runner.ts:17 confirms execSync(command, { cwd, stdio: 'ignore' }) discards subprocess output at the OS level, never captured for later surfacing. Readiness/priority unchanged (needs-decision/high) -- genuine live gap.
 - evidence: Correction to dec-20261030-002 (phase 342 independent review): the --allow-failing-build bypass was NOT used by phase 298; 298-01-SUMMARY.json records build-test-must-pass as status 'ran'. The committed SUMMARYs that record skipReason 'bypassed via --allow-failing-build' are 39, 226, 256, 296, 297 and 319. The promote stands; read the decision's '296-298' as '296, 297 and 319'.
@@ -1949,3 +1949,19 @@ medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may sele
 - next: cadence milestone propose
 
 medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
+
+## rec-20261113-001 — A dry-run code-review / deep-verify that runs the real host-cli reviewer without writing the attempt sidecar or settling
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, code-review, deep-verify, verification, dx
+- files: packages/core/src/gates/code-review.ts, packages/core/src/verify/converge.ts, packages/core/src/services/settle.ts, packages/core/src/cli/commands/settle.ts
+- evidence: Phase 346: three Codex code-review attempts spent across three PC settle runs (dec-20261113-001, dec-20261113-002); each round needed a push/pull relay between the cloud session and the operator's PC.
+- next: cadence milestone propose
+
+Settle is the only way to run the real code-review and deep-verify gates (host-cli, e.g. Codex), and every failing code-review run consumes one of config.convergence.maxAttempts (default 3) in the draft's CODE-REVIEW.json sidecar. So the only way to learn what the real reviewer thinks is to spend the budget. Phase 346 (2026-11-12/13) shows the cost: each Codex finding required a cloud-session fix, a push, a pull and a full settle on the operator's PC; all three attempts were spent on successive secret-redaction shapes before the design change that removed the finding class, and one extra round was lost to a test failing inside settle. Ask: a read-only mode, e.g. 'cadence settle run --dry-run --deep' or 'cadence review [--deep]', that runs the same code-review and deep-verify prompts over the same diff basis with the configured provider, prints findings and per-AC verdicts, and writes nothing (no sidecar attempt, no SUMMARY, no state transition, no anomalies, no ledger routing). It should run the same gate preconditions so it fails fast on what settle would refuse. Related: rec-20260806-007 (the budget persisting across invocations, undocumented); this rec removes most reasons to burn it. Out of scope: changing maxAttempts semantics or the escalation itself.

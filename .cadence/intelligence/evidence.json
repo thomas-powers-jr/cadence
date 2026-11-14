@@ -3346,6 +3346,13 @@
       "summary": "phase 345-precompact-record, draft 345-01, SUMMARY contentHash 0f5f28c889f6a4cdff7a6b895ab39a3b45e0b8144d0b9ebd465fd05646fbceb6 — medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.",
       "path": ".cadence/phases/345-precompact-record/345-01-SUMMARY.json",
       "createdAt": "2026-11-04T03:04:42.276Z"
+    },
+    {
+      "id": "ev-20261113-001",
+      "recommendationId": "rec-20261113-001",
+      "kind": "note",
+      "summary": "Phase 346: three Codex code-review attempts spent across three PC settle runs (dec-20261113-001, dec-20261113-002); each round needed a push/pull relay between the cloud session and the operator's PC.",
+      "createdAt": "2026-11-13T18:32:10.889Z"
     }
   ]
 }

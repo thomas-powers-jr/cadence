@@ -7,12 +7,22 @@ import type { ProgressFile } from '../status.js';
 import type { InteractiveVerdict } from '../verify/interactive.js';
 import { runBoundaryCheck } from '../checks/boundary.js';
 import { parseAcRefs } from '../parse/ac-refs.js';
+import { redactCommand } from '../verify/test-runner.js';
 
 export interface CollectAnomaliesContext {
   draft: Draft;
   progress: ProgressFile;
-  /** True iff `--allow-missing-coverage` was used AND `test-coverage` was in the gate set. */
+  /** True iff the `test-coverage` gate reported a bypass (`--allow-missing-coverage`,
+   *  or, phase 346, bare `--force` over real assertion-mode gaps). */
   coverageBypassed: boolean;
+  /**
+   * Phase 346 (346-01, T5): the flag that fired for that coverage bypass. When
+   * present, the coverage-bypassed event names it in its message and carries
+   * it as `context.flag`, which settle maps onto the test-coverage gate
+   * bypass. When absent the event is exactly the pre-346 one (message names
+   * `--allow-missing-coverage`, empty context).
+   */
+  coverageBypassFlag?: '--allow-missing-coverage' | '--force';
   /** True iff `--force` was set on settle. */
   force: boolean;
   /**
@@ -43,6 +53,23 @@ export interface CollectAnomaliesContext {
    * pure. Omit the key when there is no such fact.
    */
   checkpointForceRelease?: { lastForcedAt: string };
+  /**
+   * Phase 346 (346-01): present iff the build-test-must-pass gate let a
+   * failing test suite through (its `flags.buildTestBypass`) — `flag` is the
+   * flag that fired, `command`/`exitCode` the failing run, `outputTail` its
+   * captured output tail when there was one. Turned into one error-severity
+   * `build-test-bypassed` event that never carries the tail, in its message
+   * or its context, because events reach notifier transports (a webhook POSTs
+   * them whole) and test output can hold secrets. Settle maps the event to a
+   * `build-test-must-pass` gate bypass and attaches the tail as its `detail`
+   * from the gate's own facts. Omit the key when there was no such bypass.
+   */
+  buildTestBypass?: {
+    flag: '--allow-failing-build' | '--force';
+    command: string;
+    exitCode: number;
+    outputTail?: string;
+  };
 }
 
 export interface CollectAnomaliesOptions {
@@ -93,11 +120,29 @@ export function collectAnomalies(
 
   // coverage-bypassed — single event when bypass flag flipped a gate that was active.
   if (ctx.coverageBypassed) {
+    const flag = ctx.coverageBypassFlag;
     events.push({
       type: 'coverage-bypassed',
       severity: 'warn',
-      message: 'test-coverage gate bypassed via --allow-missing-coverage',
-      context: {},
+      message: `test-coverage gate bypassed via ${flag ?? '--allow-missing-coverage'}`,
+      context: flag !== undefined ? { flag } : {},
+      ts: stamp(),
+    });
+  }
+
+  // build-test-bypassed — single error event when build-test-must-pass let a
+  // failing suite through (phase 346). The tail stays out of the event.
+  if (ctx.buildTestBypass) {
+    const { flag, exitCode } = ctx.buildTestBypass;
+    // Redacted again here (idempotent): events reach notifier transports, so
+    // an inline credential in the command must never ride in one, whoever
+    // built the context.
+    const command = redactCommand(ctx.buildTestBypass.command);
+    events.push({
+      type: 'build-test-bypassed',
+      severity: 'error',
+      message: `build-test-must-pass gate bypassed via ${flag}: ${command} exited ${exitCode}`,
+      context: { flag, command, exitCode },
       ts: stamp(),
     });
   }

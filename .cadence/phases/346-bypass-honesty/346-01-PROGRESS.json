@@ -1,0 +1,93 @@
+{
+  "draftId": "346-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Additive schemas: GateBypassZ.detail, build-test-bypassed anomaly type, TestRunResult.outputTail, GateFlags.buildTestBypass. Independent review FIX REQUIRED on one test (detail round-trip proved nothing because GateBypassZ strips unknown keys); fixed and mutation-checked (dropping detail from the schema fails it). outputTail doc clarified (absent, never empty). Re-verified in main thread: types 400/400, full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/gates/types.ts",
+        "packages/types/src/anomaly.ts",
+        "packages/types/src/summary.ts",
+        "packages/types/tests/anomaly.test.ts",
+        "packages/types/tests/summary.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:02:19.694Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "runTestCommand now streams combined stdout+stderr through a bounded ring (40 lines / 8 KiB, ANSI stripped, CRLF handled), stdin ignored, verdict from the exit code alone. Independent review FIX REQUIRED (C1: a backgrounded grandchild holding the pipes made 'close' wait its whole life; reproduced 6 s vs execSync's 5 ms): fixed in the main thread by resolving on exit with a 500 ms unref'd drain, failing-first test (10 s -> under 3 s) and a mutation check; I1 stream error listeners; ANSI regex widened to match its doc; trailing blank lines no longer use the line budget (new test). Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/verify/test-runner.ts",
+        "packages/core/tests/verify/test-runner.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:19:54.162Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Bypass branch writes exactly one stderr notice (gate, flag that fired with --allow-failing-build winning, command, exit code, indented output tail) and returns flags.buildTestBypass; every refusal, sealed or not, appends the tail with its reason and outcome byte-identical. One phase-141 assertion (silent bypass) superseded by AC-2 and its misleading title renamed per the independent review (PASS); both-flags test made exact; refusal-vs-bypass fallback difference commented. Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/gates/build-test-must-pass.ts",
+        "packages/core/tests/gates/build-test-must-pass.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:31:35.812Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "A bypassed failing suite becomes one error-severity build-test-must-pass gateBypasses entry (flag that fired, command exited N, detail = output tail); assurance capped at mixed, shown live (strong -> mixed) and by re-derivation. Main-thread fixes after the independent review (PASS): the output tail never enters the anomaly event (the webhook notifier POSTs events whole), settle attaches it as detail from the gate's facts; one shared renderGateBypassLines in parse/summary-writer.ts so the settle-written SUMMARY.md shows the tail (DRAFT amended in BUILD, dec-20261112-001); 6-space indent; a record with detail passes hash verification; '<unknown flag>' instead of a silent '--force'. Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/notify/collect.ts",
+        "packages/core/src/parse/summary-writer.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/services/summary-render.ts",
+        "packages/core/tests/parse/summary-writer.test.ts",
+        "packages/core/tests/services/settle-build-test-bypass.test.ts",
+        "packages/core/tests/services/summary-render-bypass-detail.test.ts"
+      ],
+      "updatedAt": "2026-11-12T19:54:25.586Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "In assertion mode, an unsealed bare --force pass over real coverage gaps (absent, weak or skipped-only, exactly the refusal's buckets) now sets coverageBypassed; registry skip reason, anomaly message and the warn gateBypasses entry name --force; --allow-missing-coverage stays byte-identical and wins when both are set; registry's build-test skip reason reads the gate's own flag. settle-retro.test.ts's clean-run fixture relied on the old loophole and now has real AC-1 coverage (no assertion loosened; T5 declares it, decision 2026-11-12). Independent review PASS; added a skipped-only gate case and aligned the flag helper's truthiness with the gate. Full turbo pipeline 28/28 (core 5407 passed).",
+      "touchedFiles": [
+        "packages/core/src/gates/coverage.ts",
+        "packages/core/src/gates/registry.ts",
+        "packages/core/tests/gates/registry.test.ts",
+        "packages/core/tests/services/settle-retro.test.ts",
+        "packages/core/tests/gates/coverage-force-bypass.test.ts"
+      ],
+      "updatedAt": "2026-11-12T20:18:57.432Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    },
+    "T6": {
+      "status": "DONE",
+      "notes": "docs/concepts.md (two notes), DESIGN.md anomaly table (build-test-bypassed row; coverage-bypassed row covers bare --force), commands.md and settle --help for --allow-failing-build, docs/cli.md's row (declared in BUILD, dec-20261112-003), minor changeset for core and types with upgrade notes (grade cap, the committed tail may hold secrets, bare --force), doc test reading the tail bounds from the runner's constants. Independent review FIX REQUIRED: the changeset assertion would go red once the release consumes it; fixed with the phase 325/341 CHANGELOG fallback. Also: settle's own bypass line and 'when it printed any' in the concepts note; anomaly-row helper scoped to §3.3. Full turbo pipeline 28/28.",
+      "touchedFiles": [
+        "DESIGN.md",
+        "docs/cli.md",
+        "docs/concepts.md",
+        "docs/reference/commands.md",
+        "packages/core/src/cli/commands/settle.ts",
+        ".changeset/bypass-honesty.md",
+        "packages/core/tests/docs/phase346-bypass-honesty-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-12T20:32:51.948Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "complex"
+    }
+  }
+}

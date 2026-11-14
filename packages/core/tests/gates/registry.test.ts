@@ -302,6 +302,60 @@ describe('runSettleGates gate provenance (AC-1, phase 140)', () => {
     ]);
   });
 
+  // Phase 346 (346-01, T5): a bare --force pass over real coverage gaps is a
+  // coverage bypass too — the skip reason names --force, while
+  // --allow-missing-coverage stays the named flag whenever it is set.
+  it('346-01/AC-4: names --force when test-coverage was bypassed via bare --force', async () => {
+    const ctx = { gateSet: { gates: ['test-coverage'] }, opts: { force: true } } as unknown as SettleContext;
+    const { gates } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'test-coverage': { outcome: 'pass', flags: { coverageBypassed: true } },
+      }),
+      order: ['test-coverage'],
+    });
+    expect(gates).toEqual([
+      { gate: 'test-coverage', status: 'skipped', skipReason: 'bypassed via --force' },
+    ]);
+  });
+
+  it('346-01/AC-4: names --allow-missing-coverage when both it and --force are set', async () => {
+    const ctx = {
+      gateSet: { gates: ['test-coverage'] },
+      opts: { force: true, allowMissingCoverage: true },
+    } as unknown as SettleContext;
+    const { gates } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'test-coverage': { outcome: 'pass', flags: { coverageBypassed: true } },
+      }),
+      order: ['test-coverage'],
+    });
+    expect(gates).toEqual([
+      { gate: 'test-coverage', status: 'skipped', skipReason: 'bypassed via --allow-missing-coverage' },
+    ]);
+  });
+
+  // Phase 346 (346-01, T5, review suggestion): the build-test-must-pass skip
+  // reason reads the gate's own buildTestBypass.flag when present, so the
+  // gate's notice, the skip reason and the gateBypasses flag share one source.
+  it('346-01/AC-4: build-test-must-pass skip reason takes flags.buildTestBypass.flag over the opts ternary', async () => {
+    const ctx = { gateSet: { gates: ['build-test-must-pass'] }, opts: { allowFailingBuild: true } } as unknown as SettleContext;
+    const { gates } = await runSettleGates(ctx, {
+      registry: recordingRegistry([], {
+        'build-test-must-pass': {
+          outcome: 'pass',
+          flags: {
+            buildTestBypassed: true,
+            buildTestBypass: { flag: '--force', command: 'npm test', exitCode: 1 },
+          },
+        },
+      }),
+      order: ['build-test-must-pass'],
+    });
+    expect(gates).toEqual([
+      { gate: 'build-test-must-pass', status: 'skipped', skipReason: 'bypassed via --force' },
+    ]);
+  });
+
   // Phase 226 (T3): same parity fix for boundary-scan. Uses the same
   // boundaryEnforcement:'block' context as the "records boundary-scan as ran"
   // test below, so the self-guard predicate doesn't short-circuit this case.

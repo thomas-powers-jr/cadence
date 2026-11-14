@@ -1333,6 +1333,38 @@ Phase 343. A call refused under verification.fallback refuse returns no verdict,
 
 Phase 343. Selection never throws or warns under refuse; only a method call does, so a gate that does not run cannot refuse and an unused seam's missing key costs nothing. deep-verify, code-review and security-audit already turn a thrown verifier error into a refusal with their --allow-*-failure bypasses. per-task-verify, plan-review, spec-review and ui-spec-review have no failure path: the typed error reaches build task / draft approve / spec approve's catch and exits 1 without mutating loop state. Their --allow-per-task-failure / --allow-plan-review-failure / spec-review flags bypass a refuse verdict, not a refused call, and are deliberately not extended in this phase. An operator who wants to proceed sets fallback back to mock.
 
+### dec-20261112-001 — 346-01 amended in BUILD: T4 declares summary-writer.ts; the output tail never enters the anomaly event
+
+- decided: 2026-11-12T19:50:00.912Z
+
+Thomas, 2026-11-12, on two T4 findings. (1) The implementer found that settle writes <id>-SUMMARY.md through packages/core/src/parse/summary-writer.ts, which had its own gateBypasses loop, not the services/summary-render.ts T4 declared, so AC-3's 'SUMMARY.md shows the detail' could not be met from T4's files. Thomas chose to amend the DRAFT rather than fix an undeclared file or narrow AC-3: T4 now declares summary-writer.ts and its test, and one shared renderGateBypassLines in parse/ serves both renderers (the independent review's suggestion, so they cannot drift again). (2) The independent T4 review found that the anomaly context carried the full output tail and the webhook notifier POSTs events whole, so test output (which can hold env dumps or tokens) would leave the machine. The DRAFT's own Boundary meant to forbid that but T4's action text contradicted it; AC-3 needs only flag, command and exitCode in context. Fixed: the tail never enters the event; settle attaches it as gateBypasses.detail from the gate's own facts; AC-3 now says the tail appears nowhere in the event. Also: detail lines indent 6 spaces (a code block inside the list item, so tail text is never read as Markdown), a new record with detail is shown to pass summary hash verification, and an unknown flag falls back to '<unknown flag>' rather than a silent '--force'. The DRAFT's content hash changed after approve, so the settle runs with --allow-stale-draft; this decision is the record (precedent: cadence-studio dec-20261103-008, phase 340's draftReadHash).
+
+### dec-20261112-002 — 346-01 amended in BUILD: T5 declares settle-retro.test.ts, whose clean-run fixture relied on the --force coverage loophole
+
+- decided: 2026-11-12T20:06:27.196Z
+
+2026-11-12, during T5. settle-retro.test.ts's 'clean-run digest' case built its friction-free settle by passing bare --force over the fixture's missing AC-1 coverage; its own comment said --force was chosen because it passes the coverage gate without recording a bypass. That is exactly the loophole AC-4 closes, so the case now saw a recorded test-coverage bypass. The test's intent (a settle with no friction) is right and its fixture was relying on the bug, so the fixture now commits a real asserting AC-1 test under packages/ and settles with no bypass flag at all; no assertion was loosened. T5 now declares the file (same approach as dec-20261112-001; the settle's --allow-stale-draft covers both amendments). Also in T5: an --allow-missing-coverage coverage-bypassed event stays byte-identical to today (the flag is passed only for a bare --force), honoring the Boundary.
+
+### dec-20261112-003 — 346-01 amended in BUILD: T6 declares docs/cli.md so its --allow-failing-build row matches commands.md and --help
+
+- decided: 2026-11-12T20:23:14.685Z
+
+2026-11-12, during T6. docs/cli.md keeps a bypass table whose --allow-failing-build row phase 332 kept in sync with docs/reference/commands.md and the settle --help text for the review-bypass flags; after T6 updated those two, cli.md's row would have said less (doc drift, a named failure mode). T6 now declares docs/cli.md and the row says the bypass is recorded as an error gate bypass with the output tail, capping assurance at mixed. Left alone on purpose: DESIGN.md §3.3's 'Seven event types' line above the anomaly table was already stale before this phase (the table had 10 rows, AnomalyTypeZ has 20); per the Freshen Reflex rule it is noted in the handoff rather than rewritten here. Same --allow-stale-draft coverage as dec-20261112-001.
+
+### dec-20261113-001 — 346-01: the test command is redacted wherever it is printed or recorded, refusal line included
+
+- recommendation: rec-20260806-006
+- decided: 2026-11-13T16:33:21.325Z
+
+Codex code-review at settle (attempts 1 and 2) flagged inline credentials in verification.testCommand reaching the anomaly event, webhooks and SUMMARY reason. redactCommand redacts every inline assignment value, URL userinfo, credential flag values and curl -u, plus redactSecrets; the runner also removes secret-named environment values and command secrets literally from the output tail. The refusal's existing command line now passes through redactCommand too: it is unchanged for any command without a credential, and the DRAFT Boundary (reason string and outcome byte-identical) still holds. The cost is that harmless assignments such as NODE_ENV=test also show as [REDACTED]; a name allowlist always misses one (PGPASSWORD), so redacting every value was chosen.
+
+### dec-20261113-002 — 346-01 amended in BUILD: the build-test output tail is shown on stderr only, never recorded in the SUMMARY
+
+- recommendation: rec-20260806-006
+- decided: 2026-11-13T18:10:56.014Z
+
+Reverses the operator's earlier 'tail in gateBypasses' choice. Codex code-review at settle hit its 3-attempt limit, and every HIGH finding across the three attempts was a secret in a new shape surviving redaction into the committed SUMMARY.json/.md detail (inline command credentials, URL userinfo, echoed --password flags, escaped quotes in JSON). No redaction can know every secret a suite prints, so the operator chose to stop committing test output: the gate's stderr notice still shows the redacted tail, and the gateBypasses entry's detail now only says how many tail lines were shown. AC-3's 'detail holding the output tail' and the matching Boundary are amended inline. The error severity and mixed assurance cap are unchanged.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
