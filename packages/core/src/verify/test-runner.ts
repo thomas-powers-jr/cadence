@@ -37,17 +37,58 @@ const PIPE_DRAIN_MS = 500;
 const CONTROL_RE = /(?![\t\n])[\p{Cc}\p{Cf}\u2028\u2029]/gu;
 
 /**
- * `scheme://userinfo@` — a URL's userinfo is a credential. The scheme cannot
- * continue a word and is at most 32 characters, which bounds backtracking;
- * the user part holds no `/`, `@` or `:`, and the password after `:` runs to
- * the last `@` in the token, so an `@` or `/` inside a password is covered
- * while `file:///…/@vitest/runner` stack frames and
- * `https://registry.npmjs.org/@types/node` are left alone.
- * Both parts are capped at 256 characters so a long run of `x://` cannot make
- * the scan quadratic (no real user name or password is that long).
+ * `scheme://userinfo@` — a URL's userinfo is a credential. Found by a linear
+ * scan rather than a regex, so no length cap is needed: for each `://`, the
+ * scheme before it is at most 32 characters, starts with a letter and does
+ * not continue a word; the token after it ends at whitespace, a quote or
+ * `<`/`>`; the user part holds no `/`, `@` or `:`, and a password after `:`
+ * runs to the last `@` in the token, so an `@` or `/` inside a password, of
+ * any length, is covered, while `file:///…/@vitest/runner` stack frames and
+ * `https://registry.npmjs.org/@types/node` are left alone. Returns the
+ * [start, end) spans of each userinfo.
  */
-const URL_USERINFO_RE =
-  /(?<![A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/)(?!\/)[^\s"'<>/@:]{0,256}(?::[^\s"'<>]{0,256})?@/g;
+function userinfoSpans(text: string): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
+  const isSchemeChar = (c: string | undefined): boolean => c !== undefined && /[A-Za-z0-9+.-]/.test(c);
+  const isTokenEnd = (c: string | undefined): boolean => c === undefined || /[\s"'<>]/.test(c);
+  let from = 0;
+  for (;;) {
+    const sep = text.indexOf('://', from);
+    if (sep === -1) break;
+    from = sep + 3;
+    let s = sep;
+    while (s > 0 && sep - s < 32 && isSchemeChar(text[s - 1])) s--;
+    if (s === sep || isSchemeChar(text[s - 1]) || !/[A-Za-z]/.test(text[s] ?? '')) continue;
+    const start = sep + 3;
+    if (text[start] === '/') continue;
+    let end = start;
+    while (!isTokenEnd(text[end])) end++;
+    from = Math.max(from, end);
+    let i = start;
+    while (i < end && text[i] !== '/' && text[i] !== '@' && text[i] !== ':') i++;
+    let at = -1;
+    if (text[i] === '@') at = i;
+    else if (text[i] === ':') {
+      const last = text.lastIndexOf('@', end - 1);
+      if (last > i) at = last;
+    }
+    if (at > start) spans.push([start, at]);
+  }
+  return spans;
+}
+
+/** Replaces each URL userinfo with `[REDACTED]`, keeping the scheme and the `@host…`. */
+function redactUrlUserinfo(text: string): string {
+  const spans = userinfoSpans(text);
+  if (spans.length === 0) return text;
+  let out = '';
+  let pos = 0;
+  for (const [a, b] of spans) {
+    out += text.slice(pos, a) + '[REDACTED]';
+    pos = b;
+  }
+  return out + text.slice(pos);
+}
 /** An upper-case shell assignment anywhere in output: env dumps, npm's `sh -c` footer, `set -x` traces. */
 const OUTPUT_ASSIGNMENT_RE = /(^|[\s;&|(>+"'])([A-Z_][A-Z0-9_]*)=("[^"]*"|'[^']*'|\S+)/gm;
 /** A quoted credential-named key, as JSON and assertion diffs print objects: `"password": "x"`. */
@@ -89,10 +130,13 @@ export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv
     if (v && v.length >= 8 && !COMMON_VALUE_RE.test(v)) values.add(v);
   };
   const addUserinfo = (text: string): void => {
-    for (const m of text.matchAll(
-      /(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/(?!\/)([^\s"'<>/@:]{0,256}(?::[^\s"'<>]{0,256})?)@/g,
-    ))
-      add(m[1]);
+    for (const [a, b] of userinfoSpans(text)) {
+      const info = text.slice(a, b);
+      add(info);
+      // The password alone too: a suite may print it without the user part.
+      const colon = info.indexOf(':');
+      if (colon !== -1) add(info.slice(colon + 1));
+    }
   };
   for (const [name, value] of Object.entries(env)) {
     if (!value) continue;
@@ -154,12 +198,26 @@ function replaceLiterals(text: string, literals: readonly string[]): string {
  * twice.
  */
 export function redactOutput(text: string, literals: readonly string[] = []): string {
-  return redactSecrets(replaceLiterals(text, literals))
-    .replace(URL_USERINFO_RE, '$1[REDACTED]@')
+  // Patterns first: a literal that is itself a key word (MYSQL_PWD=password)
+  // would otherwise rewrite the key `"password"` before the quoted-key pattern
+  // could redact its value. Then the literals, plus the words of any literal
+  // holding whitespace, in case a pattern redacted only its first word.
+  const patterned = redactUrlUserinfo(redactSecrets(text))
     .replace(OUTPUT_ASSIGNMENT_RE, '$1$2=[REDACTED]')
     .replace(QUOTED_KEY_RE, '$1"[REDACTED]"')
     .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
+  return replaceLiterals(patterned, withWordPieces(literals));
+}
+
+/** The literals, plus each 4+-character word of a literal that holds whitespace (longest first). */
+function withWordPieces(literals: readonly string[]): string[] {
+  const out = new Set(literals);
+  for (const v of literals) {
+    if (!/\s/.test(v)) continue;
+    for (const w of v.split(/\s+/)) if (w.length >= 4 && !COMMON_VALUE_RE.test(w)) out.add(w);
+  }
+  return [...out].sort((a, b) => b.length - a.length);
 }
 
 /** A program word shown as-is: letters, digits and path characters, an optional drive prefix. */

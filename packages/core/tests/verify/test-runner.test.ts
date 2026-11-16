@@ -677,3 +677,39 @@ describe('phase 346: whitespace-only output', () => {
   });
 });
 
+
+describe('phase 346: shapes from the code-review run on 2026-11-16', () => {
+  it('346-01/AC-1: a URL password of any length is redacted, in the output and as a literal from the environment', async () => {
+    const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const pw = 'p'.repeat(300) + '-LONGPW';
+    const url = `postgres://user:${pw}@db.internal/app`;
+    expect(ro(`connect failed: ${url}`)).toBe('connect failed: postgres://[REDACTED]@db.internal/app');
+    const literals = sv(undefined, { DATABASE_URL: url });
+    expect(literals.some((l) => l.includes('-LONGPW'))).toBe(true);
+    expect(ro(`password was ${pw}`, literals)).not.toContain('-LONGPW');
+  });
+
+  it('346-01/AC-1: a literal that is itself a key word does not rewrite the key before its value is redacted', async () => {
+    const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const literals = sv(undefined, { MYSQL_PWD: 'password' });
+    expect(literals).toContain('password');
+    const out = ro('{"password":"hunter222"}', literals);
+    expect(out).not.toContain('hunter222');
+  });
+
+  it('346-01/AC-1: a multi-word secret partly redacted by a pattern leaves none of its words', async () => {
+    const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const literals = sv(undefined, { MY_TOKEN: 'abcd efghij klmnop' });
+    const out = ro('MY_TOKEN=abcd efghij klmnop', literals);
+    expect(out).not.toContain('efghij');
+    expect(out).not.toContain('klmnop');
+  });
+
+  it('346-01/AC-1: the userinfo scan is linear: a long run of x:// and a long token finish fast', async () => {
+    const { redactOutput: ro } = await import('../../src/verify/test-runner.js');
+    const started = Date.now();
+    ro(':a://'.repeat(52428));
+    ro('a://' + 'b'.repeat(262144) + ':' + 'c'.repeat(262144));
+    expect(Date.now() - started).toBeLessThan(3000);
+  });
+});

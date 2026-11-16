@@ -4227,6 +4227,11 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
   anomaly and SUMMARY names the command by its program only, and the tail
   strips every Unicode control and format character by category. Tail
   secret redaction is stated as best-effort, stderr only.
+- After that, deep-verify passed every AC. The remaining code-review HIGHs
+  were stderr-tail redaction shapes (a URL password over a 256-character
+  regex cap, a literal that is itself a key word rewriting the key first);
+  the URL scan became a linear parser with no cap and the key patterns now
+  run before the literals.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
