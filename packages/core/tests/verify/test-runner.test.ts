@@ -699,10 +699,10 @@ describe('phase 346: shapes from the code-review run on 2026-11-16', () => {
 
   it('346-01/AC-1: a multi-word secret partly redacted by a pattern leaves none of its words', async () => {
     const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
-    const literals = sv(undefined, { MY_TOKEN: 'abcd efghij klmnop' });
-    const out = ro('MY_TOKEN=abcd efghij klmnop', literals);
-    expect(out).not.toContain('efghij');
-    expect(out).not.toContain('klmnop');
+    const literals = sv(undefined, { MY_TOKEN: 'abcd efghijkl mnopqrst' });
+    const out = ro('MY_TOKEN=abcd efghijkl mnopqrst', literals);
+    expect(out).not.toContain('efghijkl');
+    expect(out).not.toContain('mnopqrst');
   });
 
   it('346-01/AC-1: the userinfo scan is linear: a long run of x:// and a long token finish fast', async () => {
@@ -713,3 +713,29 @@ describe('phase 346: shapes from the code-review run on 2026-11-16', () => {
     expect(Date.now() - started).toBeLessThan(3000);
   });
 });
+
+describe('phase 346: secret-named variables are matched by name segment, not substring', () => {
+  it('346-01/AC-1: GIT_AUTHOR_NAME, SESSIONNAME and the like are not secrets, so a person\'s name in a path survives the tail', async () => {
+    const { redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const env = {
+      GIT_AUTHOR_NAME: 'Thomas Powers',
+      GIT_COMMITTER_NAME: 'Thomas Powers',
+      SESSIONNAME: 'Console-session-1',
+      USERNAME: 'Thomas',
+      PGPASSWORD: 'pg-secret-1234',
+      MYSQL_PWD: 'my-secret-5678',
+      GITHUB_TOKEN: 'gh-secret-9012',
+      npm_config__authToken: 'npm-secret-3456',
+      AWS_SECRET_ACCESS_KEY: 'aws-secret-7890',
+    };
+    const literals = sv(undefined, env);
+    expect(literals).not.toContain('Thomas Powers');
+    expect(literals).not.toContain('Console-session-1');
+    for (const v of ['pg-secret-1234', 'my-secret-5678', 'gh-secret-9012', 'npm-secret-3456', 'aws-secret-7890']) {
+      expect(literals).toContain(v);
+    }
+    const path = 'C:\\Users\\Thomas\\AppData\\Local\\Temp\\cadence-test-runner-abc';
+    expect(ro(path, literals)).toBe(path);
+  });
+});
+

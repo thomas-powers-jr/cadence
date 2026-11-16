@@ -110,8 +110,16 @@ const SECRET_FLAG_RE =
 const BASIC_AUTH_FLAG_RE = /(\s-u\s+)[^\s:]+:\S+/g;
 /** Values never treated as literal secrets: booleans, common words, plain numbers. */
 const COMMON_VALUE_RE = /^(?:true|false|yes|no|on|off|null|undefined|test|development|production|\d+)$/i;
-/** A variable or key name that holds a credential. */
-const SECRET_NAME_RE = /pass|pwd|token|secret|key|auth|credential|private|cookie|session/i;
+/**
+ * A variable name that holds a credential: a credential keyword ending a
+ * name segment (`PGPASSWORD`, `MYSQL_PWD`, `GITHUB_TOKEN`, `npm_config__authToken`,
+ * `AWS_SECRET_ACCESS_KEY`), or `AUTH`/`SESSION`/`PRIVATE` as a whole segment.
+ * A keyword inside a longer word does not count, so `GIT_AUTHOR_NAME` and
+ * `SESSIONNAME` are not secrets (their values, such as a person's name, would
+ * otherwise be erased from the whole tail).
+ */
+const SECRET_NAME_RE =
+  /(?:pass(?:word|wd)?|pwd|token|secret|key|credentials?|cookie)(?=_|$)|(?:^|_)(?:auth|session|private)(?=_|$)/i;
 
 /**
  * Literal secret values to remove wherever they appear, whatever shape
@@ -210,12 +218,13 @@ export function redactOutput(text: string, literals: readonly string[] = []): st
   return replaceLiterals(patterned, withWordPieces(literals));
 }
 
-/** The literals, plus each 4+-character word of a literal that holds whitespace (longest first). */
+/** The literals, plus each 8+-character word of a literal that holds whitespace (longest first). */
 function withWordPieces(literals: readonly string[]): string[] {
   const out = new Set(literals);
   for (const v of literals) {
     if (!/\s/.test(v)) continue;
-    for (const w of v.split(/\s+/)) if (w.length >= 4 && !COMMON_VALUE_RE.test(w)) out.add(w);
+    // 8+ characters, so a piece such as a first name cannot erase common text.
+    for (const w of v.split(/\s+/)) if (w.length >= 8 && !COMMON_VALUE_RE.test(w)) out.add(w);
   }
   return [...out].sort((a, b) => b.length - a.length);
 }
