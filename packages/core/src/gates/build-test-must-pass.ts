@@ -1,6 +1,6 @@
 import { NO_TEST_COMMAND_NOTICE } from '@thomas-powers-jr/cadence-types';
 import { isGateSealed } from './types.js';
-import { redactCommand, redactOutput, secretValues } from '../verify/test-runner.js';
+import { displayCommand, redactOutput, secretValues } from '../verify/test-runner.js';
 import type { GateImpl, GateResult } from './types.js';
 
 /**
@@ -39,12 +39,12 @@ import type { GateImpl, GateResult } from './types.js';
  *       <tail line 1>
  *       <tail line N>
  *
- * The tail block (the indented lines after the first) appears only when the
- * runner captured an `outputTail`. Every refusal, sealed or not, keeps its
- * stderr lines, `reason` string and outcome byte-identical and, when a tail
- * was captured, appends that same tail block as one extra stderr write after
- * them. A refusal with no captured tail, a passing run and a `ran: false` run
- * write exactly what they wrote before.
+ * The tail block (the indented lines after the first) holds the runner's
+ * `outputTail`, or `output tail: (no output captured)` when there was none.
+ * Every refusal, sealed or not, keeps its `reason` string and outcome
+ * byte-identical; its command line names the program only (dec-20261116-001); it then
+ * appends the tail block as one extra stderr write. A passing run and a
+ * `ran: false` run write exactly what they wrote before.
  */
 export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
   const res = await ctx.runner.test();
@@ -54,11 +54,11 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
   }
   const sealed = isGateSealed(ctx, 'build-test-must-pass');
   if (!res.ok && (sealed || (!ctx.opts.allowFailingBuild && !ctx.opts.force))) {
-    // The command is redacted here too; a command holding no credentials prints
-    // unchanged. The gate stays pure: environment-sourced literals were already
-    // removed from the tail by the runner, so only the command's own count here.
+    // The command is shown by its program only (dec-20261116-001). The gate stays pure:
+    // environment-sourced literals were already removed from the tail by the
+    // runner, so only the command's own count here.
     const secrets = secretValues(res.command, {});
-    const shown = res.command === undefined ? res.command : redactCommand(res.command, secrets);
+    const shown = res.command === undefined ? res.command : displayCommand(res.command);
     ctx.io.err(`build-test-must-pass: ${shown} exited ${res.exitCode}\n`);
     const reason = sealed
       ? 'settle run refused: the test suite must pass before settle. ' +
@@ -67,8 +67,8 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
       : 'settle run refused: the test suite must pass before settle. ' +
           'Pass --allow-failing-build to bypass, or --force to settle anyway.';
     ctx.io.err(`${reason}\n`);
-    // The refusal's reason and outcome stay byte-identical to pre-346 (DRAFT Boundary), and its command line is
-    // unchanged unless the command holds a credential (dec-20261113-001). Unlike the bypass notice it keeps
+    // The refusal's reason and outcome stay byte-identical to pre-346 (DRAFT Boundary); its command line names
+    // the program only (dec-20261116-001). Unlike the bypass notice it keeps
     // printing a missing command or exit code as-is rather than with the bypass branch's explicit fallbacks.
     // Every refusal names the tail, a silent run's included ("no output captured").
     ctx.io.err(formatTailBlock(res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets)));
@@ -79,13 +79,13 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     // by that branch's condition, that only happens when unsealed AND a
     // bypass flag was set. A genuine bypass, not a passing run.
     const flag = ctx.opts.allowFailingBuild === true ? '--allow-failing-build' : '--force';
-    // The command is recorded (anomaly event, SUMMARY reason), so an inline
-    // credential such as `API_KEY=... pnpm test` or a URL's `user:pw@` is
-    // redacted here, once, for every record and the notice alike.
+    // The command is recorded (anomaly event, SUMMARY reason), so it is shown
+    // by its program only, its arguments never (dec-20261116-001): no list of secret
+    // shapes can be complete, and the full command is in config.json.
     // The runner is injected, so its tail is redacted again here (safe twice);
     // the real runner already removed environment-sourced literals.
     const secrets = secretValues(res.command, {});
-    const command = redactCommand(res.command ?? '<unknown command>', secrets);
+    const command = displayCommand(res.command ?? '<unknown command>');
     const exitCode = res.exitCode ?? 1;
     const outputTail = res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets);
     ctx.io.err(

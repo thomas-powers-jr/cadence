@@ -7,7 +7,7 @@ import type { ProgressFile } from '../status.js';
 import type { InteractiveVerdict } from '../verify/interactive.js';
 import { runBoundaryCheck } from '../checks/boundary.js';
 import { parseAcRefs } from '../parse/ac-refs.js';
-import { redactCommand } from '../verify/test-runner.js';
+import { displayCommand } from '../verify/test-runner.js';
 
 export interface CollectAnomaliesContext {
   draft: Draft;
@@ -61,8 +61,9 @@ export interface CollectAnomaliesContext {
    * `build-test-bypassed` event that never carries the tail, in its message
    * or its context, because events reach notifier transports (a webhook POSTs
    * them whole) and test output can hold secrets. Settle maps the event to a
-   * `build-test-must-pass` gate bypass and attaches the tail as its `detail`
-   * from the gate's own facts. Omit the key when there was no such bypass.
+   * `build-test-must-pass` gate bypass whose `detail` counts the tail lines
+   * the notice showed, never the tail itself (dec-20261113-002). Omit the key
+   * when there was no such bypass.
    */
   buildTestBypass?: {
     flag: '--allow-failing-build' | '--force';
@@ -134,10 +135,10 @@ export function collectAnomalies(
   // failing suite through (phase 346). The tail stays out of the event.
   if (ctx.buildTestBypass) {
     const { flag, exitCode } = ctx.buildTestBypass;
-    // Redacted again here (idempotent): events reach notifier transports, so
-    // an inline credential in the command must never ride in one, whoever
-    // built the context.
-    const command = redactCommand(ctx.buildTestBypass.command);
+    // Program only, again here (idempotent): events reach notifier transports,
+    // so no argument of the command rides in one, whoever built the context
+    // (dec-20261116-001).
+    const command = displayCommand(ctx.buildTestBypass.command);
     events.push({
       type: 'build-test-bypassed',
       severity: 'error',

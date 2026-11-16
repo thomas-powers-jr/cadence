@@ -532,7 +532,11 @@ These run on every phase regardless of profile or tier.
 > lets a failing `verification.testCommand` through `build-test-must-pass`
 > because of `--allow-failing-build` or `--force`, the gate prints one stderr
 > notice naming the flag that fired (`--allow-failing-build` whenever it is
-> set, otherwise `--force`), the command, its exit code and the run's
+> set, otherwise `--force`), the command by its program only (`pnpm
+> [arguments not shown]`, or `[command not shown]` when its first word is
+> not a plain program name; its arguments never reach a notice, refusal,
+> anomaly or SUMMARY, and the full command stays in `.cadence/config.json`),
+> its exit code and the run's
 > captured output tail (or `output tail: (no output captured)` when it
 > printed nothing), and settle adds its usual
 > `settle bypass [error] …` line and records one entry in
@@ -540,7 +544,9 @@ These run on every phase regardless of profile or tier.
 > `<command> exited <code>`, and its `detail` only says how many lines of
 > output tail the notice showed. The tail itself (the last 40 lines of the
 > combined stdout and stderr, capped at 8 KiB, with ANSI escape codes
-> stripped, CRLF folded to LF and secrets redacted) is shown on stderr and
+> stripped, CRLF folded to LF, every Unicode control and format character
+> except TAB and LF removed (plus U+2028/U+2029), and known secret shapes redacted on a
+> best-effort basis) is shown on stderr and
 > is not recorded: `SUMMARY.json` and `SUMMARY.md` are committed, and no
 > redaction can know every secret a suite might print. `SUMMARY.md` and
 > `cadence summary render` show the `detail` as an indented block under the

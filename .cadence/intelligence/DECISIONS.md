@@ -1365,6 +1365,13 @@ Codex code-review at settle (attempts 1 and 2) flagged inline credentials in ver
 
 Reverses the operator's earlier 'tail in gateBypasses' choice. Codex code-review at settle hit its 3-attempt limit, and every HIGH finding across the three attempts was a secret in a new shape surviving redaction into the committed SUMMARY.json/.md detail (inline command credentials, URL userinfo, echoed --password flags, escaped quotes in JSON). No redaction can know every secret a suite prints, so the operator chose to stop committing test output: the gate's stderr notice still shows the redacted tail, and the gateBypasses entry's detail now only says how many tail lines were shown. AC-3's 'detail holding the output tail' and the matching Boundary are amended inline. The error severity and mixed assurance cap are unchanged.
 
+### dec-20261116-001 — 346-01: name the test command by its program only, and strip control/format characters by category
+
+- recommendation: rec-20260806-006
+- decided: 2026-11-16T16:16:19.508Z
+
+Deep-verify and code-review kept rejecting new shapes in the command (curl --user a:b, quoted assignments with spaces or escaped quotes) and in the stderr tail (U+061C missing from a character list). No list of secret shapes or characters can be complete, so the operator chose fail-closed designs: every bypass notice, refusal line, build-test-bypassed anomaly and SUMMARY reason names the command by its program only ('pnpm [arguments not shown]'; a non-plain program word shows as '[command not shown]'); the full command stays in .cadence/config.json. The tail strips every Unicode Cc/Cf character (plus U+2028/2029) except TAB and LF. Tail secret redaction remains, stated as best-effort; the tail is stderr only and never recorded (dec-20261113-002). AC-1, AC-2 and AC-3 carry inline As-built amendments. Refusal command lines change format; their reason strings and outcomes stay byte-identical (the DRAFT Boundary).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

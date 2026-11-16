@@ -70,6 +70,8 @@ const FIXED_NOW = '2026-11-12T12:00:00.000Z';
 const FAIL_COMMAND = 'node fail-346.cjs';
 const PASS_COMMAND = 'node pass-346.cjs';
 const SILENT_FAIL_COMMAND = 'node silent-346.cjs';
+// Every record names the command by program only (dec-20261116-001).
+const SHOWN = 'node [arguments not shown]';
 const TAIL_MARKER = 'boom-346';
 
 const DRAFT = `---
@@ -245,7 +247,7 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
     const entries = buildTestEntries(silentRun.summary);
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ gate: 'build-test-must-pass', flag: '--allow-failing-build', severity: 'error' });
-    expect(entries[0]!.reason).toBe(`${SILENT_FAIL_COMMAND} exited 2`);
+    expect(entries[0]!.reason).toBe(`${SHOWN} exited 2`);
     expect(entries[0]!.detail).toBe(
       'output tail: 0 lines shown on stderr at settle; not recorded, since test output can hold secrets',
     );
@@ -276,7 +278,8 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
         flag: c.flag,
         severity: 'error',
       });
-      expect(entry.reason).toContain(FAIL_COMMAND);
+      expect(entry.reason).toContain(SHOWN);
+      expect(entry.reason).not.toContain('fail-346');
       expect(entry.reason).toContain('exited 2');
       expect(entry.reason).not.toContain(TAIL_MARKER);
       // The fixture prints two lines (boom-346, second-346); the note counts exactly what the notice showed.
@@ -297,7 +300,7 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
       expect(buildTestEntries(run.summary)[0]?.flag).toBe(c.flag);
       expect(run.stderr).toContain(`build-test-must-pass: BYPASSED via ${c.flag}:`);
       expect(run.stderr).toContain(
-        `settle bypass [error] build-test-must-pass: ${FAIL_COMMAND} exited 2 (${c.flag})`,
+        `settle bypass [error] build-test-must-pass: ${SHOWN} exited 2 (${c.flag})`,
       );
     });
 
@@ -308,10 +311,10 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
       const ev = events[0]!;
       expect(ev.severity).toBe('error');
       expect(ev.message).toContain(c.flag);
-      expect(ev.message).toContain(FAIL_COMMAND);
+      expect(ev.message).toContain(SHOWN);
       expect(ev.message).toContain('exited 2');
       expect(ev.message).not.toContain(TAIL_MARKER);
-      expect(ev.context).toMatchObject({ flag: c.flag, command: FAIL_COMMAND, exitCode: 2 });
+      expect(ev.context).toMatchObject({ flag: c.flag, command: SHOWN, exitCode: 2 });
       // The event reaches notifier transports (a webhook POSTs it whole), so the tail must not ride in it at all.
       expect('outputTail' in ev.context).toBe(false);
       expect(JSON.stringify(ev)).not.toContain(TAIL_MARKER);
@@ -320,7 +323,7 @@ describe('settle records a bypassed failing suite in gateBypasses (phase 346, T4
     it(`346-01/AC-3: under ${c.name}, the settle-written SUMMARY.md lists the entry and shows its detail note as an indented block without any test output, and the record still verifies`, () => {
       const run = c.run();
       expect(run.summaryMd).toContain(
-        `- ERROR build-test-must-pass via ${c.flag}: ${FAIL_COMMAND} exited 2\n\n      `,
+        `- ERROR build-test-must-pass via ${c.flag}: ${SHOWN} exited 2\n\n      `,
       );
       expect(run.summaryMd).toMatch(/^ {6}output tail: \d+ lines? shown on stderr at settle/m);
       expect(run.summaryMd).not.toContain(TAIL_MARKER);
@@ -428,12 +431,12 @@ describe('collectAnomalies build-test-bypassed (phase 346, T4)', () => {
     expect(hits).toHaveLength(1);
     expect(hits[0]).toMatchObject({
       severity: 'error',
-      context: { flag: '--force', command: 'pnpm test', exitCode: 3 },
+      context: { flag: '--force', command: 'pnpm [arguments not shown]', exitCode: 3 },
     });
     expect('outputTail' in hits[0]!.context).toBe(false);
     expect(JSON.stringify(hits[0])).not.toContain('tail-only-line');
     expect(hits[0]!.message).toContain('--force');
-    expect(hits[0]!.message).toContain('pnpm test exited 3');
+    expect(hits[0]!.message).toContain('pnpm [arguments not shown] exited 3');
     expect(hits[0]!.message).not.toContain('tail-only-line');
   });
 
@@ -446,8 +449,8 @@ describe('collectAnomalies build-test-bypassed (phase 346, T4)', () => {
       { now },
     );
     expect(JSON.stringify(ev)).not.toContain('ghp_abcdef123456');
-    expect(ev?.context['command']).toBe('GITHUB_TOKEN=[REDACTED] pnpm test');
-    expect(ev?.message).toContain('GITHUB_TOKEN=[REDACTED] pnpm test exited 1');
+    expect(ev?.context['command']).toBe('[command not shown]');
+    expect(ev?.message).toContain('[command not shown] exited 1');
   });
 
   it('346-01/AC-3: a bypass without a captured tail emits the same event, and nothing is emitted without a bypass', () => {

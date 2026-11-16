@@ -74,7 +74,7 @@ describe('runBuildTestGate', () => {
       ctx({ run: { ran: true, ok: false, exitCode: 1, command: 'pnpm test' }, errs }),
     );
     expect(res.outcome).toBe('refuse');
-    expect(errs[0]).toBe('build-test-must-pass: pnpm test exited 1\n');
+    expect(errs[0]).toBe('build-test-must-pass: pnpm [arguments not shown] exited 1\n');
     expect(errs.join('')).toContain(
       'settle run refused: the test suite must pass before settle.',
     );
@@ -195,7 +195,7 @@ describe('runBuildTestGate · sealed (phase 141)', () => {
   it('still prints the command exit-code line when sealed', async () => {
     const errs: string[] = [];
     await runBuildTestGate(ctx({ run: failingRun, errs, force: true, config: sealedConfig }));
-    expect(errs[0]).toBe('build-test-must-pass: pnpm test exited 1\n');
+    expect(errs[0]).toBe('build-test-must-pass: pnpm [arguments not shown] exited 1\n');
   });
 
   // AC-4: sealed but the test actually passed → gate passes normally, no
@@ -236,7 +236,7 @@ describe('runBuildTestGate · sealed (phase 141)', () => {
     // Phase 346 (346-01/AC-2) supersedes the phase 141 "silent bypass"
     // assertion: a bypass now writes exactly one loud notice (never the
     // sealed message).
-    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: pnpm test exited 1\n  output tail: (no output captured)\n']);
+    expect(errs).toEqual(['build-test-must-pass: BYPASSED via --force: pnpm [arguments not shown] exited 1\n  output tail: (no output captured)\n']);
   });
 
   // AC-5 (regression safety): unsealed --allow-failing-build still bypasses.
@@ -298,18 +298,18 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.outcome).toBe('pass');
     expect(errs).toHaveLength(1);
     expect(errs[0]).toBe(
-      'build-test-must-pass: BYPASSED via --allow-failing-build: pnpm test exited 1\n' + tailBlock,
+      'build-test-must-pass: BYPASSED via --allow-failing-build: pnpm [arguments not shown] exited 1\n' + tailBlock,
     );
     expect(res.flags?.buildTestBypassed).toBe(true);
     expect(res.flags?.buildTestBypass).toEqual({
       flag: '--allow-failing-build',
-      command: 'pnpm test',
+      command: 'pnpm [arguments not shown]',
       exitCode: 1,
       outputTail: tail,
     });
   });
 
-  it('346-01/AC-2: an inline credential in the command is redacted in the notice and in the recorded bypass', async () => {
+  it('346-01/AC-2: a credential in the command never appears: the notice and the recorded bypass name the program only', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(
       ctx({
@@ -320,12 +320,30 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     );
     expect(errs.join('')).not.toContain('supersecret123');
     expect(errs[0]).toBe(
-      'build-test-must-pass: BYPASSED via --allow-failing-build: API_KEY=[REDACTED] pnpm test exited 2\n  output tail: (no output captured)\n',
+      'build-test-must-pass: BYPASSED via --allow-failing-build: [command not shown] exited 2\n  output tail: (no output captured)\n',
     );
-    expect(res.flags?.buildTestBypass?.command).toBe('API_KEY=[REDACTED] pnpm test');
+    expect(res.flags?.buildTestBypass?.command).toBe('[command not shown]');
   });
 
-  it('346-01/AC-2: a quoted assignment with spaces is redacted whole in the bypass notice and the refusal line', async () => {
+  it('346-01/AC-2: a leading assignment with spaces, quotes or escapes never reaches the notice or the refusal line', async () => {
+    for (const [command, secret] of [
+      ['API_KEY="part1 s3cretMiddle part3" pnpm test', 's3cretMiddle'],
+      ["TOKEN='a hunter2secret b' pnpm test", 'hunter2secret'],
+      ['PGPASSWORD=a\\ hunter2secret pnpm test', 'hunter2secret'],
+    ] as const) {
+      const bypassErrs: string[] = [];
+      const res = await runBuildTestGate(ctx({ run: { ...failingNoTail, command }, errs: bypassErrs, force: true }));
+      const refusalErrs: string[] = [];
+      await runBuildTestGate(ctx({ run: { ...failingNoTail, command }, errs: refusalErrs }));
+      for (const errs of [bypassErrs, refusalErrs]) {
+        expect(errs.join('')).not.toContain(secret);
+        expect(errs[0]).toContain('[command not shown] exited 2');
+      }
+      expect(res.flags?.buildTestBypass?.command).toBe('[command not shown]');
+    }
+  });
+
+  it('346-01/AC-2: a quoted assignment with spaces never appears in the bypass notice or the refusal line', async () => {
     const command = 'set "PGPASSWORD=secret suffix" && pnpm test';
     const bypassErrs: string[] = [];
     await runBuildTestGate(ctx({ run: { ...failingNoTail, command }, errs: bypassErrs, force: true }));
@@ -334,17 +352,17 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     for (const errs of [bypassErrs, refusalErrs]) {
       expect(errs.join('')).not.toContain('secret');
       expect(errs.join('')).not.toContain('suffix');
-      expect(errs.join('')).toContain('set "PGPASSWORD=[REDACTED]" && pnpm test exited 2');
+      expect(errs.join('')).toContain('set [arguments not shown] exited 2');
     }
   });
 
-  it('346-01/AC-2: URL credentials in the command are redacted in the notice and the recorded bypass', async () => {
+  it('346-01/AC-2: URL credentials in the command never appear: the program only is shown', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(
       ctx({ run: { ...failingNoTail, command: 'pnpm test --db postgres://user:pw-9x@host/db' }, errs, force: true }),
     );
     expect(errs.join('')).not.toContain('pw-9x');
-    expect(res.flags?.buildTestBypass?.command).toBe('pnpm test --db postgres://[REDACTED]@host/db');
+    expect(res.flags?.buildTestBypass?.command).toBe('pnpm [arguments not shown]');
   });
 
   it('346-01/AC-2: bare --force bypass names --force as the flag that fired', async () => {
@@ -352,7 +370,7 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     const res = await runBuildTestGate(ctx({ run: failingWithTail, errs, force: true }));
     expect(res.outcome).toBe('pass');
     expect(errs).toHaveLength(1);
-    expect(errs[0]).toBe('build-test-must-pass: BYPASSED via --force: pnpm test exited 1\n' + tailBlock);
+    expect(errs[0]).toBe('build-test-must-pass: BYPASSED via --force: pnpm [arguments not shown] exited 1\n' + tailBlock);
     expect(res.flags?.buildTestBypass?.flag).toBe('--force');
     expect(res.flags?.buildTestBypassed).toBe(true);
   });
@@ -364,7 +382,7 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     );
     expect(res.outcome).toBe('pass');
     expect(errs).toEqual([
-      'build-test-must-pass: BYPASSED via --allow-failing-build: pnpm test exited 1\n' + tailBlock,
+      'build-test-must-pass: BYPASSED via --allow-failing-build: pnpm [arguments not shown] exited 1\n' + tailBlock,
     ]);
     expect(res.flags?.buildTestBypass?.flag).toBe('--allow-failing-build');
   });
@@ -374,9 +392,9 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     const res = await runBuildTestGate(ctx({ run: failingNoTail, errs, force: true }));
     expect(res.outcome).toBe('pass');
     expect(errs).toEqual([
-      'build-test-must-pass: BYPASSED via --force: pnpm test exited 2\n  output tail: (no output captured)\n',
+      'build-test-must-pass: BYPASSED via --force: pnpm [arguments not shown] exited 2\n  output tail: (no output captured)\n',
     ]);
-    expect(res.flags?.buildTestBypass).toEqual({ flag: '--force', command: 'pnpm test', exitCode: 2 });
+    expect(res.flags?.buildTestBypass).toEqual({ flag: '--force', command: 'pnpm [arguments not shown]', exitCode: 2 });
     expect(res.flags?.buildTestBypass).not.toHaveProperty('outputTail');
   });
 
@@ -386,7 +404,7 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.outcome).toBe('refuse');
     expect(res.reason).toBe(unsealedReason);
     expect(errs).toEqual([
-      'build-test-must-pass: pnpm test exited 1\n',
+      'build-test-must-pass: pnpm [arguments not shown] exited 1\n',
       `${unsealedReason}\n`,
       tailBlock,
     ]);
@@ -401,14 +419,14 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.outcome).toBe('refuse');
     expect(res.reason).toBe(sealedReason);
     expect(errs).toEqual([
-      'build-test-must-pass: pnpm test exited 1\n',
+      'build-test-must-pass: pnpm [arguments not shown] exited 1\n',
       `${sealedReason}\n`,
       tailBlock,
     ]);
     expect(res.flags).toBeUndefined();
   });
 
-  it('346-01/AC-2: a refusal with no captured tail keeps its pre-346 lines and reason, then names the tail as not captured, sealed or not', async () => {
+  it('346-01/AC-2: a refusal with no captured tail keeps its reason and outcome, names the command by program only, then names the tail as not captured, sealed or not', async () => {
     for (const sealed of [false, true]) {
       const errs: string[] = [];
       const res = await runBuildTestGate(
@@ -418,14 +436,14 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
       expect(res.outcome).toBe('refuse');
       expect(res.reason).toBe(reason);
       expect(errs).toEqual([
-        'build-test-must-pass: pnpm test exited 2\n',
+        'build-test-must-pass: pnpm [arguments not shown] exited 2\n',
         `${reason}\n`,
         '  output tail: (no output captured)\n',
       ]);
     }
   });
 
-  it('346-01/AC-2: a refusal redacts a credential in its command line (dec-20261113-001) while its reason and outcome stay byte-identical', async () => {
+  it('346-01/AC-2: a refusal names its command by program only (dec-20261116-001) while its reason and outcome stay byte-identical', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(
       ctx({ run: { ...failingWithTail, command: 'API_KEY=supersecret123 pnpm test' }, errs }),
@@ -433,7 +451,7 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.outcome).toBe('refuse');
     expect(res.reason).toBe(unsealedReason);
     expect(errs).toEqual([
-      'build-test-must-pass: API_KEY=[REDACTED] pnpm test exited 1\n',
+      'build-test-must-pass: [command not shown] exited 1\n',
       `${unsealedReason}\n`,
       tailBlock,
     ]);

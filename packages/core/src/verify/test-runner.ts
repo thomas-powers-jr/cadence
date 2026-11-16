@@ -29,11 +29,12 @@ const PIPE_DRAIN_MS = 500;
 // grandchild is left running once its pipes are destroyed, exactly as it was
 // under execSync.
 
-// C0 controls except TAB and LF, DEL, the C1 range, and the zero-width and
-// bidi format characters (a Trojan-Source-style reordering in SUMMARY.md). Applied after the
-// escape filter, so it only removes stray controls: a lone CR progress
-// redraw, BEL, BS.
-const CONTROL_RE = /[\x00-\x08\x0b-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g;
+// Every Unicode control (Cc) and format (Cf) character except TAB and LF,
+// plus the line and paragraph separators, by category rather than by list
+// (dec-20261116-001): a lone CR progress redraw, BEL, BS, the C1 range, zero-width and
+// bidi controls (U+061C, U+200E, U+202E, U+2066…) alike. Applied after the
+// escape filter, so it only removes stray controls.
+const CONTROL_RE = /(?![\t\n])[\p{Cc}\p{Cf}\u2028\u2029]/gu;
 
 /**
  * `scheme://userinfo@` — a URL's userinfo is a credential. The scheme cannot
@@ -161,64 +162,29 @@ export function redactOutput(text: string, literals: readonly string[] = []): st
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
 }
 
-/**
- * Redaction for the configured test command before anything records or
- * prints it (the bypass notice and refusals, the `build-test-bypassed`
- * anomaly that webhooks receive, the SUMMARY reason). The value of every
- * inline assignment is redacted whatever the name (`NODE_ENV=test` included:
- * a list of secret-looking names always misses one, such as `PGPASSWORD`),
- * then URL userinfo, credential-named flag values, `-u user:pw`, the given
- * literal values and the shared `redactSecrets` patterns. A command with
- * none of these is returned unchanged; applying it twice changes nothing
- * further for the forms it produces.
- */
-export function redactCommand(command: string, literals: readonly string[] = []): string {
-  // Literals and the shared patterns first: run last, redactSecrets' `token=\S{6,}`
-  // would swallow the closing quote of an already redacted 'API_TOKEN=[REDACTED]'.
-  const redacted = redactSecrets(replaceLiterals(command, literals))
-    .replace(QUOTED_ASSIGNMENT_RE, '$1$2$3=[REDACTED]$2')
-    .replace(COMMAND_ASSIGNMENT_RE, '$1$2$3=[REDACTED]$5')
-    .replace(URL_USERINFO_RE, '$1[REDACTED]@')
-    .replace(SECRET_FLAG_RE, redactFlagValue)
-    .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
-  return redactArgumentTokens(redacted);
-}
-
-/** A shell word: quoted or unquoted runs, joined without whitespace. */
-const SHELL_WORD_RE = /(?:"[^"]*"|'[^']*'|[^\s"']+)+/g;
-/** Flags whose next word is a credential however it is spelled: curl's `-u`/`--user`, `-U`/`--proxy-user`. */
-const USER_FLAG_RE = /^(?:-u|-U|--user|--proxy-user)$/;
-/** A Windows drive path (`C:\…`, `"C:/…"`), whose colon is not a credential separator. */
-const DRIVE_PATH_RE = /^["']?[A-Za-z]:[\\/]/;
+/** A program word shown as-is: letters, digits and path characters, an optional drive prefix. */
+const PROGRAM_WORD_RE = /^(?:[A-Za-z]:[\\/])?[A-Za-z0-9_.\/\\+-]+$/;
 
 /**
- * Shape-agnostic argument redaction for a command: any word holding `:` or
- * `@` (the `user:secret`, `Header: value`, `scheme://…` and `user@host`
- * shapes) is replaced whole, a `name=value` word keeps its name when only the
- * value holds them, and the word after `-u`/`--user`/`-U`/`--proxy-user` is
- * replaced whatever it holds. A flag-name list always misses a spelling, so
- * the separator, not the flag, decides. Already redacted words and Windows
- * drive paths are left alone.
+ * The configured test command as every notice, refusal, anomaly and SUMMARY
+ * names it (dec-20261116-001): the program alone, its arguments never shown,
+ * e.g. `pnpm [arguments not shown]`. Fail-closed by construction: no list of
+ * secret shapes can be complete, so nothing after the program is printed or
+ * recorded, and a program word that is not plain letters, digits and path
+ * characters is not shown either (`[command not shown]`). Only the first
+ * word is ever considered: a command that starts with an assignment
+ * (`NAME=… pnpm test`) shows as `[command not shown]`, because skipping
+ * words needs shell parsing, and a quoted or escaped value would then leak
+ * a fragment as the "program". The full command stays where the operator wrote it,
+ * `verification.testCommand` in `.cadence/config.json`. Idempotent;
+ * `<unknown command>` (a runner that reported none) passes through.
  */
-function redactArgumentTokens(command: string): string {
-  let redactNext = false;
-  return command.replace(SHELL_WORD_RE, (word) => {
-    if (redactNext) {
-      redactNext = false;
-      return '[REDACTED]';
-    }
-    if (USER_FLAG_RE.test(word)) {
-      redactNext = true;
-      return word;
-    }
-    if (word.includes('[REDACTED]') || DRIVE_PATH_RE.test(word)) return word;
-    const eq = word.indexOf('=');
-    if (eq > 0 && /^-*[A-Za-z_][\w-]*$/.test(word.slice(0, eq))) {
-      const value = word.slice(eq + 1);
-      return /[:@]/.test(value) ? `${word.slice(0, eq)}=[REDACTED]` : word;
-    }
-    return /[:@]/.test(word) ? '[REDACTED]' : word;
-  });
+export function displayCommand(command: string): string {
+  if (command === '<unknown command>') return command;
+  const words = command.trim().split(/\s+/).filter((w) => w !== '');
+  const program = words[0];
+  if (program === undefined || !PROGRAM_WORD_RE.test(program)) return '[command not shown]';
+  return words.length > 1 ? `${program} [arguments not shown]` : program;
 }
 
 const ESC = 0x1b;

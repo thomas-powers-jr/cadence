@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterAll } from 'vitest';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { redactCommand, runTestCommand } from '../../src/verify/test-runner.js';
+import { displayCommand, runTestCommand } from '../../src/verify/test-runner.js';
 
 // Child commands are small node scripts written to a temp dir and run as
 // `node "<file>"`, so no test depends on per-shell quoting rules (sh vs
@@ -401,7 +401,7 @@ describe('runTestCommand output tail (phase 346)', () => {
   });
 });
 
-describe('redactCommand (phase 346)', () => {
+describe('displayCommand (phase 346, dec-20261116-001)', () => {
   const cases: Array<[string, string, string]> = [
     ['a URL with userinfo', 'DATABASE_URL=postgres://user:secret@host/db pnpm test', 'secret'],
     ['a bare URL with userinfo', 'pnpm test --db postgres://admin:pw123@db.internal/x', 'pw123'],
@@ -416,23 +416,48 @@ describe('redactCommand (phase 346)', () => {
     ['a GitHub token anywhere', 'pnpm test ghp_' + 'a'.repeat(36), 'ghp_'],
   ];
   for (const [name, command, secret] of cases) {
-    it(`346-01/AC-3: redacts ${name}`, () => {
-      const out = redactCommand(command);
+    it(`346-01/AC-3: never shows ${name}`, () => {
+      const out = displayCommand(command);
       expect(out).not.toContain(secret);
-      expect(out).toContain('[REDACTED]');
+      expect(out).toMatch(/\[(?:arguments|command) not shown\]$/);
     });
   }
 
-  it('346-01/AC-3: keeps a command with no credentials unchanged, so the reason still names it', () => {
-    for (const cmd of ['pnpm test', 'pnpm turbo run test --filter=core', 'node "C:\\x\\run.js" --reporter verbose', 'make -j4 test']) {
-      expect(redactCommand(cmd)).toBe(cmd);
+  it('346-01/AC-3: names the command by its program, arguments never shown', () => {
+    expect(displayCommand('pnpm test')).toBe('pnpm [arguments not shown]');
+    expect(displayCommand('pnpm turbo run test --filter=core')).toBe('pnpm [arguments not shown]');
+    expect(displayCommand('node "C:\\x\\run.js" --reporter verbose')).toBe('node [arguments not shown]');
+    expect(displayCommand('C:\\tools\\node.exe run.js')).toBe('C:\\tools\\node.exe [arguments not shown]');
+    expect(displayCommand('make')).toBe('make');
+    expect(displayCommand('  vitest  ')).toBe('vitest');
+  });
+
+  it('346-01/AC-3: a leading assignment with spaces, quotes or escapes never leaks a fragment as the program', () => {
+    for (const [cmd, secret] of [
+      ['API_KEY="part1 s3cretMiddle part3" pnpm test', 's3cretMiddle'],
+      ["TOKEN='a hunter2secret b' pnpm test", 'hunter2secret'],
+      ['PGPASSWORD=a\\ hunter2secret pnpm test', 'hunter2secret'],
+      ['PGPASSWORD=plainsecret pnpm test', 'plainsecret'],
+    ] as const) {
+      expect(displayCommand(cmd)).toBe('[command not shown]');
+      expect(displayCommand(cmd)).not.toContain(secret);
     }
   });
 
-  it('346-01/AC-3: keeps the variable name and the program visible, and is idempotent', () => {
-    const once = redactCommand('DATABASE_URL=postgres://u:p@h/db NODE_ENV=test pnpm test');
-    expect(once).toBe('DATABASE_URL=[REDACTED] NODE_ENV=[REDACTED] pnpm test');
-    expect(redactCommand(once)).toBe(once);
+  it('346-01/AC-3: a program word that is not plain is not shown either, and a runner with no command passes through', () => {
+    expect(displayCommand('"$(cat secret)" run')).toBe('[command not shown]');
+    expect(displayCommand('user:pw@host run')).toBe('[command not shown]');
+    expect(displayCommand('PGPASSWORD=x')).toBe('[command not shown]');
+    expect(displayCommand('')).toBe('[command not shown]');
+    expect(displayCommand('<unknown command>')).toBe('<unknown command>');
+  });
+
+  it('346-01/AC-3: shows only a plain first word, a leading assignment showing nothing, and is idempotent', () => {
+    const once = displayCommand('pnpm test --db postgres://u:p@h/db');
+    expect(once).toBe('pnpm [arguments not shown]');
+    expect(displayCommand('DATABASE_URL=postgres://u:p@h/db NODE_ENV=test pnpm test')).toBe('[command not shown]');
+    expect(displayCommand(once)).toBe(once);
+    expect(displayCommand('[command not shown]')).toBe('[command not shown]');
   });
 });
 
@@ -455,21 +480,19 @@ describe('runTestCommand output redaction (phase 346)', () => {
 
 describe('phase 346 redaction hardening', () => {
   it('346-01/AC-3: quoted assignments (Windows set, cross-env, env -S) are redacted in the command', async () => {
-    const { redactCommand: rc } = await import('../../src/verify/test-runner.js');
+    const { displayCommand: rc } = await import('../../src/verify/test-runner.js');
     for (const cmd of ['set "PGPASSWORD=hunter2" && pnpm test', 'cross-env "PGPASSWORD=hunter2" vitest', 'env -S "PGPASSWORD=hunter2 vitest"']) {
       expect(rc(cmd)).not.toContain('hunter2');
     }
-    expect(rc('set "PGPASSWORD=hunter2" && pnpm test')).toBe('set "PGPASSWORD=[REDACTED]" && pnpm test');
+    expect(rc('set "PGPASSWORD=hunter2" && pnpm test')).toBe('set [arguments not shown]');
   });
 
-  it('346-01/AC-3: ordinary flags are left alone, credential flags and curl -u are redacted', async () => {
-    const { redactCommand: rc } = await import('../../src/verify/test-runner.js');
-    for (const cmd of ['vitest run --passWithNoTests src/foo', 'tool --keyword foo --monkey bar --author me --bypass x', 'node --max-old-space-size=4096 run.js']) {
-      expect(rc(cmd)).toBe(cmd);
+  it('346-01/AC-3: credential flags and curl -u never appear; only the program is shown', async () => {
+    const { displayCommand: rc } = await import('../../src/verify/test-runner.js');
+    expect(rc('vitest run --passWithNoTests src/foo')).toBe('vitest [arguments not shown]');
+    for (const cmd of ['pnpm test --api-key abcd1234', 'curl -u admin:hunter2 http://x', 'pnpm test --db postgres://u:p@ss@host/db']) {
+      expect(rc(cmd)).toMatch(/^(?:pnpm|curl) \[arguments not shown\]$/);
     }
-    expect(rc('pnpm test --api-key abcd1234')).toBe('pnpm test --api-key [REDACTED]');
-    expect(rc('curl -u admin:hunter2 http://x')).toBe('curl -u [REDACTED] [REDACTED]');
-    expect(rc('pnpm test --db postgres://u:p@ss@host/db')).toBe('pnpm test --db postgres://[REDACTED]@host/db');
   });
 
   it('346-01/AC-1: secrets echoed mid-line, in JSON keys, or from the inherited environment are redacted in the output', async () => {
@@ -491,7 +514,7 @@ describe('phase 346 redaction hardening', () => {
   });
 
   it('346-01/AC-1: a URL-userinfo scan over a long dotted single line stays fast', async () => {
-    const { redactOutput: ro, redactCommand: rc } = await import('../../src/verify/test-runner.js');
+    const { redactOutput: ro, displayCommand: rc } = await import('../../src/verify/test-runner.js');
     const started = Date.now();
     // 4x the ring size: linear scans take tens of ms, a quadratic one tens of
     // seconds (7 s measured for the uncapped URL pattern), so a 3 s bound separates
@@ -511,10 +534,10 @@ describe('phase 346 redaction hardening', () => {
 
 describe('phase 346 redaction does not over-redact', () => {
   it('346-01/AC-3: a short or common assignment value is never erased from the rest of the command or the output', async () => {
-    const { redactCommand: rc, redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    const { displayCommand: rc, redactOutput: ro, secretValues: sv } = await import('../../src/verify/test-runner.js');
     const literals = sv('DISABLE_AUTH=true TOKEN=test pnpm test', {});
     expect(literals).toEqual([]);
-    expect(rc('TOKEN=test pnpm test', literals)).toBe('TOKEN=[REDACTED] pnpm test');
+    expect(rc('TOKEN=test pnpm test')).toBe('[command not shown]');
     expect(ro('AssertionError: expected true to be false', literals)).toBe('AssertionError: expected true to be false');
   });
 
@@ -559,8 +582,8 @@ describe('phase 346 redaction: shapes from the third Codex review', () => {
 });
 
 describe('phase 346 redaction: shapes from the fourth Codex review', () => {
-  it('346-01/AC-3: a credential in any argument holding : or @ is redacted whatever flag precedes it', async () => {
-    const { redactCommand: rc } = await import('../../src/verify/test-runner.js');
+  it('346-01/AC-3: a credential in any argument never appears, whatever flag precedes it', async () => {
+    const { displayCommand: rc } = await import('../../src/verify/test-runner.js');
     for (const [cmd, secret] of [
       ['curl --user alice:password http://x', 'password'],
       ['curl --proxy-user bob:pw-proxy-1 http://x', 'pw-proxy-1'],
@@ -571,8 +594,8 @@ describe('phase 346 redaction: shapes from the fourth Codex review', () => {
     ] as const) {
       expect(rc(cmd)).not.toContain(secret);
     }
-    expect(rc('curl --user alice:password http://x')).toBe('curl --user [REDACTED] [REDACTED]');
-    expect(rc('tool --creds=alice:pw-eq-2')).toBe('tool --creds=[REDACTED]');
+    expect(rc('curl --user alice:password http://x')).toBe('curl [arguments not shown]');
+    expect(rc('tool --creds=alice:pw-eq-2')).toBe('tool [arguments not shown]');
   });
 
   it('346-01/AC-1: a known secret cut in half by the capture ring leaves no fragment in the tail', async () => {
@@ -618,17 +641,39 @@ describe('phase 346: shapes from the deep-verify run on 2026-11-16', () => {
     expect(Buffer.byteLength(result.outputTail ?? '', 'utf8')).toBe(8192);
   });
 
-  it('346-01/AC-2: a quoted assignment whose value holds spaces is redacted whole, in the notice command and as a literal', async () => {
-    const { redactCommand: rc, secretValues: sv } = await import('../../src/verify/test-runner.js');
-    expect(rc('set "PGPASSWORD=secret suffix" && pnpm test')).toBe('set "PGPASSWORD=[REDACTED]" && pnpm test');
-    expect(rc("cross-env 'API_TOKEN=two words' vitest")).toBe("cross-env 'API_TOKEN=[REDACTED]' vitest");
-    expect(rc('env -S "PGPASSWORD=hunter2 vitest"')).toBe('env -S "PGPASSWORD=[REDACTED]"');
+  it('346-01/AC-2: a quoted assignment, spaces or escaped quotes in its value, never appears in the command shown, and its value is a tail literal', async () => {
+    const { displayCommand: rc, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    expect(rc('set "PGPASSWORD=secret suffix" && pnpm test')).toBe('set [arguments not shown]');
+    expect(rc("cross-env 'API_TOKEN=two words' vitest")).toBe('cross-env [arguments not shown]');
+    expect(rc('env -S "PGPASSWORD=hunter2 vitest"')).toBe('env [arguments not shown]');
+    expect(rc('set "PGPASSWORD=sec\\"ret suffix" && pnpm test')).toBe('set [arguments not shown]');
     expect(sv('set "PGPASSWORD=secret suffix" && pnpm test', {})).toContain('secret suffix');
     for (const cmd of ['set "PGPASSWORD=secret suffix" && pnpm test', "set 'PGPASSWORD=secret suffix' && pnpm test"]) {
       const out = rc(cmd);
       expect(out).not.toContain('secret');
       expect(out).not.toContain('suffix');
     }
+  });
+});
+
+describe('phase 346: control and format characters are stripped by category (dec-20261116-001)', () => {
+  it('346-01/AC-1: every Unicode control and format character except TAB and LF is stripped from the tail', async () => {
+    const chars = ['\u0000', '\u000b', '\u000c', '\u007f', '\u0080', '\u061c', '\u200e', '\u200f', '\u202a', '\u202e', '\u2066', '\u2069', '\u200b', '\u2060', '\ufeff', '\u00ad', '\u0085', '\u2028', '\u2029', '\u0007', '\r'];
+    const cmd = script(
+      `process.stdout.write('a' + ${JSON.stringify(chars.join(''))} + 'b\\tc\\n'); process.exitCode = 1;`,
+    );
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail).toBe('ab\tc');
+  });
+});
+
+describe('phase 346: whitespace-only output', () => {
+  it('346-01/AC-1: a failing run whose output is only whitespace yields no outputTail', async () => {
+    const cmd = script(`process.stdout.write('  \\n\\t\\n\\r\\n\\n'); process.exitCode = 1;`);
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect('outputTail' in result).toBe(false);
   });
 });
 

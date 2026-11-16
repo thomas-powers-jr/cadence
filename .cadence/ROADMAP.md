@@ -4220,6 +4220,13 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
   earlier "tail in gateBypasses" choice (dec-20261113-002): the tail is shown on
   stderr only, and the entry's `detail` says how many lines it had. Both
   shapes are also redacted on stderr.
+- Later rounds (on the operator's second PC) kept finding new shapes in the
+  command (`--user a:b`, quoted assignments with spaces or escaped quotes)
+  and in the stderr tail (a bidi control missing from a character list), so
+  the operator chose fail-closed designs (dec-20261116-001): every notice, refusal,
+  anomaly and SUMMARY names the command by its program only, and the tail
+  strips every Unicode control and format character by category. Tail
+  secret redaction is stated as best-effort, stderr only.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
