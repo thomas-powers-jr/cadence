@@ -597,3 +597,38 @@ describe('phase 346 redaction: shapes from the fourth Codex review', () => {
   });
 });
 
+describe('phase 346: shapes from the deep-verify run on 2026-11-16', () => {
+  it('346-01/AC-1: a final line longer than the ring keeps its tail end whether or not it ends in LF', async () => {
+    for (const end of ['\n', '\n\n', '']) {
+      const cmd = script(
+        `process.stdout.write('first\\n' + 'z'.repeat(200000) + 'END-OF-LINE' + ${JSON.stringify(end)}); process.exitCode = 1;`,
+      );
+      const result = await runTestCommand(process.cwd(), cmd);
+      expect(result.ok).toBe(false);
+      expect(result.outputTail, JSON.stringify(end)).toBeDefined();
+      expect(result.outputTail?.endsWith('END-OF-LINE')).toBe(true);
+      assertBounded(result.outputTail ?? '');
+    }
+  });
+
+  it('346-01/AC-1: a line longer than the ring followed by a short last line keeps both in the 8 KiB tail', async () => {
+    const cmd = script(`process.stdout.write('y'.repeat(200000) + 'HUGE-END\\nlast\\n'); process.exitCode = 1;`);
+    const result = await runTestCommand(process.cwd(), cmd);
+    expect(result.outputTail?.endsWith('yHUGE-END\nlast')).toBe(true);
+    expect(Buffer.byteLength(result.outputTail ?? '', 'utf8')).toBe(8192);
+  });
+
+  it('346-01/AC-2: a quoted assignment whose value holds spaces is redacted whole, in the notice command and as a literal', async () => {
+    const { redactCommand: rc, secretValues: sv } = await import('../../src/verify/test-runner.js');
+    expect(rc('set "PGPASSWORD=secret suffix" && pnpm test')).toBe('set "PGPASSWORD=[REDACTED]" && pnpm test');
+    expect(rc("cross-env 'API_TOKEN=two words' vitest")).toBe("cross-env 'API_TOKEN=[REDACTED]' vitest");
+    expect(rc('env -S "PGPASSWORD=hunter2 vitest"')).toBe('env -S "PGPASSWORD=[REDACTED]"');
+    expect(sv('set "PGPASSWORD=secret suffix" && pnpm test', {})).toContain('secret suffix');
+    for (const cmd of ['set "PGPASSWORD=secret suffix" && pnpm test', "set 'PGPASSWORD=secret suffix' && pnpm test"]) {
+      const out = rc(cmd);
+      expect(out).not.toContain('secret');
+      expect(out).not.toContain('suffix');
+    }
+  });
+});
+

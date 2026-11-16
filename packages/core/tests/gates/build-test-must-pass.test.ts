@@ -325,6 +325,19 @@ describe('runBuildTestGate · bypass honesty (phase 346)', () => {
     expect(res.flags?.buildTestBypass?.command).toBe('API_KEY=[REDACTED] pnpm test');
   });
 
+  it('346-01/AC-2: a quoted assignment with spaces is redacted whole in the bypass notice and the refusal line', async () => {
+    const command = 'set "PGPASSWORD=secret suffix" && pnpm test';
+    const bypassErrs: string[] = [];
+    await runBuildTestGate(ctx({ run: { ...failingNoTail, command }, errs: bypassErrs, force: true }));
+    const refusalErrs: string[] = [];
+    await runBuildTestGate(ctx({ run: { ...failingNoTail, command }, errs: refusalErrs }));
+    for (const errs of [bypassErrs, refusalErrs]) {
+      expect(errs.join('')).not.toContain('secret');
+      expect(errs.join('')).not.toContain('suffix');
+      expect(errs.join('')).toContain('set "PGPASSWORD=[REDACTED]" && pnpm test exited 2');
+    }
+  });
+
   it('346-01/AC-2: URL credentials in the command are redacted in the notice and the recorded bypass', async () => {
     const errs: string[] = [];
     const res = await runBuildTestGate(

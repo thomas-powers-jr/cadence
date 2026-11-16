@@ -53,6 +53,12 @@ const OUTPUT_ASSIGNMENT_RE = /(^|[\s;&|(>+"'])([A-Z_][A-Z0-9_]*)=("[^"]*"|'[^']*
 const QUOTED_KEY_RE =
   /(["'][\w-]{0,64}(?:pass(?:word)?|pwd|secret|token|api[_-]?key|credentials?)["']\s*:\s*)("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|[^\s,}\]]+)/gi;
 /** Any inline assignment in a command, whatever the name, optionally quoted (`set "X=y"`, `cross-env "X=y"`). */
+/**
+ * A whole quoted assignment, `"NAME=value with spaces"` or `'NAME=…'`
+ * (Windows `set "X=y"`, `cross-env "X=y"`, `env -S "X=y cmd"`): the value
+ * runs to the matching closing quote, spaces included.
+ */
+const QUOTED_ASSIGNMENT_RE = /(^|[\s;&|(])(["'])([A-Za-z_][A-Za-z0-9_]*)=((?:(?!\2)[^\n])*)\2/g;
 const COMMAND_ASSIGNMENT_RE =
   /(^|[\s;&|(])(["']?)([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s"']+)(["']?)/g;
 /** A credential-named flag, matched on whole dash-separated segments so `--passWithNoTests` is left alone. */
@@ -95,6 +101,9 @@ export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv
     if (value.includes('://')) addUserinfo(value);
   }
   if (command) {
+    for (const m of command.matchAll(QUOTED_ASSIGNMENT_RE)) {
+      if (SECRET_NAME_RE.test(m[3] ?? '')) add(m[4]);
+    }
     for (const m of command.matchAll(COMMAND_ASSIGNMENT_RE)) {
       const name = m[3] ?? '';
       const value = (m[4] ?? '').replace(/^["']|["']$/g, '');
@@ -164,12 +173,15 @@ export function redactOutput(text: string, literals: readonly string[] = []): st
  * further for the forms it produces.
  */
 export function redactCommand(command: string, literals: readonly string[] = []): string {
-  const redacted = command
+  // Literals and the shared patterns first: run last, redactSecrets' `token=\S{6,}`
+  // would swallow the closing quote of an already redacted 'API_TOKEN=[REDACTED]'.
+  const redacted = redactSecrets(replaceLiterals(command, literals))
+    .replace(QUOTED_ASSIGNMENT_RE, '$1$2$3=[REDACTED]$2')
     .replace(COMMAND_ASSIGNMENT_RE, '$1$2$3=[REDACTED]$5')
     .replace(URL_USERINFO_RE, '$1[REDACTED]@')
     .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
-  return redactSecrets(replaceLiterals(redactArgumentTokens(redacted), literals));
+  return redactArgumentTokens(redacted);
 }
 
 /** A shell word: quoted or unquoted runs, joined without whitespace. */
@@ -337,11 +349,10 @@ class TailRing {
     let window = this.buf;
     if (this.cut || window.length > RING_CHARS) {
       window = window.slice(-RING_CHARS);
-      // The cut can land inside a line, and inside a secret on it: drop the
-      // partial first line when there is a later one, and in any case the
-      // trailing fragment of any known secret the window starts with.
-      const nl = window.indexOf('\n');
-      if (nl !== -1) window = window.slice(nl + 1);
+      // The cut can land inside a known secret: strip the trailing fragment
+      // of any such secret the window starts with, so it cannot survive the
+      // literal pass. The rest of a cut line is kept; its tail end may be
+      // part of the tail when the lines after it are short.
       window = stripLeadingFragment(window, literals);
     }
     const text = redactOutput(window.replace(/\r\n/g, '\n').replace(CONTROL_RE, ''), literals);
