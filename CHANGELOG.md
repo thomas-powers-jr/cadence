@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.75.0] - 2026-11-17
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.75.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **A bypassed failing test suite is now loud, recorded and graded.** Until now, `cadence settle run --allow-failing-build`, or `--force` over a failing `verification.testCommand`, wrote nothing to stderr and discarded the suite's output. The bypass reached `SUMMARY.json` only as a skipped `gates[]` entry, so such a settle could still grade `assurance.overall: 'strong'`.
+  - **Output tail.** The test runner now keeps a bounded tail of a failing run's combined output: the last 40 lines, at most 8 KiB. ANSI escapes and every other Unicode control and format character except TAB and LF are stripped, and secrets are redacted on a best-effort basis. The verdict is still the exit code alone.
+  - **Notice and refusals.** On a bypass, `build-test-must-pass` prints one stderr notice naming the flag that fired, the command and its exit code, followed by the tail, or `output tail: (no output captured)`. Every refusal also prints the tail.
+  - **Record.** Settle records one `error`-severity `build-test-must-pass` entry in `gateBypasses`, which caps the grade at `mixed`. Its new optional `detail` field says how many tail lines the notice showed.
+  - **The tail is shown on stderr only.** It never reaches `SUMMARY.json`, `SUMMARY.md`, an anomaly or a notifier transport.
+  - **The command is shown fail-closed.** Notices, refusals, the new `build-test-bypassed` anomaly (`error`) and the SUMMARY name it by its program only (`pnpm [arguments not shown]`), or `[command not shown]` when its first word is not a plain program name.
+  - (Phase `346`, rec-20260806-006, dec-20261112-001 to -003, dec-20261113-001, -002, dec-20261116-001, #603.)
+- **A bare `--force` over coverage gaps is recorded.** In `assertion` coverage mode, an unsealed `--force` that lets real coverage gaps (absent, weak or skipped-only) through `test-coverage` is now a `warn` `test-coverage` bypass whose flag is `--force`, as `--allow-missing-coverage` already was. (Phase `346`, rec-20260726-005, #603.)
+- The types package gains the optional `GateBypassZ.detail` field and the `build-test-bypassed` anomaly type. Existing SUMMARY records and anomaly logs keep parsing, and their content hashes are unchanged.
+
+### Upgrade notes
+
+- A settle that bypasses a failing test suite now grades at most `mixed`, never `strong`.
+- The `build-test-must-pass` refusal's first stderr line now names the command by its program only: `pnpm [arguments not shown] exited 1`, where it used to show the full command. Its reason string and outcome are unchanged. Anything that parses that line should read the command from `verification.testCommand` instead.
+- A bare `--force` over coverage gaps in `assertion` mode now adds a `warn` entry to `gateBypasses`.
+
 ## [1.74.0] - 2026-11-07
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.74.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
