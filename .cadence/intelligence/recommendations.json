@@ -405,36 +405,6 @@
       "updatedAt": "2026-07-26T01:59:31.156Z"
     },
     {
-      "id": "rec-20260726-005",
-      "title": "coverage.ts's coverageBypassed is false-negative when a --force-only bypass overrides real coverage gaps in assertion mode",
-      "summary": "In runCoverageGate's assertion-mode branch (packages/core/src/gates/coverage.ts ~line 55-127), reaching the final pass return with real coverage gaps present but bypassed via bare --force (not --allow-missing-coverage) leaves coverageBypassed computed as 'ctx.opts.allowMissingCoverage === true && !sealed' — false in this case, since only --force was set. registry.ts's provenance therefore records this gate as status:'ran' even though a genuine --force bypass of real gaps just happened, hiding it from SUMMARY.json's audit trail. Discovered during phase 226's whole-branch review while verifying the reviewer's claim that build-test-must-pass/boundary-scan's new *Bypassed flags mirror coverage.ts's existing pattern exactly -- they do, faithfully, including this pre-existing imprecision (which phase 226 fixed for the two new gates in registry.ts by naming the actually-fired flag, but did not touch coverage.ts itself, out of scope for that phase). Pre-dates phase 226; not introduced by it.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "gates"
-      ],
-      "affectedFiles": [
-        "packages/core/src/gates/coverage.ts",
-        "packages/core/src/gates/registry.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260726-005"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261030-007"
-      ],
-      "createdAt": "2026-07-26T21:37:07.036Z",
-      "updatedAt": "2026-10-30T19:32:57.955Z"
-    },
-    {
       "id": "rec-20260726-006",
       "title": "boundary-scan is absent from docs/concepts.md's gate-universe matrix (14-gate table, stage-scoped gates section)",
       "summary": "boundary-scan shipped in Phase 156 but was never given a full 'when it fires / what it checks' row anywhere in docs/concepts.md's main gate-universe listing (the '14 gates: 3 always-fire + 11 delta' tables) or the 'Stage-scoped gates' section -- it only appears in the sealed-gate/bypass-summary material phase 226 fixed. Discovered during phase 226's whole-branch review; explicitly out of that phase's scope (its ACs covered gates.sealed discussion only, not the full gate-universe matrix).",
@@ -951,41 +921,6 @@
       "decisionIds": [],
       "createdAt": "2026-08-05T23:17:43.748Z",
       "updatedAt": "2026-08-06T04:10:53.058Z"
-    },
-    {
-      "id": "rec-20260806-006",
-      "title": "build-test-must-pass silently swallows which test failed when bypassed via --allow-failing-build",
-      "summary": "packages/core/src/gates/build-test-must-pass.ts only writes a stderr notice on the refusal branch (line 37: '${res.command} exited ${res.exitCode}'); when a failing run is bypassed via --allow-failing-build or --force (line 47-51), the gate returns { outcome: 'pass', flags: { buildTestBypassed: true } } with NO stderr output at all. The subprocess itself is spawned via packages/core/src/verify/test-runner.ts's runTestCommand with stdio: 'ignore' -- the actual test output (which test failed, why) is never captured anywhere, not to the console, not to a log file, not into the SUMMARY. This means an operator who bypasses a failing build genuinely cannot find out which test failed without independently re-running the test command themselves outside cadence. This violates this repo's own documented convention (CLAUDE.md's 'Quiet Fallback' failure mode: 'every fallback and auto-bypass in this codebase prints a loud stderr notice and/or records provenance in the SUMMARY'). Discovered during phase 256-02's real-provider conduction (2026-08-06): the operator was asked to confirm a known, expected build-test-must-pass bypass was ONLY the anticipated self-application-config.test.ts failure and not something else -- and had to be walked through running pnpm test directly, outside cadence, to find out, since cadence itself gave zero signal. Fix direction: capture stdout/stderr from the test command (or at minimum a pass/fail-per-file summary) and print/record it on the bypass path too, not just the refusal path.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "core"
-      ],
-      "affectedFiles": [
-        "packages/core/src/gates/build-test-must-pass.ts",
-        "packages/core/src/verify/test-runner.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260806-009",
-        "ev-20260822-007",
-        "ev-20261030-011"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261030-002",
-        "dec-20261113-001",
-        "dec-20261113-002",
-        "dec-20261116-001"
-      ],
-      "createdAt": "2026-08-06T05:30:55.570Z",
-      "updatedAt": "2026-10-30T19:47:58.276Z"
     },
     {
       "id": "rec-20260806-007",
@@ -3550,6 +3485,35 @@
       "decisionIds": [],
       "createdAt": "2026-11-13T18:32:10.889Z",
       "updatedAt": "2026-11-13T18:32:10.889Z"
+    },
+    {
+      "id": "rec-20261116-001",
+      "title": "Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…",
+      "summary": "high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
+      "source": "review",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packages/core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/test-runner.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261116-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "scoutId": "scout-20261116-2232",
+      "sourceFindingId": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
+      "createdAt": "2026-11-16T22:32:41.640Z",
+      "updatedAt": "2026-11-16T22:32:41.640Z"
     }
   ],
   "archived": [
@@ -12584,6 +12548,78 @@
       "archiveReason": "shipped",
       "createdAt": "2026-11-04T00:10:56.648Z",
       "updatedAt": "2026-11-04T05:35:03.593Z"
+    },
+    {
+      "id": "rec-20260806-006",
+      "title": "build-test-must-pass silently swallows which test failed when bypassed via --allow-failing-build",
+      "summary": "packages/core/src/gates/build-test-must-pass.ts only writes a stderr notice on the refusal branch (line 37: '${res.command} exited ${res.exitCode}'); when a failing run is bypassed via --allow-failing-build or --force (line 47-51), the gate returns { outcome: 'pass', flags: { buildTestBypassed: true } } with NO stderr output at all. The subprocess itself is spawned via packages/core/src/verify/test-runner.ts's runTestCommand with stdio: 'ignore' -- the actual test output (which test failed, why) is never captured anywhere, not to the console, not to a log file, not into the SUMMARY. This means an operator who bypasses a failing build genuinely cannot find out which test failed without independently re-running the test command themselves outside cadence. This violates this repo's own documented convention (CLAUDE.md's 'Quiet Fallback' failure mode: 'every fallback and auto-bypass in this codebase prints a loud stderr notice and/or records provenance in the SUMMARY'). Discovered during phase 256-02's real-provider conduction (2026-08-06): the operator was asked to confirm a known, expected build-test-must-pass bypass was ONLY the anticipated self-application-config.test.ts failure and not something else -- and had to be walked through running pnpm test directly, outside cadence, to find out, since cadence itself gave zero signal. Fix direction: capture stdout/stderr from the test command (or at minimum a pass/fail-per-file summary) and print/record it on the bypass path too, not just the refusal path.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/build-test-must-pass.ts",
+        "packages/core/src/verify/test-runner.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260806-009",
+        "ev-20260822-007",
+        "ev-20261030-011"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-002",
+        "dec-20261113-001",
+        "dec-20261113-002",
+        "dec-20261116-001",
+        "dec-20261116-002"
+      ],
+      "shippedRef": "phase 346 (#603)",
+      "archivedAt": "2026-11-17T02:31:53.955Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-08-06T05:30:55.570Z",
+      "updatedAt": "2026-11-17T02:31:53.955Z"
+    },
+    {
+      "id": "rec-20260726-005",
+      "title": "coverage.ts's coverageBypassed is false-negative when a --force-only bypass overrides real coverage gaps in assertion mode",
+      "summary": "In runCoverageGate's assertion-mode branch (packages/core/src/gates/coverage.ts ~line 55-127), reaching the final pass return with real coverage gaps present but bypassed via bare --force (not --allow-missing-coverage) leaves coverageBypassed computed as 'ctx.opts.allowMissingCoverage === true && !sealed' — false in this case, since only --force was set. registry.ts's provenance therefore records this gate as status:'ran' even though a genuine --force bypass of real gaps just happened, hiding it from SUMMARY.json's audit trail. Discovered during phase 226's whole-branch review while verifying the reviewer's claim that build-test-must-pass/boundary-scan's new *Bypassed flags mirror coverage.ts's existing pattern exactly -- they do, faithfully, including this pre-existing imprecision (which phase 226 fixed for the two new gates in registry.ts by naming the actually-fired flag, but did not touch coverage.ts itself, out of scope for that phase). Pre-dates phase 226; not introduced by it.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates"
+      ],
+      "affectedFiles": [
+        "packages/core/src/gates/coverage.ts",
+        "packages/core/src/gates/registry.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260726-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-007"
+      ],
+      "createdAt": "2026-07-26T21:37:07.036Z",
+      "updatedAt": "2026-11-17T02:32:03.893Z",
+      "shippedRef": "phase 346 (#603)",
+      "archivedAt": "2026-11-17T02:32:03.893Z",
+      "archiveReason": "shipped"
     }
   ]
 }

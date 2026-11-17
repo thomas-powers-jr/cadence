@@ -1,0 +1,36 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build",
+      "severity": "warn"
+    },
+    {
+      "gate": "code-review",
+      "flag": "--allow-code-review-failure",
+      "reason": "bypassed 1 finding(s), highest severity high",
+      "severity": "error"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {
+    "codeReview": {
+      "packages/core/src/verify/test-runner.ts": [
+        {
+          "severity": "high",
+          "message": "Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
+          "line": 107,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-1",
+            "tier": "executable"
+          },
+          "id": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ]
+    }
+  }
+}

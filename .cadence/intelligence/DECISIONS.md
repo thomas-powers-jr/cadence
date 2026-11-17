@@ -1372,6 +1372,13 @@ Reverses the operator's earlier 'tail in gateBypasses' choice. Codex code-review
 
 Deep-verify and code-review kept rejecting new shapes in the command (curl --user a:b, quoted assignments with spaces or escaped quotes) and in the stderr tail (U+061C missing from a character list). No list of secret shapes or characters can be complete, so the operator chose fail-closed designs: every bypass notice, refusal line, build-test-bypassed anomaly and SUMMARY reason names the command by its program only ('pnpm [arguments not shown]'; a non-plain program word shows as '[command not shown]'); the full command stays in .cadence/config.json. The tail strips every Unicode Cc/Cf character (plus U+2028/2029) except TAB and LF. Tail secret redaction remains, stated as best-effort; the tail is stderr only and never recorded (dec-20261113-002). AC-1, AC-2 and AC-3 carry inline As-built amendments. Refusal command lines change format; their reason strings and outcomes stay byte-identical (the DRAFT Boundary).
 
+### dec-20261116-002 — 346-01 settled past skill-audit via --allow-skill-audit-miss: phase-build ran in a session without CADENCE hooks
+
+- recommendation: rec-20260806-006
+- decided: 2026-11-16T22:19:47.651Z
+
+The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session (per-task implementer and reviewer, main-thread re-verification, whole-branch review), but that session had no CADENCE host hooks installed (they live in the operator PC's local .claude/settings.json), so the invocation was never recorded in state.skillAudit; the 2026-11-12 state snapshot shows invoked: []. Invoking the skill after the fact only to satisfy the audit would game it, so the miss is bypassed and recorded instead.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

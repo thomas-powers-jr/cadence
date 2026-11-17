@@ -1864,6 +1864,15 @@
       "status": "active",
       "decidedAt": "2026-11-16T16:16:19.508Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261116-002",
+      "recommendationId": "rec-20260806-006",
+      "title": "346-01 settled past skill-audit via --allow-skill-audit-miss: phase-build ran in a session without CADENCE hooks",
+      "rationale": "The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session (per-task implementer and reviewer, main-thread re-verification, whole-branch review), but that session had no CADENCE host hooks installed (they live in the operator PC's local .claude/settings.json), so the invocation was never recorded in state.skillAudit; the 2026-11-12 state snapshot shows invoked: []. Invoking the skill after the fact only to satisfy the audit would game it, so the miss is bypassed and recorded instead.",
+      "status": "active",
+      "decidedAt": "2026-11-16T22:19:47.651Z",
+      "supersedes": []
     }
   ]
 }

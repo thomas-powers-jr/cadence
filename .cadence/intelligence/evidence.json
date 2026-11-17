@@ -3353,6 +3353,14 @@
       "kind": "note",
       "summary": "Phase 346: three Codex code-review attempts spent across three PC settle runs (dec-20261113-001, dec-20261113-002); each round needed a push/pull relay between the cloud session and the operator's PC.",
       "createdAt": "2026-11-13T18:32:10.889Z"
+    },
+    {
+      "id": "ev-20261116-001",
+      "recommendationId": "rec-20261116-001",
+      "kind": "cadence-artifact",
+      "summary": "phase 346-bypass-honesty, draft 346-01, SUMMARY contentHash 45e8eba813bb0050e954f1beb28a0159869a3f858fd170bc694f7b616d7ce59b — high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
+      "path": ".cadence/phases/346-bypass-honesty/346-01-SUMMARY.json",
+      "createdAt": "2026-11-16T22:32:41.640Z"
     }
   ]
 }
