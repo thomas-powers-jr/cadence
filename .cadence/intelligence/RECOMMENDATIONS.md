@@ -224,23 +224,6 @@ During phase 213's build, running 'cadence done 213-01-T1' (a fully-qualified-lo
 
 Follow-on to rec-20260724-006 / dec-20260726-001: rec-20260724-006 was split so phase 223 ships a settle-time content hash now. This rec covers the harder half -- full cryptographic signing with a trust root outside the artifact-authoring session (e.g. CI-identity signing via Sigstore keyless, or an operator-provisioned key), so a compromised/dishonest local session can't just re-sign a fabricated SUMMARY. Do not implement until the trust root is pinned by the formal threat model (mil-rec-rec-20260712-016, covering MCP serve/hooks/host-adapters/verifier/ledger exposure), which is currently parked. Blocked-by: mil-rec-rec-20260712-016.
 
-## rec-20260726-005 — coverage.ts's coverageBypassed is false-negative when a --force-only bypass overrides real coverage gaps in assertion mode
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: gates
-- files: packages/core/src/gates/coverage.ts, packages/core/src/gates/registry.ts
-- decisions: dec-20261030-007 (active)
-- evidence: Traced boolean logic by hand: coverageBypassed = allowMissingCoverage===true && !sealed, but the assertion-mode pass-through at line ~127 is also reachable via force-only bypass of real gaps (guard: (issues) && (!force || sealed) being false via force=true).
-- next: cadence milestone propose
-
-In runCoverageGate's assertion-mode branch (packages/core/src/gates/coverage.ts ~line 55-127), reaching the final pass return with real coverage gaps present but bypassed via bare --force (not --allow-missing-coverage) leaves coverageBypassed computed as 'ctx.opts.allowMissingCoverage === true && !sealed' — false in this case, since only --force was set. registry.ts's provenance therefore records this gate as status:'ran' even though a genuine --force bypass of real gaps just happened, hiding it from SUMMARY.json's audit trail. Discovered during phase 226's whole-branch review while verifying the reviewer's claim that build-test-must-pass/boundary-scan's new *Bypassed flags mirror coverage.ts's existing pattern exactly -- they do, faithfully, including this pre-existing imprecision (which phase 226 fixed for the two new gates in registry.ts by naming the actually-fired flag, but did not touch coverage.ts itself, out of scope for that phase). Pre-dates phase 226; not introduced by it.
-
 ## rec-20260726-006 — boundary-scan is absent from docs/concepts.md's gate-universe matrix (14-gate table, stage-scoped gates section)
 
 - status: candidate
@@ -532,25 +515,6 @@ packages/core/src/parse/draft-parser.ts's parseTasks extracts a task's action vi
 - next: cadence milestone propose
 
 packages/core/src/verify/coverage-profiles/mask.ts's classify() only knows string delimiters ', ", and ` (js-ts.ts's syntax.strings table) -- it has no concept of a /regex/ literal as a distinct construct. A regex literal containing an odd-parity sequence of unescaped ' or " characters (e.g. /needs\.audit\.result.*!=\s*["']success["']/ ) causes classify() to open a spurious string mode partway through the regex that is never legitimately closed, silently misclassifying all subsequent real code (including ) and } characters needed for paren/brace depth tracking) as string content until an unrelated later quote happens to resync it by coincidence. This corrupts findMatchingParenIndex/callExpressionBlock's span resolution for every it()/test() block between the triggering regex and the accidental resync point -- observed directly in phase 255's packages/core/tests/docs/security-ci.test.ts, where one such regex caused 3 of 5 new AC-tagged describe blocks to report 'token found but not inside any test block recognized by profile js-ts' despite syntactically correct, passing test code. Confirmed via cadence verify coverage --explain and fixed locally in that file by replacing embedded quote characters with hex escapes (\x27/\x22), but the underlying mask.ts/js-ts.ts gap is unfixed and would silently affect any other test file in the repo (or written in the future) whose regex-literal assertions embed a ' or " character with odd parity -- coverage could report false negatives (a real AC test wrongly refused) or, worse, false positives if the resync boundary happens to land such that an unrelated it() block's span absorbs content it shouldn't.
-
-## rec-20260806-006 — build-test-must-pass silently swallows which test failed when bypassed via --allow-failing-build
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: core
-- files: packages/core/src/gates/build-test-must-pass.ts, packages/core/src/verify/test-runner.ts
-- decisions: dec-20261030-002 (active)
-- evidence: Reproduced directly: pnpm --filter cadence-core test -- tests/docs/self-application-config.test.ts with securityAudit.provider=host-cli shows the real AssertionError only when run standalone outside cadence settle; cadence settle run --allow-failing-build gave zero console output about which test failed, on the exact same repo state (2026-08-06).
-- evidence: Confirmed still valid 2026-08-21 (HANDOFF-verifier-honesty-verify-premises.md Phase L sweep, scout-20260821-verifier-honesty): packages/core/src/gates/build-test-must-pass.ts's bypass-through path (buildTestBypassed:true) has zero ctx.io.err calls -- completely silent, unlike the refusal branch which does log. packages/core/src/verify/test-runner.ts:17 confirms execSync(command, { cwd, stdio: 'ignore' }) discards subprocess output at the OS level, never captured for later surfacing. Readiness/priority unchanged (needs-decision/high) -- genuine live gap.
-- evidence: Correction to dec-20261030-002 (phase 342 independent review): the --allow-failing-build bypass was NOT used by phase 298; 298-01-SUMMARY.json records build-test-must-pass as status 'ran'. The committed SUMMARYs that record skipReason 'bypassed via --allow-failing-build' are 39, 226, 256, 296, 297 and 319. The promote stands; read the decision's '296-298' as '296, 297 and 319'.
-- next: cadence milestone propose
-
-packages/core/src/gates/build-test-must-pass.ts only writes a stderr notice on the refusal branch (line 37: '${res.command} exited ${res.exitCode}'); when a failing run is bypassed via --allow-failing-build or --force (line 47-51), the gate returns { outcome: 'pass', flags: { buildTestBypassed: true } } with NO stderr output at all. The subprocess itself is spawned via packages/core/src/verify/test-runner.ts's runTestCommand with stdio: 'ignore' -- the actual test output (which test failed, why) is never captured anywhere, not to the console, not to a log file, not into the SUMMARY. This means an operator who bypasses a failing build genuinely cannot find out which test failed without independently re-running the test command themselves outside cadence. This violates this repo's own documented convention (CLAUDE.md's 'Quiet Fallback' failure mode: 'every fallback and auto-bypass in this codebase prints a loud stderr notice and/or records provenance in the SUMMARY'). Discovered during phase 256-02's real-provider conduction (2026-08-06): the operator was asked to confirm a known, expected build-test-must-pass bypass was ONLY the anticipated self-application-config.test.ts failure and not something else -- and had to be walked through running pnpm test directly, outside cadence, to find out, since cadence itself gave zero signal. Fix direction: capture stdout/stderr from the test command (or at minimum a pass/fail-per-file summary) and print/record it on the bypass path too, not just the refusal path.
 
 ## rec-20260806-007 — code-review convergence budget persists across separate settle invocations, undocumented, counts bypassed attempts
 
@@ -1949,3 +1913,35 @@ medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may sele
 - next: cadence milestone propose
 
 medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
+
+## rec-20261113-001 — A dry-run code-review / deep-verify that runs the real host-cli reviewer without writing the attempt sidecar or settling
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, code-review, deep-verify, verification, dx
+- files: packages/core/src/gates/code-review.ts, packages/core/src/verify/converge.ts, packages/core/src/services/settle.ts, packages/core/src/cli/commands/settle.ts
+- evidence: Phase 346: three Codex code-review attempts spent across three PC settle runs (dec-20261113-001, dec-20261113-002); each round needed a push/pull relay between the cloud session and the operator's PC.
+- next: cadence milestone propose
+
+Settle is the only way to run the real code-review and deep-verify gates (host-cli, e.g. Codex), and every failing code-review run consumes one of config.convergence.maxAttempts (default 3) in the draft's CODE-REVIEW.json sidecar. So the only way to learn what the real reviewer thinks is to spend the budget. Phase 346 (2026-11-12/13) shows the cost: each Codex finding required a cloud-session fix, a push, a pull and a full settle on the operator's PC; all three attempts were spent on successive secret-redaction shapes before the design change that removed the finding class, and one extra round was lost to a test failing inside settle. Ask: a read-only mode, e.g. 'cadence settle run --dry-run --deep' or 'cadence review [--deep]', that runs the same code-review and deep-verify prompts over the same diff basis with the configured provider, prints findings and per-AC verdicts, and writes nothing (no sidecar attempt, no SUMMARY, no state transition, no anomalies, no ledger routing). It should run the same gate preconditions so it fails fast on what settle would refuse. Related: rec-20260806-007 (the budget persisting across invocations, undocumented); this rec removes most reasons to burn it. Out of scope: changing maxAttempts semantics or the escalation itself.
+
+## rec-20261116-001 — Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…
+
+- status: candidate
+- ready: needs-decision
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/core
+- files: packages/core/src/verify/test-runner.ts
+- evidence: phase 346-bypass-honesty, draft 346-01, SUMMARY contentHash 45e8eba813bb0050e954f1beb28a0159869a3f858fd170bc694f7b616d7ce59b — high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.
+- next: cadence milestone propose
+
+high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.

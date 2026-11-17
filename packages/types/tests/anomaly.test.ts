@@ -235,3 +235,51 @@ describe('ui-spec-review-unconverged anomaly type (AC-5)', () => {
     ).not.toThrow();
   });
 });
+
+describe('build-test-bypassed anomaly type (phase 346)', () => {
+  it("346-01/AC-5: accepts 'build-test-bypassed'", () => {
+    expect(AnomalyTypeZ.parse('build-test-bypassed')).toBe('build-test-bypassed');
+  });
+
+  it('346-01/AC-5: accepts an error-severity build-test-bypassed event with flag/command/exitCode context', () => {
+    const ev = AnomalyEventZ.parse({
+      type: 'build-test-bypassed',
+      severity: 'error',
+      message: 'build-test-must-pass bypassed via --allow-failing-build: `pnpm test` exited 1',
+      context: { flag: '--allow-failing-build', command: 'pnpm test', exitCode: 1, outputTail: 'FAIL x' },
+      ts: '2026-11-12T00:00:00.000Z',
+    });
+    expect(ev.type).toBe('build-test-bypassed');
+    expect(ev.context).toMatchObject({ flag: '--allow-failing-build', command: 'pnpm test', exitCode: 1 });
+  });
+
+  it('346-01/AC-5: still accepts every pre-phase-346 anomaly type', () => {
+    const existing = [
+      'ac-blocked',
+      'ac-needs-context',
+      'coverage-bypassed',
+      'files-outside-boundary',
+      'verifier-failure',
+      'force-used',
+      'coherence-warn',
+      'loop-violation',
+      'per-task-fail',
+      'code-review-high',
+      'skill-audit-miss',
+      'plan-review-unconverged',
+      'spec-review-unconverged',
+      'ui-spec-review-unconverged',
+      'code-review-unconverged',
+      'redundant-task-work',
+      'auto-complex-override',
+      'boundary-pattern-unmatched',
+      'checkpoint-force-released',
+    ] as const;
+    for (const t of existing) {
+      expect(AnomalyTypeZ.parse(t)).toBe(t);
+    }
+    // Existing order is preserved; the new type is appended after them.
+    expect(AnomalyTypeZ.options.slice(0, existing.length)).toEqual([...existing]);
+    expect(AnomalyTypeZ.options.indexOf('build-test-bypassed')).toBe(existing.length);
+  });
+});

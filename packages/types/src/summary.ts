@@ -133,6 +133,11 @@ export const GateBypassZ = z.object({
   flag: z.string(),
   reason: z.string(),
   severity: z.enum(['warn', 'error']),
+  /** Phase 346 (346-01): optional supporting evidence for the bypass, e.g.
+   *  the bounded output tail of a failing test suite that
+   *  build-test-must-pass let through. Optional — absent for every
+   *  pre-phase-346 record and for bypasses that carry no extra detail. */
+  detail: z.string().optional(),
 });
 export type GateBypass = z.infer<typeof GateBypassZ>;
 

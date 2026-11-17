@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { SummaryZ, DeepVerifyMetaZ, GateProvenanceZ, AcEvidenceZ, AssuranceRecordZ } from '../src/summary.js';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  SummaryZ,
+  DeepVerifyMetaZ,
+  GateProvenanceZ,
+  AcEvidenceZ,
+  AssuranceRecordZ,
+  GateBypassZ,
+} from '../src/summary.js';
 
 // AC-4 (Phase 70): run-level deepVerifyMeta provenance — what the verifier saw.
 
@@ -445,5 +455,64 @@ describe('SummaryZ.assurance (phase 233)', () => {
     if (result.success) {
       expect(result.data.assurance).toBeUndefined();
     }
+  });
+});
+
+describe('GateBypassZ.detail (phase 346)', () => {
+  const base = {
+    gate: 'build-test-must-pass',
+    flag: '--allow-failing-build',
+    reason: 'test command `pnpm test` exited 1',
+    severity: 'error' as const,
+  };
+
+  it('346-01/AC-5: parses a pre-phase-346 entry with no detail, leaving detail absent', () => {
+    const parsed = GateBypassZ.parse(base);
+    expect(parsed).toEqual(base);
+    expect('detail' in parsed).toBe(false);
+  });
+
+  it('346-01/AC-5: parses an entry carrying a detail string (an output tail)', () => {
+    const detail = 'FAIL tests/a.test.ts\n  expected 1 to be 2';
+    const parsed = GateBypassZ.parse({ ...base, detail });
+    expect(parsed.detail).toBe(detail);
+  });
+
+  it('346-01/AC-5: rejects a non-string detail', () => {
+    expect(GateBypassZ.safeParse({ ...base, detail: 42 }).success).toBe(false);
+  });
+
+  it('346-01/AC-5: a SUMMARY whose gateBypasses entry carries detail parses and keeps the detail', () => {
+    const result = SummaryZ.safeParse({
+      ...baseSummary,
+      gateBypasses: [{ ...base, detail: 'tail' }],
+    });
+    expect(result.success).toBe(true);
+    // GateBypassZ strips unknown keys, so success alone would hold without the field: the detail must survive the parse.
+    expect(result.success && result.data.gateBypasses?.[0]?.detail).toBe('tail');
+  });
+});
+
+describe('committed SUMMARY.json corpus still parses (phase 346)', () => {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+  const phasesDir = join(repoRoot, '.cadence', 'phases');
+  const files: string[] = existsSync(phasesDir)
+    ? readdirSync(phasesDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .flatMap((d) =>
+          readdirSync(join(phasesDir, d.name))
+            .filter((f) => f.endsWith('-SUMMARY.json'))
+            .map((f) => join(phasesDir, d.name, f)),
+        )
+    : [];
+
+  it('346-01/AC-5: every committed .cadence/phases/*/*-SUMMARY.json parses with SummaryZ', () => {
+    expect(files.length).toBeGreaterThan(0);
+    const failures: string[] = [];
+    for (const f of files) {
+      const result = SummaryZ.safeParse(JSON.parse(readFileSync(f, 'utf8')));
+      if (!result.success) failures.push(`${f}: ${result.error.message}`);
+    }
+    expect(failures).toEqual([]);
   });
 });

@@ -28,6 +28,7 @@ import { LoopViolationError } from '../errors.js';
 import { deriveAcResults, type ProgressFile } from '../status.js';
 import { loadConfig } from '../config/loader.js';
 import { effectiveGateSet } from '../gates/engine.js';
+import { tailLines } from '../gates/build-test-must-pass.js';
 import { resolveInteractivity } from '../gates/interactivity.js';
 import { selectVerifier } from '../verify/factory.js';
 import { scanTestCoverage } from '../verify/coverage.js';
@@ -40,6 +41,7 @@ import {
 } from '../verify/verifier-factory.js';
 import type { VerifyTestRef } from '../contracts/index.js';
 import { runSettleGates } from '../gates/registry.js';
+import { coverageBypassFlag } from '../gates/coverage.js';
 import { deriveAcEvidence, checkEvidenceFloor, isUnobservableAc } from '../gates/ac-evidence.js';
 import { classifyAcObservability } from '../verify/criteria-observability.js';
 import {
@@ -189,9 +191,12 @@ function mergePassShorthands(draftAcIds: string[], explicit: AcResult[], opts: S
 function anomalyToGateBypass(event: AnomalyEvent): GateBypass | null {
   if (event.severity === 'info') return null;
   if (event.type === 'coverage-bypassed') {
+    // Phase 346 (346-01, T5): the flag that fired rides in context.flag
+    // (collect.ts); an event without it is a pre-346 --allow-missing-coverage one.
+    const flag = event.context.flag === '--force' ? '--force' : '--allow-missing-coverage';
     return {
       gate: 'test-coverage',
-      flag: '--allow-missing-coverage',
+      flag,
       reason: event.message,
       severity: event.severity,
     };
@@ -217,6 +222,22 @@ function anomalyToGateBypass(event: AnomalyEvent): GateBypass | null {
       gate: 'soft-cap',
       flag: '--allow-auto-complex',
       reason: event.message,
+      severity: event.severity,
+    };
+  }
+  if (event.type === 'build-test-bypassed') {
+    // Phase 346 (346-01): the flag, command and exit code come from the
+    // event's context (collectAnomalies sets all three). The output tail is
+    // never in the event; runAnomalyAndSkillAuditChecks attaches it as
+    // `detail` from the gate's own facts.
+    const { flag, command, exitCode } = event.context;
+    return {
+      gate: 'build-test-must-pass',
+      flag: typeof flag === 'string' ? flag : '<unknown flag>',
+      reason:
+        typeof command === 'string' && typeof exitCode === 'number'
+          ? `${command} exited ${exitCode}`
+          : event.message,
       severity: event.severity,
     };
   }
@@ -1251,6 +1272,7 @@ async function runAnomalyAndSkillAuditChecks(
   deepVerify: SettleAccumulator['deepVerify'],
   interactiveVerify: SettleAccumulator['interactiveVerify'],
   verifierFailure: SettleAccumulator['flags']['verifierFailure'],
+  buildTestBypass: SettleAccumulator['flags']['buildTestBypass'],
   io: CommandIO,
 ): Promise<AnomalyAndSkillAuditResult> {
   // Phase 291 (Slice 2, T2) resolved packs here so the skill-audit union
@@ -1284,6 +1306,11 @@ async function runAnomalyAndSkillAuditChecks(
     draft,
     progress,
     coverageBypassed,
+    // Phase 346 (346-01, T5): name the flag that fired (shared rule with
+    // registry.ts's gates[] skip reason). Passed only for a bare --force
+    // bypass, so an --allow-missing-coverage event stays byte-identical to
+    // today (message and empty context).
+    ...(coverageBypassed && coverageBypassFlag(opts) === '--force' ? { coverageBypassFlag: '--force' as const } : {}),
     force: opts.force === true,
     root: cwd,
     autoComplexOverride: gateSet.softCap && opts.allowAutoComplex === true,
@@ -1291,8 +1318,22 @@ async function runAnomalyAndSkillAuditChecks(
     ...(interactiveVerify ? { interactiveVerify } : {}),
     ...(verifierFailure ? { verifierFailure } : {}),
     ...(checkpointForceRelease ? { checkpointForceRelease } : {}),
+    // Phase 346 (346-01): the build-test-must-pass gate's bypass facts, read
+    // off the merged gate flags (no other gate sets `buildTestBypass`).
+    ...(buildTestBypass ? { buildTestBypass } : {}),
   });
-  const gateBypasses = gateBypassesFromAnomalies(anomalies);
+  // Phase 346 (346-01, dec-20261113-002): the build-test-must-pass entry's `detail`
+  // says how many output-tail lines the gate's stderr notice showed, never the
+  // output itself: SUMMARY.json/.md are committed, and no redaction can know
+  // every secret a test suite might print.
+  // Every bypassed failing suite gets the note, a silent one included (0 lines).
+  const shownLines = tailLines(buildTestBypass?.outputTail).length;
+  const tailNote = buildTestBypass
+    ? `output tail: ${shownLines} line${shownLines === 1 ? '' : 's'} shown on stderr at settle; not recorded, since test output can hold secrets`
+    : undefined;
+  const gateBypasses = gateBypassesFromAnomalies(anomalies).map((b) =>
+    b.gate === 'build-test-must-pass' && tailNote ? { ...b, detail: tailNote } : b,
+  );
   for (const bypass of gateBypasses) {
     io.err(`settle bypass [${bypass.severity}] ${bypass.gate}: ${bypass.reason} (${bypass.flag})\n`);
   }
@@ -2059,6 +2100,7 @@ export async function settleService(
       deepVerify,
       interactiveVerify,
       verifierFailure,
+      acc.flags.buildTestBypass,
       io,
     );
     if (!anomalyResult.ok) {

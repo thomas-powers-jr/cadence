@@ -74,7 +74,7 @@ export function registerSettleCommand(program: Command): void {
     )
     .option(
       '--allow-failing-build',
-      'do not refuse on a non-zero verification.testCommand exit; settle anyway (Phase 39.2)',
+      "do not refuse on a non-zero verification.testCommand exit; settle anyway. The bypass (by this flag or --force) prints one stderr notice with the run's output tail and is recorded as an error-severity SUMMARY.json.gateBypasses entry (the tail itself is never recorded), which caps assurance.overall at mixed, never strong (Phase 39.2; recorded since Phase 346)",
     )
     .option(
       '--allow-code-review-failure',

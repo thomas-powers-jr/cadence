@@ -24,6 +24,12 @@ import { z } from 'zod';
  * is at or after the active draft's `openDrafts[].since`; always
  * `severity: 'error'`, mapped to a `checkpoint-stop` gate bypass) — see
  * dec-20261022-002 (D-CE).
+ *
+ * Phase 346-01 adds `build-test-bypassed` (emitted by settle's
+ * `collectAnomalies` when the build-test-must-pass gate let a failing test
+ * suite through via `--allow-failing-build` or `--force`; always
+ * `severity: 'error'`, mapped to a `build-test-must-pass` gate bypass whose
+ * `detail` carries the output tail — the tail never enters the message).
  */
 export const AnomalyTypeZ = z.enum([
   'ac-blocked',
@@ -45,6 +51,7 @@ export const AnomalyTypeZ = z.enum([
   'auto-complex-override',
   'boundary-pattern-unmatched',
   'checkpoint-force-released',
+  'build-test-bypassed',
 ]);
 export type AnomalyType = z.infer<typeof AnomalyTypeZ>;
 

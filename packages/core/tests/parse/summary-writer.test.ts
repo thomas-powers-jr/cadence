@@ -711,3 +711,29 @@ describe('renderSummaryMd - code-review findings bypass beside the grade (phase 
     expect(lines[overallIdx + 1]).toBe('- bypassed: 1 gate(s) (severity: error)');
   });
 });
+
+describe('renderSummaryMd gate-bypass detail (phase 346)', () => {
+  const baseEntry = { gate: 'build-test-must-pass', flag: '--allow-failing-build', reason: 'pnpm test exited 1', severity: 'error' as const };
+  const withBypasses = (gateBypasses: Summary['gateBypasses']): Summary =>
+    ({ ...SAMPLE, gateBypasses }) as Summary;
+
+  it('346-01/AC-3: an entry with detail is followed by a blank line and its lines indented 6 spaces, and nothing else changes', () => {
+    const md = renderSummaryMd(withBypasses([{ ...baseEntry, detail: 'FAIL a.test.ts\n  expected 3 to be 4\n' }]));
+    expect(md).toContain('- ERROR build-test-must-pass via --allow-failing-build: pnpm test exited 1\n\n      FAIL a.test.ts\n        expected 3 to be 4\n');
+    const without = renderSummaryMd(withBypasses([baseEntry]));
+    expect(md.replace('\n\n      FAIL a.test.ts\n        expected 3 to be 4', '')).toBe(without);
+    // CommonMark: an indented line directly under a bullet's text is a lazy
+    // continuation of that paragraph; only after a blank line is it a code block.
+    const lines = md.split('\n');
+    const bullet = lines.indexOf('- ERROR build-test-must-pass via --allow-failing-build: pnpm test exited 1');
+    expect(lines[bullet + 1]).toBe('');
+    expect(lines[bullet + 2]).toBe('      FAIL a.test.ts');
+  });
+
+  it('346-01/AC-3: a record with no detail on any entry has no indented bypass lines', () => {
+    const md = renderSummaryMd(withBypasses([baseEntry, { gate: 'soft-cap', flag: '--allow-auto-complex', reason: 'cap', severity: 'warn' }]));
+    const section = md.split('## Gate bypasses')[1]?.split('\n## ')[0] ?? '';
+    expect(section).not.toMatch(/^ {2,}\S/m);
+  });
+});
+

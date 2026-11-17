@@ -6,7 +6,7 @@ import { runDraftReadGate } from './draft-read.js';
 import { runStructuralVerifierGate } from './structural-verifier.js';
 import { runBoundaryScanGate } from './boundary-scan.js';
 import { runBuildTestGate } from './build-test-must-pass.js';
-import { runCoverageGate } from './coverage.js';
+import { coverageBypassFlag, runCoverageGate } from './coverage.js';
 import { runInteractiveGate, isInteractiveRequested } from './interactive.js';
 import { runDeepVerifyGate, isDeepVerifyRequested } from './deep-verify.js';
 import { runCodeReviewGate } from './code-review.js';
@@ -310,13 +310,22 @@ export async function runSettleGates(
       // Phase 226: buildTestBypassed is true for either --allow-failing-build
       // or bare --force (see build-test-must-pass.ts) — name whichever one
       // actually fired instead of always naming the gate's own flag.
-      const flag = gateCtx.opts.allowFailingBuild === true ? '--allow-failing-build' : '--force';
+      // Phase 346 (346-01, T5): prefer the gate's own buildTestBypass.flag so
+      // its notice, this skip reason and the gateBypasses flag share one
+      // source; the opts ternary is the fallback when the gate set none.
+      const flag =
+        res.flags.buildTestBypass?.flag ??
+        (gateCtx.opts.allowFailingBuild === true ? '--allow-failing-build' : '--force');
       gates.push({ gate, status: 'skipped', skipReason: `bypassed via ${flag}`, ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
     } else if (gate === 'boundary-scan' && res.flags?.boundaryScanBypassed === true) {
       const flag = gateCtx.opts.allowBoundaryScanFailure === true ? '--allow-boundary-scan-failure' : '--force';
       gates.push({ gate, status: 'skipped', skipReason: `bypassed via ${flag}`, ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
     } else if (gate === 'test-coverage' && res.flags?.coverageBypassed === true) {
-      gates.push({ gate, status: 'skipped', skipReason: 'bypassed via --allow-missing-coverage', ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
+      // Phase 346 (346-01, T5): name the flag that fired — bare --force when
+      // it alone let real gaps through, else --allow-missing-coverage (which
+      // wins whenever it is set). Same rule as settle.ts's coverageBypassFlag.
+      const flag = coverageBypassFlag(gateCtx.opts);
+      gates.push({ gate, status: 'skipped', skipReason: `bypassed via ${flag}`, ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
     } else if (res.flags?.reviewVerifierFailure) {
       // Phase 248 (T4): a code-review/security-audit verifier THROW (the call
       // itself never returned) bypassed via --force or the gate-specific

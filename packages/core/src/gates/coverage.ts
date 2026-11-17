@@ -20,6 +20,26 @@ import type { GateImpl, GateResult } from './types.js';
 const QUALIFIER_RE = /^[A-Za-z0-9._-]+$/;
 
 /**
+ * Phase 346 (346-01, T5, AC-4): the flag that fired for a coverage bypass —
+ * `--allow-missing-coverage` whenever it is set (it wins over --force), and
+ * `--force` only when bare --force alone let real gaps through. Only
+ * meaningful when the gate reported `coverageBypassed: true`, which happens
+ * on exactly those two paths. Shared by registry.ts (the gates[] skip
+ * reason) and settle.ts (the anomaly and its gateBypasses entry), so the two
+ * can never name different flags.
+ */
+export function coverageBypassFlag(opts: {
+  readonly force?: boolean | undefined;
+  readonly allowMissingCoverage?: boolean | undefined;
+}): '--allow-missing-coverage' | '--force' {
+  // The same truthiness the gate itself tests (`ctx.opts.force` / `allowMissingCoverage === true`), so the named flag
+  // can never disagree with the path the gate took.
+  return opts.force && opts.allowMissingCoverage !== true
+    ? '--force'
+    : '--allow-missing-coverage';
+}
+
+/**
  * Test-coverage gate (Phase 14). Extracted from settle.ts verbatim. Invoked
  * when 'test-coverage' is in the effective gate set. Refuses when any
  * non-explicit AC has no linked test, unless --allow-missing-coverage / --force.
@@ -46,6 +66,13 @@ const QUALIFIER_RE = /^[A-Za-z0-9._-]+$/;
  * only reports `true` when a bypass actually took effect (never merely
  * because a bypass flag was passed while sealed). Unsealed behavior (AC-5) is
  * byte-for-byte unchanged.
+ *
+ * Phase 346 (346-01, T5, AC-4): in `assertion` mode, an unsealed pass over
+ * real gaps through bare --force (no --allow-missing-coverage) also sets
+ * `coverageBypassed`; registry.ts and settle.ts then name --force as the flag
+ * that fired. --allow-missing-coverage keeps its early return and stays the
+ * named flag whenever it is set. Mention mode and the malformed-id
+ * phase-qualified --force path still leave `coverageBypassed` false.
  *
  * Phase 239 (T3, AC-2/AC-3/AC-4): under `verification.coverageScheme:
  * 'phase-qualified'` an AC token is only evidence when it carries this
@@ -100,8 +127,10 @@ export const runCoverageGate: GateImpl = async (ctx): Promise<GateResult> => {
         typeof activeDraft === 'string' ? JSON.stringify(activeDraft) : '(none)';
       if (ctx.opts.force && !sealed) {
         // --force keeps its existing "settle anyway" meaning, but the fallback
-        // is loud. `coverageBypassed` stays false: it tracks
-        // --allow-missing-coverage only, and no coverage bypass flag was passed.
+        // is loud. `coverageBypassed` stays false on this path: no coverage
+        // bypass flag was passed and no coverage was scanned (phase 346 left
+        // this path unchanged; only assertion mode's forced pass over real
+        // gaps counts as a --force coverage bypass).
         ctx.io.err(
           `coverage: proceeding past a missing or malformed active draft id (${shown}) ` +
             `under the 'phase-qualified' scheme because --force was passed. Coverage was ` +
@@ -220,7 +249,12 @@ export const runCoverageGate: GateImpl = async (ctx): Promise<GateResult> => {
       }
       return { outcome: 'refuse', flags: { coverageBypassed }, reason: reasons.join('\n') };
     }
-    return { outcome: 'pass', flags: { coverageBypassed } };
+    // Phase 346 (346-01, T5, AC-4): reaching here with a real gap means bare
+    // --force let it through unsealed (--allow-missing-coverage returned
+    // early above), so that pass is a coverage bypass and is recorded as one.
+    // registry.ts and settle.ts name the flag that fired (--force here).
+    const forcedPastGaps = absent.length > 0 || weak.length > 0 || skippedOnly.length > 0;
+    return { outcome: 'pass', flags: { coverageBypassed: coverageBypassed || forcedPastGaps } };
   }
 
   if (absent.length > 0 && (!ctx.opts.force || sealed)) {
