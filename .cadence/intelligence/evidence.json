@@ -3361,6 +3361,20 @@
       "summary": "phase 346-bypass-honesty, draft 346-01, SUMMARY contentHash 45e8eba813bb0050e954f1beb28a0159869a3f858fd170bc694f7b616d7ce59b — high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
       "path": ".cadence/phases/346-bypass-honesty/346-01-SUMMARY.json",
       "createdAt": "2026-11-16T22:32:41.640Z"
+    },
+    {
+      "id": "ev-20261117-001",
+      "recommendationId": "rec-20261117-001",
+      "kind": "note",
+      "summary": "Phase 346 settle (2026-11-16): skill-audit-miss for phase-build although the phase was built with it in a cloud session; state snapshot showed invoked: [].",
+      "createdAt": "2026-11-17T03:14:34.120Z"
+    },
+    {
+      "id": "ev-20261117-002",
+      "recommendationId": "rec-20261117-002",
+      "kind": "note",
+      "summary": "Phase 346 settle code-review findings (2026-11-16) bypassed with --allow-code-review-failure; listed in 346-01-SUMMARY.md Findings.",
+      "createdAt": "2026-11-17T03:14:34.417Z"
     }
   ]
 }
