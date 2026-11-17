@@ -1916,7 +1916,7 @@ medium finding at packages/core/src/handoff/precompact.ts:245: Git collection ca
 
 ## rec-20261113-001 — A dry-run code-review / deep-verify that runs the real host-cli reviewer without writing the attempt sidecar or settling
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10
