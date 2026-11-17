@@ -1945,3 +1945,35 @@ Settle is the only way to run the real code-review and deep-verify gates (host-c
 - next: cadence milestone propose
 
 high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.
+
+## rec-20261117-001 — Skill-audit cannot see skills invoked in sessions without CADENCE hooks (cloud sessions), so a phase built with phase-build reads as a miss
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: skill-audit, state, hosts, cloud
+- files: packages/core/src/checks/skill-audit.ts, packages/core/src/hooks/handlers.ts, packages/core/src/state/snapshot.ts
+- evidence: Phase 346 settle (2026-11-16): skill-audit-miss for phase-build although the phase was built with it in a cloud session; state snapshot showed invoked: [].
+- next: cadence milestone propose
+
+The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session, but invocations are recorded into state.skillAudit only by the local host hooks (.claude/settings.json on the operator PC), which cloud sessions do not have. The settle on the PC therefore reported skill-audit-miss and needed --allow-skill-audit-miss (warn bypass, decision recorded). Invoking the skill after the fact to satisfy the audit would game it. Options: record invocations through a path a cloud session can reach (e.g. a 'cadence skill record' command the skill itself calls, or MCP), carry recorded invocations in 'cadence state save/load' snapshots, or let the audit accept evidence such as per-task review artifacts. Out of scope: weakening the requirement.
+
+## rec-20261117-002 — Best-effort secret redaction of the build-test stderr tail: shapes Codex flagged that were bypassed at the phase 346 settle
+
+- status: candidate
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, build-test-must-pass, redaction
+- files: packages/core/src/verify/test-runner.ts
+- evidence: Phase 346 settle code-review findings (2026-11-16) bypassed with --allow-code-review-failure; listed in 346-01-SUMMARY.md Findings.
+- next: cadence milestone propose
+
+Phase 346 shows a bounded output tail of a failing suite on stderr only (never recorded, dec-20261113-002) and redacts secrets in it on a best-effort basis. At settle, code-review kept finding new redaction shapes, and the last ones were bypassed with --allow-code-review-failure (error bypass, decision recorded): a '/'-prefixed env token skipped by the path heuristic in secretValues; credential flags or -u user:pw at the very start of a captured line (SECRET_FLAG_RE and BASIC_AUTH_FLAG_RE require leading whitespace); a quoted {"Authorization":"Bearer x"} JSON header; short words of a multi-word passphrase under the 8-character word-piece minimum. Each is cheap to fix; none can make redaction complete. Decide whether to fix these, or to reduce the surface instead (e.g. an opt-out config to hide the tail entirely, or showing only lines that match a test-failure pattern).
