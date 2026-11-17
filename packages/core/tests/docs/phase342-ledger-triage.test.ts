@@ -128,8 +128,16 @@ describe('phase 342: needs-decision backlog triage and Studio upstream intake', 
       if (rec.decisionIds[rec.decisionIds.length - 1] !== decision.id) continue;
       switch (disposition) {
         case 'promote':
-          expect(rec.status, id).toBe('candidate');
-          expect(rec.readiness, id).toBe('ready-for-cadence-spec');
+          // A promoted rec is either still queued for a phase, or that phase
+          // has since shipped it (its fulfilment: `recommendation promote
+          // --status=shipped` records no decision, so the 342 decision stays
+          // the latest). Any other state contradicts the triage.
+          if (rec.status === 'shipped') {
+            expect(rec.shippedRef ?? '', id).not.toBe('');
+          } else {
+            expect(rec.status, id).toBe('candidate');
+            expect(rec.readiness, id).toBe('ready-for-cadence-spec');
+          }
           break;
         case 'defer':
           expect(rec.status, id).toBe('deferred');
