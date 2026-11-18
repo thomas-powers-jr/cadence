@@ -74,6 +74,7 @@ import {
 } from '../intelligence/finding-routing.js';
 import {
   type SettleContext,
+  type EmitPort,
   type ProgressJson,
   type AcResult,
   type SettleAccumulator,
@@ -82,6 +83,7 @@ import type { PerTaskVerifyRecord } from '../build/record.js';
 import { createDefaultPrompter } from '../verify/prompter.js';
 import { createSettleDiffProvider } from './settle-diff.js';
 import { selectNotifier } from '../notify/factory.js';
+import type { Notifier } from '../notify/notifier.js';
 import { collectAnomalies } from '../notify/collect.js';
 import { emitLoopViolation } from '../notify/loop-violation.js';
 import { selectCodeReviewVerifier } from '../verify/code-review-factory.js';
@@ -899,6 +901,106 @@ function buildSettleContext(
       write: (text) => atomicWriteText(codeReviewSidecarPath, text),
     },
     io: { err: (s) => io.err(s) },
+  };
+}
+
+/**
+ * Phase 347 (347-01, T1): one recorded `EmitPort` call — the port name and the
+ * exact arguments a real settle would have dispatched to the notifier.
+ */
+export type DryRunEmitRecord = {
+  [K in keyof EmitPort]: { readonly port: K; readonly args: Parameters<EmitPort[K]> };
+}[keyof EmitPort];
+
+/**
+ * Phase 347 (347-01, T1): what a `settle run --dry-run` would have sent or
+ * persisted through the settle context's ports. `emitted` holds every
+ * `ctx.emit.*` call in order (a copy of its arguments); `events` holds the
+ * anomaly events a real settle would have handed a notifier, built by the same
+ * emit helpers settle uses, so the report never re-derives their messages;
+ * `sidecarWrites` holds every would-be code-review convergence sidecar text in
+ * order (the last one is what a real settle would leave on disk). In-memory
+ * only — nothing here is ever written.
+ */
+export interface DryRunRecorder {
+  readonly emitted: DryRunEmitRecord[];
+  readonly events: AnomalyEvent[];
+  readonly sidecarWrites: string[];
+}
+
+/** Phase 347 (347-01, T1): an empty {@link DryRunRecorder}. */
+export function createDryRunRecorder(): DryRunRecorder {
+  return { emitted: [], events: [], sidecarWrites: [] };
+}
+
+/**
+ * Phase 347 (347-01, T1): a notifier that keeps the events it is handed in
+ * `recorder.events` and sends nothing anywhere.
+ */
+export function dryRunNotifier(recorder: DryRunRecorder): Notifier {
+  return {
+    name: 'dry-run',
+    notify: async (events) => {
+      recorder.events.push(...structuredClone(events));
+    },
+  };
+}
+
+/**
+ * Phase 347 (347-01, T1): returns a NEW `SettleContext` for a dry run without
+ * mutating `ctx`; its ports' only side effects go into `recorder`:
+ *  - every `emit.*` port records a copy of its call into `recorder.emitted` and
+ *    runs settle's own emit helper against {@link dryRunNotifier}, so the
+ *    events it would have sent land in `recorder.events` and no anomaly reaches
+ *    any notifier transport;
+ *  - the code-review sidecar `read` delegates to the original unchanged (so the
+ *    attempt count is the real one), while `write` keeps the would-be text in
+ *    `recorder.sidecarWrites` and persists nothing (no attempt is spent);
+ *  - `interactivity` is `'bypass'`, the interactive-verdict gate's existing
+ *    non-interactive path (skip the walker, record `interactiveVerifySkipped`),
+ *    and `prompter.create` refuses rather than open a stdin prompter.
+ * Every other field — verifiers, runner, diff, coverage, io — is the original's,
+ * so the gates run exactly as settle runs them. The `emit` literal is typed as
+ * `EmitPort`, so a port added to the interface without a recorder here fails
+ * typecheck.
+ */
+export function withDryRunPorts(ctx: SettleContext, recorder: DryRunRecorder): SettleContext {
+  const original = ctx.codeReviewSidecar;
+  const notifier = dryRunNotifier(recorder);
+  const emit: EmitPort = {
+    // Production settle's `anomalies` port is a no-op (settle dispatches its
+    // anomalies itself), so there is no event to build here.
+    anomalies: async (events) => {
+      recorder.emitted.push({ port: 'anomalies', args: structuredClone([events]) });
+    },
+    codeReviewHigh: async (findings, info) => {
+      recorder.emitted.push({ port: 'codeReviewHigh', args: structuredClone([findings, info]) });
+      await emitCodeReviewHigh(notifier, findings, info);
+    },
+    codeReviewUnconverged: async (info) => {
+      recorder.emitted.push({ port: 'codeReviewUnconverged', args: structuredClone([info]) });
+      await emitCodeReviewUnconverged(notifier, info);
+    },
+    skillAuditMiss: async (payload) => {
+      recorder.emitted.push({ port: 'skillAuditMiss', args: structuredClone([payload]) });
+      await emitSkillAuditMiss(notifier, payload);
+    },
+  };
+  return {
+    ...ctx,
+    interactivity: 'bypass',
+    emit,
+    prompter: {
+      create: () => {
+        throw new Error('settle --dry-run never prompts: the interactive walker is skipped');
+      },
+    },
+    codeReviewSidecar: {
+      read: () => original.read(),
+      write: async (text) => {
+        recorder.sidecarWrites.push(text);
+      },
+    },
   };
 }
 

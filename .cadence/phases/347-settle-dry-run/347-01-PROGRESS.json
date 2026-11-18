@@ -1,0 +1,14 @@
+{
+  "draftId": "347-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "withDryRunPorts(ctx, recorder): emit ports record a copy of each call and run settle's own emit helpers against an in-memory dry-run notifier (recorder.events), sidecar read passes through and write is recorded only, interactivity 'bypass' and a prompter that refuses. buildSettleContext unchanged. Independent review PASS; its I1 (record real AnomalyEvents, not raw args) folded in with a test. Full turbo pipeline 28/28 (core 5478 passed).",
+      "touchedFiles": [
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/services/settle-dry-run-ports.test.ts"
+      ],
+      "updatedAt": "2026-11-18T00:10:50.422Z"
+    }
+  }
+}
