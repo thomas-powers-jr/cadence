@@ -1497,7 +1497,14 @@ async function runAnomalyAndSkillAuditChecks(
       return {
         ok: false,
         result: { exitCode: 1 },
-        refusal: { at: 'pack-resolution', reason: packRes.reason ?? 'enabled pack(s) failed to resolve' },
+        // The full line `checkUnresolvablePacks` printed (checks/pack-resolution.ts).
+        refusal: {
+          at: 'pack-resolution',
+          reason:
+            `settle run refused: ${resolvedPacks.filter((p) => 'error' in p).length} enabled pack(s) could not be resolved: ${packRes.reason ?? ''}. ` +
+            `Fix the pack manifest(s) or remove the id(s) from config.packs.enabled, ` +
+            `or pass --allow-unresolvable-pack to override.`,
+        },
       };
     }
     if (packRes.bypassed === true) {
@@ -1523,7 +1530,13 @@ async function runAnomalyAndSkillAuditChecks(
       return {
         ok: false,
         result: { exitCode: 1 },
-        refusal: { at: 'skill-audit', reason: `required skill(s) not invoked: ${missing.join(', ')}` },
+        // The full line `runSkillAuditCheck` printed (checks/skill-audit.ts).
+        refusal: {
+          at: 'skill-audit',
+          reason:
+            `settle run refused: required skill(s) not invoked: ${missing.join(', ')}. ` +
+            `Invoke them, or pass --allow-skill-audit-miss to override.`,
+        },
       };
     }
     state.skillAudit.required = res.effectiveRequired;
@@ -2202,15 +2215,25 @@ export async function settleService(
     // Phase 347 (347-01, T2): a dry run hands every consumer below the same
     // context with its side-effecting ports swapped for recording ones
     // (`withDryRunPorts`). Whether settle itself would prompt is decided on
-    // the ORIGINAL context — the dry one always takes the bypass path.
+    // the ORIGINAL context — the dry one takes the bypass path. One exception:
+    // `require-tty` without a TTY, where settle's real prompter refuses at
+    // construction (before reading stdin) and interactive-verdict refuses —
+    // there the dry context keeps the original interactivity and prompter so
+    // the dry run refuses exactly as settle does, and nothing ever prompts.
+    let ctx: SettleContext = settleCtx;
     if (dryRun) {
-      dryRun.wouldPrompt = isInteractiveRequested(settleCtx) && settleCtx.interactivity !== 'bypass';
-      if (dryRun.wouldPrompt) {
-        io.err('settle --dry-run: interactive-verdict would prompt for AC verdicts; the walk is skipped\n');
-      }
+      const isTTY = Boolean(process.stdin.isTTY);
+      dryRun.promptIfReached =
+        isInteractiveRequested(settleCtx) &&
+        (settleCtx.interactivity === 'interactive' ||
+          (settleCtx.interactivity === 'require-tty' && isTTY));
       dryRun.maxAttempts = cadenceConfig?.convergence?.maxAttempts ?? 3;
+      const dryCtx = withDryRunPorts(settleCtx, dryRun.recorder);
+      ctx =
+        settleCtx.interactivity === 'require-tty' && !isTTY
+          ? { ...dryCtx, interactivity: settleCtx.interactivity, prompter: settleCtx.prompter }
+          : dryCtx;
     }
-    const ctx: SettleContext = dryRun ? withDryRunPorts(settleCtx, dryRun.recorder) : settleCtx;
     // Phase 247 (T2): resolve the clock seam once, here, so both the refused
     // and success paths below share the exact same default-vs-injected
     // resolution rather than each independently re-deriving it.
@@ -2233,6 +2256,12 @@ export async function settleService(
       dryRun.gates = gates;
       dryRun.acc = acc;
       dryRun.findingsBypasses = findingsBypasses;
+      // Settle prompts only if the loop actually reached interactive-verdict.
+      dryRun.wouldPrompt =
+        dryRun.promptIfReached === true && settleGates.some((g) => g.gate === 'interactive-verdict');
+      if (dryRun.wouldPrompt) {
+        io.err('settle --dry-run: interactive-verdict would prompt for AC verdicts; the walk is skipped\n');
+      }
     }
     if (refused) {
       if (dryRun) {
@@ -2401,6 +2430,9 @@ interface DryRunSession {
   readonly recorder: DryRunRecorder;
   readonly io: CommandIO;
   draftId: string | null;
+  /** Settle would prompt if its gate loop reached interactive-verdict. */
+  promptIfReached?: boolean;
+  /** …and it did (set after the gate loop). */
   wouldPrompt?: boolean;
   maxAttempts?: number;
   gates?: GateProvenance[];

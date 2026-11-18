@@ -14,6 +14,26 @@ import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import { settleService, type SettleArgs } from '../../src/services/settle.js';
 import type { DryRunReportData } from '../../src/services/settle-dry-run-report.js';
 import type { CommandIO } from '../../src/services/io.js';
+import { LoopViolationError } from '../../src/errors.js';
+import type * as LoaderModule from '../../src/config/loader.js';
+
+/** M-5 seam: when armed, the next `loadConfig` call throws a
+ *  LoopViolationError, which reaches settleService's catch block (settle's
+ *  first `loadConfig` runs after the preconditions). Pass-through otherwise. */
+const loaderSeam = vi.hoisted(() => ({ throwNext: false }));
+vi.mock('../../src/config/loader.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof LoaderModule>();
+  return {
+    ...actual,
+    loadConfig: async (...args: Parameters<typeof LoaderModule.loadConfig>) => {
+      if (loaderSeam.throwNext) {
+        loaderSeam.throwNext = false;
+        throw new LoopViolationError('seam: loop violation mid-settle', { expected: 'BUILD', actual: 'SETTLE' });
+      }
+      return actual.loadConfig(...args);
+    },
+  };
+});
 
 /**
  * Phase 347 (347-01, T2): `settleService` with `dryRun`. Every AC-1 fixture is
@@ -32,6 +52,7 @@ const PHASE_DIR = join('.cadence', 'phases', PHASE);
 const fixtures: Fixture[] = [];
 const extraDirs: string[] = [];
 afterEach(async () => {
+  loaderSeam.throwNext = false;
   vi.unstubAllEnvs();
   for (const fx of fixtures.splice(0)) await fx.cleanup();
   for (const d of extraDirs.splice(0)) {
@@ -254,6 +275,19 @@ async function expectSameDecision(
 
 const AUTO: SettleArgs = { auto: true };
 
+/** The one stderr line settle printed that starts with `prefix`. */
+function stderrLine(stderr: string, prefix: string): string | undefined {
+  return stderr.split('\n').find((l) => l.startsWith(prefix));
+}
+
+async function readAnomalyLog(root: string): Promise<Array<Record<string, unknown>>> {
+  const raw = await readFile(join(root, '.cadence', 'anomalies.log'), 'utf8');
+  return raw
+    .split('\n')
+    .filter((l) => l.trim() !== '')
+    .map((l) => JSON.parse(l) as Record<string, unknown>);
+}
+
 describe('settle run --dry-run decides exactly what settle would decide (347-01)', { timeout: 60_000 }, () => {
   it('347-01/AC-1: a passing settle — the dry run says it would pass with the same gates, writes nothing (AC-2)', async () => {
     const root = await setup();
@@ -266,9 +300,13 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
     const { dry } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'loop-position', summary: false });
     expect(dry.data.wouldNotify.map((e) => e.type)).toEqual(['loop-violation']);
     expect(dry.stdout).toContain('would notify:\n  loop-violation [error]');
-    // The real settle dispatched the same event through the file transport.
-    const log = await readFile(join(root, '.cadence', 'anomalies.log'), 'utf8');
-    expect(log).toContain('"type":"loop-violation"');
+    // The real settle dispatched the same event through the file transport;
+    // the dry run's copy matches it field for field (drift guard for
+    // settle.ts's mirrored recordLoopViolation).
+    const log = await readAnomalyLog(root);
+    expect(log).toHaveLength(1);
+    const { type, severity, message, context } = log[0]!;
+    expect(dry.data.wouldNotify).toEqual([{ type, severity, message, context }]);
   });
 
   it('347-01/AC-1: a phase-collision refusal', async () => {
@@ -360,9 +398,41 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
 
   it('347-01/AC-1: a skill-audit refusal — the skill-audit-miss event is recorded, not sent (AC-2)', async () => {
     const root = await setup({ config: { skillAudit: { required: ['tdd'] } } as Partial<CadenceConfig> });
-    const { dry } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'skill-audit', summary: true });
-    expect(dry.data.refusal?.reason).toBe('required skill(s) not invoked: tdd');
+    const { dry, real } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'skill-audit', summary: true });
+    const printed = stderrLine(real.stderr, 'settle run refused: required skill(s) not invoked');
+    expect(printed).toBe(
+      'settle run refused: required skill(s) not invoked: tdd. Invoke them, or pass --allow-skill-audit-miss to override.',
+    );
+    expect(dry.data.refusal?.reason).toBe(printed);
     expect(dry.data.wouldNotify.map((e) => e.type)).toContain('skill-audit-miss');
+  });
+
+  it('347-01/AC-1: a pack-resolution refusal records the full line settle prints', async () => {
+    const root = await setup({ config: { packs: { enabled: ['ghost-pack'], disabled: [] } } as Partial<CadenceConfig> });
+    const { dry, real } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'pack-resolution', summary: true });
+    const printed = stderrLine(real.stderr, 'settle run refused: 1 enabled pack(s) could not be resolved');
+    expect(printed).toBeDefined();
+    expect(dry.data.refusal?.reason).toBe(printed);
+  });
+
+  it('347-01/AC-2: an anomaly that reaches settle\'s own notifier is recorded under would notify, not written; the real settle writes it', async () => {
+    const root = await setup({
+      coverage: false,
+      config: { gates: { sealed: [], evidenceFloor: 'unverified' } } as Partial<CadenceConfig>,
+    });
+    const logPath = join(root, '.cadence', 'anomalies.log');
+    const flags: SettleArgs = { auto: true, allowMissingCoverage: true };
+    const dry = await dryRun(root, flags);
+    expect(dry.exitCode, dry.stderr).toBe(0);
+    expect(existsSync(logPath)).toBe(false);
+    const dryEvents = dry.data.wouldNotify.filter((e) => e.type === 'coverage-bypassed');
+    expect(dryEvents).toHaveLength(1);
+    const real = await realSettle(root, flags);
+    expect(real.exitCode, real.stderr).toBe(0);
+    const logged = (await readAnomalyLog(root)).filter((e) => e.type === 'coverage-bypassed');
+    expect(logged).toHaveLength(1);
+    const { type, severity, message, context } = logged[0]!;
+    expect(dryEvents[0]).toEqual({ type, severity, message, context });
   });
 
   it('347-01/AC-1: an evidence-floor refusal', async () => {
@@ -391,6 +461,42 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
       { verdict: 'refuse', at: 'deep-verify', summary: true },
     );
     expect(dry.data.refusal?.reason).toContain('verification.fallback is refuse');
+  });
+
+  it('347-01/AC-1: interactive-verdict under CADENCE_REQUIRE_TTY=1 without a TTY refuses in the dry run exactly as settle does', async () => {
+    vi.stubEnv('CADENCE_REQUIRE_TTY', '1');
+    expect(process.stdin.isTTY).not.toBe(true);
+    const root = await setup({ profile: 'strict', tier: 'quick-fix' });
+    const { dry } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'interactive-verdict', summary: true });
+    expect(dry.data.wouldPrompt).toBe(false);
+  });
+
+  it('347-01/AC-3: when a gate before interactive-verdict refuses, the report does not claim settle would prompt', async () => {
+    vi.stubEnv('CADENCE_PROMPTER_SCRIPT', 'pass\n');
+    const root = await setup({ profile: 'strict', tier: 'quick-fix', testCommand: 'fail' });
+    const dry = await dryRun(root, AUTO);
+    expect(dry.data.refusal?.at).toBe('build-test-must-pass');
+    expect(dry.data.wouldPrompt).toBe(false);
+    expect(dry.stderr).not.toContain('would prompt');
+    expect(dry.stdout).not.toContain('would prompt');
+  });
+
+  it('347-01/AC-2: a LoopViolationError thrown mid-settle reaches the catch block, which records the loop violation instead of sending it', async () => {
+    const root = await setup();
+    loaderSeam.throwNext = true;
+    const dry = await dryRun(root, AUTO);
+    expect(dry.exitCode).toBe(1);
+    expect(dry.data.refusal).toEqual({ at: 'error', reason: 'settle run failed: seam: loop violation mid-settle' });
+    expect(existsSync(join(root, '.cadence', 'anomalies.log'))).toBe(false);
+
+    loaderSeam.throwNext = true;
+    const real = await realSettle(root, AUTO);
+    expect(real.exitCode).toBe(1);
+    expect(real.stderr).toContain('settle run failed: seam: loop violation mid-settle');
+    const log = await readAnomalyLog(root);
+    expect(log).toHaveLength(1);
+    const { type, severity, message, context } = log[0]!;
+    expect(dry.data.wouldNotify).toEqual([{ type, severity, message, context }]);
   });
 
   it('347-01/AC-4: where settle would prompt, the dry run takes the non-interactive path and says so on stderr and in the report', async () => {

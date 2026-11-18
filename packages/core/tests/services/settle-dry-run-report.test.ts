@@ -210,8 +210,8 @@ describe('renderSettleDryRunReport (347-01, T2)', () => {
     expect(l[at + 1]).toBe('  code-review-high [error] HIGH finding in src/foo.ts');
     expect(l[at + 2]).toBe('  loop-violation [error] settle run requires BUILD');
     expect(data.wouldNotify).toEqual([
-      { type: 'code-review-high', severity: 'error', message: 'HIGH finding in src/foo.ts' },
-      { type: 'loop-violation', severity: 'error', message: 'settle run requires BUILD' },
+      { type: 'code-review-high', severity: 'error', message: 'HIGH finding in src/foo.ts', context: {} },
+      { type: 'loop-violation', severity: 'error', message: 'settle run requires BUILD', context: {} },
     ]);
   });
 

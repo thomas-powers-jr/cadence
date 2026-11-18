@@ -9,6 +9,16 @@
         "packages/core/tests/services/settle-dry-run-ports.test.ts"
       ],
       "updatedAt": "2026-11-18T00:10:50.422Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "settleService dryRun: same preconditions, gate set and gates on withDryRunPorts(ctx); loop violations, settle's anomaly notify and all writeRefusedSettleSummary sites recorded not run; stops before finalize; pure settle-dry-run-report renderer to stdout + CommandResult.data, exit 0/1; dryRun+interactive/shipRef exit 2. 22 service tests: all 12 AC-1 fixtures dry-vs-real (verdict, gates deep-equal, exit), tree hash around every dry run, attempt prediction across consecutive runs, require-tty, anomaly-notify path, catch-block seam. Independent review: 2 Important fixed (require-tty divergence, untested notify path) + M-2/M-3/M-5/M-6; re-review PASS. Full turbo pipeline 28/28 (core 5514 passed).",
+      "touchedFiles": [
+        "packages/core/src/services/settle-dry-run-report.ts",
+        "packages/core/tests/services/settle-dry-run-report.test.ts",
+        "packages/core/tests/services/settle-dry-run.test.ts"
+      ],
+      "updatedAt": "2026-11-18T00:39:29.011Z"
     }
   }
 }

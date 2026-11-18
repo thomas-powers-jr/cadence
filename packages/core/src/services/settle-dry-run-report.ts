@@ -76,7 +76,7 @@ export interface DryRunReportData {
     convergence?: DryRunConvergence;
   } | null;
   securityAudit: { provider?: string; model?: string; findings: DryRunFindingRow[] } | null;
-  wouldNotify: Array<{ type: string; severity: string; message: string }>;
+  wouldNotify: Array<{ type: string; severity: string; message: string; context: Record<string, unknown> }>;
   wouldPrompt: boolean;
 }
 
@@ -210,7 +210,12 @@ export function renderSettleDryRunReport(input: DryRunReportInput): { text: stri
     for (const f of findings) out.push(findingLine(f));
   }
 
-  const wouldNotify = input.events.map((e) => ({ type: e.type, severity: e.severity, message: e.message }));
+  const wouldNotify = input.events.map((e) => ({
+    type: e.type,
+    severity: e.severity,
+    message: e.message,
+    context: { ...e.context },
+  }));
   if (wouldNotify.length === 0) {
     out.push('would notify: nothing');
   } else {
