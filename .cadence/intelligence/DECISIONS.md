@@ -1379,6 +1379,13 @@ Deep-verify and code-review kept rejecting new shapes in the command (curl --use
 
 The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session (per-task implementer and reviewer, main-thread re-verification, whole-branch review), but that session had no CADENCE host hooks installed (they live in the operator PC's local .claude/settings.json), so the invocation was never recorded in state.skillAudit; the 2026-11-12 state snapshot shows invoked: []. Invoking the skill after the fact only to satisfy the audit would game it, so the miss is bypassed and recorded instead.
 
+### dec-20261118-001 — 347-01 amended in BUILD: a would-prompt dry run assumes every AC confirmed; security-audit findings show '-' for file
+
+- recommendation: rec-20261113-001
+- decided: 2026-11-18T19:00:45.628Z
+
+The operator decided this on 2026-11-18, after the first Codex deep-verify of 347-01, which was a dry run, so it spent no attempt. That review failed AC-1, AC-2 and AC-3. (1) AC-1: when the gate set would walk ACs interactively, settle's outcome depends on answers that a dry run cannot have, so AC-1 as written was unmeetable in that case. The operator chose to amend AC-1. The dry run now reports the outcome settle would reach with every AC confirmed, and says so on a line of its own. AC-3's final line is now the bare 'settle would pass' / 'settle would refuse at ...' with nothing appended; the old ' (settle would prompt for AC verdicts first)' suffix was the other half of Codex's AC-3 finding. The report, its tests and the docs changed to match. (2) AC-3: security-audit findings are a flat list with no file field (verify/security-audit.ts: 'security issues span files'), and adding one would edit verify/, which the DRAFT's Boundaries forbid. The operator chose to amend AC-3 to require the file only where the finding carries one; security-audit findings show '-'. (3) AC-2 needed no amendment: the fixture hash had skipped .git for no reason. It now includes .git, and every dry-run test still passes. The DRAFT's content hash changed after approve, so the settle runs with --allow-stale-draft; this decision is the record (precedent: dec-20261112-001).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

@@ -224,16 +224,17 @@ export function renderSettleDryRunReport(input: DryRunReportInput): { text: stri
   }
 
   if (input.wouldPrompt) {
-    out.push('interactive-verdict: settle would prompt for AC verdicts; the dry run took the non-interactive path');
+    out.push(
+      'interactive-verdict: settle would prompt for AC verdicts; the dry run took the non-interactive path and this verdict assumes every AC is confirmed',
+    );
   }
 
-  const promptNote = input.wouldPrompt ? ' (settle would prompt for AC verdicts first)' : '';
   if (input.refusal) {
     const reason = oneLine(input.refusal.reason);
     const shown = reason.startsWith(SETTLE_REFUSED_PREFIX) ? reason.slice(SETTLE_REFUSED_PREFIX.length) : reason;
-    out.push(`settle would refuse at ${input.refusal.at}: ${shown}${promptNote}`);
+    out.push(`settle would refuse at ${input.refusal.at}: ${shown}`);
   } else {
-    out.push(`settle would pass${promptNote}`);
+    out.push('settle would pass');
   }
 
   return {

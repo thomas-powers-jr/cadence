@@ -244,13 +244,13 @@ describe('renderSettleDryRunReport (347-01, T2)', () => {
     });
   });
 
-  it('347-01/AC-4: when settle would prompt, says so and the final line still names the verdict and the prompt', () => {
+  it('347-01/AC-4: when settle would prompt, says so on its own line, assumes every AC is confirmed, and leaves the final line as the bare verdict', () => {
     const { text, data } = renderSettleDryRunReport(base({ wouldPrompt: true }));
     const l = lines(text.trimEnd());
     expect(l).toContain(
-      'interactive-verdict: settle would prompt for AC verdicts; the dry run took the non-interactive path',
+      'interactive-verdict: settle would prompt for AC verdicts; the dry run took the non-interactive path and this verdict assumes every AC is confirmed',
     );
-    expect(l[l.length - 1]).toBe('settle would pass (settle would prompt for AC verdicts first)');
+    expect(l[l.length - 1]).toBe('settle would pass');
     expect(data.wouldPrompt).toBe(true);
   });
 

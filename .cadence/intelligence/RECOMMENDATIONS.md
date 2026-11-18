@@ -1925,6 +1925,7 @@ medium finding at packages/core/src/handoff/precompact.ts:245: Git collection ca
 - decay: fresh
 - areas: settle, code-review, deep-verify, verification, dx
 - files: packages/core/src/gates/code-review.ts, packages/core/src/verify/converge.ts, packages/core/src/services/settle.ts, packages/core/src/cli/commands/settle.ts
+- decisions: dec-20261118-001 (active)
 - evidence: Phase 346: three Codex code-review attempts spent across three PC settle runs (dec-20261113-001, dec-20261113-002); each round needed a push/pull relay between the cloud session and the operator's PC.
 - next: cadence milestone propose
 

@@ -4271,6 +4271,13 @@ Tier `complex`.
   that would prompt is reported as such, and the final verdict assumes that
   walk passes; the pack-resolution and skill-audit refusal lines are
   rebuilt to match the checks' stderr, guarded by tests.
+- The first Codex deep-verify, run as a dry run at no cost in attempts,
+  failed AC-1, AC-2 and AC-3. The DRAFT was amended in BUILD
+  (dec-20261118-001). A dry run where settle would prompt now reports the
+  outcome with every AC confirmed and says so on its own line, and the
+  final line carries nothing appended. AC-3 asks for a finding's file only
+  where it carries one. The fixture hash now includes `.git`. The settle
+  runs with `--allow-stale-draft`.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

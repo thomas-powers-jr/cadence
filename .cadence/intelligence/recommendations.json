@@ -3482,10 +3482,12 @@
         "ev-20261113-001"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20261118-001"
+      ],
+      "convertedToPhaseId": "347-settle-dry-run",
       "createdAt": "2026-11-13T18:32:10.889Z",
-      "updatedAt": "2026-11-17T22:16:01.878Z",
-      "convertedToPhaseId": "347-settle-dry-run"
+      "updatedAt": "2026-11-17T22:16:01.878Z"
     },
     {
       "id": "rec-20261116-001",

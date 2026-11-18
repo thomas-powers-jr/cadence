@@ -39,7 +39,7 @@ vi.mock('../../src/config/loader.js', async (importOriginal) => {
  * Phase 347 (347-01, T2): `settleService` with `dryRun`. Every AC-1 fixture is
  * a testkit ephemeral repo; the dry run runs first, then the real settle on
  * the same tree, and the two must decide the same thing. Every file in the
- * fixture (outside `.git` internals) is hashed around each dry run; the
+ * fixture, `.git` included, is hashed around each dry run; the
  * notifier is `notify.transport: "file"` wherever the gate set includes
  * `anomaly-notify`, so a dispatched notification would change the hash.
  */
@@ -179,12 +179,11 @@ async function setup(opts: Setup = {}): Promise<string> {
   return root;
 }
 
-/** sha256 of every file under `root`, keyed by relative path, `.git` excluded. */
+/** sha256 of every file under `root`, `.git` included, keyed by relative path. */
 async function hashTree(root: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   const walk = async (dir: string): Promise<void> => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
-      if (e.name === '.git') continue;
       const p = join(dir, e.name);
       if (e.isDirectory()) await walk(p);
       else out[relative(root, p)] = createHash('sha256').update(await readFile(p)).digest('hex');
@@ -506,7 +505,8 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
     expect(dry.stderr).toContain('settle --dry-run: interactive-verdict would prompt for AC verdicts; the walk is skipped');
     expect(dry.data.wouldPrompt).toBe(true);
     expect(dry.stdout).toContain('interactive-verdict: settle would prompt for AC verdicts');
-    expect(dry.stdout.trimEnd().split('\n').pop()).toMatch(/\(settle would prompt for AC verdicts first\)$/);
+    expect(dry.stdout).toContain('this verdict assumes every AC is confirmed');
+    expect(dry.stdout.trimEnd().split('\n').pop()).toBe('settle would pass');
   });
 });
 

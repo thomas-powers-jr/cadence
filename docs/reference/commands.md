@@ -983,11 +983,11 @@ their own writes are outside this guarantee.
 
 The report goes to stdout: each gate's outcome and provider; deep-verify's
 per-AC verdict, reason and provider; code-review and security-audit findings
-(security-audit findings carry no file, shown as `-`); for code-review,
+(security-audit findings are not per-file and carry no file, shown as `-`); for code-review,
 `would be attempt N of M` and the would-be convergence verdict (`pass`,
 `abstained`, `reloop`, `escalate` or `bypassed`; a passing or abstained review consumes no attempt and
-is reported as `consumes no attempt (attempts stay at N of M)`); the events settle would send under `would notify:`; a note when settle
-would prompt; and a final line, `settle would pass` or
+is reported as `consumes no attempt (attempts stay at N of M)`); the events settle would send under `would notify:`; a note, on its own line, when settle
+would prompt (the verdict then assumes every AC is confirmed); and a final line, `settle would pass` or
 `settle would refuse at <gate or check>: <reason>`. The stderr notices settle
 prints before finalize still print.
 
