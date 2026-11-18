@@ -64,6 +64,7 @@ completion" only -- never as "no CodeQL findings."
 
 | Advisory ID | Package | Justification | Expiry |
 | --- | --- | --- | --- |
+| GHSA-fc5q-39xc-vjpf | picomatch | ReDoS through single-branch repeated extglobs, affecting `<=4.0.7`, with no patched version published (2026-11-18). Dev-only: picomatch 4.0.5/4.0.7 reach the lockfile only through `@changesets/cli` (via `@changesets/config` and `@manypkg/tools` -> `tinyglobby`) and `vitest`/`vite`/`fdir`, none of which ships in a published package. Those tools match only the repo's own glob patterns, never untrusted input. Upgrade with a `pnpm.overrides` floor as soon as a patched picomatch is published. | 2026-12-31 |
 <!--
 To add a new exception, append a row above this comment, e.g.:
 
