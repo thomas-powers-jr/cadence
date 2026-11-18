@@ -247,14 +247,25 @@ describe('settle run --dry-run: built CLI end to end (Phase 347)', () => {
     expect(existsSync(join(active.root, 'MARKER'))).toBe(true);
   });
 
-  it('347-01/AC-4: a Commander parse error under --dry-run (--ship-ref "") exits 1 with Commander\'s message and no report', async () => {
+  it('347-01/AC-4: --dry-run with an empty --ship-ref "" still exits 2 naming --ship-ref, before the test command runs', async () => {
     active = await tempRepo({ initialized: true });
     await draftApproveAndComplete(active.root);
     await armMarkerTestCommand(active.root);
     const r = await run(['settle', 'run', '--ac', 'AC-1=pass', '--dry-run', '--ship-ref', ''], active.root);
-    expect(r.code).toBe(1);
-    expect(r.stderr).toContain('--ship-ref requires a non-empty value');
+    expect(r.code).toBe(2);
+    expect(r.stderr).toContain('settle run --dry-run: --ship-ref cannot be combined with --dry-run');
+    expect(r.stderr).not.toContain('--ship-ref requires a non-empty value');
     expect(r.stdout).not.toContain('settle would');
+    expect(existsSync(join(active.root, 'MARKER'))).toBe(false);
+  });
+
+  it('347-01/AC-4: without --dry-run, an empty --ship-ref "" is still Commander\'s parse error, exit 1 (settle unchanged)', async () => {
+    active = await tempRepo({ initialized: true });
+    await draftApproveAndComplete(active.root);
+    await armMarkerTestCommand(active.root);
+    const r = await run(['settle', 'run', '--ac', 'AC-1=pass', '--ship-ref', ''], active.root);
+    expect(r.code).toBe(1);
+    expect(r.stderr).toContain("error: option '--ship-ref <text>' argument '' is invalid. --ship-ref requires a non-empty value");
     expect(existsSync(join(active.root, 'MARKER'))).toBe(false);
   });
 

@@ -133,7 +133,8 @@ describe('docs: settle run --dry-run (347-01)', () => {
     expect(exits).toMatch(
       /With `--dry-run`, exits `0` if settle would pass, `1` if it would refuse, and `2` when combined with `--interactive` or `--ship-ref`/,
     );
-    expect(exits).toMatch(/parse error .* exits `1`/);
+    expect(exits).toMatch(/an empty\s+`--ship-ref ""` included/);
+    expect(exits).toMatch(/other Commander parse error .* exits `1`/);
   });
 
   it('347-01/AC-5: exit-codes.md lists settle run --dry-run with --interactive or --ship-ref under exit 2, and its would-refuse under exit 1', () => {

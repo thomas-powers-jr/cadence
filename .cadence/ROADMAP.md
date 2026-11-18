@@ -4278,6 +4278,15 @@ Tier `complex`.
   final line carries nothing appended. AC-3 asks for a finding's file only
   where it carries one. The fixture hash now includes `.git`. The settle
   runs with `--allow-stale-draft`.
+- The second Codex dry run failed AC-1, AC-3 and AC-4. Both were fixed in
+  code with no DRAFT change.
+  - AC-1/AC-3: a would-prompt dry run now gives AC derivation an
+    `interactiveVerify` pass for every AC, exactly what a fully confirmed
+    walk produces, so a blocked task no longer refuses it where settle
+    would not.
+  - AC-4: `--dry-run --ship-ref ""` now exits 2. Under `--dry-run` the
+    empty-value parse check lets the value through to the usage rule.
+    Without `--dry-run` it is the same parse error, exit 1.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

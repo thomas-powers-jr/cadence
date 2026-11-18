@@ -2261,6 +2261,14 @@ export async function settleService(
         dryRun.promptIfReached === true && settleGates.some((g) => g.gate === 'interactive-verdict');
       if (dryRun.wouldPrompt) {
         io.err('settle --dry-run: interactive-verdict would prompt for AC verdicts; the walk is skipped\n');
+        // dec-20261118-001: the verdict assumes every AC is confirmed, so AC
+        // derivation sees exactly what the walk would have produced with
+        // every AC confirmed: an `interactiveVerify` pass for each AC, which
+        // settle counts as a user verdict (no `--auto` offender refusal).
+        delete acc.interactiveVerifySkipped;
+        acc.interactiveVerify = Object.fromEntries(
+          draft.acceptanceCriteria.map((a) => [a.id, { verdict: 'pass' as const }]),
+        );
       }
     }
     if (refused) {

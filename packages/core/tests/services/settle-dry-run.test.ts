@@ -508,6 +508,15 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
     expect(dry.stdout).toContain('this verdict assumes every AC is confirmed');
     expect(dry.stdout.trimEnd().split('\n').pop()).toBe('settle would pass');
   });
+
+  it('347-01/AC-1: where settle would prompt, the dry run decides with every AC confirmed, so a blocked task does not refuse it, as confirming every AC would not', async () => {
+    vi.stubEnv('CADENCE_PROMPTER_SCRIPT', 'pass\npass\npass\npass\n');
+    const root = await setup({ profile: 'strict', tier: 'quick-fix', taskStatus: 'BLOCKED' });
+    const { dry, real } = await expectSameDecision(root, AUTO, { verdict: 'pass' });
+    expect(dry.data.wouldPrompt).toBe(true);
+    // The real settle walked the ACs: every one was confirmed, none auto-refused.
+    expect(real.stderr).not.toContain('settle run --auto refused');
+  });
 });
 
 describe('settle run --dry-run usage rules (347-01/AC-4)', { timeout: process.platform === 'win32' ? 90_000 : 30_000 }, () => {

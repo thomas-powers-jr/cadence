@@ -17,8 +17,11 @@ function parseVerifier(value: string): VerifierProvider {
 
 /** Commander arg-parser for `--ship-ref`: reject an empty/whitespace-only
  *  value rather than silently recording a blank ref (Phase 148). */
-function parseShipRef(value: string): string {
-  if (value.trim().length === 0) {
+function parseShipRef(value: string, dryRun = false): string {
+  // Phase 347: under --dry-run any --ship-ref,
+  // empty included, is the dry-run usage error (exit 2), so the value passes
+  // through to dryRunCliUsageError instead of failing the parse with exit 1.
+  if (!dryRun && value.trim().length === 0) {
     throw new InvalidArgumentError('--ship-ref requires a non-empty value');
   }
   return value;
@@ -45,6 +48,17 @@ export function dryRunCliUsageError(opts: SettleArgs): string | null {
     );
   }
   return lines.length > 0 ? lines.join('') : null;
+}
+
+/** Whether `--dry-run` is on the command line being parsed. An option's
+ *  arg-parser runs mid-parse, before the other options are known, so this
+ *  reads the raw argv Commander keeps on the root program (set by
+ *  parse/parseAsync, absent from its type declarations), falling back to
+ *  `process.argv`. */
+function argvHasDryRun(program: Command): boolean {
+  const raw = (program as unknown as { rawArgs?: unknown }).rawArgs;
+  const argv = Array.isArray(raw) ? raw : process.argv;
+  return argv.includes('--dry-run');
 }
 
 export function registerSettleCommand(program: Command): void {
@@ -130,7 +144,7 @@ export function registerSettleCommand(program: Command): void {
     .option(
       '--ship-ref <text>',
       "when the settling phase has a `converted` recommendation pointed at it, promote it straight to `shipped` with this text as the ref (e.g. \"PR #NNN\") instead of the default settle-pending advance (Phase 148)",
-      parseShipRef,
+      (value: string) => parseShipRef(value, argvHasDryRun(program)),
     )
     .option(
       '--dry-run',

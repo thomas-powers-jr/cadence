@@ -1002,9 +1002,9 @@ affects the finalize step a dry run never reaches. (Phase 347)
 **Exit codes** — exits non-zero when any gate refuses and the corresponding
 `--allow-*` flag is not supplied.
 With `--dry-run`, exits `0` if settle would pass, `1` if it would refuse,
-and `2` when combined with `--interactive` or `--ship-ref`. A Commander parse
-error (such as an empty `--ship-ref` or an invalid `--verifier`) exits `1`, like
-any CLI parse error.
+and `2` when combined with `--interactive` or `--ship-ref` (an empty
+`--ship-ref ""` included). Any other Commander parse error (such as an invalid
+`--verifier`) exits `1`, like any CLI parse error.
 
 ---
 
