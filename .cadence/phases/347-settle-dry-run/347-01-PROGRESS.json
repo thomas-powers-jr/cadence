@@ -28,6 +28,18 @@
         "packages/core/tests/cli/settle-dry-run-flag.test.ts"
       ],
       "updatedAt": "2026-11-18T00:58:33.813Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "Docs, changeset and doc-content test for settle run --dry-run (AC-5). Independent review PASS; its four Minor wording fixes folded in (review agents not verifiers; passing-or-abstained consumes no attempt; note when settle would prompt; every failing attempt refuses, the maxAttempts-th escalates). Full pipeline 28/28 re-verified on main thread.",
+      "touchedFiles": [
+        ".changeset/settle-dry-run.md",
+        "docs/concepts.md",
+        "docs/reference/commands.md",
+        "docs/reference/exit-codes.md",
+        "packages/core/tests/docs/phase347-settle-dry-run-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-18T01:14:59.308Z"
     }
   }
 }

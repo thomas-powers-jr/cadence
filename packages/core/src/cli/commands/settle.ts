@@ -134,7 +134,7 @@ export function registerSettleCommand(program: Command): void {
     )
     .option(
       '--dry-run',
-      "run settle's preconditions, gates and post-gate checks (same gate set, providers and bypass flags; never prompts; stops before finalize) and print what settle would decide and why; cadence writes and notifies nothing (the test command and verifiers still run) and spends no convergence attempt; exit 0 if settle would pass, 1 if it would refuse, 2 when combined with --interactive or --ship-ref (Phase 347)",
+      "run settle's preconditions, gates and post-gate checks (same gate set, providers and bypass flags; never prompts; stops before finalize) and print what settle would decide and why; cadence writes and notifies nothing (the test command and review agents still run) and spends no convergence attempt; exit 0 if settle would pass, 1 if it would refuse, 2 when combined with --interactive or --ship-ref (Phase 347)",
     )
     .action(async (opts: SettleArgs) => {
       const usageError = dryRunCliUsageError(opts);

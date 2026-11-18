@@ -81,7 +81,7 @@ describe('docs: settle run --dry-run (347-01)', () => {
     expect(help).toContain('never prompts');
     expect(help).toContain('stops before finalize');
     expect(help).toContain('cadence writes and notifies nothing');
-    expect(help).toContain('the test command and verifiers still run');
+    expect(help).toContain('the test command and review agents still run');
     expect(help).toContain('spends no convergence attempt');
     expect(help).toContain('exit 0 if settle would pass');
     expect(help).toContain('1 if it would refuse');
@@ -94,7 +94,7 @@ describe('docs: settle run --dry-run (347-01)', () => {
     expect(row).toContain('same gate set, providers and bypass flags');
     expect(row).toContain('stopping before finalize');
     expect(row).toContain('Cadence writes and notifies nothing');
-    expect(row).toContain('the test command and verifiers still run');
+    expect(row).toContain('the test command and review agents still run');
     expect(row).toContain('spends no convergence attempt');
     expect(row).toContain('Never prompts');
     expect(row).toMatch(/Exits `0` if settle would pass, `1` if it would refuse, `2` when combined with `--interactive` or `--ship-ref`/);
@@ -120,7 +120,7 @@ describe('docs: settle run --dry-run (347-01)', () => {
     expect(prose).toContain('`would notify:`');
     expect(prose).toContain('`settle would pass`');
     expect(prose).toContain('`settle would refuse at <gate or check>: <reason>`');
-    expect(prose).toMatch(/a passing review consumes no attempt/);
+    expect(prose).toMatch(/a passing or abstained review consumes no attempt/);
     // Never prompts; the require-tty exception.
     expect(prose).toMatch(/A dry run never prompts/);
     expect(prose).toContain('`CADENCE_REQUIRE_TTY=1`');
@@ -152,7 +152,7 @@ describe('docs: settle run --dry-run (347-01)', () => {
     );
     expect(note).toContain('`<id>-CODE-REVIEW.json`');
     expect(note).toContain('`convergence.maxAttempts`');
-    expect(note).toMatch(/A passing review spends none/);
+    expect(note).toMatch(/A passing or\s+(?:>\s+)?abstained review spends none/);
     expect(note).toContain('`cadence settle run --dry-run`');
     expect(note).toContain('`would be attempt N of M`');
     expect(note).toMatch(/spends no convergence attempt/);

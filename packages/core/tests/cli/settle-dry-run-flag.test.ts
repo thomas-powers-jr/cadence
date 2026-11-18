@@ -204,7 +204,7 @@ describe('settle run --dry-run: built CLI end to end (Phase 347)', () => {
     const help = r.stdout.replace(/\s+/g, ' ');
     expect(help).toContain('--dry-run');
     expect(help).toContain('never prompts; stops before finalize');
-    expect(help).toContain('cadence writes and notifies nothing (the test command and verifiers still run)');
+    expect(help).toContain('cadence writes and notifies nothing (the test command and review agents still run)');
     expect(help).toContain('spends no convergence attempt');
     expect(help).toContain(
       'exit 0 if settle would pass, 1 if it would refuse, 2 when combined with --interactive or --ship-ref',

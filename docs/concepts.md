@@ -603,9 +603,9 @@ These run on every phase regardless of profile or tier.
 > **The code-review convergence budget, and a dry run that spends none
 > (phase 347).** Each failing `code-review` run at settle spends one of the
 > draft's convergence attempts, counted in its `<id>-CODE-REVIEW.json`
-> sidecar: after `convergence.maxAttempts` failing attempts (default `3`)
-> the gate escalates and settle refuses until a human decides. A passing
-> review spends none. `cadence settle run --dry-run` runs the same gates
+> sidecar, and refuses settle; the `convergence.maxAttempts`-th failing
+> attempt (default `3`) escalates and needs a human decision. A passing or
+> abstained review spends none. `cadence settle run --dry-run` runs the same gates
 > with the same providers and prints the reviewer's findings, the attempt
 > it would have been (`would be attempt N of M`) and the would-be verdict,
 > but cadence writes no sidecar, so it spends no convergence attempt. It
