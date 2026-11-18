@@ -24,6 +24,29 @@ function parseShipRef(value: string): string {
   return value;
 }
 
+/** Phase 347 (347-01, T3): the `--dry-run` usage rules, checked in the CLI
+ *  before `settleService` is called (the service re-checks them for direct
+ *  callers). Only an explicit `--interactive` is refused: `--no-interactive`
+ *  (`interactive: false`) and the unset default (`undefined`) are fine.
+ *  Returns the stderr message, or null when the flags are compatible. */
+export function dryRunCliUsageError(opts: SettleArgs): string | null {
+  if (opts.dryRun !== true) return null;
+  const lines: string[] = [];
+  if (opts.interactive === true) {
+    lines.push(
+      'settle run --dry-run: --interactive cannot be combined with --dry-run — an interactive AC walk ' +
+        'needs a human to record verdicts, and a dry run records nothing.\n',
+    );
+  }
+  if (opts.shipRef !== undefined) {
+    lines.push(
+      'settle run --dry-run: --ship-ref cannot be combined with --dry-run — --ship-ref only affects ' +
+        "settle's finalize step (recommendation promotion), which a dry run never reaches.\n",
+    );
+  }
+  return lines.length > 0 ? lines.join('') : null;
+}
+
 export function registerSettleCommand(program: Command): void {
   const cmd = program.command('settle').description('Close the loop');
 
@@ -109,7 +132,17 @@ export function registerSettleCommand(program: Command): void {
       "when the settling phase has a `converted` recommendation pointed at it, promote it straight to `shipped` with this text as the ref (e.g. \"PR #NNN\") instead of the default settle-pending advance (Phase 148)",
       parseShipRef,
     )
+    .option(
+      '--dry-run',
+      "run settle's preconditions, gates and post-gate checks (same gate set, providers and bypass flags; never prompts; stops before finalize) and print what settle would decide and why; cadence writes and notifies nothing (the test command and verifiers still run) and spends no convergence attempt; exit 0 if settle would pass, 1 if it would refuse, 2 when combined with --interactive or --ship-ref (Phase 347)",
+    )
     .action(async (opts: SettleArgs) => {
+      const usageError = dryRunCliUsageError(opts);
+      if (usageError !== null) {
+        processIO().err(usageError);
+        process.exitCode = 2;
+        return;
+      }
       const { exitCode } = await settleService(process.cwd(), opts, processIO());
       if (exitCode) process.exitCode = exitCode;
     });

@@ -19,6 +19,15 @@
         "packages/core/tests/services/settle-dry-run.test.ts"
       ],
       "updatedAt": "2026-11-18T00:39:29.011Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "settle run --dry-run flag with help text; --dry-run with --interactive or --ship-ref is a usage error (exit 2) before settleService runs, message parity with the service guarded by a vi.importActual test; exit 0/1 from the service; report on stdout only. Independent review: I-1 (message parity test), I-2 (help says exit 2 only for the two refused flags; Commander parse errors exit 1, pinned) and minors fixed; re-review PASS. Full turbo pipeline 28/28 (core 5529 passed).",
+      "touchedFiles": [
+        "packages/core/src/cli/commands/settle.ts",
+        "packages/core/tests/cli/settle-dry-run-flag.test.ts"
+      ],
+      "updatedAt": "2026-11-18T00:58:33.813Z"
     }
   }
 }
