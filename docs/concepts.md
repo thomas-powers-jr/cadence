@@ -600,6 +600,18 @@ These run on every phase regardless of profile or tier.
 | `per-task-verify` | AI verifier runs at `cadence build task <id> --status=DONE`; `refuse` verdict blocks the status write | `--allow-per-task-failure` (on `build task`) |
 | `code-review` | AI code-review agent runs at `cadence settle run`; HIGH-severity findings refuse settle | `--allow-code-review-failure` or `--force` (on `settle run`) |
 
+> **The code-review convergence budget, and a dry run that spends none
+> (phase 347).** Each failing `code-review` run at settle spends one of the
+> draft's convergence attempts, counted in its `<id>-CODE-REVIEW.json`
+> sidecar: after `convergence.maxAttempts` failing attempts (default `3`)
+> the gate escalates and settle refuses until a human decides. A passing
+> review spends none. `cadence settle run --dry-run` runs the same gates
+> with the same providers and prints the reviewer's findings, the attempt
+> it would have been (`would be attempt N of M`) and the would-be verdict,
+> but cadence writes no sidecar, so it spends no convergence attempt. It
+> also writes no SUMMARY or state and notifies nothing. See
+> [`settle run`](reference/commands.md#settle-run).
+
 #### Expensive
 
 | Gate | When it fires | Bypass flag |

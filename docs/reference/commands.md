@@ -931,6 +931,7 @@ Generate SUMMARY.md + JSON and return to IDLE
 | `--allow-security-audit-failure` | Do not refuse on CRITICAL security-audit findings; record them in SUMMARY and settle anyway. The bypass (by this flag or `--force`) is recorded as an `error`-severity `SUMMARY.json.gateBypasses` entry, which caps `assurance.overall` at `mixed`, never `strong` (Phase 25.2; recorded since Phase 332) |
 | `--allow-skill-audit-miss` | Do not refuse when required skills were not invoked; emit a warn anomaly (`bypassed:true`), record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 34.1; recorded since Phase 311) |
 | `--allow-unresolvable-pack` | Do not refuse when an enabled pack fails to resolve; record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 291) |
+| `--dry-run` | Run settle's preconditions, gates and post-gate checks with the same gate set, providers and bypass flags, stopping before finalize, and print what settle would decide and why. Cadence writes and notifies nothing (the test command and verifiers still run) and spends no convergence attempt. Never prompts. Exits `0` if settle would pass, `1` if it would refuse, `2` when combined with `--interactive` or `--ship-ref` (Phase 347). See **Dry run** below |
 | `-h, --help` | Display help for command |
 
 **Behavior** — runs all configured settle-time gates (coverage, verifier,
@@ -964,8 +965,46 @@ contributes nothing. Best-effort: it never blocks or fails the settle, never
 writes to stdout, and is not a gate — it adds no `SUMMARY.json` field and no
 `gateBypasses` entry. A refused settle prints no notice. (Phase 320)
 
+**Dry run** — `settle run --dry-run` shows what settle would decide without
+settling. It runs settle's preconditions, resolves the same gate set and runs
+the same gates in the same order, through the same code: the same diff basis,
+prompts, providers, `verification.fallback` and bypass flags. It stops at the
+first refusal, as settle does. When no gate refuses it also runs AC
+derivation, the anomaly and skill-audit checks and the evidence floor, then
+stops before finalize.
+
+Cadence writes nothing and notifies nothing: no SUMMARY or refused-attempt
+snapshot, no RETRO, no `<id>-CODE-REVIEW.json` sidecar write (so it spends no
+convergence attempt), no `state.json`/`STATE.md`, PROGRESS or ledger change,
+and no anomaly-log entry. No anomaly event reaches any notifier transport,
+stderr included, and there is no retro offer. The configured
+`verification.testCommand` and any spawned verifier process still run, and
+their own writes are outside this guarantee.
+
+The report goes to stdout: each gate's outcome and provider; deep-verify's
+per-AC verdict, reason and provider; code-review and security-audit findings
+(security-audit findings carry no file, shown as `-`); for code-review,
+`would be attempt N of M` and the would-be convergence verdict (`pass`,
+`abstained`, `reloop`, `escalate` or `bypassed`; a passing review consumes no
+attempt); the events settle would send under `would notify:`; whether settle
+would prompt; and a final line, `settle would pass` or
+`settle would refuse at <gate or check>: <reason>`. The stderr notices settle
+prints before finalize still print.
+
+A dry run never prompts. Where settle would walk ACs interactively it takes
+the non-interactive path and says so; in a real TTY the interactive gate's
+own non-TTY bypass notice still prints. Under `CADENCE_REQUIRE_TTY=1` with no
+TTY it refuses at `interactive-verdict`, as settle does. `--interactive` and
+`--ship-ref` are refused with exit `2` before anything runs: an interactive
+walk needs a human at a settle that records nothing, and `--ship-ref` only
+affects the finalize step a dry run never reaches. (Phase 347)
+
 **Exit codes** — exits non-zero when any gate refuses and the corresponding
 `--allow-*` flag is not supplied.
+With `--dry-run`, exits `0` if settle would pass, `1` if it would refuse,
+and `2` when combined with `--interactive` or `--ship-ref`. A Commander parse
+error (such as an empty `--ship-ref` or an invalid `--verifier`) exits `1`, like
+any CLI parse error.
 
 ---
 
