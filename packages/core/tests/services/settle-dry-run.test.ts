@@ -288,7 +288,7 @@ async function readAnomalyLog(root: string): Promise<Array<Record<string, unknow
     .map((l) => JSON.parse(l) as Record<string, unknown>);
 }
 
-describe('settle run --dry-run decides exactly what settle would decide (347-01)', { timeout: 60_000 }, () => {
+describe('settle run --dry-run decides exactly what settle would decide (347-01)', { timeout: process.platform === 'win32' ? 120_000 : 60_000 }, () => {
   it('347-01/AC-1: a passing settle — the dry run says it would pass with the same gates, writes nothing (AC-2)', async () => {
     const root = await setup();
     const { dry } = await expectSameDecision(root, AUTO, { verdict: 'pass' });
@@ -510,7 +510,7 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
   });
 });
 
-describe('settle run --dry-run usage rules (347-01/AC-4)', { timeout: 30_000 }, () => {
+describe('settle run --dry-run usage rules (347-01/AC-4)', { timeout: process.platform === 'win32' ? 90_000 : 30_000 }, () => {
   it('347-01/AC-4: --interactive with --dry-run exits 2 naming the flag, before any precondition, gate or test command runs', async () => {
     const root = await setup({ testCommand: 'marker' });
     const before = await hashTree(root);
