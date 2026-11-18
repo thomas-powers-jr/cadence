@@ -92,6 +92,9 @@ import { emitSkillAuditMiss } from '../notify/skill-audit.js';
 import { selectSecurityAuditVerifier } from '../verify/security-audit-factory.js';
 import { formatCommandError } from './format-command-error.js';
 import type { CommandIO, CommandResult } from './io.js';
+import { isInteractiveRequested } from '../gates/interactive.js';
+import { missingSkills } from '../verify/skill-match.js';
+import { renderSettleDryRunReport, type DryRunRefusal } from './settle-dry-run-report.js';
 
 export interface SettleArgs {
   ac?: string[];
@@ -139,6 +142,13 @@ export interface SettleArgs {
    *  symmetric so a later phase (T3) can build N-sibling-SUMMARY support on
    *  top of a clock seam that already covers both call sites. */
   now?: () => string;
+  /** Phase 347 (347-01, T2): run what `settle run` would run — the same
+   *  preconditions, gate set, gates, verifier calls and post-gate checks —
+   *  and stop before the finalize step. Cadence writes nothing, notifies
+   *  nothing and spends no convergence attempt; the decision is printed as a
+   *  report on stdout and returned in `CommandResult.data` (exit 0 would pass,
+   *  1 would refuse, 2 for `interactive`/`shipRef` with it). */
+  dryRun?: boolean;
 }
 
 function parseAcArg(arg: string): AcResult {
@@ -415,11 +425,12 @@ interface SettlePreconditionData {
 
 type SettlePreconditionResult =
   | { ok: true; data: SettlePreconditionData }
-  | { ok: false; result: CommandResult };
+  | { ok: false; result: CommandResult; refusal: DryRunRefusal };
 
 async function loadSettlePreconditions(
   cwd: string,
   io: CommandIO,
+  dryRunRecorder?: DryRunRecorder,
 ): Promise<SettlePreconditionResult> {
   const backend = new SimpleStateBackend(cwd);
   const state = await backend.readState();
@@ -430,8 +441,16 @@ async function loadSettlePreconditions(
     );
     const action = nextAction(state);
     io.err(`settle run failed: ${violation.message} Next: ${action.command}\n`);
-    await emitLoopViolation(cwd, violation, 'settle.run');
-    return { ok: false, result: { exitCode: 1 } };
+    if (dryRunRecorder) {
+      await recordLoopViolation(cwd, violation, 'settle.run', dryRunRecorder);
+    } else {
+      await emitLoopViolation(cwd, violation, 'settle.run');
+    }
+    return {
+      ok: false,
+      result: { exitCode: 1 },
+      refusal: { at: 'loop-position', reason: `${violation.message} Next: ${action.command}` },
+    };
   }
   const activePhase = assertSafePhaseSlug(state.activePhase);
   const draftPath = join(cwd, '.cadence/phases', activePhase, `${state.activeDraft}-DRAFT.md`);
@@ -460,7 +479,7 @@ async function checkPhaseCollisionBackstop(
   cadenceConfig: CadenceConfig,
   opts: SettleArgs,
   io: CommandIO,
-): Promise<CommandResult | null> {
+): Promise<{ result: CommandResult; refusal: DryRunRefusal } | null> {
   const verdict = await assertNoPhaseCollision(cwd, phaseNumber(activePhase), {
     config: cadenceConfig ?? defaultConfig,
     excludeSources: ['local'],
@@ -468,7 +487,7 @@ async function checkPhaseCollisionBackstop(
   });
   if (!verdict.ok) {
     io.err(verdict.message);
-    return { exitCode: 1 };
+    return { result: { exitCode: 1 }, refusal: { at: 'phase-collision', reason: verdict.message } };
   }
   return null;
 }
@@ -611,7 +630,7 @@ type GateSetResolutionResult =
       verifierOverride: { override: VerifierProvider } | Record<string, never>;
       foreignBinaryMismatch: { runningBinaryPath: string; repoToplevel: string } | null;
     }
-  | { ok: false; result: CommandResult };
+  | { ok: false; result: CommandResult; refusal: DryRunRefusal };
 
 /**
  * Concern 3 (phase 228 T1): gate-set resolution + mock-verifier banner +
@@ -685,10 +704,10 @@ function resolveSettleGateSet(
 
   // DESIGN.md §4 M2 — soft cap on auto × complex.
   if (gateSet.softCap && !opts.allowAutoComplex) {
-    io.err(
-      'settle run refused: auto × complex is soft-capped (DESIGN.md §4 M2). Pass --allow-auto-complex to override.\n',
-    );
-    return { ok: false, result: { exitCode: 1 } };
+    const reason =
+      'settle run refused: auto × complex is soft-capped (DESIGN.md §4 M2). Pass --allow-auto-complex to override.';
+    io.err(`${reason}\n`);
+    return { ok: false, result: { exitCode: 1 }, refusal: { at: 'auto-complex-soft-cap', reason } };
   }
   if (gateSet.softCap && opts.allowAutoComplex) {
     io.err('settle: --allow-auto-complex set; proceeding past soft cap (auto × complex).\n');
@@ -1243,7 +1262,7 @@ interface AcDerivationData {
 
 type AcDerivationResult =
   | { ok: true; data: AcDerivationData }
-  | { ok: false; result: CommandResult };
+  | { ok: false; result: CommandResult; refusal: DryRunRefusal };
 
 /**
  * Concern 6 (phase 228 T3): AC-result derivation — the `--auto`/interactive
@@ -1303,12 +1322,19 @@ function deriveSettleAcResults(
       (d) => d.verdict !== 'pass' && !userVerdictedIds.has(d.id),
     );
     if (offenders.length > 0 && !opts.force) {
+      const lines: string[] = [];
       for (const o of offenders) {
         const tasks = o.blockers.length > 0 ? ` (tasks: ${o.blockers.join(', ')})` : '';
+        lines.push(`auto: ${o.id} ${o.verdict}${tasks}`);
         io.err(`auto: ${o.id} ${o.verdict}${tasks}\n`);
       }
-      io.err('settle run --auto refused: complete the blocking tasks or rerun with --force.\n');
-      return { ok: false, result: { exitCode: 1 } };
+      const refusedLine = 'settle run --auto refused: complete the blocking tasks or rerun with --force.';
+      io.err(`${refusedLine}\n`);
+      return {
+        ok: false,
+        result: { exitCode: 1 },
+        refusal: { at: 'ac-derivation', reason: [...lines, refusedLine].join('; ') },
+      };
     }
     const merged: AcResult[] = [...acResults];
     for (const d of derived) {
@@ -1349,7 +1375,7 @@ function deriveSettleAcResults(
 
 type AnomalyAndSkillAuditResult =
   | { ok: true; anomalies: AnomalyEvent[]; gateBypasses: GateBypass[] }
-  | { ok: false; result: CommandResult };
+  | { ok: false; result: CommandResult; refusal: DryRunRefusal };
 
 /**
  * Concern 7 (phase 228 T3): anomaly collection + notify + skill-audit check.
@@ -1376,6 +1402,9 @@ async function runAnomalyAndSkillAuditChecks(
   verifierFailure: SettleAccumulator['flags']['verifierFailure'],
   buildTestBypass: SettleAccumulator['flags']['buildTestBypass'],
   io: CommandIO,
+  /** Phase 347 (347-01, T2): a dry run's recording notifier; absent → the
+   *  configured transport, selected exactly as before. */
+  notifierOverride?: Notifier,
 ): Promise<AnomalyAndSkillAuditResult> {
   // Phase 291 (Slice 2, T2) resolved packs here so the skill-audit union
   // (below) could fold in each successfully resolved pack's
@@ -1442,7 +1471,7 @@ async function runAnomalyAndSkillAuditChecks(
 
   if (gateSet.gates.includes('anomaly-notify')) {
     if (anomalies.length > 0) {
-      const notifier = selectNotifier(cadenceConfig);
+      const notifier = notifierOverride ?? selectNotifier(cadenceConfig);
       try {
         await notifier.notify(anomalies);
       } catch (err) {
@@ -1465,7 +1494,11 @@ async function runAnomalyAndSkillAuditChecks(
     // sits at the same site as the check itself.
     const packRes = checkUnresolvablePacks(resolvedPacks, ctx.opts, io);
     if (packRes.outcome === 'refuse') {
-      return { ok: false, result: { exitCode: 1 } };
+      return {
+        ok: false,
+        result: { exitCode: 1 },
+        refusal: { at: 'pack-resolution', reason: packRes.reason ?? 'enabled pack(s) failed to resolve' },
+      };
     }
     if (packRes.bypassed === true) {
       // Recorded the way `evidenceFloorBypassesUsed` is — a direct
@@ -1486,7 +1519,12 @@ async function runAnomalyAndSkillAuditChecks(
 
     const res = await runSkillAuditCheck(ctx, resolvedPacks);
     if (res.outcome === 'refuse') {
-      return { ok: false, result: { exitCode: 1 } };
+      const missing = missingSkills(res.effectiveRequired, state.skillAudit.invoked);
+      return {
+        ok: false,
+        result: { exitCode: 1 },
+        refusal: { at: 'skill-audit', reason: `required skill(s) not invoked: ${missing.join(', ')}` },
+      };
     }
     state.skillAudit.required = res.effectiveRequired;
     state.skillAudit.provenance = res.requiredWithProvenance;
@@ -1539,7 +1577,7 @@ interface EvidenceFloorData {
 
 type EvidenceFloorResult =
   | { ok: true; data: EvidenceFloorData }
-  | { ok: false; result: CommandResult };
+  | { ok: false; result: CommandResult; refusal: DryRunRefusal };
 
 /**
  * Concern 8 (phase 228 T3): evidence derivation + evidence-floor gate.
@@ -1686,8 +1724,9 @@ async function deriveEvidenceAndCheckFloor(
       // 140 never counts a mock pass as ai-verified) — name that instead
       // of the generic below-floor message, or every settle refuses
       // forever with no hint why.
-      io.err(`${evidenceFloorRefusalReason(evidenceFloor, cadenceConfig, genericReason)}\n`);
-      return { ok: false, result: { exitCode: 1 } };
+      const reason = evidenceFloorRefusalReason(evidenceFloor, cadenceConfig, genericReason);
+      io.err(`${reason}\n`);
+      return { ok: false, result: { exitCode: 1 }, refusal: { at: 'evidence-floor', reason } };
     }
   }
 
@@ -2055,10 +2094,23 @@ export async function settleService(
   io: CommandIO,
 ): Promise<CommandResult> {
   const cwd = repoRoot;
+  // Phase 347 (347-01, T2): dry-run-only usage rules, before anything runs.
+  if (opts.dryRun === true) {
+    const usageError = dryRunUsageError(opts);
+    if (usageError !== null) {
+      io.err(usageError);
+      return { exitCode: 2 };
+    }
+  }
+  const dryRun: DryRunSession | null =
+    opts.dryRun === true ? { recorder: createDryRunRecorder(), io, draftId: null } : null;
   try {
-    const preconditionResult = await loadSettlePreconditions(cwd, io);
-    if (!preconditionResult.ok) return preconditionResult.result;
+    const preconditionResult = await loadSettlePreconditions(cwd, io, dryRun?.recorder);
+    if (!preconditionResult.ok) {
+      return dryRun ? finishDryRun(dryRun, { refusal: preconditionResult.refusal }) : preconditionResult.result;
+    }
     const { backend, state, activePhase, draftPath, draft, draftRaw, progress } = preconditionResult.data;
+    if (dryRun) dryRun.draftId = state.activeDraft;
 
     // Phase 288 (288-01, T3): a genuinely-empty AC set (parses fine, no
     // malformed heading — that's a separate parse-time failure, T1) is
@@ -2099,7 +2151,9 @@ export async function settleService(
     const cadenceConfig = await loadConfig(cwd);
 
     const collisionRefusal = await checkPhaseCollisionBackstop(cwd, activePhase, cadenceConfig, opts, io);
-    if (collisionRefusal) return collisionRefusal;
+    if (collisionRefusal) {
+      return dryRun ? finishDryRun(dryRun, { refusal: collisionRefusal.refusal }) : collisionRefusal.result;
+    }
 
     // Phase 292 (Slice 3, T2): ONE pack resolution per settle run, hoisted
     // above `resolveSettleGateSet` (which needs it for `effectiveGateSet`)
@@ -2118,7 +2172,9 @@ export async function settleService(
     }
 
     const gateSetResult = resolveSettleGateSet(cwd, state, cadenceConfig, draft, resolvedPacks, opts, io);
-    if (!gateSetResult.ok) return gateSetResult.result;
+    if (!gateSetResult.ok) {
+      return dryRun ? finishDryRun(dryRun, { refusal: gateSetResult.refusal }) : gateSetResult.result;
+    }
     const { gateSet, verifierOverride, foreignBinaryMismatch } = gateSetResult;
 
     const touchedFiles = Array.from(new Set(draft.tasks.flatMap((t) => t.files)));
@@ -2126,7 +2182,7 @@ export async function settleService(
     // and the post-commit retro offer, rather than recomputing resolveInteractivity
     // twice against process.env/process.stdin.isTTY.
     const interactivity = resolveInteractivity(process.env, Boolean(process.stdin.isTTY));
-    const ctx: SettleContext = buildSettleContext(
+    const settleCtx: SettleContext = buildSettleContext(
       cwd,
       activePhase,
       state,
@@ -2143,6 +2199,18 @@ export async function settleService(
       verifierOverride,
       io,
     );
+    // Phase 347 (347-01, T2): a dry run hands every consumer below the same
+    // context with its side-effecting ports swapped for recording ones
+    // (`withDryRunPorts`). Whether settle itself would prompt is decided on
+    // the ORIGINAL context — the dry one always takes the bypass path.
+    if (dryRun) {
+      dryRun.wouldPrompt = isInteractiveRequested(settleCtx) && settleCtx.interactivity !== 'bypass';
+      if (dryRun.wouldPrompt) {
+        io.err('settle --dry-run: interactive-verdict would prompt for AC verdicts; the walk is skipped\n');
+      }
+      dryRun.maxAttempts = cadenceConfig?.convergence?.maxAttempts ?? 3;
+    }
+    const ctx: SettleContext = dryRun ? withDryRunPorts(settleCtx, dryRun.recorder) : settleCtx;
     // Phase 247 (T2): resolve the clock seam once, here, so both the refused
     // and success paths below share the exact same default-vs-injected
     // resolution rather than each independently re-deriving it.
@@ -2161,7 +2229,16 @@ export async function settleService(
     // convention for every settle whose draft has any `perTaskVerify`
     // records. Prepending preserves it while still surfacing the data.
     const gates = [...perTaskVerifyGateEntries(progress), ...settleGates];
+    if (dryRun) {
+      dryRun.gates = gates;
+      dryRun.acc = acc;
+      dryRun.findingsBypasses = findingsBypasses;
+    }
     if (refused) {
+      if (dryRun) {
+        const last = gates[gates.length - 1];
+        return finishDryRun(dryRun, { refusal: { at: last?.gate ?? 'gates', reason: last?.reason ?? '' } });
+      }
       return await writeRefusedSettleSummary(
         cwd, activePhase, state, draft, progress, gates,
         acc.codeReview, acc.securityAudit, cadenceConfig, foreignBinaryMismatch, now, io,
@@ -2170,6 +2247,7 @@ export async function settleService(
 
     const acDerivation = deriveSettleAcResults(acc, draft, progress, explicit, explicitIds, gateSet, opts, io);
     if (!acDerivation.ok) {
+      if (dryRun) return finishDryRun(dryRun, { refusal: acDerivation.refusal });
       return await writeRefusedSettleSummary(
         cwd, activePhase, state, draft, progress, gates,
         acc.codeReview, acc.securityAudit, cadenceConfig, foreignBinaryMismatch, now, io,
@@ -2204,8 +2282,10 @@ export async function settleService(
       verifierFailure,
       acc.flags.buildTestBypass,
       io,
+      dryRun ? dryRunNotifier(dryRun.recorder) : undefined,
     );
     if (!anomalyResult.ok) {
+      if (dryRun) return finishDryRun(dryRun, { refusal: anomalyResult.refusal });
       return await writeRefusedSettleSummary(
         cwd, activePhase, state, draft, progress, gates,
         acc.codeReview, acc.securityAudit, cadenceConfig, foreignBinaryMismatch, now, io,
@@ -2240,12 +2320,17 @@ export async function settleService(
       io,
     );
     if (!evidenceResult.ok) {
+      if (dryRun) return finishDryRun(dryRun, { refusal: evidenceResult.refusal });
       return await writeRefusedSettleSummary(
         cwd, activePhase, state, draft, progress, gates,
         acc.codeReview, acc.securityAudit, cadenceConfig, foreignBinaryMismatch, now, io,
       );
     }
     const { acResultsWithEvidence, evidenceFloorBypassesUsed, offLadderExcludedIds } = evidenceResult.data;
+
+    // Phase 347 (347-01, T2): a dry run stops here — finalize (SUMMARY,
+    // RETRO, ledgers, state to IDLE, the retro offer) never runs.
+    if (dryRun) return finishDryRun(dryRun, { refusal: null });
 
     return await finalizeAndCloseSettle(
       cwd,
@@ -2274,10 +2359,119 @@ export async function settleService(
       offLadderExcludedIds,
     );
   } catch (err) {
-    io.err(`${formatCommandError('settle run', err)}\n`);
+    const formatted = formatCommandError('settle run', err);
+    io.err(`${formatted}\n`);
     if (err instanceof LoopViolationError) {
-      await emitLoopViolation(cwd, err, 'settle.run');
+      if (dryRun) {
+        await recordLoopViolation(cwd, err, 'settle.run', dryRun.recorder);
+      } else {
+        await emitLoopViolation(cwd, err, 'settle.run');
+      }
     }
+    if (dryRun) return finishDryRun(dryRun, { refusal: { at: 'error', reason: formatted } });
     return { exitCode: 1 };
+  }
+}
+
+/**
+ * Phase 347 (347-01, T2): the usage error for a flag `--dry-run` refuses, or
+ * `null`. `--interactive` needs a human to record AC verdicts at a settle
+ * that records nothing; `--ship-ref` only changes the finalize step a dry run
+ * never reaches.
+ */
+function dryRunUsageError(opts: SettleArgs): string | null {
+  const lines: string[] = [];
+  if (opts.interactive === true) {
+    lines.push(
+      'settle run --dry-run: --interactive cannot be combined with --dry-run — an interactive AC walk ' +
+        'needs a human to record verdicts, and a dry run records nothing.\n',
+    );
+  }
+  if (opts.shipRef !== undefined) {
+    lines.push(
+      'settle run --dry-run: --ship-ref cannot be combined with --dry-run — --ship-ref only affects ' +
+        "settle's finalize step (recommendation promotion), which a dry run never reaches.\n",
+    );
+  }
+  return lines.length > 0 ? lines.join('') : null;
+}
+
+/** Phase 347 (347-01, T2): what a dry run has observed so far. */
+interface DryRunSession {
+  readonly recorder: DryRunRecorder;
+  readonly io: CommandIO;
+  draftId: string | null;
+  wouldPrompt?: boolean;
+  maxAttempts?: number;
+  gates?: GateProvenance[];
+  acc?: SettleAccumulator;
+  findingsBypasses?: readonly GateBypass[];
+}
+
+/**
+ * Phase 347 (347-01, T2): render the dry-run report, print it to stdout and
+ * return it as data — exit 0 when settle would pass, 1 when it would refuse.
+ */
+function finishDryRun(session: DryRunSession, end: { refusal: DryRunRefusal | null }): CommandResult {
+  const acc = session.acc;
+  const { text, data } = renderSettleDryRunReport({
+    draftId: session.draftId,
+    gates: session.gates ?? [],
+    findingsBypasses: session.findingsBypasses ?? [],
+    refusal: end.refusal,
+    ...(acc?.deepVerify ? { deepVerify: acc.deepVerify } : {}),
+    ...(acc?.codeReview ? { codeReview: acc.codeReview } : {}),
+    ...(acc?.securityAudit ? { securityAudit: acc.securityAudit } : {}),
+    sidecarWrites: session.recorder.sidecarWrites,
+    maxAttempts: session.maxAttempts ?? 3,
+    events: session.recorder.events,
+    wouldPrompt: session.wouldPrompt === true,
+  });
+  session.io.out(text);
+  return { exitCode: end.refusal ? 1 : 0, data };
+}
+
+/**
+ * Phase 347 (347-01, T2): the dry-run counterpart of `emitLoopViolation`
+ * (`notify/loop-violation.ts`): the same `anomaly-notify` membership probe and
+ * the same `loop-violation` event, handed to {@link dryRunNotifier} so it lands
+ * in `recorder.events` instead of a transport. Best-effort like the original.
+ * Mirrored here rather than parameterizing the original because the dry run
+ * must not change `emitLoopViolation`'s behaviour for its other callers.
+ */
+async function recordLoopViolation(
+  cwd: string,
+  err: LoopViolationError,
+  source: string,
+  recorder: DryRunRecorder,
+): Promise<void> {
+  try {
+    const state = await new SimpleStateBackend(cwd).readState();
+    const cfg = await loadConfig(cwd).catch(() => null);
+    let resolvedPacks: ResolvedPack[] = [];
+    if (cfg) {
+      try {
+        resolvedPacks = await resolvePacks(cwd, cfg);
+      } catch {
+        resolvedPacks = [];
+      }
+    }
+    const gateSet = effectiveGateSet(state, cfg, null, resolvedPacks);
+    if (!gateSet.gates.includes('anomaly-notify')) return;
+    await dryRunNotifier(recorder).notify([
+      {
+        type: 'loop-violation',
+        severity: 'error',
+        message: err.message,
+        context: {
+          ...(err.expected !== undefined ? { expected: err.expected } : {}),
+          ...(err.actual !== undefined ? { actual: err.actual } : {}),
+          source,
+        },
+        ts: new Date().toISOString(),
+      },
+    ]);
+  } catch {
+    /* best-effort — never escalate from loop-violation recording */
   }
 }
