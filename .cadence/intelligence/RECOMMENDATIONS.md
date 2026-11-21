@@ -2027,3 +2027,19 @@ Two medium code-review findings on phase 347, neither blocking. (1) Recorded in 
 - next: cadence milestone propose
 
 Two known shapes outside phase 348's four, reported rather than fixed (dec-20261121-001). (1) QUOTED_KEY_RE (phase 346) runs after patterns that end in a greedy non-space run, which can swallow a value's closing quote: "password":"a b; X=1" becomes "password":"[REDACTED]" b; X=[REDACTED], leaving 'b;'. Phase 348 fixed the same weakness for the new auth-header pattern by running it on the raw text first; the same reorder would likely work here but needs its own false-positive check. (2) An unquoted 'Cookie: sid=...' or 'Set-Cookie: ...' header line is not redacted; the shared pattern only knows Authorization followed by Bearer, Basic or Token. Consumers who need certainty should set verification.buildTestOutputTail to hide.
+
+## rec-20261121-005 — Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: process, phase-build, draft, deep-verify
+- files: .claude/skills/phase-build/SKILL.md, CLAUDE.md
+- evidence: 347: six Codex rounds (operator retrospective 2026-11-21). 348: the literal pass predicted AC-3 and AC-4 failures; both were real (a false sentence; DB_PASSWORD=blue cat left 'cat') and fixed before the first Codex run
+- next: cadence milestone propose
+
+Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.

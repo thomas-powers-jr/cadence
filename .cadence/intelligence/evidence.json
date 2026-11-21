@@ -3404,6 +3404,13 @@
       "kind": "note",
       "summary": "Found by the phase 348 T1 review, T3 implementer probe and the pre-settle literal AC pass (2026-11-21); pinned as not covered in test-runner-redaction-348.test.ts",
       "createdAt": "2026-11-21T20:18:46.492Z"
+    },
+    {
+      "id": "ev-20261121-005",
+      "recommendationId": "rec-20261121-005",
+      "kind": "note",
+      "summary": "347: six Codex rounds (operator retrospective 2026-11-21). 348: the literal pass predicted AC-3 and AC-4 failures; both were real (a false sentence; DB_PASSWORD=blue cat left 'cat') and fixed before the first Codex run",
+      "createdAt": "2026-11-21T20:30:49.546Z"
     }
   ]
 }

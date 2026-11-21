@@ -3660,6 +3660,37 @@
       "decisionIds": [],
       "createdAt": "2026-11-21T20:18:46.492Z",
       "updatedAt": "2026-11-21T20:18:46.492Z"
+    },
+    {
+      "id": "rec-20261121-005",
+      "title": "Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle",
+      "summary": "Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "process",
+        "phase-build",
+        "draft",
+        "deep-verify"
+      ],
+      "affectedFiles": [
+        ".claude/skills/phase-build/SKILL.md",
+        "CLAUDE.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261121-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-21T20:30:49.546Z",
+      "updatedAt": "2026-11-21T20:30:49.546Z"
     }
   ],
   "archived": [

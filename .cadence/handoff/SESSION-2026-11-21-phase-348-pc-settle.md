@@ -299,12 +299,11 @@ cc52e61f Merge the previous branch tip (no content change)
 - The operator's standing rule for this phase (dec-20261121-001): if code-review raises a NEW redaction shape beyond the four, stop and report it. Do not fix it in the phase and do not pass `--allow-code-review-failure` without the operator's yes on the named finding. The expected disposition is "file it; the hide setting is the answer for consumers who need certainty".
 - Known residue, recorded in ROADMAP As built and rec-20261121-004, deliberately NOT fixed: the phase-346 quoted credential-key pattern's closing-quote ordering (`"password":"a b; X=1"` leaves `b;`); an unquoted `Cookie:` / `Set-Cookie:` header; a `/`-prefixed value with neither `+` nor `=`; single short words; other header names.
 - After the real settle, confirm `348-01-SUMMARY.json` shows `provider: "host-cli"` for deep-verify and code-review. "Falling back to mock" is not a review.
-- At settle: promote rec-20261116-001 to shipped. rec-20261117-002: the four shapes and its design question (the hide setting) are closed, and its residue moved to rec-20261121-004, so it can be promoted too; the operator decides.
+- At settle: promote rec-20261116-001 to shipped. rec-20261117-002: the four shapes and its design question (the hide setting) are closed, and its residue moved to rec-20261121-004, so the operator decided (2026-11-21) to promote it too.
 - The picomatch audit exception (GHSA-fc5q-39xc-vjpf) expires 2026-12-31.
 
 ## Open decisions
-- rec-20261117-002: promote to shipped with 348, or amend it to the residue. Operator decides (the residue is already on rec-20261121-004).
-- Whether to file a recommendation for the two process changes from the 347 retrospective (bounded ACs; a literal AC pass built into the phase-build skill). Offered to the operator; not yet answered.
+- Decided by the operator 2026-11-21: rec-20261117-002 is promoted to shipped with 348 (its residue is on rec-20261121-004); the process recommendation is filed as rec-20261121-005.
 - Section 3 of the operator's handoff (D-CG to D-CJ, the live checkpoint capture): operator work, not started here.
 
 ## Next action
@@ -314,4 +313,4 @@ On the PC, after loading state, preview with the dry run (writes nothing, spends
 CADENCE_HOST_CLI_BIN=codex node packages/core/bin/cadence.cjs settle run --auto --deep --dry-run --allow-skill-audit-miss --allow-stale-draft
 ```
 
-If it ends `settle would pass`, run the same command without `--dry-run`. If it would refuse, paste the report to the cloud session. After the real settle: `cadence recommendation promote rec-20261116-001 --status=shipped --ref "phase 348"`, `cadence state save`, one settle commit, push; the cloud session opens the PR and asks before merging.
+If it ends `settle would pass`, run the same command without `--dry-run`. If it would refuse, paste the report to the cloud session. After the real settle: `cadence recommendation promote rec-20261116-001 --status=shipped --ref "phase 348"` and the same for `rec-20261117-002`, `cadence state save`, one settle commit, push; the cloud session opens the PR and asks before merging.
