@@ -51,7 +51,7 @@ import type { GateImpl, GateResult } from './types.js';
  * only counts the captured lines, on every refusal and on the bypass notice
  * (still one `ctx.io.err` call):
  *
- *     output tail: (hidden by config; <N> lines captured)
+ *     output tail: (hidden by config; <N> lines captured)   ("1 line captured" when N is 1)
  *
  * and `flags.buildTestBypass` then carries `hiddenTailLines: N` instead of
  * `outputTail`. A run that captured nothing keeps `(no output captured)` and

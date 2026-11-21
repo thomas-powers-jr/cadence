@@ -9,6 +9,20 @@
         "packages/core/tests/verify/test-runner-redaction-348.test.ts"
       ],
       "updatedAt": "2026-11-21T19:53:40.261Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "verification.buildTestOutputTail ('show'|'hide', optional, absent = show). Under hide the gate prints the hidden notice with the line count in place of the tail on refusals and bypasses; flags.buildTestBypass carries hiddenTailLines instead of outputTail; settle writes the hidden detail. Show mode byte-identical; existing tests unedited. Independent review PASS (no leak path found); full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        "packages/core/src/gates/build-test-must-pass.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/gates/build-test-must-pass-hide-tail.test.ts",
+        "packages/core/tests/services/settle-build-test-hide-tail.test.ts",
+        "packages/types/src/config.ts",
+        "packages/types/tests/config-build-test-output-tail.test.ts"
+      ],
+      "updatedAt": "2026-11-21T20:07:13.002Z"
     }
   }
 }
