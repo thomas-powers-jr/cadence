@@ -3457,7 +3457,7 @@
       "title": "Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…",
       "summary": "high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
       "source": "review",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "needs-decision",
       "priority": "high",
       "leverageScore": 5,
@@ -3479,7 +3479,8 @@
       "scoutId": "scout-20261116-2232",
       "sourceFindingId": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
       "createdAt": "2026-11-16T22:32:41.640Z",
-      "updatedAt": "2026-11-16T22:32:41.640Z"
+      "updatedAt": "2026-11-21T19:25:00.814Z",
+      "convertedToPhaseId": "348-output-tail-redaction"
     },
     {
       "id": "rec-20261117-001",
@@ -3538,7 +3539,9 @@
         "ev-20261117-002"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20261121-001"
+      ],
       "createdAt": "2026-11-17T03:14:34.417Z",
       "updatedAt": "2026-11-17T03:14:34.417Z"
     },
@@ -12711,11 +12714,11 @@
         "dec-20261118-001"
       ],
       "convertedToPhaseId": "347-settle-dry-run",
-      "createdAt": "2026-11-13T18:32:10.889Z",
-      "updatedAt": "2026-11-21T19:02:02.665Z",
       "shippedRef": "phase 347",
       "archivedAt": "2026-11-21T19:02:02.665Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-13T18:32:10.889Z",
+      "updatedAt": "2026-11-21T19:02:02.665Z"
     }
   ]
 }

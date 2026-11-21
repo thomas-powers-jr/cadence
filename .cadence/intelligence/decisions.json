@@ -1882,6 +1882,15 @@
       "status": "active",
       "decidedAt": "2026-11-18T19:00:45.628Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261121-001",
+      "recommendationId": "rec-20261117-002",
+      "title": "D-CF: phase 348 fixes the four known output-tail redaction shapes and adds a setting to hide the tail (option 2)",
+      "rationale": "Operator, 2026-11-21 (HANDOFF-347-344-checkpoint-closing section 1.2; the phase is numbered 348 because 347 was taken by settle run --dry-run). Phase 346 spent all three code-review attempts on successive redaction shapes. Pattern redaction cannot be made complete. Option 2 of three was chosen: fix the four known shapes (credential flag and -u at the start of the captured text; a /-prefixed env token; a quoted JSON auth header; short words of a multi-word passphrase) and add an additive config key, verification.buildTestOutputTail 'show' | 'hide', default 'show', so a consumer that captures settle's stderr (Cadence Studio) can turn the tail off and keep only a hidden notice plus the line count. Docs state that redaction is best-effort. Rejected: option 1 (shapes only; the next reviewer finds a fifth, and automated consumers get no certain answer) and option 3 (an allowlist of test-failure lines; it changes what the 346 feature shows and needs its own corpus). Standing rule for this phase: a new shape raised by code-review beyond the four is reported to the operator, not chased in the phase and not bypassed without the operator's yes on the named finding.",
+      "status": "active",
+      "decidedAt": "2026-11-21T19:25:00.348Z",
+      "supersedes": []
     }
   ]
 }

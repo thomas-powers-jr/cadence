@@ -1916,7 +1916,7 @@ medium finding at packages/core/src/handoff/precompact.ts:245: Git collection ca
 
 ## rec-20261116-001 — Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…
 
-- status: candidate
+- status: converted
 - ready: needs-decision
 - priority: high
 - leverage: 5/10
@@ -1957,6 +1957,7 @@ The cadence/core-skills pack requires phase-build. Phase 346 was built with the 
 - decay: fresh
 - areas: settle, build-test-must-pass, redaction
 - files: packages/core/src/verify/test-runner.ts
+- decisions: dec-20261121-001 (active)
 - evidence: Phase 346 settle code-review findings (2026-11-16) bypassed with --allow-code-review-failure; listed in 346-01-SUMMARY.md Findings.
 - next: cadence milestone propose
 
