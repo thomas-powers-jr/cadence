@@ -253,6 +253,18 @@ export const CadenceConfigZ = z.object({
        */
       fallback: z.enum(['mock', 'refuse']).optional(),
       /**
+       * Whether `build-test-must-pass` prints a failing test suite's output
+       * tail on stderr (phase 348). Absent or `show` — the tail (at most 40
+       * lines) is printed after best-effort redaction, on a refusal and on a
+       * bypass, exactly as before. `hide` — the tail block is replaced by one
+       * line that only counts the captured lines, for a consumer that captures
+       * settle's stderr and cannot rely on redaction knowing every secret a
+       * test suite might print. Either way the tail is never recorded. Kept
+       * out of the object-level default and `defaultConfig`, like `fallback`,
+       * so no existing config or fresh init changes.
+       */
+      buildTestOutputTail: z.enum(['show', 'hide']).optional(),
+      /**
        * Operator-extensible assertion-coverage profiles for languages no
        * built-in profile claims (phase 167, T7). Add-only: an entry
        * claiming an extension a BUILT-IN profile already owns (`.ts`,

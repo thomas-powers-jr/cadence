@@ -294,7 +294,7 @@ export interface GateFlags {
    *  `--force`, the registry.ts rule), `command` and `exitCode` the failing
    *  test run, `outputTail` its bounded output tail when one was captured.
    *  Settle turns it into an error-severity `build-test-must-pass`
-   *  `GateBypass` whose `detail` counts the tail lines the notice showed (the
+   *  `GateBypass` whose `detail` counts the tail lines the notice showed, or under hide the lines captured and hidden (the
    *  tail itself is never recorded, dec-20261113-002). A separate field rather than
    *  widening the boolean, following the phase 332 `reviewFindingsBypass`
    *  precedent: provenance collection keeps reading `buildTestBypassed`. */
@@ -303,6 +303,12 @@ export interface GateFlags {
     readonly command: string;
     readonly exitCode: number;
     readonly outputTail?: string;
+    /** Phase 348 (348-01): set only under
+     *  `verification.buildTestOutputTail: "hide"` when a tail was captured —
+     *  the number of tail lines the gate's notice counted and did not print.
+     *  Carried instead of `outputTail`, never beside it; settle writes the
+     *  hidden `detail` text from it. Absent under show and for a silent run. */
+    readonly hiddenTailLines?: number;
   };
   /** Phase 226 (T3): true iff boundary-scan proceeded past a real
    *  out-of-boundary finding via --force or --allow-boundary-scan-failure

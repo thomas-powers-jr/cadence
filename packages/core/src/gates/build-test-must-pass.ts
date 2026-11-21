@@ -45,6 +45,18 @@ import type { GateImpl, GateResult } from './types.js';
  * byte-identical; its command line names the program only (dec-20261116-001); it then
  * appends the tail block as one extra stderr write. A passing run and a
  * `ran: false` run write exactly what they wrote before.
+ *
+ * Phase 348 (348-01, AC-6/AC-7): `verification.buildTestOutputTail: "hide"`
+ * replaces the whole tail block, header line included, with one line that
+ * only counts the captured lines, on every refusal and on the bypass notice
+ * (still one `ctx.io.err` call):
+ *
+ *     output tail: (hidden by config; <N> lines captured)   ("1 line captured" when N is 1)
+ *
+ * and `flags.buildTestBypass` then carries `hiddenTailLines: N` instead of
+ * `outputTail`. A run that captured nothing keeps `(no output captured)` and
+ * carries neither. Absent, `"show"`, a null config or a config with no
+ * `verification` object all mean show: nothing above changes.
  */
 export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
   const res = await ctx.runner.test();
@@ -53,6 +65,8 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     return { outcome: 'pass', summaryPatch: { buildTestRan: false } };
   }
   const sealed = isGateSealed(ctx, 'build-test-must-pass');
+  // Phase 348: only an explicit "hide" hides; everything else is show.
+  const hideTail = ctx.config?.verification?.buildTestOutputTail === 'hide';
   if (!res.ok && (sealed || (!ctx.opts.allowFailingBuild && !ctx.opts.force))) {
     // The command is shown by its program only (dec-20261116-001). The gate stays pure:
     // environment-sourced literals were already removed from the tail by the
@@ -71,7 +85,9 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     // the program only (dec-20261116-001). Unlike the bypass notice it keeps
     // printing a missing command or exit code as-is rather than with the bypass branch's explicit fallbacks.
     // Every refusal names the tail, a silent run's included ("no output captured").
-    ctx.io.err(formatTailBlock(res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets)));
+    ctx.io.err(
+      formatTailBlock(res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets), hideTail),
+    );
     return { outcome: 'refuse', reason };
   }
   if (!res.ok) {
@@ -90,13 +106,20 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
     const outputTail = res.outputTail === undefined ? undefined : redactOutput(res.outputTail, secrets);
     ctx.io.err(
       `build-test-must-pass: BYPASSED via ${flag}: ${command} exited ${exitCode}\n` +
-        formatTailBlock(outputTail),
+        formatTailBlock(outputTail, hideTail),
     );
+    // Under hide the tail leaves the gate nowhere: the flags carry the count
+    // of the lines the notice named instead (settle's detail text reads it).
+    const tailFact = !outputTail
+      ? {}
+      : hideTail
+        ? { hiddenTailLines: tailLines(outputTail).length }
+        : { outputTail };
     return {
       outcome: 'pass',
       flags: {
         buildTestBypassed: true,
-        buildTestBypass: { flag, command, exitCode, ...(outputTail ? { outputTail } : {}) },
+        buildTestBypass: { flag, command, exitCode, ...tailFact },
       },
     };
   }
@@ -104,9 +127,15 @@ export const runBuildTestGate: GateImpl = async (ctx): Promise<GateResult> => {
 };
 
 /** Phase 346: the delimited output-tail block shared by the bypass notice and
- *  every refusal — a header line, then each tail line indented by 4 spaces. */
-function formatTailBlock(tail: string | undefined): string {
+ *  every refusal — a header line, then each tail line indented by 4 spaces.
+ *  Phase 348: with `hide`, one line counting those lines stands in for the
+ *  whole block; a run with no tail reads the same either way. */
+function formatTailBlock(tail: string | undefined, hide: boolean): string {
   if (!tail) return '  output tail: (no output captured)\n';
+  if (hide) {
+    const n = tailLines(tail).length;
+    return `  output tail: (hidden by config; ${n} line${n === 1 ? '' : 's'} captured)\n`;
+  }
   return `  output tail (last lines):\n${tailLines(tail).map((l) => `    ${l}\n`).join('')}`;
 }
 

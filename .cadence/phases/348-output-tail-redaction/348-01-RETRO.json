@@ -1,0 +1,12 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {}
+}

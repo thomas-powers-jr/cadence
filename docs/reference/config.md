@@ -150,6 +150,7 @@ Boundary definitions for each tier. The coherence-check gate validates DRAFT fro
 | `verification.coverageScheme` | `"bare"` \| `"phase-qualified"` | `"bare"` — both the schema-level default and what every config that predates this field (or has no config file at all) resolves to; `"phase-qualified"` for a fresh `cadence init`, written explicitly and unconditionally regardless of detected language or preset (Phase 239) — see [cadence init behavior](#cadence-init-behavior) | Whether the `test-coverage` gate's `AC-N` token match must also carry the active slice's own id prefix. `bare` is the historical unqualified token — any `AC-N` occurrence counts as evidence, including a different phase's identically-numbered AC, since AC ids restart at `AC-1` every phase. `phase-qualified` requires the literal `<slice-id>/AC-N` form (e.g. `239-01/AC-3` — CONTEXT.md's *slice* id, not the phase directory name); a bare or foreign-phase token is dropped and does not count as evidence, and `cadence verify phase`'s replay switches from file-scoped to config-scoped-by-token accordingly — see [`verify phase`](commands.md#verify). Edit it with `cadence config edit coverageScheme`. |
 | `verification.coverageProfiles` | `CoverageProfileConfig[]` | `[]` | Operator-defined custom assertion-mode profiles that extend `assertion` mode to a language with no built-in profile. Validated at config-load time — a bad regex, a missing required field, or an extension collision with a built-in profile refuses loudly, naming the offending field/collision and suggesting a fix. Add-only: a custom profile can never override a built-in's extensions. See [Custom coverage profiles](#custom-coverage-profiles). |
 | `verification.fallback` | `"mock"` \| `"refuse"` (optional) | absent, which behaves as `"mock"`; `cadence init` does not write the key | What a verifier seam does when its configured real provider cannot run (missing credentials, a host CLI binary that will not launch, the self-invocation guard, a timeout). `mock` falls back to the mock provider with a loud notice, as before; `refuse` makes the call fail instead, so the gate refuses or the command exits 1. Governs all seven verifier seams. See [Verification fallback](#verification-fallback). |
+| `verification.buildTestOutputTail` | `"show"` \| `"hide"` (optional) | absent, which behaves as `"show"`; `cadence init` does not write the key | Whether the `build-test-must-pass` gate prints a failing test run's output tail on stderr at `cadence settle run`. The tail is shown, after best-effort redaction, unless the setting is `"hide"`; under `"hide"` the gate prints a one-line hidden notice with the captured line count instead. The tail is never recorded under either value. See [Build-test output tail](#build-test-output-tail). |
 
 ### Supported-language matrix (assertion mode)
 
@@ -275,6 +276,36 @@ The other four seams (`per-task-verify`, `plan-review`, `spec-review`, `ui-spec-
 ```
 
 `cadence doctor` reports the effective value in its `verification-fallback` check, and under `"refuse"` its `verification-readiness` warnings say a seam will refuse rather than fall back to mock — see [`doctor`](commands.md#doctor). The setting is aimed at automated consumers, such as CI jobs or Cadence Studio, that must never settle on a mock verdict by accident; see [Refusing instead of falling back](../providers.md#refusing-instead-of-falling-back).
+
+### Build-test output tail
+
+`verification.buildTestOutputTail` decides whether the `build-test-must-pass` gate prints a failing `verification.testCommand` run's output tail on stderr at `cadence settle run`. The tail is the last 40 lines of the run's combined stdout and stderr, capped at 8 KiB. It is shown unless the setting is `"hide"`.
+
+| Value | Behavior |
+|---|---|
+| `"show"` | Every refusal, sealed or not, and every bypass (`--allow-failing-build` or `--force`) prints the redacted tail on stderr under an `output tail (last lines):` line. A bypass's `SUMMARY.json.gateBypasses` entry has the `detail` `output tail: N lines shown on stderr at settle; not recorded, since test output can hold secrets`. This is the behavior when the key is absent, which is the default: `cadence init` does not write the key and no preset sets it. |
+| `"hide"` | The gate prints `output tail: (hidden by config; N lines captured)` in place of the whole tail block, its header line included, on every refusal and on the bypass notice. `N` is the number of lines `"show"` would have printed, written `1 line captured` when it is 1. No line of the tail reaches stderr. A bypass's `detail` says the tail was hidden: `output tail: N lines captured, hidden by config (verification.buildTestOutputTail); not recorded, since test output can hold secrets`. |
+
+A run that printed nothing reads the same under both values: the gate prints `output tail: (no output captured)` and a bypass's `detail` says `0 lines shown`.
+
+Redaction of the output tail is best-effort. Before the tail is shown, the runner and the gate replace the secret shapes they know with `[REDACTED]`, including the values of credential-named environment variables and of the test command's inline assignments and credential flags, URL userinfo, upper-case `NAME=value` assignments, quoted credential-named keys, and credential flag values. Since phase 348 that covers four more shapes:
+
+- a credential flag (`--auth-token value`, `--db-pass=value`) or `-u user:password` at the very start of the captured text, not only after whitespace;
+- a credential-named environment value that starts with `/` and contains `+` or `=`, which was previously taken for a path and skipped;
+- a quoted `Authorization`, `Proxy-Authorization`, `Cookie` or `Set-Cookie` key (any letter case) with a quoted value, such as `"Authorization":"Bearer …"`;
+- a run of two or more consecutive words of a multi-word secret value, when the run is at least 8 characters and the value has at most 12 words.
+
+Only the named shapes are covered. A secret printed in any other shape reaches stderr under `"show"`, and no pattern list can know every secret a test suite might print. A consumer that captures settle's stderr, such as a CI log or Cadence Studio, and cannot accept that should set `"hide"`:
+
+```json
+{
+  "verification": {
+    "buildTestOutputTail": "hide"
+  }
+}
+```
+
+The setting changes only what the gate prints and the bypass `detail` text. Under either value the tail never enters `SUMMARY.json`, `SUMMARY.md`, an anomaly event or a notifier transport, and the gate's refusal reason, the bypass notice's first line, the exit code and the pass-or-refuse decision are the same. The key is config-only: there is no CLI flag, environment variable or MCP parameter for it. Any value other than `"show"` or `"hide"` is a config schema error.
 
 ---
 

@@ -1,0 +1,43 @@
+{
+  "draftId": "348-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Four named shapes redacted (start-of-text flag and -u; /-prefixed env value with + or =; quoted Authorization/Proxy-Authorization/Cookie/Set-Cookie value; passphrase word runs). 44 new tests, each named input proven failing first or kept as a premise-false pin. Independent review found I-1 (header pattern ran after greedy patterns that could eat the closing quote); fixed by applying it to the raw text first, with three new tests. Full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        "packages/core/src/verify/test-runner.ts",
+        "packages/core/tests/verify/test-runner-redaction-348.test.ts"
+      ],
+      "updatedAt": "2026-11-21T19:53:40.261Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "verification.buildTestOutputTail ('show'|'hide', optional, absent = show). Under hide the gate prints the hidden notice with the line count in place of the tail on refusals and bypasses; flags.buildTestBypass carries hiddenTailLines instead of outputTail; settle writes the hidden detail. Show mode byte-identical; existing tests unedited. Independent review PASS (no leak path found); full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        "packages/core/src/gates/build-test-must-pass.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/gates/build-test-must-pass-hide-tail.test.ts",
+        "packages/core/tests/services/settle-build-test-hide-tail.test.ts",
+        "packages/types/src/config.ts",
+        "packages/types/tests/config-build-test-output-tail.test.ts"
+      ],
+      "updatedAt": "2026-11-21T20:07:13.002Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Docs (config.md row and section, commands.md and cli.md rows, concepts.md note, DESIGN.md row, help text), minor changeset for core and types, doc-content test, ROADMAP and MILESTONES entries. Whole-branch review READY TO MERGE (0 Critical, 0 Important); its Minors folded in. A literal clause-by-clause AC pass predicted two settle failures (AC-3 wording, AC-4 first-word-eaten run); both fixed with tests first. Full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        ".changeset/output-tail-redaction.md",
+        "docs/cli.md",
+        "docs/concepts.md",
+        "docs/reference/commands.md",
+        "docs/reference/config.md",
+        "packages/core/src/cli/commands/settle.ts",
+        "packages/core/tests/docs/phase348-output-tail-redaction-docs.test.ts",
+        "DESIGN.md"
+      ],
+      "updatedAt": "2026-11-21T20:24:37.228Z"
+    }
+  }
+}

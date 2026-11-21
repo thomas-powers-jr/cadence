@@ -103,11 +103,25 @@ const QUOTED_KEY_RE =
 const QUOTED_ASSIGNMENT_RE = /(^|[\s;&|(])(["'])([A-Za-z_][A-Za-z0-9_]*)=((?:(?!\2)[^\n])*)\2/g;
 const COMMAND_ASSIGNMENT_RE =
   /(^|[\s;&|(])(["']?)([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|[^\s"']+)(["']?)/g;
-/** A credential-named flag, matched on whole dash-separated segments so `--passWithNoTests` is left alone. */
+/**
+ * A quoted key that is exactly one of four auth header names, in any letter
+ * case, with a quoted value: `"Authorization":"Bearer x"`, `'cookie': 'sid=x'`
+ * (phase 348). Kept apart from QUOTED_KEY_RE on purpose: no name prefix, so
+ * `"x-authorization"` and `"cookies"` are not keys here, and quoted values
+ * only. The value alternatives are the same disjoint ones QUOTED_KEY_RE uses,
+ * so an escaped quote stays inside the value and the scan stays linear.
+ */
+const AUTH_HEADER_KEY_RE =
+  /((["'])(?:proxy-authorization|authorization|set-cookie|cookie)\2\s*:\s*)(?:"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')/gi;
+/**
+ * A credential-named flag, matched on whole dash-separated segments so
+ * `--passWithNoTests` is left alone. The flag follows whitespace or starts
+ * the text (phase 348), so a tail or a command that begins with one is covered.
+ */
 const SECRET_FLAG_RE =
-  /(\s--?(?:[A-Za-z0-9]+-)*(?:pass(?:word)?|pwd|token|secret|key|apikey|auth|credentials?)(?:-[A-Za-z0-9]+)*)(?:(=)("[^"]*"|'[^']*'|\S+)|(\s+)("[^"]*"|'[^']*'|[^\s-]\S*))/gi;
-/** `curl -u user:password`. */
-const BASIC_AUTH_FLAG_RE = /(\s-u\s+)[^\s:]+:\S+/g;
+  /((?:^|\s)--?(?:[A-Za-z0-9]+-)*(?:pass(?:word)?|pwd|token|secret|key|apikey|auth|credentials?)(?:-[A-Za-z0-9]+)*)(?:(=)("[^"]*"|'[^']*'|\S+)|(\s+)("[^"]*"|'[^']*'|[^\s-]\S*))/gi;
+/** `curl -u user:password`, after whitespace or at the very start of the text. */
+const BASIC_AUTH_FLAG_RE = /((?:^|\s)-u\s+)[^\s:]+:\S+/g;
 /** Values never treated as literal secrets: booleans, common words, plain numbers. */
 const COMMON_VALUE_RE = /^(?:true|false|yes|no|on|off|null|undefined|test|development|production|\d+)$/i;
 /**
@@ -122,6 +136,16 @@ const SECRET_NAME_RE =
   /(?:pass(?:word|wd)?|pwd|token|secret|key|credentials?|cookie)(?=_|$)|(?:^|_)(?:auth|session|private)(?=_|$)/i;
 
 /**
+ * Whether a credential-named environment value is a path rather than a
+ * secret: it starts with `~`, `.` or a drive prefix, or it starts with `/`
+ * and holds neither `+` nor `=`.
+ */
+function isPathValue(value: string): boolean {
+  if (/^(?:[~.]|[A-Za-z]:[\\/])/.test(value)) return true;
+  return value.startsWith('/') && !/[+=]/.test(value);
+}
+
+/**
  * Literal secret values to remove wherever they appear, whatever shape
  * surrounds them, because patterns always miss a shape: the value of every
  * credential-named variable in `env` (the environment the suite inherits,
@@ -129,7 +153,9 @@ const SECRET_NAME_RE =
  * assignments, and the userinfo of any URL in either. A value must be at
  * least 8 characters and not a common word, number or (from the environment)
  * a path, so `DISABLE_AUTH=true`, `GIT_ASKPASS=echo` or `SSH_AUTH_SOCK=/tmp/…`
- * cannot erase ordinary text. Shorter values are still caught by the
+ * cannot erase ordinary text. A value that starts with `/` and holds `+` or
+ * `=` is not taken for a path (phase 348): base64 secrets look like that,
+ * helper paths do not. Shorter values are still caught by the
  * pattern passes wherever they sit in an assignment.
  */
 export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv): string[] {
@@ -150,7 +176,7 @@ export function secretValues(command: string | undefined, env: NodeJS.ProcessEnv
     if (!value) continue;
     // From the environment: at least 8 characters and not a path, so a
     // helper such as GIT_ASKPASS=echo or SSH_AUTH_SOCK=/tmp/... is left alone.
-    if (SECRET_NAME_RE.test(name) && !/^(?:[/~.]|[A-Za-z]:[\\/])/.test(value)) add(value);
+    if (SECRET_NAME_RE.test(name) && !isPathValue(value)) add(value);
     if (value.includes('://')) addUserinfo(value);
   }
   if (command) {
@@ -202,29 +228,75 @@ function replaceLiterals(text: string, literals: readonly string[]): string {
  * the literal secret values (see `secretValues`) first, then the shared
  * `redactSecrets` patterns, URL userinfo, upper-case assignments anywhere in
  * a line, quoted credential-named keys (escaped quotes inside the value
- * included), credential-named flag values and `-u user:pw`. Safe to apply
- * twice.
+ * included), the four quoted auth header keys, credential-named flag values
+ * and `-u user:pw`. Best-effort: only these shapes are covered. Safe to
+ * apply twice.
  */
 export function redactOutput(text: string, literals: readonly string[] = []): string {
   // Patterns first: a literal that is itself a key word (MYSQL_PWD=password)
   // would otherwise rewrite the key `"password"` before the quoted-key pattern
   // could redact its value. Then the literals, plus the words of any literal
-  // holding whitespace, in case a pattern redacted only its first word.
-  const patterned = redactUrlUserinfo(redactSecrets(text))
+  // holding whitespace and its runs of consecutive words, in case a pattern
+  // redacted only its first word.
+  // The quoted auth-header pattern sees the raw text first: the shared
+  // patterns and the assignment pattern end in a greedy non-space run that
+  // can swallow a value's closing quote (`"Cookie":"sid=…; LANG=en"`), after
+  // which the header pattern could no longer match the whole value.
+  // Whitespace-holding pieces (a multi-word literal and its word runs) go
+  // before every pattern too: an assignment or flag pattern takes only the
+  // first word of `NAME=blue cat`, after which the run `blue cat` is gone
+  // and `cat` would stay. A piece with whitespace is never a key or a
+  // variable name, so it cannot disturb the patterns the way a one-word
+  // literal can.
+  const pieces = withWordPieces(literals);
+  const spaced = replaceLiterals(text, pieces.filter((v) => /\s/.test(v)));
+  const patterned = redactUrlUserinfo(redactSecrets(spaced.replace(AUTH_HEADER_KEY_RE, '$1"[REDACTED]"')))
     .replace(OUTPUT_ASSIGNMENT_RE, '$1$2=[REDACTED]')
     .replace(QUOTED_KEY_RE, '$1"[REDACTED]"')
     .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
-  return replaceLiterals(patterned, withWordPieces(literals));
+  return replaceLiterals(patterned, pieces);
 }
 
-/** The literals, plus each 8+-character word of a literal that holds whitespace (longest first). */
+/** Most words a whitespace-holding literal may have for its word runs to be built (at most 66 runs). */
+const WORD_RUN_MAX_WORDS = 12;
+
+/**
+ * The runs of two or more consecutive words of `literal`: each substring that
+ * starts at the start of one word and ends at the end of a later one, with the
+ * literal's own whitespace between them, when it is at least 8 characters
+ * (phase 348). None for a literal of more than WORD_RUN_MAX_WORDS words.
+ */
+function wordRuns(literal: string): string[] {
+  const words = [...literal.matchAll(/\S+/g)];
+  if (words.length < 2 || words.length > WORD_RUN_MAX_WORDS) return [];
+  const runs: string[] = [];
+  for (let i = 0; i < words.length - 1; i++) {
+    const start = words[i]?.index ?? 0;
+    for (let j = i + 1; j < words.length; j++) {
+      const last = words[j];
+      if (last === undefined) continue;
+      const run = literal.slice(start, last.index + last[0].length);
+      if (run.length >= 8) runs.push(run);
+    }
+  }
+  return runs;
+}
+
+/**
+ * The literals, plus, for a literal that holds whitespace, each 8+-character
+ * word and each 8+-character run of two or more consecutive words (longest
+ * first).
+ */
 function withWordPieces(literals: readonly string[]): string[] {
   const out = new Set(literals);
   for (const v of literals) {
     if (!/\s/.test(v)) continue;
     // 8+ characters, so a piece such as a first name cannot erase common text.
     for (const w of v.split(/\s+/)) if (w.length >= 8 && !COMMON_VALUE_RE.test(w)) out.add(w);
+    // A pattern may redact only the first word (`NAME=[REDACTED] rest of it`),
+    // and a suite may print part of a passphrase.
+    for (const run of wordRuns(v)) out.add(run);
   }
   return [...out].sort((a, b) => b.length - a.length);
 }

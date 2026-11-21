@@ -1914,22 +1914,6 @@ medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may sele
 
 medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
 
-## rec-20261116-001 — Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…
-
-- status: candidate
-- ready: needs-decision
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: packages/core
-- files: packages/core/src/verify/test-runner.ts
-- evidence: phase 346-bypass-honesty, draft 346-01, SUMMARY contentHash 45e8eba813bb0050e954f1beb28a0159869a3f858fd170bc694f7b616d7ce59b — high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.
-- next: cadence milestone propose
-
-high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.
-
 ## rec-20261117-001 — Skill-audit cannot see skills invoked in sessions without CADENCE hooks (cloud sessions), so a phase built with phase-build reads as a miss
 
 - status: candidate
@@ -1946,22 +1930,6 @@ high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a ca
 
 The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session, but invocations are recorded into state.skillAudit only by the local host hooks (.claude/settings.json on the operator PC), which cloud sessions do not have. The settle on the PC therefore reported skill-audit-miss and needed --allow-skill-audit-miss (warn bypass, decision recorded). Invoking the skill after the fact to satisfy the audit would game it. Options: record invocations through a path a cloud session can reach (e.g. a 'cadence skill record' command the skill itself calls, or MCP), carry recorded invocations in 'cadence state save/load' snapshots, or let the audit accept evidence such as per-task review artifacts. Out of scope: weakening the requirement.
 
-## rec-20261117-002 — Best-effort secret redaction of the build-test stderr tail: shapes Codex flagged that were bypassed at the phase 346 settle
-
-- status: candidate
-- ready: needs-decision
-- priority: low
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: settle, build-test-must-pass, redaction
-- files: packages/core/src/verify/test-runner.ts
-- evidence: Phase 346 settle code-review findings (2026-11-16) bypassed with --allow-code-review-failure; listed in 346-01-SUMMARY.md Findings.
-- next: cadence milestone propose
-
-Phase 346 shows a bounded output tail of a failing suite on stderr only (never recorded, dec-20261113-002) and redacts secrets in it on a best-effort basis. At settle, code-review kept finding new redaction shapes, and the last ones were bypassed with --allow-code-review-failure (error bypass, decision recorded): a '/'-prefixed env token skipped by the path heuristic in secretValues; credential flags or -u user:pw at the very start of a captured line (SECRET_FLAG_RE and BASIC_AUTH_FLAG_RE require leading whitespace); a quoted {"Authorization":"Bearer x"} JSON header; short words of a multi-word passphrase under the 8-character word-piece minimum. Each is cheap to fix; none can make redaction complete. Decide whether to fix these, or to reduce the surface instead (e.g. an opt-out config to hide the tail entirely, or showing only lines that match a test-failure pattern).
-
 ## rec-20261121-001 — Code-review finding (medium): Verifier-failure paths produce no `g.provider`; this report omits the configure…
 
 - status: candidate
@@ -1977,3 +1945,67 @@ Phase 346 shows a bounded output tail of a failing suite on stderr only (never r
 - next: cadence milestone propose
 
 medium finding at packages/core/src/services/settle-dry-run-report.ts:226: Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.
+
+## rec-20261121-002 — cadence verify phase prints the full test command on failure, bypassing the program-only rule
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, redaction
+- files: packages/core/src/services/verify.ts
+- evidence: packages/core/src/services/verify.ts:313 interpolates testResult.command unredacted
+- next: cadence milestone propose
+
+services/verify.ts prints 'verify phase: test command failed: <full command> exited N' to stderr. dec-20261116-001 says every notice names the test command by its program only (displayCommand), because the arguments can hold secrets and no shape list is complete. Fix: print displayCommand(testResult.command). Found by the independent review of the 348-01 DRAFT (2026-11-21); out of scope for phase 348.
+
+## rec-20261121-003 — settle --dry-run report: provider and flag details when a review agent fails
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, dry-run
+- files: packages/core/src/services/settle-dry-run-report.ts
+- evidence: 347-01-SUMMARY.json codeReview (medium, line 226); Codex dry-run output pasted by the operator 2026-11-21
+- next: cadence milestone propose
+
+Two medium code-review findings on phase 347, neither blocking. (1) Recorded in 347-01-SUMMARY.json: when the code-review or security-audit agent fails, the gate entry carries no provider, so the dry-run report's gate line and gateOutcomes omit the configured provider. (2) From the last 347 dry run (not recorded, a dry run writes nothing): for a review-agent failure waved through by a flag, gateOutcomes.flag is the skipReason with the 'bypassed via ' prefix removed, so it may carry the failure detail as well as the flag. Not reproduced yet; write the failing test first.
+
+## rec-20261121-004 — Output-tail redaction residue after phase 348: the quoted credential-key pattern's closing-quote ordering, and unquoted Cookie headers
+
+- status: candidate
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, build-test-must-pass, redaction
+- files: packages/core/src/verify/test-runner.ts
+- evidence: Found by the phase 348 T1 review, T3 implementer probe and the pre-settle literal AC pass (2026-11-21); pinned as not covered in test-runner-redaction-348.test.ts
+- next: cadence milestone propose
+
+Two known shapes outside phase 348's four, reported rather than fixed (dec-20261121-001). (1) QUOTED_KEY_RE (phase 346) runs after patterns that end in a greedy non-space run, which can swallow a value's closing quote: "password":"a b; X=1" becomes "password":"[REDACTED]" b; X=[REDACTED], leaving 'b;'. Phase 348 fixed the same weakness for the new auth-header pattern by running it on the raw text first; the same reorder would likely work here but needs its own false-positive check. (2) An unquoted 'Cookie: sid=...' or 'Set-Cookie: ...' header line is not redacted; the shared pattern only knows Authorization followed by Bearer, Basic or Token. Consumers who need certainty should set verification.buildTestOutputTail to hide.
+
+## rec-20261121-005 — Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: high
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: process, phase-build, draft, deep-verify
+- files: .claude/skills/phase-build/SKILL.md, CLAUDE.md
+- evidence: 347: six Codex rounds (operator retrospective 2026-11-21). 348: the literal pass predicted AC-3 and AC-4 failures; both were real (a false sentence; DB_PASSWORD=blue cat left 'cat') and fixed before the first Codex run
+- next: cadence milestone propose
+
+Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.

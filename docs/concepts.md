@@ -542,11 +542,12 @@ These run on every phase regardless of profile or tier.
 > `settle bypass [error] …` line and records one entry in
 > `SUMMARY.json.gateBypasses` at `error` severity. The entry's `flag` is that same flag, its `reason` is
 > `<command> exited <code>`, and its `detail` only says how many lines of
-> output tail the notice showed. The tail itself (the last 40 lines of the
+> output tail the notice showed (or, when the tail is hidden as described
+> below, how many it captured and hid). The tail itself (the last 40 lines of the
 > combined stdout and stderr, capped at 8 KiB, with ANSI escape codes
 > stripped, CRLF folded to LF, every Unicode control and format character
 > except TAB and LF removed (plus U+2028/U+2029), and known secret shapes redacted on a
-> best-effort basis) is shown on stderr and
+> best-effort basis) is shown on stderr (unless hidden, below) and
 > is not recorded: `SUMMARY.json` and `SUMMARY.md` are committed, and no
 > redaction can know every secret a suite might print. `SUMMARY.md` and
 > `cadence summary render` show the `detail` as an indented block under the
@@ -554,12 +555,23 @@ These run on every phase regardless of profile or tier.
 > `assurance.overall` at `'mixed'` or below, never `'strong'`. The gate's
 > `gates[]` entry still records `status: 'skipped'` with the same flag in
 > its skip reason. Every refusal, sealed or not, also prints the output tail
+> (or the hidden notice, below)
 > after its existing stderr lines; its reason and outcome are unchanged. The
 > tail never enters the anomaly event: the `build-test-bypassed` anomaly
 > carries only the flag, command and exit code, so no notifier transport
 > (`stderr`, `file` or `webhook`) receives test output. The test command's
 > exit code alone still decides pass or fail. A suite that passes records no
 > entry.
+>
+> Redaction of the output tail is best-effort (phase 348): only known secret
+> shapes are replaced, and a secret printed in any other shape reaches
+> stderr. The tail is shown unless `verification.buildTestOutputTail` is
+> `"hide"`. Under `"hide"` the gate prints
+> `output tail: (hidden by config; N lines captured)` in place of the tail on
+> every refusal and on the bypass notice, and the entry's `detail` says the
+> lines were captured and hidden by config. The key is optional and absent
+> means `"show"`; see
+> [Build-test output tail](reference/config.md#build-test-output-tail).
 
 ### Delta gates
 

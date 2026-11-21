@@ -4300,6 +4300,71 @@ Tier `complex`.
   with N read from the sidecar already on disk. A test drives a failing
   review agent through a dry run and then a real settle.
 
+### Phase 348 — Output-tail redaction: four known shapes closed, and a setting to hide the tail (rec-20261116-001, rec-20261117-002)
+
+**Objective.** Phase 346 shows a failing suite's output tail on stderr
+after best-effort redaction, and four known secret shapes got through it: a
+credential flag or `-u user:pw` at the very start of the captured text, a
+credential-named environment value that starts with `/`, a quoted auth
+header such as `"Authorization":"Bearer x"`, and a run of short words from
+a multi-word passphrase. This phase redacts those four named shapes and
+adds `verification.buildTestOutputTail: "show" | "hide"` so a consumer that
+captures settle's stderr can hide the tail. The claim is narrow: the named
+shapes are redacted, redaction is documented as best-effort, and the tail
+can be hidden. Tier `complex`.
+
+**As built.**
+- Operator decision dec-20261121-001, option 2 of three: fix the four known
+  shapes and add the setting. The phase is numbered 348 because 347 was
+  taken by `settle run --dry-run`.
+- Each of the four shapes was proven by a failing test and then fixed in
+  `verify/test-runner.ts`: the credential-flag and `-u` patterns also match
+  at the start of the text; a credential-named environment value that starts
+  with `/` and holds `+` or `=` is no longer taken for a path; a separate
+  quoted-key pattern covers exactly `Authorization`, `Proxy-Authorization`,
+  `Cookie` and `Set-Cookie` with a quoted value; and runs of two or more
+  consecutive words of a multi-word literal (run of 8 or more characters,
+  literal of at most 12 words) join the literal list.
+- The independent T1 review found that the header pattern ran after
+  patterns whose greedy non-space run could swallow a value's closing quote
+  (`"Cookie":"sid=…; LANG=en"`). The header pattern now sees the raw text
+  first.
+- The key is optional and stays out of `defaultConfig` and a fresh
+  `cadence init`, following the phase-343 `verification.fallback` precedent;
+  absent means show. Under hide the gate prints
+  `output tail: (hidden by config; N lines captured)` in place of the tail
+  block on every refusal and on the bypass notice, and
+  `flags.buildTestBypass` carries `hiddenTailLines` instead of `outputTail`;
+  settle writes the hidden `detail` text from it. Show is byte-identical to
+  phase 346, and the existing tests were not edited.
+- AC wordings were corrected in BUILD to match verified behaviour
+  (dec-20261121-002), so the settle runs with `--allow-stale-draft`: two or more spaces after `-u`
+  are redacted, as they already were mid-text; an unquoted header key is
+  left unchanged only when its value is quoted; and a `{}` config loads
+  through `loadConfig` with the key absent, rather than parses.
+- Known residue, recorded rather than fixed (dec-20261121-001: a shape
+  beyond the four is reported, not chased):
+  - the phase-346 quoted credential-key pattern has the same closing-quote
+    ordering weakness the header pattern had: `"password":"a b; X=1"`
+    becomes `"password":"[REDACTED]" b; X=[REDACTED]`, leaving `b;`;
+  - a `/`-prefixed credential value with neither `+` nor `=` is still taken
+    for a path;
+  - a single word under 8 characters, and a run under 8 characters;
+  - quoted header names other than the four (`"x-authorization"`,
+    `"cookies"`), and an unquoted key with a quoted value;
+  - an unquoted `Cookie:` or `Set-Cookie:` header line: the shared pattern
+    only knows `Authorization:` followed by `Bearer`, `Basic` or `Token`.
+- Before the first Codex run, a fresh agent read each AC clause by clause
+  as the settle-time verifier does and predicted two failures; both were
+  fixed first. AC-4: an assignment or flag pattern took only the first word
+  of `DB_PASSWORD=blue cat`, so the run was gone and `cat` stayed;
+  whitespace-holding literals and runs are now replaced before the
+  patterns. AC-3: its last sentence claimed every unquoted header was
+  already redacted, which is false for `Cookie:`; the AC now names what the
+  shared pattern covers. A 45-line suite under hide is tested (40 counted).
+  The two residue bullets not already in an AC are filed as
+  rec-20261121-004.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

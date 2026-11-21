@@ -1356,6 +1356,13 @@ changeset (example/test-only change, no published-package surface).*
   (per-gate outcomes, findings, `would be attempt N of M`, `would notify:`);
   cadence writes and notifies nothing and spends no convergence attempt.
   Exit 0/1, or 2 with `--interactive` or `--ship-ref` (rec-20261113-001).
+- **Phase 348** — output-tail redaction: four known secret shapes are now
+  redacted from a failing suite's output tail (a credential flag or `-u` at
+  the start of the text, a `/`-prefixed credential value holding `+` or `=`,
+  a quoted auth header value, runs of passphrase words). Redaction is
+  documented as best-effort, and `verification.buildTestOutputTail: "hide"`
+  replaces the tail with a hidden notice and a line count; absent means
+  show (rec-20261116-001, rec-20261117-002).
 
 
 
