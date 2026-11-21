@@ -1,22 +1,22 @@
 {
   "snapshotVersion": 1,
-  "savedAt": "2026-11-04T06:08:40.094Z",
+  "savedAt": "2026-11-17T22:14:41.353Z",
   "host": "DESKTOP-HG8IU6C",
-  "cadenceVersion": "1.73.0",
+  "cadenceVersion": "1.75.0",
   "state": {
     "schemaVersion": 1,
-    "revision": 64,
+    "revision": 75,
     "project": {
       "name": "CADENCE",
       "createdAt": "2026-11-02T18:14:38.063Z"
     },
-    "activePhase": "345-precompact-record",
+    "activePhase": "346-bypass-honesty",
     "activeDraft": null,
     "activeSpec": null,
     "loopPosition": "IDLE",
     "tier": null,
-    "draftReadAt": "2026-11-02T18:25:19.413Z",
-    "draftReadHash": "ebc8968df003819eb8af31b2288ec555d6b429d1cf23092d8bfd224045bb152a",
+    "draftReadAt": "2026-11-12T18:53:01.109Z",
+    "draftReadHash": "69c5f66956744f8184dfc53fa826fd449dde7a2a00d02c96bdcc00b69551807a",
     "openDrafts": [],
     "decisions": [],
     "deferred": [],

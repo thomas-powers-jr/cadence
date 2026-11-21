@@ -1,0 +1,19 @@
+{
+  "draftId": "347-01",
+  "converged": true,
+  "attempts": 0,
+  "maxAttempts": 3,
+  "history": [
+    {
+      "at": "2026-11-21T18:52:51.071Z",
+      "pass": true,
+      "findingsCount": 0,
+      "provider": "host-cli",
+      "verdict": "pass"
+    }
+  ],
+  "pass": true,
+  "provider": "host-cli",
+  "findings": 0,
+  "at": "2026-11-21T18:52:51.071Z"
+}

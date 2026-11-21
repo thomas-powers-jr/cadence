@@ -1350,6 +1350,12 @@ changeset (example/test-only change, no published-package surface).*
   tail itself is never recorded and never reaches notifier transports. A bare `--force` over
   assertion-mode coverage gaps is recorded as a `warn` bypass
   (rec-20260806-006, rec-20260726-005).
+- **Phase 347** — `cadence settle run --dry-run` runs settle's
+  preconditions, gates and post-gate checks with the same providers and
+  bypass flags, stops before finalize, and reports what settle would decide
+  (per-gate outcomes, findings, `would be attempt N of M`, `would notify:`);
+  cadence writes and notifies nothing and spends no convergence attempt.
+  Exit 0/1, or 2 with `--interactive` or `--ship-ref` (rec-20261113-001).
 
 
 

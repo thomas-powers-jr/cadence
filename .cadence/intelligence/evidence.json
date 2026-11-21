@@ -3375,6 +3375,14 @@
       "kind": "note",
       "summary": "Phase 346 settle code-review findings (2026-11-16) bypassed with --allow-code-review-failure; listed in 346-01-SUMMARY.md Findings.",
       "createdAt": "2026-11-17T03:14:34.417Z"
+    },
+    {
+      "id": "ev-20261121-001",
+      "recommendationId": "rec-20261121-001",
+      "kind": "cadence-artifact",
+      "summary": "phase 347-settle-dry-run, draft 347-01, SUMMARY contentHash 872daa2379e3112df0067fc915b9b8f1f78f5faba058a49d74041d7e56da0731 — medium finding at packages/core/src/services/settle-dry-run-report.ts:226: Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.",
+      "path": ".cadence/phases/347-settle-dry-run/347-01-SUMMARY.json",
+      "createdAt": "2026-11-21T18:52:51.114Z"
     }
   ]
 }

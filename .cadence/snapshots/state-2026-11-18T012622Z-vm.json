@@ -1,26 +1,26 @@
 {
   "snapshotVersion": 1,
-  "savedAt": "2026-11-02T19:40:16.899Z",
+  "savedAt": "2026-11-18T01:26:22.719Z",
   "host": "vm",
-  "cadenceVersion": "1.73.0",
+  "cadenceVersion": "1.75.0",
   "state": {
     "schemaVersion": 1,
-    "revision": 9,
+    "revision": 82,
     "project": {
       "name": "CADENCE",
       "createdAt": "2026-11-02T18:14:38.063Z"
     },
-    "activePhase": "345-precompact-record",
-    "activeDraft": "345-01",
+    "activePhase": "347-settle-dry-run",
+    "activeDraft": "347-01",
     "activeSpec": null,
     "loopPosition": "BUILD",
     "tier": "complex",
-    "draftReadAt": "2026-11-02T18:25:19.413Z",
-    "draftReadHash": "ebc8968df003819eb8af31b2288ec555d6b429d1cf23092d8bfd224045bb152a",
+    "draftReadAt": "2026-11-17T23:59:21.413Z",
+    "draftReadHash": "f4a503cea1ecdad938b388dd771ed508d6f95da5832d82a28fc32dc51337ba41",
     "openDrafts": [
       {
-        "id": "345-01",
-        "since": "2026-11-02T18:15:21.038Z"
+        "id": "347-01",
+        "since": "2026-11-17T22:15:58.391Z"
       }
     ],
     "decisions": [],
@@ -32,11 +32,19 @@
       "subagentBaselines": {}
     },
     "skillAudit": {
-      "required": [],
-      "invoked": []
+      "required": [
+        "phase-build"
+      ],
+      "invoked": [],
+      "provenance": [
+        {
+          "skill": "phase-build",
+          "source": "pack:cadence/core-skills"
+        }
+      ]
     },
     "activeTask": {
-      "id": "T6",
+      "id": "T4",
       "status": "DONE",
       "touchedFiles": []
     }

@@ -4233,6 +4233,73 @@ makes both bypasses loud and durable, per dec-20261030-002's bundling. Tier
   the URL scan became a linear parser with no cap and the key patterns now
   run before the literals.
 
+### Phase 347 — `settle run --dry-run`: see what settle would decide without spending a convergence attempt (rec-20261113-001)
+
+**Objective.** Settle was the only way to run the real code-review and
+deep-verify gates, and every failing code-review run spent one of the
+draft's convergence attempts in its `CODE-REVIEW.json` sidecar; phase 346
+spent three attempts across three PCs this way. `cadence settle run
+--dry-run` runs settle's preconditions, gate set, gates and post-gate checks
+through the same code, stops before finalize, and prints what settle would
+decide and why; cadence writes and notifies nothing and spends no attempt.
+Tier `complex`.
+
+**As built.**
+- Operator decisions 2026-11-17: a flag on `settle run`, not a new command;
+  it stops at the first refusal exactly as settle does.
+- `withDryRunPorts` (settle.ts) wraps the settle context: emit ports record
+  the real `AnomalyEvent`s settle's own builders produce into a recorder, the
+  code-review sidecar `write` keeps the would-be text in memory, and the
+  prompter takes the non-interactive path. `buildSettleContext` is
+  unchanged, and nothing under `gates/` or `verify/` was edited.
+- `settleService` with `dryRun` refuses `--interactive` and `--ship-ref`
+  with exit 2 before anything runs (the CLI checks first, the service
+  again). Loop violations and the anomaly-check notification are recorded,
+  not sent; no refused SUMMARY is written; it stops before
+  `finalizeAndCloseSettle`. A pure `renderSettleDryRunReport` builds the
+  stdout report and `CommandResult.data`; exit 0 would pass, 1 would refuse.
+- The attempt prediction reads the would-be sidecar text, so two dry runs
+  report the same attempt and a following real settle records it.
+- Under `CADENCE_REQUIRE_TTY=1` with no TTY the dry run keeps the real
+  prompter, so it refuses at `interactive-verdict` as settle does.
+- Tests run the dry run and then the real settle on 12 AC-1 fixtures plus
+  pack-resolution, require-tty and catch-block cases, comparing verdicts and
+  `gates` arrays and hashing the whole tree around each dry run.
+- Known limits, recorded rather than fixed: in a real TTY the interactive
+  gate's "non-TTY" bypass notice still prints (fixing it would touch
+  `gates/`); security-audit findings carry no file and show `-`; a gate
+  that would prompt is reported as such, and the final verdict assumes that
+  walk passes; the pack-resolution and skill-audit refusal lines are
+  rebuilt to match the checks' stderr, guarded by tests.
+- The first Codex deep-verify, run as a dry run at no cost in attempts,
+  failed AC-1, AC-2 and AC-3. The DRAFT was amended in BUILD
+  (dec-20261118-001). A dry run where settle would prompt now reports the
+  outcome with every AC confirmed and says so on its own line, and the
+  final line carries nothing appended. AC-3 asks for a finding's file only
+  where it carries one. The fixture hash now includes `.git`. The settle
+  runs with `--allow-stale-draft`.
+- The second Codex dry run failed AC-1, AC-3 and AC-4. Both were fixed in
+  code with no DRAFT change.
+  - AC-1/AC-3: a would-prompt dry run now gives AC derivation an
+    `interactiveVerify` pass for every AC, exactly what a fully confirmed
+    walk produces, so a blocked task no longer refuses it where settle
+    would not.
+  - AC-4: `--dry-run --ship-ref ""` now exits 2. Under `--dry-run` the
+    empty-value parse check lets the value through to the usage rule.
+    Without `--dry-run` it is the same parse error, exit 1.
+- The third dry run passed. The first real settle then refused at
+  deep-verify, before code-review ran, so no attempt was spent. Codex found
+  that AC-3's structured data carried only raw `gates`, so a
+  findings-bypassed review read as plain "ran". The data now also carries
+  `gateOutcomes` (ran, skipped, refused or bypassed with its flag, and the
+  provider). One function builds both the data and the text lines.
+- The next dry run (deep-verify again, no attempt spent) found that when
+  the code-review agent itself fails, settle writes no sidecar, yet the
+  report then said nothing about code-review. It now reports
+  `no review completed — consumes no attempt (attempts stay at N of M)`,
+  with N read from the sidecar already on disk. A test drives a failing
+  review agent through a dry run and then a real settle.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

@@ -1914,22 +1914,6 @@ medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may sele
 
 medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
 
-## rec-20261113-001 — A dry-run code-review / deep-verify that runs the real host-cli reviewer without writing the attempt sidecar or settling
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: settle, code-review, deep-verify, verification, dx
-- files: packages/core/src/gates/code-review.ts, packages/core/src/verify/converge.ts, packages/core/src/services/settle.ts, packages/core/src/cli/commands/settle.ts
-- evidence: Phase 346: three Codex code-review attempts spent across three PC settle runs (dec-20261113-001, dec-20261113-002); each round needed a push/pull relay between the cloud session and the operator's PC.
-- next: cadence milestone propose
-
-Settle is the only way to run the real code-review and deep-verify gates (host-cli, e.g. Codex), and every failing code-review run consumes one of config.convergence.maxAttempts (default 3) in the draft's CODE-REVIEW.json sidecar. So the only way to learn what the real reviewer thinks is to spend the budget. Phase 346 (2026-11-12/13) shows the cost: each Codex finding required a cloud-session fix, a push, a pull and a full settle on the operator's PC; all three attempts were spent on successive secret-redaction shapes before the design change that removed the finding class, and one extra round was lost to a test failing inside settle. Ask: a read-only mode, e.g. 'cadence settle run --dry-run --deep' or 'cadence review [--deep]', that runs the same code-review and deep-verify prompts over the same diff basis with the configured provider, prints findings and per-AC verdicts, and writes nothing (no sidecar attempt, no SUMMARY, no state transition, no anomalies, no ledger routing). It should run the same gate preconditions so it fails fast on what settle would refuse. Related: rec-20260806-007 (the budget persisting across invocations, undocumented); this rec removes most reasons to burn it. Out of scope: changing maxAttempts semantics or the escalation itself.
-
 ## rec-20261116-001 — Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…
 
 - status: candidate
@@ -1977,3 +1961,19 @@ The cadence/core-skills pack requires phase-build. Phase 346 was built with the 
 - next: cadence milestone propose
 
 Phase 346 shows a bounded output tail of a failing suite on stderr only (never recorded, dec-20261113-002) and redacts secrets in it on a best-effort basis. At settle, code-review kept finding new redaction shapes, and the last ones were bypassed with --allow-code-review-failure (error bypass, decision recorded): a '/'-prefixed env token skipped by the path heuristic in secretValues; credential flags or -u user:pw at the very start of a captured line (SECRET_FLAG_RE and BASIC_AUTH_FLAG_RE require leading whitespace); a quoted {"Authorization":"Bearer x"} JSON header; short words of a multi-word passphrase under the 8-character word-piece minimum. Each is cheap to fix; none can make redaction complete. Decide whether to fix these, or to reduce the surface instead (e.g. an opt-out config to hide the tail entirely, or showing only lines that match a test-failure pattern).
+
+## rec-20261121-001 — Code-review finding (medium): Verifier-failure paths produce no `g.provider`; this report omits the configure…
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: packages/core
+- files: packages/core/src/services/settle-dry-run-report.ts
+- evidence: phase 347-settle-dry-run, draft 347-01, SUMMARY contentHash 872daa2379e3112df0067fc915b9b8f1f78f5faba058a49d74041d7e56da0731 — medium finding at packages/core/src/services/settle-dry-run-report.ts:226: Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.
+- next: cadence milestone propose
+
+medium finding at packages/core/src/services/settle-dry-run-report.ts:226: Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.
