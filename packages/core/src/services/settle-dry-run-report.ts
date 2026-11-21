@@ -68,6 +68,9 @@ export interface DryRunReportData {
   verdict: 'pass' | 'refuse';
   refusal: DryRunRefusal | null;
   gates: GateProvenance[];
+  /** Each gate's outcome (ran, skipped with reason, refused with reason,
+   *  bypassed with the flag) and provider, as the text report shows it. */
+  gateOutcomes: DryRunGateOutcome[];
   deepVerify: Array<{ id: string; pass: boolean; reason: string; provider: string; model?: string }>;
   codeReview: {
     provider?: string;
@@ -88,20 +91,59 @@ function identity(provider: string | undefined, model: string | undefined): stri
   return ` [provider ${provider}${model !== undefined ? `, model ${model}` : ''}]`;
 }
 
-function gateLine(g: GateProvenance, bypasses: readonly GateBypass[]): string {
-  const id = identity(g.provider ?? g.observedProvider, g.model ?? g.observedModel);
-  const task = g.taskId !== undefined ? ` (${g.taskId})` : '';
-  let outcome: string;
+/** One gate's outcome as structured data: the same facts the text line
+ *  shows. `bypassed` covers both a gate skipped by a bypass flag and a gate
+ *  that ran but waved its findings through (`findingsBypasses`). */
+export interface DryRunGateOutcome {
+  gate: string;
+  taskId?: string;
+  outcome: 'ran' | 'skipped' | 'refused' | 'bypassed';
+  reason?: string;
+  flag?: string;
+  provider?: string;
+  model?: string;
+}
+
+function gateOutcome(g: GateProvenance, bypasses: readonly GateBypass[]): DryRunGateOutcome {
+  const provider = g.provider ?? g.observedProvider;
+  const model = g.model ?? g.observedModel;
+  const tail = {
+    ...(provider !== undefined ? { provider } : {}),
+    ...(model !== undefined ? { model } : {}),
+  };
+  const head = { gate: g.gate, ...(g.taskId !== undefined ? { taskId: g.taskId } : {}) };
   if (g.status === 'refused') {
-    outcome = g.reason !== undefined ? `refused — ${g.reason}` : 'refused';
-  } else if (g.status === 'skipped') {
-    const why = g.skipReason ?? '';
-    outcome = why.startsWith(BYPASSED_VIA) ? why : why ? `skipped — ${why}` : 'skipped';
-  } else {
-    const bypass = bypasses.find((b) => b.gate === g.gate);
-    outcome = bypass ? `ran, findings bypassed via ${bypass.flag} (${bypass.reason})` : 'ran';
+    return { ...head, outcome: 'refused', ...(g.reason !== undefined ? { reason: g.reason } : {}), ...tail };
   }
-  return `  ${g.gate}${task}: ${outcome}${id}`;
+  if (g.status === 'skipped') {
+    const why = g.skipReason ?? '';
+    if (why.startsWith(BYPASSED_VIA)) {
+      return { ...head, outcome: 'bypassed', flag: why.slice(BYPASSED_VIA.length), ...tail };
+    }
+    return { ...head, outcome: 'skipped', ...(why ? { reason: why } : {}), ...tail };
+  }
+  const bypass = bypasses.find((b) => b.gate === g.gate);
+  if (bypass) return { ...head, outcome: 'bypassed', flag: bypass.flag, reason: bypass.reason, ...tail };
+  return { ...head, outcome: 'ran', ...tail };
+}
+
+function gateLine(o: DryRunGateOutcome): string {
+  const id = identity(o.provider, o.model);
+  const task = o.taskId !== undefined ? ` (${o.taskId})` : '';
+  let outcome: string;
+  if (o.outcome === 'refused') {
+    outcome = o.reason !== undefined ? `refused — ${o.reason}` : 'refused';
+  } else if (o.outcome === 'skipped') {
+    outcome = o.reason !== undefined ? `skipped — ${o.reason}` : 'skipped';
+  } else if (o.outcome === 'bypassed') {
+    outcome =
+      o.reason !== undefined
+        ? `ran, findings bypassed via ${o.flag ?? ''} (${o.reason})`
+        : `${BYPASSED_VIA}${o.flag ?? ''}`;
+  } else {
+    outcome = 'ran';
+  }
+  return `  ${o.gate}${task}: ${outcome}${id}`;
 }
 
 function findingLine(f: DryRunFindingRow): string {
@@ -146,7 +188,8 @@ export function renderSettleDryRunReport(input: DryRunReportInput): { text: stri
   out.push(`settle --dry-run${input.draftId ? ` ${input.draftId}` : ''} (nothing written, nothing notified, no attempt spent)`);
 
   out.push(input.gates.length > 0 ? 'gates:' : 'gates: none ran');
-  for (const g of input.gates) out.push(gateLine(g, input.findingsBypasses));
+  const gateOutcomes = input.gates.map((g) => gateOutcome(g, input.findingsBypasses));
+  for (const o of gateOutcomes) out.push(gateLine(o));
 
   const deepVerify: DryRunReportData['deepVerify'] = Object.entries(input.deepVerify ?? {}).map(
     ([id, v]) => ({
@@ -243,6 +286,7 @@ export function renderSettleDryRunReport(input: DryRunReportInput): { text: stri
       verdict: input.refusal ? 'refuse' : 'pass',
       refusal: input.refusal ? { at: input.refusal.at, reason: input.refusal.reason } : null,
       gates: input.gates.map((g) => ({ ...g })),
+      gateOutcomes,
       deepVerify,
       codeReview,
       securityAudit,

@@ -4287,6 +4287,12 @@ Tier `complex`.
   - AC-4: `--dry-run --ship-ref ""` now exits 2. Under `--dry-run` the
     empty-value parse check lets the value through to the usage rule.
     Without `--dry-run` it is the same parse error, exit 1.
+- The third dry run passed. The first real settle then refused at
+  deep-verify, before code-review ran, so no attempt was spent. Codex found
+  that AC-3's structured data carried only raw `gates`, so a
+  findings-bypassed review read as plain "ran". The data now also carries
+  `gateOutcomes` (ran, skipped, refused or bypassed with its flag, and the
+  provider). One function builds both the data and the text lines.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

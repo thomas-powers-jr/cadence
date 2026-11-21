@@ -79,10 +79,18 @@ describe('renderSettleDryRunReport (347-01, T2)', () => {
     expect(l).toContain('  deep-verify: ran [provider mock]');
     expect(l).toContain('  code-review: refused — attempt 1/3 did not pass [provider anthropic, model m-1]');
     expect(data.gates).toEqual(gates);
+    // The structured data names each outcome too, not only the raw gates.
+    expect(data.gateOutcomes).toEqual([
+      { gate: 'draft-read', outcome: 'ran' },
+      { gate: 'boundary-scan', outcome: 'skipped', reason: 'not requested' },
+      { gate: 'build-test-must-pass', outcome: 'bypassed', flag: '--allow-failing-build' },
+      { gate: 'deep-verify', outcome: 'ran', provider: 'mock' },
+      { gate: 'code-review', outcome: 'refused', reason: 'attempt 1/3 did not pass', provider: 'anthropic', model: 'm-1' },
+    ]);
   });
 
   it('347-01/AC-3: a gate that passed only by waving findings through is reported as bypassed with the flag', () => {
-    const { text } = renderSettleDryRunReport(
+    const { text, data } = renderSettleDryRunReport(
       base({
         gates: [{ gate: 'code-review', status: 'ran', provider: 'mock' }],
         findingsBypasses: [
@@ -93,6 +101,16 @@ describe('renderSettleDryRunReport (347-01, T2)', () => {
     expect(lines(text)).toContain(
       '  code-review: ran, findings bypassed via --allow-code-review-failure (bypassed 1 finding(s), highest severity high) [provider mock]',
     );
+    // In the structured data a findings bypass is outcome "bypassed" with its flag, not a bare "ran".
+    expect(data.gateOutcomes).toEqual([
+      {
+        gate: 'code-review',
+        outcome: 'bypassed',
+        flag: '--allow-code-review-failure',
+        reason: 'bypassed 1 finding(s), highest severity high',
+        provider: 'mock',
+      },
+    ]);
   });
 
   it('347-01/AC-3: lists each deep-verify AC verdict with its reason and provider', () => {
