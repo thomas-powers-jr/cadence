@@ -1,28 +1,23 @@
 {
   "snapshotVersion": 1,
-  "savedAt": "2026-11-18T01:26:22.719Z",
-  "host": "vm",
+  "savedAt": "2026-11-21T21:08:47.315Z",
+  "host": "DESKTOP-HG8IU6C",
   "cadenceVersion": "1.75.0",
   "state": {
     "schemaVersion": 1,
-    "revision": 82,
+    "revision": 92,
     "project": {
       "name": "CADENCE",
       "createdAt": "2026-11-02T18:14:38.063Z"
     },
-    "activePhase": "347-settle-dry-run",
-    "activeDraft": "347-01",
+    "activePhase": "348-output-tail-redaction",
+    "activeDraft": null,
     "activeSpec": null,
-    "loopPosition": "BUILD",
-    "tier": "complex",
-    "draftReadAt": "2026-11-17T23:59:21.413Z",
-    "draftReadHash": "f4a503cea1ecdad938b388dd771ed508d6f95da5832d82a28fc32dc51337ba41",
-    "openDrafts": [
-      {
-        "id": "347-01",
-        "since": "2026-11-17T22:15:58.391Z"
-      }
-    ],
+    "loopPosition": "IDLE",
+    "tier": null,
+    "draftReadAt": "2026-11-21T19:36:20.502Z",
+    "draftReadHash": "f19adab05448663d4cfcffda68d340d293211addef5e5bbbae0d4e997b1b6929",
+    "openDrafts": [],
     "decisions": [],
     "deferred": [],
     "session": {
@@ -43,10 +38,6 @@
         }
       ]
     },
-    "activeTask": {
-      "id": "T4",
-      "status": "DONE",
-      "touchedFiles": []
-    }
+    "activeTask": null
   }
 }

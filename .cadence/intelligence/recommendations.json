@@ -3453,38 +3453,6 @@
       "updatedAt": "2026-11-04T03:04:42.276Z"
     },
     {
-      "id": "rec-20261116-001",
-      "title": "Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…",
-      "summary": "high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
-      "source": "review",
-      "status": "converted",
-      "readiness": "needs-decision",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "packages/core"
-      ],
-      "affectedFiles": [
-        "packages/core/src/verify/test-runner.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261116-001"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261121-002"
-      ],
-      "convertedToPhaseId": "348-output-tail-redaction",
-      "scoutId": "scout-20261116-2232",
-      "sourceFindingId": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
-      "createdAt": "2026-11-16T22:32:41.640Z",
-      "updatedAt": "2026-11-21T19:25:00.814Z"
-    },
-    {
       "id": "rec-20261117-001",
       "title": "Skill-audit cannot see skills invoked in sessions without CADENCE hooks (cloud sessions), so a phase built with phase-build reads as a miss",
       "summary": "The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session, but invocations are recorded into state.skillAudit only by the local host hooks (.claude/settings.json on the operator PC), which cloud sessions do not have. The settle on the PC therefore reported skill-audit-miss and needed --allow-skill-audit-miss (warn bypass, decision recorded). Invoking the skill after the fact to satisfy the audit would game it. Options: record invocations through a path a cloud session can reach (e.g. a 'cadence skill record' command the skill itself calls, or MCP), carry recorded invocations in 'cadence state save/load' snapshots, or let the audit accept evidence such as per-task review artifacts. Out of scope: weakening the requirement.",
@@ -3515,37 +3483,6 @@
       "decisionIds": [],
       "createdAt": "2026-11-17T03:14:34.120Z",
       "updatedAt": "2026-11-17T03:14:34.120Z"
-    },
-    {
-      "id": "rec-20261117-002",
-      "title": "Best-effort secret redaction of the build-test stderr tail: shapes Codex flagged that were bypassed at the phase 346 settle",
-      "summary": "Phase 346 shows a bounded output tail of a failing suite on stderr only (never recorded, dec-20261113-002) and redacts secrets in it on a best-effort basis. At settle, code-review kept finding new redaction shapes, and the last ones were bypassed with --allow-code-review-failure (error bypass, decision recorded): a '/'-prefixed env token skipped by the path heuristic in secretValues; credential flags or -u user:pw at the very start of a captured line (SECRET_FLAG_RE and BASIC_AUTH_FLAG_RE require leading whitespace); a quoted {\"Authorization\":\"Bearer x\"} JSON header; short words of a multi-word passphrase under the 8-character word-piece minimum. Each is cheap to fix; none can make redaction complete. Decide whether to fix these, or to reduce the surface instead (e.g. an opt-out config to hide the tail entirely, or showing only lines that match a test-failure pattern).",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "needs-decision",
-      "priority": "low",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "settle",
-        "build-test-must-pass",
-        "redaction"
-      ],
-      "affectedFiles": [
-        "packages/core/src/verify/test-runner.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261117-002"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261121-001"
-      ],
-      "createdAt": "2026-11-17T03:14:34.417Z",
-      "updatedAt": "2026-11-17T03:14:34.417Z"
     },
     {
       "id": "rec-20261121-001",
@@ -12837,6 +12774,75 @@
       "archiveReason": "shipped",
       "createdAt": "2026-11-13T18:32:10.889Z",
       "updatedAt": "2026-11-21T19:02:02.665Z"
+    },
+    {
+      "id": "rec-20261116-001",
+      "title": "Code-review finding (high): Credentials at a captured line's start leak: both regexes require leading white…",
+      "summary": "high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.",
+      "source": "review",
+      "status": "shipped",
+      "readiness": "needs-decision",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "packages/core"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/test-runner.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261116-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261121-002"
+      ],
+      "convertedToPhaseId": "348-output-tail-redaction",
+      "shippedRef": "phase 348",
+      "scoutId": "scout-20261116-2232",
+      "sourceFindingId": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
+      "archivedAt": "2026-11-21T21:08:44.610Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-16T22:32:41.640Z",
+      "updatedAt": "2026-11-21T21:08:44.610Z"
+    },
+    {
+      "id": "rec-20261117-002",
+      "title": "Best-effort secret redaction of the build-test stderr tail: shapes Codex flagged that were bypassed at the phase 346 settle",
+      "summary": "Phase 346 shows a bounded output tail of a failing suite on stderr only (never recorded, dec-20261113-002) and redacts secrets in it on a best-effort basis. At settle, code-review kept finding new redaction shapes, and the last ones were bypassed with --allow-code-review-failure (error bypass, decision recorded): a '/'-prefixed env token skipped by the path heuristic in secretValues; credential flags or -u user:pw at the very start of a captured line (SECRET_FLAG_RE and BASIC_AUTH_FLAG_RE require leading whitespace); a quoted {\"Authorization\":\"Bearer x\"} JSON header; short words of a multi-word passphrase under the 8-character word-piece minimum. Each is cheap to fix; none can make redaction complete. Decide whether to fix these, or to reduce the surface instead (e.g. an opt-out config to hide the tail entirely, or showing only lines that match a test-failure pattern).",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "needs-decision",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "settle",
+        "build-test-must-pass",
+        "redaction"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/test-runner.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261117-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261121-001"
+      ],
+      "createdAt": "2026-11-17T03:14:34.417Z",
+      "updatedAt": "2026-11-21T21:08:45.988Z",
+      "shippedRef": "phase 348",
+      "archivedAt": "2026-11-21T21:08:45.988Z",
+      "archiveReason": "shipped"
     }
   ]
 }
