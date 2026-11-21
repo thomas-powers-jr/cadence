@@ -49,11 +49,9 @@ describe('phase 348 AC-1: a credential flag or -u at the start of the text', () 
     expect(redactOutput('connecting with s3cretvalue99', literals)).toBe('connecting with [REDACTED]');
   });
 
-  it('348-01/AC-1: two spaces after -u is outside what AC-1 claims; the phase-346 pattern (-u, then any whitespace) still redacts it', () => {
-    // AC-1 lists this as "not covered", meaning not promised. The pattern has
-    // matched `-u\s+` since phase 346, so mid-text it was already redacted;
-    // phase 348 does not narrow that, and the start-of-text form now behaves
-    // the same as the mid-text form. Pinned as built, not as a guarantee.
+  it('348-01/AC-1: two or more spaces after -u are redacted as well, as they already are mid-text', () => {
+    // The pattern has matched `-u\s+` since phase 346, so the mid-text form
+    // was already redacted; the start-of-text form now behaves the same.
     expect(redactOutput('curl -u  alice:hunter2pw')).toBe('curl -u  [REDACTED]');
     expect(redactOutput('-u  alice:hunter2pw')).toBe('-u  [REDACTED]');
   });
@@ -171,6 +169,14 @@ describe('phase 348 AC-3: a quoted auth header value', () => {
     for (const text of ['"x-authorization":"Bearer abcdef1234567890"', '"cookies":"sid=abcdef1234567890"']) {
       expect(redactOutput(text), text).toBe(text);
     }
+  });
+
+  it('348-01/AC-3: a quoted header value holding a later assignment or token= is still replaced whole', () => {
+    // Earlier patterns end in a greedy non-space run that can swallow the
+    // value's closing quote; the header pattern must see the text first.
+    expect(redactOutput('"Cookie":"sid=abcdef1234567890; LANG=en"')).toBe('"Cookie":"[REDACTED]"');
+    expect(redactOutput('"Set-Cookie":"sid=abcdef1234567890; token=abcdefgh"')).toBe('"Set-Cookie":"[REDACTED]"');
+    expect(redactOutput('"Authorization":"Bearer abcdef1234567890 X=1"')).toBe('"Authorization":"[REDACTED]"');
   });
 
   it('348-01/AC-3: not covered: an unquoted key with a quoted value is left unchanged', () => {

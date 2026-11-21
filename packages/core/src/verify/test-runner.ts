@@ -238,10 +238,13 @@ export function redactOutput(text: string, literals: readonly string[] = []): st
   // could redact its value. Then the literals, plus the words of any literal
   // holding whitespace and its runs of consecutive words, in case a pattern
   // redacted only its first word.
-  const patterned = redactUrlUserinfo(redactSecrets(text))
+  // The quoted auth-header pattern sees the raw text first: the shared
+  // patterns and the assignment pattern end in a greedy non-space run that
+  // can swallow a value's closing quote (`"Cookie":"sid=…; LANG=en"`), after
+  // which the header pattern could no longer match the whole value.
+  const patterned = redactUrlUserinfo(redactSecrets(text.replace(AUTH_HEADER_KEY_RE, '$1"[REDACTED]"')))
     .replace(OUTPUT_ASSIGNMENT_RE, '$1$2=[REDACTED]')
     .replace(QUOTED_KEY_RE, '$1"[REDACTED]"')
-    .replace(AUTH_HEADER_KEY_RE, '$1"[REDACTED]"')
     .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
   return replaceLiterals(patterned, withWordPieces(literals));

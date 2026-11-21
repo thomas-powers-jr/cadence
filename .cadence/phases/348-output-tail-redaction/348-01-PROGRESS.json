@@ -1,0 +1,14 @@
+{
+  "draftId": "348-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Four named shapes redacted (start-of-text flag and -u; /-prefixed env value with + or =; quoted Authorization/Proxy-Authorization/Cookie/Set-Cookie value; passphrase word runs). 44 new tests, each named input proven failing first or kept as a premise-false pin. Independent review found I-1 (header pattern ran after greedy patterns that could eat the closing quote); fixed by applying it to the raw text first, with three new tests. Full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        "packages/core/src/verify/test-runner.ts",
+        "packages/core/tests/verify/test-runner-redaction-348.test.ts"
+      ],
+      "updatedAt": "2026-11-21T19:53:40.261Z"
+    }
+  }
+}
