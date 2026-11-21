@@ -39,6 +39,7 @@ const FIXED_NOW = '2026-11-21T12:00:00.000Z';
 const THREE_COMMAND = 'node three-348.cjs';
 const ONE_COMMAND = 'node one-348.cjs';
 const SILENT_COMMAND = 'node silent-348.cjs';
+const MANY_COMMAND = 'node many-348.cjs';
 // Every record names the command by program only (dec-20261116-001).
 const SHOWN = 'node [arguments not shown]';
 const TAIL_LINES = ['tail-348-a', 'tail-348-b', 'tail-348-c'] as const;
@@ -115,6 +116,12 @@ async function setupRepo(opts: SetupOpts): Promise<string> {
     'utf8',
   );
   await writeFile(join(root, 'silent-348.cjs'), 'process.exit(2);\n', 'utf8');
+  // 45 lines, five more than the runner's 40-line tail keeps.
+  await writeFile(
+    join(root, 'many-348.cjs'),
+    "let s = ''; for (let i = 1; i <= 45; i++) s += 'row-348-' + i + '\\n'; process.stdout.write(s); process.exitCode = 2;\n",
+    'utf8',
+  );
   const config = {
     ...defaultConfig,
     gates: { sealed: [], evidenceFloor: 'unverified' },
@@ -201,6 +208,7 @@ describe('settle and verification.buildTestOutputTail (phase 348, T2)', () => {
   let hideForce: SettleRun;
   let hideOne: SettleRun;
   let hideSilent: SettleRun;
+  let hideMany: SettleRun;
   let hideRefused: SettleRun;
   let showAllow: SettleRun;
   let absentAllow: SettleRun;
@@ -216,6 +224,9 @@ describe('settle and verification.buildTestOutputTail (phase 348, T2)', () => {
       allowFailingBuild: true,
     });
     hideSilent = await settleIn(await setupRepo({ testCommand: SILENT_COMMAND, tail: 'hide' }), {
+      allowFailingBuild: true,
+    });
+    hideMany = await settleIn(await setupRepo({ testCommand: MANY_COMMAND, tail: 'hide' }), {
       allowFailingBuild: true,
     });
     hideRefused = await settleIn(await setupRepo({ testCommand: THREE_COMMAND, tail: 'hide' }));
@@ -297,6 +308,15 @@ describe('settle and verification.buildTestOutputTail (phase 348, T2)', () => {
       'output tail: 1 line captured, hidden by config (verification.buildTestOutputTail); not recorded, since test output can hold secrets',
     );
     expect(JSON.stringify(hideOne.summary)).not.toContain('tail-348-a');
+  });
+
+  it('348-01/AC-6: a suite that printed 45 lines counts the 40 the tail keeps, the number show would print', () => {
+    expect(hideMany.exitCode, hideMany.stderr).toBe(0);
+    expect(hideMany.stderr).toContain('\n  output tail: (hidden by config; 40 lines captured)\n');
+    expect(hideMany.stderr).not.toContain('row-348-');
+    expect(buildTestEntries(hideMany)[0]?.detail).toBe(
+      'output tail: 40 lines captured, hidden by config (verification.buildTestOutputTail); not recorded, since test output can hold secrets',
+    );
   });
 
   it('348-01/AC-6: a suite that printed nothing keeps the phase-346 text under hide: "(no output captured)" on stderr and the 0-lines detail', () => {

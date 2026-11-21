@@ -3475,7 +3475,9 @@
         "ev-20261116-001"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20261121-002"
+      ],
       "convertedToPhaseId": "348-output-tail-redaction",
       "scoutId": "scout-20261116-2232",
       "sourceFindingId": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
@@ -3629,6 +3631,35 @@
       "decisionIds": [],
       "createdAt": "2026-11-21T19:34:55.828Z",
       "updatedAt": "2026-11-21T19:34:55.828Z"
+    },
+    {
+      "id": "rec-20261121-004",
+      "title": "Output-tail redaction residue after phase 348: the quoted credential-key pattern's closing-quote ordering, and unquoted Cookie headers",
+      "summary": "Two known shapes outside phase 348's four, reported rather than fixed (dec-20261121-001). (1) QUOTED_KEY_RE (phase 346) runs after patterns that end in a greedy non-space run, which can swallow a value's closing quote: \"password\":\"a b; X=1\" becomes \"password\":\"[REDACTED]\" b; X=[REDACTED], leaving 'b;'. Phase 348 fixed the same weakness for the new auth-header pattern by running it on the raw text first; the same reorder would likely work here but needs its own false-positive check. (2) An unquoted 'Cookie: sid=...' or 'Set-Cookie: ...' header line is not redacted; the shared pattern only knows Authorization followed by Bearer, Basic or Token. Consumers who need certainty should set verification.buildTestOutputTail to hide.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "settle",
+        "build-test-must-pass",
+        "redaction"
+      ],
+      "affectedFiles": [
+        "packages/core/src/verify/test-runner.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261121-004"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-21T20:18:46.492Z",
+      "updatedAt": "2026-11-21T20:18:46.492Z"
     }
   ],
   "archived": [

@@ -242,12 +242,20 @@ export function redactOutput(text: string, literals: readonly string[] = []): st
   // patterns and the assignment pattern end in a greedy non-space run that
   // can swallow a value's closing quote (`"Cookie":"sid=…; LANG=en"`), after
   // which the header pattern could no longer match the whole value.
-  const patterned = redactUrlUserinfo(redactSecrets(text.replace(AUTH_HEADER_KEY_RE, '$1"[REDACTED]"')))
+  // Whitespace-holding pieces (a multi-word literal and its word runs) go
+  // before every pattern too: an assignment or flag pattern takes only the
+  // first word of `NAME=blue cat`, after which the run `blue cat` is gone
+  // and `cat` would stay. A piece with whitespace is never a key or a
+  // variable name, so it cannot disturb the patterns the way a one-word
+  // literal can.
+  const pieces = withWordPieces(literals);
+  const spaced = replaceLiterals(text, pieces.filter((v) => /\s/.test(v)));
+  const patterned = redactUrlUserinfo(redactSecrets(spaced.replace(AUTH_HEADER_KEY_RE, '$1"[REDACTED]"')))
     .replace(OUTPUT_ASSIGNMENT_RE, '$1$2=[REDACTED]')
     .replace(QUOTED_KEY_RE, '$1"[REDACTED]"')
     .replace(SECRET_FLAG_RE, redactFlagValue)
     .replace(BASIC_AUTH_FLAG_RE, '$1[REDACTED]');
-  return replaceLiterals(patterned, withWordPieces(literals));
+  return replaceLiterals(patterned, pieces);
 }
 
 /** Most words a whitespace-holding literal may have for its word runs to be built (at most 66 runs). */

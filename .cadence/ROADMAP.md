@@ -4337,8 +4337,8 @@ can be hidden. Tier `complex`.
   `flags.buildTestBypass` carries `hiddenTailLines` instead of `outputTail`;
   settle writes the hidden `detail` text from it. Show is byte-identical to
   phase 346, and the existing tests were not edited.
-- Three AC wordings were corrected in BUILD to match verified behaviour, so
-  the settle runs with `--allow-stale-draft`: two or more spaces after `-u`
+- AC wordings were corrected in BUILD to match verified behaviour
+  (dec-20261121-002), so the settle runs with `--allow-stale-draft`: two or more spaces after `-u`
   are redacted, as they already were mid-text; an unquoted header key is
   left unchanged only when its value is quoted; and a `{}` config loads
   through `loadConfig` with the key absent, rather than parses.
@@ -4351,7 +4351,19 @@ can be hidden. Tier `complex`.
     for a path;
   - a single word under 8 characters, and a run under 8 characters;
   - quoted header names other than the four (`"x-authorization"`,
-    `"cookies"`), and an unquoted key with a quoted value.
+    `"cookies"`), and an unquoted key with a quoted value;
+  - an unquoted `Cookie:` or `Set-Cookie:` header line: the shared pattern
+    only knows `Authorization:` followed by `Bearer`, `Basic` or `Token`.
+- Before the first Codex run, a fresh agent read each AC clause by clause
+  as the settle-time verifier does and predicted two failures; both were
+  fixed first. AC-4: an assignment or flag pattern took only the first word
+  of `DB_PASSWORD=blue cat`, so the run was gone and `cat` stayed;
+  whitespace-holding literals and runs are now replaced before the
+  patterns. AC-3: its last sentence claimed every unquoted header was
+  already redacted, which is false for `Cookie:`; the AC now names what the
+  shared pattern covers. A 45-line suite under hide is tested (40 counted).
+  The two residue bullets not already in an AC are filed as
+  rec-20261121-004.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

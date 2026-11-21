@@ -3397,6 +3397,13 @@
       "kind": "note",
       "summary": "347-01-SUMMARY.json codeReview (medium, line 226); Codex dry-run output pasted by the operator 2026-11-21",
       "createdAt": "2026-11-21T19:34:55.828Z"
+    },
+    {
+      "id": "ev-20261121-004",
+      "recommendationId": "rec-20261121-004",
+      "kind": "note",
+      "summary": "Found by the phase 348 T1 review, T3 implementer probe and the pre-settle literal AC pass (2026-11-21); pinned as not covered in test-runner-redaction-348.test.ts",
+      "createdAt": "2026-11-21T20:18:46.492Z"
     }
   ]
 }

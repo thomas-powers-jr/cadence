@@ -547,7 +547,7 @@ These run on every phase regardless of profile or tier.
 > combined stdout and stderr, capped at 8 KiB, with ANSI escape codes
 > stripped, CRLF folded to LF, every Unicode control and format character
 > except TAB and LF removed (plus U+2028/U+2029), and known secret shapes redacted on a
-> best-effort basis) is shown on stderr and
+> best-effort basis) is shown on stderr (unless hidden, below) and
 > is not recorded: `SUMMARY.json` and `SUMMARY.md` are committed, and no
 > redaction can know every secret a suite might print. `SUMMARY.md` and
 > `cadence summary render` show the `detail` as an indented block under the

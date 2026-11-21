@@ -1925,6 +1925,7 @@ medium finding at packages/core/src/handoff/precompact.ts:245: Git collection ca
 - decay: fresh
 - areas: packages/core
 - files: packages/core/src/verify/test-runner.ts
+- decisions: dec-20261121-002 (active)
 - evidence: phase 346-bypass-honesty, draft 346-01, SUMMARY contentHash 45e8eba813bb0050e954f1beb28a0159869a3f858fd170bc694f7b616d7ce59b — high finding at packages/core/src/verify/test-runner.ts:107: Credentials at a captured line's start leak: both regexes require leading whitespace, so `--auth-token secret` or `-u user:pw` reaches the stderr tail.
 - next: cadence milestone propose
 
@@ -2010,3 +2011,19 @@ services/verify.ts prints 'verify phase: test command failed: <full command> exi
 - next: cadence milestone propose
 
 Two medium code-review findings on phase 347, neither blocking. (1) Recorded in 347-01-SUMMARY.json: when the code-review or security-audit agent fails, the gate entry carries no provider, so the dry-run report's gate line and gateOutcomes omit the configured provider. (2) From the last 347 dry run (not recorded, a dry run writes nothing): for a review-agent failure waved through by a flag, gateOutcomes.flag is the skipReason with the 'bypassed via ' prefix removed, so it may carry the failure detail as well as the flag. Not reproduced yet; write the failing test first.
+
+## rec-20261121-004 — Output-tail redaction residue after phase 348: the quoted credential-key pattern's closing-quote ordering, and unquoted Cookie headers
+
+- status: candidate
+- ready: needs-decision
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, build-test-must-pass, redaction
+- files: packages/core/src/verify/test-runner.ts
+- evidence: Found by the phase 348 T1 review, T3 implementer probe and the pre-settle literal AC pass (2026-11-21); pinned as not covered in test-runner-redaction-348.test.ts
+- next: cadence milestone propose
+
+Two known shapes outside phase 348's four, reported rather than fixed (dec-20261121-001). (1) QUOTED_KEY_RE (phase 346) runs after patterns that end in a greedy non-space run, which can swallow a value's closing quote: "password":"a b; X=1" becomes "password":"[REDACTED]" b; X=[REDACTED], leaving 'b;'. Phase 348 fixed the same weakness for the new auth-header pattern by running it on the raw text first; the same reorder would likely work here but needs its own false-positive check. (2) An unquoted 'Cookie: sid=...' or 'Set-Cookie: ...' header line is not redacted; the shared pattern only knows Authorization followed by Bearer, Basic or Token. Consumers who need certainty should set verification.buildTestOutputTail to hide.

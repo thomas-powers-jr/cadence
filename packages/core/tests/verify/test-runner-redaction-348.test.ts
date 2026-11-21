@@ -179,6 +179,26 @@ describe('phase 348 AC-3: a quoted auth header value', () => {
     expect(redactOutput('"Authorization":"Bearer abcdef1234567890 X=1"')).toBe('"Authorization":"[REDACTED]"');
   });
 
+  it('348-01/AC-3: not covered: an unquoted Cookie or Set-Cookie header line is left unchanged', () => {
+    // The shared pattern only knows `Authorization:` followed by Bearer, Basic or Token.
+    expect(redactOutput('Cookie: sid=abcdef1234567890')).toBe('Cookie: sid=abcdef1234567890');
+    expect(redactOutput('Set-Cookie: sid=abcdef1234567890; Path=/')).toBe('Set-Cookie: sid=abcdef1234567890; Path=/');
+  });
+
+  it('348-01/AC-3: an unquoted Authorization or Proxy-Authorization header with Bearer, Basic or Token stays redacted by the shared pattern', () => {
+    for (const text of [
+      'Authorization: Bearer abcdef1234567890',
+      'Authorization: Basic dXNlcjpwYXNzd29yZA==',
+      'Authorization: Token abcdef1234567890',
+      'Proxy-Authorization: Bearer abcdef1234567890',
+    ]) {
+      const out = redactOutput(text);
+      expect(out).toContain('[REDACTED]');
+      expect(out).not.toContain('abcdef1234567890');
+      expect(out).not.toContain('dXNlcjpwYXNzd29yZA==');
+    }
+  });
+
   it('348-01/AC-3: not covered: an unquoted key with a quoted value is left unchanged', () => {
     for (const text of ['Authorization: "Bearer abcdef1234567890"', 'Cookie: "sid=abcdef1234567890"']) {
       expect(redactOutput(text), text).toBe(text);
@@ -284,6 +304,29 @@ describe('phase 348 AC-4: two or more consecutive words of a passphrase', () => 
     expect(redactOutput('saw kk ll mm here', lits13)).toBe('saw kk ll mm here');
     // The whole 13-word literal is still redacted as a literal.
     expect(redactOutput(`saw ${thirteen} here`, lits13)).toBe('saw [REDACTED] here');
+  });
+});
+
+describe('phase 348 AC-4: a run whose first word an assignment or flag pattern already replaced', () => {
+  const literals = secretValues(undefined, { DB_PASSWORD: 'blue cat sat mat' });
+
+  it('348-01/AC-4: DB_PASSWORD=blue cat and X=blue cat sat leave no later word of the run', () => {
+    expect(redactOutput('DB_PASSWORD=blue cat', literals)).toBe('DB_PASSWORD=[REDACTED]');
+    expect(redactOutput('X=blue cat sat', literals)).toBe('X=[REDACTED]');
+    expect(redactOutput('--password blue cat sat mat', literals)).toBe('--password [REDACTED]');
+    expect(redactOutput('--password=blue cat', literals)).toBe('--password=[REDACTED]');
+  });
+
+  it('348-01/AC-4: the same inputs are stable when redactOutput is applied twice', () => {
+    for (const text of ['DB_PASSWORD=blue cat', 'X=blue cat sat', '--password=blue cat']) {
+      const once = redactOutput(text, literals);
+      expect(redactOutput(once, literals)).toBe(once);
+    }
+  });
+
+  it('348-01/AC-4: a redacted value followed by a word that is not the run\'s next word is left alone', () => {
+    expect(redactOutput('X=blue dog', literals)).toBe('X=[REDACTED] dog');
+    expect(redactOutput('TOKEN=zzzzzzzz cat', literals)).toBe('TOKEN=[REDACTED] cat');
   });
 });
 

@@ -294,7 +294,7 @@ export interface GateFlags {
    *  `--force`, the registry.ts rule), `command` and `exitCode` the failing
    *  test run, `outputTail` its bounded output tail when one was captured.
    *  Settle turns it into an error-severity `build-test-must-pass`
-   *  `GateBypass` whose `detail` counts the tail lines the notice showed (the
+   *  `GateBypass` whose `detail` counts the tail lines the notice showed, or under hide the lines captured and hidden (the
    *  tail itself is never recorded, dec-20261113-002). A separate field rather than
    *  widening the boolean, following the phase 332 `reviewFindingsBypass`
    *  precedent: provenance collection keeps reading `buildTestBypassed`. */
