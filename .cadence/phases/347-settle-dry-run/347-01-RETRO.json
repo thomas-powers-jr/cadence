@@ -1,0 +1,30 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {
+    "codeReview": {
+      "packages/core/src/services/settle-dry-run-report.ts": [
+        {
+          "severity": "medium",
+          "message": "Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.",
+          "line": 226,
+          "anchor": {
+            "kind": "ac",
+            "ref": "AC-1",
+            "tier": "executable"
+          },
+          "id": "b1633e54fdc322766846e39478f26e5ffb3cf4171c4a6105beb3720ff59f60e6",
+          "target": "artifact",
+          "disposition": "open"
+        }
+      ]
+    }
+  }
+}
