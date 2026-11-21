@@ -3383,6 +3383,20 @@
       "summary": "phase 347-settle-dry-run, draft 347-01, SUMMARY contentHash 872daa2379e3112df0067fc915b9b8f1f78f5faba058a49d74041d7e56da0731 — medium finding at packages/core/src/services/settle-dry-run-report.ts:226: Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.",
       "path": ".cadence/phases/347-settle-dry-run/347-01-SUMMARY.json",
       "createdAt": "2026-11-21T18:52:51.114Z"
+    },
+    {
+      "id": "ev-20261121-002",
+      "recommendationId": "rec-20261121-002",
+      "kind": "note",
+      "summary": "packages/core/src/services/verify.ts:313 interpolates testResult.command unredacted",
+      "createdAt": "2026-11-21T19:34:55.364Z"
+    },
+    {
+      "id": "ev-20261121-003",
+      "recommendationId": "rec-20261121-003",
+      "kind": "note",
+      "summary": "347-01-SUMMARY.json codeReview (medium, line 226); Codex dry-run output pasted by the operator 2026-11-21",
+      "createdAt": "2026-11-21T19:34:55.828Z"
     }
   ]
 }

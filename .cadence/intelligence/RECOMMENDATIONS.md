@@ -1978,3 +1978,35 @@ Phase 346 shows a bounded output tail of a failing suite on stderr only (never r
 - next: cadence milestone propose
 
 medium finding at packages/core/src/services/settle-dry-run-report.ts:226: Verifier-failure paths produce no `g.provider`; this report omits the configured provider despite promising every gate outcome includes one. Preserve/report it for failed code/security reviews.
+
+## rec-20261121-002 — cadence verify phase prints the full test command on failure, bypassing the program-only rule
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: verify, redaction
+- files: packages/core/src/services/verify.ts
+- evidence: packages/core/src/services/verify.ts:313 interpolates testResult.command unredacted
+- next: cadence milestone propose
+
+services/verify.ts prints 'verify phase: test command failed: <full command> exited N' to stderr. dec-20261116-001 says every notice names the test command by its program only (displayCommand), because the arguments can hold secrets and no shape list is complete. Fix: print displayCommand(testResult.command). Found by the independent review of the 348-01 DRAFT (2026-11-21); out of scope for phase 348.
+
+## rec-20261121-003 — settle --dry-run report: provider and flag details when a review agent fails
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: settle, dry-run
+- files: packages/core/src/services/settle-dry-run-report.ts
+- evidence: 347-01-SUMMARY.json codeReview (medium, line 226); Codex dry-run output pasted by the operator 2026-11-21
+- next: cadence milestone propose
+
+Two medium code-review findings on phase 347, neither blocking. (1) Recorded in 347-01-SUMMARY.json: when the code-review or security-audit agent fails, the gate entry carries no provider, so the dry-run report's gate line and gateOutcomes omit the configured provider. (2) From the last 347 dry run (not recorded, a dry run writes nothing): for a review-agent failure waved through by a flag, gateOutcomes.flag is the skipReason with the 'bypassed via ' prefix removed, so it may carry the failure detail as well as the flag. Not reproduced yet; write the failing test first.

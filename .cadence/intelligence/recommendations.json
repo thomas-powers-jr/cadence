@@ -3476,11 +3476,11 @@
       ],
       "assumptionIds": [],
       "decisionIds": [],
+      "convertedToPhaseId": "348-output-tail-redaction",
       "scoutId": "scout-20261116-2232",
       "sourceFindingId": "54a1c0bcaf42e03f448d98e58569760a82ea5fab192aef8feae15e1677329345",
       "createdAt": "2026-11-16T22:32:41.640Z",
-      "updatedAt": "2026-11-21T19:25:00.814Z",
-      "convertedToPhaseId": "348-output-tail-redaction"
+      "updatedAt": "2026-11-21T19:25:00.814Z"
     },
     {
       "id": "rec-20261117-001",
@@ -3573,6 +3573,62 @@
       "sourceFindingId": "b1633e54fdc322766846e39478f26e5ffb3cf4171c4a6105beb3720ff59f60e6",
       "createdAt": "2026-11-21T18:52:51.114Z",
       "updatedAt": "2026-11-21T18:52:51.114Z"
+    },
+    {
+      "id": "rec-20261121-002",
+      "title": "cadence verify phase prints the full test command on failure, bypassing the program-only rule",
+      "summary": "services/verify.ts prints 'verify phase: test command failed: <full command> exited N' to stderr. dec-20261116-001 says every notice names the test command by its program only (displayCommand), because the arguments can hold secrets and no shape list is complete. Fix: print displayCommand(testResult.command). Found by the independent review of the 348-01 DRAFT (2026-11-21); out of scope for phase 348.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "verify",
+        "redaction"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/verify.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261121-002"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-21T19:34:55.364Z",
+      "updatedAt": "2026-11-21T19:34:55.364Z"
+    },
+    {
+      "id": "rec-20261121-003",
+      "title": "settle --dry-run report: provider and flag details when a review agent fails",
+      "summary": "Two medium code-review findings on phase 347, neither blocking. (1) Recorded in 347-01-SUMMARY.json: when the code-review or security-audit agent fails, the gate entry carries no provider, so the dry-run report's gate line and gateOutcomes omit the configured provider. (2) From the last 347 dry run (not recorded, a dry run writes nothing): for a review-agent failure waved through by a flag, gateOutcomes.flag is the skipReason with the 'bypassed via ' prefix removed, so it may carry the failure detail as well as the flag. Not reproduced yet; write the failing test first.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "low",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "settle",
+        "dry-run"
+      ],
+      "affectedFiles": [
+        "packages/core/src/services/settle-dry-run-report.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261121-003"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-21T19:34:55.828Z",
+      "updatedAt": "2026-11-21T19:34:55.828Z"
     }
   ],
   "archived": [
