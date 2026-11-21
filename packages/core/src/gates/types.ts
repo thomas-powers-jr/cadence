@@ -303,6 +303,12 @@ export interface GateFlags {
     readonly command: string;
     readonly exitCode: number;
     readonly outputTail?: string;
+    /** Phase 348 (348-01): set only under
+     *  `verification.buildTestOutputTail: "hide"` when a tail was captured —
+     *  the number of tail lines the gate's notice counted and did not print.
+     *  Carried instead of `outputTail`, never beside it; settle writes the
+     *  hidden `detail` text from it. Absent under show and for a silent run. */
+    readonly hiddenTailLines?: number;
   };
   /** Phase 226 (T3): true iff boundary-scan proceeded past a real
    *  out-of-boundary finding via --force or --allow-boundary-scan-failure

@@ -1458,10 +1458,16 @@ async function runAnomalyAndSkillAuditChecks(
   // output itself: SUMMARY.json/.md are committed, and no redaction can know
   // every secret a test suite might print.
   // Every bypassed failing suite gets the note, a silent one included (0 lines).
+  // Phase 348 (348-01): under `verification.buildTestOutputTail: "hide"` the
+  // gate printed no tail and handed over only its line count, so the note says
+  // the lines were captured and hidden rather than shown.
   const shownLines = tailLines(buildTestBypass?.outputTail).length;
-  const tailNote = buildTestBypass
-    ? `output tail: ${shownLines} line${shownLines === 1 ? '' : 's'} shown on stderr at settle; not recorded, since test output can hold secrets`
-    : undefined;
+  const hiddenLines = buildTestBypass?.hiddenTailLines;
+  const tailNote = !buildTestBypass
+    ? undefined
+    : hiddenLines !== undefined
+      ? `output tail: ${hiddenLines} line${hiddenLines === 1 ? '' : 's'} captured, hidden by config (verification.buildTestOutputTail); not recorded, since test output can hold secrets`
+      : `output tail: ${shownLines} line${shownLines === 1 ? '' : 's'} shown on stderr at settle; not recorded, since test output can hold secrets`;
   const gateBypasses = gateBypassesFromAnomalies(anomalies).map((b) =>
     b.gate === 'build-test-must-pass' && tailNote ? { ...b, detail: tailNote } : b,
   );
