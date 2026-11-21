@@ -16,6 +16,7 @@ import type { DryRunReportData } from '../../src/services/settle-dry-run-report.
 import type { CommandIO } from '../../src/services/io.js';
 import { LoopViolationError } from '../../src/errors.js';
 import type * as LoaderModule from '../../src/config/loader.js';
+import type * as CodeReviewFactoryModule from '../../src/verify/code-review-factory.js';
 
 /** M-5 seam: when armed, the next `loadConfig` call throws a
  *  LoopViolationError, which reaches settleService's catch block (settle's
@@ -31,6 +32,26 @@ vi.mock('../../src/config/loader.js', async (importOriginal) => {
         throw new LoopViolationError('seam: loop violation mid-settle', { expected: 'BUILD', actual: 'SETTLE' });
       }
       return actual.loadConfig(...args);
+    },
+  };
+});
+
+/** While armed, every code-review verifier the factory selects throws on
+ *  verify(), as a failed transport would; pass-through otherwise. */
+const reviewSeam = vi.hoisted(() => ({ throws: false }));
+vi.mock('../../src/verify/code-review-factory.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof CodeReviewFactoryModule>();
+  return {
+    ...actual,
+    selectCodeReviewVerifier: (...args: Parameters<typeof actual.selectCodeReviewVerifier>) => {
+      const v = actual.selectCodeReviewVerifier(...args);
+      if (!reviewSeam.throws) return v;
+      return {
+        name: v.name,
+        verify: async () => {
+          throw new Error('seam: review transport down');
+        },
+      };
     },
   };
 });
@@ -53,6 +74,7 @@ const fixtures: Fixture[] = [];
 const extraDirs: string[] = [];
 afterEach(async () => {
   loaderSeam.throwNext = false;
+  reviewSeam.throws = false;
   vi.unstubAllEnvs();
   for (const fx of fixtures.splice(0)) await fx.cleanup();
   for (const d of extraDirs.splice(0)) {
@@ -376,6 +398,23 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
     await realSettle(root, AUTO);
     const afterSecond = JSON.parse(await readFile(sidecarPath, 'utf8')) as { attempts: number };
     expect(afterSecond.attempts).toBe(2);
+  });
+
+  it('347-01/AC-3: when the code-review agent itself fails, the report says no review completed and no attempt is spent, as settle records none', async () => {
+    const root = await setup({ profile: 'standard', tier: 'complex', src: 'export function f() { console.log("oops"); }\n' });
+    const sidecarPath = join(root, PHASE_DIR, `${ID}-CODE-REVIEW.json`);
+    // One real failing review first, so the count on disk is 1 of 3.
+    await realSettle(root, AUTO);
+    expect((JSON.parse(await readFile(sidecarPath, 'utf8')) as { attempts: number }).attempts).toBe(1);
+
+    reviewSeam.throws = true;
+    const { dry } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'code-review', summary: true });
+    expect(dry.data.codeReview?.convergence).toEqual({ attempt: 1, maxAttempts: 3, verdict: 'no-review', consumesAttempt: false });
+    expect(dry.stdout).toContain(
+      '  convergence: no review completed — consumes no attempt (attempts stay at 1 of 3)',
+    );
+    // The real settle that followed spent no attempt either.
+    expect((JSON.parse(await readFile(sidecarPath, 'utf8')) as { attempts: number }).attempts).toBe(1);
   });
 
   it('347-01/AC-1: a bypassed code-review refusal — settle would pass, convergence verdict bypassed (AC-3)', async () => {

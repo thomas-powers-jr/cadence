@@ -121,6 +121,7 @@ describe('docs: settle run --dry-run (347-01)', () => {
     expect(prose).toContain('`settle would pass`');
     expect(prose).toContain('`settle would refuse at <gate or check>: <reason>`');
     expect(prose).toMatch(/a passing or abstained review consumes no attempt/);
+    expect(prose).toContain('`no review completed — consumes no attempt (attempts stay at N of M)`');
     // Never prompts; the require-tty exception.
     expect(prose).toMatch(/A dry run never prompts/);
     expect(prose).toContain('`CADENCE_REQUIRE_TTY=1`');

@@ -113,6 +113,29 @@ describe('renderSettleDryRunReport (347-01, T2)', () => {
     ]);
   });
 
+  it('347-01/AC-3: a code-review gate that wrote no sidecar (its agent failed) reports no review completed and the unchanged count', () => {
+    const { text, data } = renderSettleDryRunReport(
+      base({
+        gates: [{ gate: 'code-review', status: 'refused', reason: 'code-review: verifier failed — boom.', provider: 'host-cli' }],
+        refusal: { at: 'code-review', reason: 'code-review: verifier failed — boom.' },
+        attemptsSoFar: 2,
+      }),
+    );
+    expect(data.codeReview).toEqual({
+      provider: 'host-cli',
+      findings: [],
+      convergence: { attempt: 2, maxAttempts: 3, verdict: 'no-review', consumesAttempt: false },
+    });
+    expect(lines(text)).toContain('  convergence: no review completed — consumes no attempt (attempts stay at 2 of 3)');
+  });
+
+  it('347-01/AC-3: a code-review gate that never ran (not in the gate set) adds no code-review section', () => {
+    const { data } = renderSettleDryRunReport(
+      base({ gates: [{ gate: 'code-review', status: 'skipped', skipReason: 'not in the active tier × profile gate set' }], attemptsSoFar: 0 }),
+    );
+    expect(data.codeReview).toBeNull();
+  });
+
   it('347-01/AC-3: lists each deep-verify AC verdict with its reason and provider', () => {
     const { text, data } = renderSettleDryRunReport(
       base({

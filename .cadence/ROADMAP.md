@@ -4293,6 +4293,12 @@ Tier `complex`.
   findings-bypassed review read as plain "ran". The data now also carries
   `gateOutcomes` (ran, skipped, refused or bypassed with its flag, and the
   provider). One function builds both the data and the text lines.
+- The next dry run (deep-verify again, no attempt spent) found that when
+  the code-review agent itself fails, settle writes no sidecar, yet the
+  report then said nothing about code-review. It now reports
+  `no review completed — consumes no attempt (attempts stay at N of M)`,
+  with N read from the sidecar already on disk. A test drives a failing
+  review agent through a dry run and then a real settle.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

@@ -2228,6 +2228,8 @@ export async function settleService(
         (settleCtx.interactivity === 'interactive' ||
           (settleCtx.interactivity === 'require-tty' && isTTY));
       dryRun.maxAttempts = cadenceConfig?.convergence?.maxAttempts ?? 3;
+      // Read-only (the read port never throws): the count settle starts from.
+      dryRun.attemptsSoFar = (await settleCtx.codeReviewSidecar.read()).attemptsSoFar;
       const dryCtx = withDryRunPorts(settleCtx, dryRun.recorder);
       ctx =
         settleCtx.interactivity === 'require-tty' && !isTTY
@@ -2443,6 +2445,8 @@ interface DryRunSession {
   /** …and it did (set after the gate loop). */
   wouldPrompt?: boolean;
   maxAttempts?: number;
+  /** The code-review sidecar's attempt count before this run. */
+  attemptsSoFar?: number;
   gates?: GateProvenance[];
   acc?: SettleAccumulator;
   findingsBypasses?: readonly GateBypass[];
@@ -2464,6 +2468,7 @@ function finishDryRun(session: DryRunSession, end: { refusal: DryRunRefusal | nu
     ...(acc?.securityAudit ? { securityAudit: acc.securityAudit } : {}),
     sidecarWrites: session.recorder.sidecarWrites,
     maxAttempts: session.maxAttempts ?? 3,
+    ...(session.attemptsSoFar !== undefined ? { attemptsSoFar: session.attemptsSoFar } : {}),
     events: session.recorder.events,
     wouldPrompt: session.wouldPrompt === true,
   });

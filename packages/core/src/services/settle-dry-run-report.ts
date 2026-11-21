@@ -41,12 +41,18 @@ export interface DryRunReportInput {
   readonly sidecarWrites: readonly string[];
   /** `config.convergence.maxAttempts ?? 3`, used when the sidecar lacks it. */
   readonly maxAttempts: number;
+  /** The failing-attempt count already on disk before this run (the
+   *  sidecar's `attempts`, 0 when there is none). Reported when code-review
+   *  was reached but no review completed, so settle would record nothing. */
+  readonly attemptsSoFar?: number;
   readonly events: readonly AnomalyEvent[];
   /** Settle (without --dry-run) would walk ACs interactively. */
   readonly wouldPrompt: boolean;
 }
 
-export type DryRunConvergenceVerdict = 'pass' | 'abstained' | 'reloop' | 'escalate' | 'bypassed';
+/** `no-review`: code-review was reached but no review completed (its agent
+ *  failed), so settle would write no sidecar and spend no attempt. */
+export type DryRunConvergenceVerdict = 'pass' | 'abstained' | 'reloop' | 'escalate' | 'bypassed' | 'no-review';
 
 export interface DryRunConvergence {
   /** For a failing review, the attempt this would have been; for a passing
@@ -208,9 +214,17 @@ export function renderSettleDryRunReport(input: DryRunReportInput): { text: stri
   }
 
   let codeReview: DryRunReportData['codeReview'] = null;
-  const convergence = readConvergence(input.sidecarWrites[input.sidecarWrites.length - 1], input.maxAttempts);
+  const g = input.gates.find((x) => x.gate === 'code-review');
+  // Reached: the gate ran, refused, or was bypassed; a plain skip (not in the
+  // gate set, not requested) is not a review settle would attempt.
+  const reviewReached =
+    g !== undefined && (g.status !== 'skipped' || (g.skipReason ?? '').startsWith(BYPASSED_VIA));
+  const convergence: DryRunConvergence | undefined =
+    readConvergence(input.sidecarWrites[input.sidecarWrites.length - 1], input.maxAttempts) ??
+    (reviewReached && input.sidecarWrites.length === 0
+      ? { attempt: input.attemptsSoFar ?? 0, maxAttempts: input.maxAttempts, verdict: 'no-review', consumesAttempt: false }
+      : undefined);
   if (input.codeReview !== undefined || convergence !== undefined) {
-    const g = input.gates.find((x) => x.gate === 'code-review');
     const findings: DryRunFindingRow[] = [];
     for (const [file, list] of Object.entries(input.codeReview ?? {})) {
       for (const f of list) {
@@ -228,9 +242,11 @@ export function renderSettleDryRunReport(input: DryRunReportInput): { text: stri
     for (const f of findings) out.push(findingLine(f));
     if (convergence) {
       out.push(
-        convergence.consumesAttempt
-          ? `  convergence: would be attempt ${convergence.attempt} of ${convergence.maxAttempts} — verdict ${convergence.verdict}`
-          : `  convergence: verdict ${convergence.verdict} — consumes no attempt (attempts stay at ${convergence.attempt} of ${convergence.maxAttempts})`,
+        convergence.verdict === 'no-review'
+          ? `  convergence: no review completed — consumes no attempt (attempts stay at ${convergence.attempt} of ${convergence.maxAttempts})`
+          : convergence.consumesAttempt
+            ? `  convergence: would be attempt ${convergence.attempt} of ${convergence.maxAttempts} — verdict ${convergence.verdict}`
+            : `  convergence: verdict ${convergence.verdict} — consumes no attempt (attempts stay at ${convergence.attempt} of ${convergence.maxAttempts})`,
       );
     }
   }
