@@ -3598,6 +3598,35 @@
       "decisionIds": [],
       "createdAt": "2026-11-21T20:30:49.546Z",
       "updatedAt": "2026-11-21T20:30:49.546Z"
+    },
+    {
+      "id": "rec-20261122-001",
+      "title": "Release integrity wait gave up one minute before npm showed core",
+      "summary": "On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did not show cadence-core 1.76.0 until 17:26:36, about 11 minutes later. The release-integrity step polls 40 times at 15s (585s) and failed at 17:25:30, so the Release run is red although all five packages, the tag and the GitHub release are present. The other four packages appeared within about a minute. Decide whether to lengthen the wait (for example 80 attempts), back off instead of flat polling, or make a propagation timeout a distinct, clearly named outcome that tells the operator to verify by hand.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "needs-decision",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "release",
+        "ci"
+      ],
+      "affectedFiles": [
+        "scripts/release-integrity.mjs",
+        ".github/workflows/release.yml"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261122-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-22T17:31:29.830Z",
+      "updatedAt": "2026-11-22T17:31:29.830Z"
     }
   ],
   "archived": [
@@ -12843,12 +12872,12 @@
         "dec-20261122-001"
       ],
       "convertedToPhaseId": "344-verifier-isolation",
-      "scoutId": "scout-20261030-studio-intake",
-      "createdAt": "2026-10-30T19:28:27.265Z",
-      "updatedAt": "2026-11-22T15:09:37.494Z",
       "shippedRef": "phase 344",
+      "scoutId": "scout-20261030-studio-intake",
       "archivedAt": "2026-11-22T15:09:37.494Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-10-30T19:28:27.265Z",
+      "updatedAt": "2026-11-22T15:09:37.494Z"
     }
   ]
 }
