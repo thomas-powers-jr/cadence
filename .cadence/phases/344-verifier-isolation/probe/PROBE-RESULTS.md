@@ -52,16 +52,40 @@ A config override does not keep the global `AGENTS.md` out. `--ignore-user-confi
 still does something: about 1,300 to 1,900 fewer input tokens than the
 control, consistent with `config.toml` (MCP servers, plugins) not loading.
 
+## Round 4 (results-20261122T002306Z)
+
+Claude only, three calls, no login copies. MCP servers, tools and plugins are
+read from the CLI's own init record (`--output-format stream-json --verbose`),
+not from a model reply. The hook column is a temporary user-level
+`SessionStart` hook in `~/.claude/settings.json` that creates a marker file.
+Server and plugin names stay on the operator's machine; counts only here.
+
+| Cell | Variant | Login works? | User-level hook fired? | MCP servers | Tools | Plugins |
+|---|---|---|---|---|---|---|
+| 5 | as shipped | yes | yes | 24 (19 from plugins, 5 claude.ai connectors) | 119 | 14 |
+| 6 | `--setting-sources project` | yes | no | 5 (the claude.ai connectors) | 92 | 4 |
+| 7 | `--setting-sources project --strict-mcp-config` | yes | no | 0 | 25 | 4 |
+
+`--setting-sources project` stops the user-level hook, the user's installed
+plugins (14 to 4; the 4 left are built in) and the MCP servers those plugins
+bring. `--strict-mcp-config` on top removes the remaining account-level
+connectors, leaving no MCP server and 25 tools. Neither keeps the global
+`CLAUDE.md` out (round 2).
+
 ## Conclusions
 
 - **codex.** Only a `CODEX_HOME` that holds nothing but the login keeps the
   global `AGENTS.md` out, and it means copying `auth.json`. An empty
   `CODEX_HOME` breaks the login. `--ignore-user-config` keeps `config.toml`
   out and leaves the global `AGENTS.md` in.
-- **claude.** `--setting-sources project`, with or without
-  `--strict-mcp-config`, keeps the login and does not keep the global
-  `CLAUDE.md` out. Their effect on user settings, hooks and MCP servers was
-  not measured by this probe.
+- **claude.** `--setting-sources project --strict-mcp-config` keeps the
+  login, stops user-level hooks, drops the user's plugins and every MCP
+  server (24 to 0), and cuts the tool list from 119 to 25. It does not keep
+  the global `CLAUDE.md` out.
+- **Operator decisions, 2026-11-21/22.** codex ships `--ignore-user-config`
+  alone with the `AGENTS.md` residual documented (the handoff's stated
+  fallback; no login copying). claude ships both flags with the `CLAUDE.md`
+  residual documented.
 - The verifier child runs in the project directory, so project-level
   instruction files and hooks still apply to it (rec-20260916-004); out of
   scope for phase 344.
