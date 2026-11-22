@@ -3133,39 +3133,6 @@
       "updatedAt": "2026-10-30T19:28:26.859Z"
     },
     {
-      "id": "rec-20261030-010",
-      "title": "host-cli verifiers inherit the operator's full user config (Codex ~/.codex MCPs, plugins, hooks, global AGENTS.md; Claude settings likewise)",
-      "summary": "Studio measured (its rec-20261028-008) that CADENCE_HOST_CLI_BIN=codex settles spawn Codex with the user's full ~/.codex: MCP servers including a computer-use server, plugins, hooks, and a global AGENTS.md that made the verifier read ~/.memory/MEMORY.md unprompted. A verifier that inherits the operator's ambient instructions shares their blind spots. The claude family has the same exposure: host-cli-client.ts:387 spawns 'claude -p --output-format json [--model]' with no --setting-sources or --strict-mcp-config. Evidence still needed: whether CODEX_HOME=<scratch> keeps the global AGENTS.md from reaching the child (codex --ignore-user-config, codex-cli 0.162.1 or later, drops config.toml only). Planned as phase 344, probe first.",
-      "source": "manual",
-      "status": "converted",
-      "readiness": "needs-evidence",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "studio-upstream",
-        "verify",
-        "host-cli",
-        "isolation"
-      ],
-      "affectedFiles": [],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261030-010",
-        "ev-20261030-013"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261122-001"
-      ],
-      "convertedToPhaseId": "344-verifier-isolation",
-      "scoutId": "scout-20261030-studio-intake",
-      "createdAt": "2026-10-30T19:28:27.265Z",
-      "updatedAt": "2026-11-22T00:34:48.278Z"
-    },
-    {
       "id": "rec-20261013-002",
       "title": "The braces audit-exception row's root-only justification now also applies to website/'s lockfile",
       "summary": "Since phase 328 the one exceptions table in docs/security/audit-exceptions.md is applied to both the root pnpm-lock.yaml and website/pnpm-lock.yaml. The GHSA-vfj7-8cjw-p6xm (braces) row's justification is root-specific: every path starts at @changesets/cli and no published package ships it. If braces 3.0.3 ever entered website/'s tree, the row would allow it there under a reason that does not apply. Latent today (braces is not in website's lockfile), and the row expires 2026-11-18 (rec-20261010-007). Options: add an optional scope column (root | website | both) that decideAdvisories honors per audited project, or require a justification per lockfile; decide alongside rec-20261010-007.",
@@ -12846,6 +12813,42 @@
       "archiveReason": "shipped",
       "createdAt": "2026-11-17T03:14:34.417Z",
       "updatedAt": "2026-11-21T21:08:45.988Z"
+    },
+    {
+      "id": "rec-20261030-010",
+      "title": "host-cli verifiers inherit the operator's full user config (Codex ~/.codex MCPs, plugins, hooks, global AGENTS.md; Claude settings likewise)",
+      "summary": "Studio measured (its rec-20261028-008) that CADENCE_HOST_CLI_BIN=codex settles spawn Codex with the user's full ~/.codex: MCP servers including a computer-use server, plugins, hooks, and a global AGENTS.md that made the verifier read ~/.memory/MEMORY.md unprompted. A verifier that inherits the operator's ambient instructions shares their blind spots. The claude family has the same exposure: host-cli-client.ts:387 spawns 'claude -p --output-format json [--model]' with no --setting-sources or --strict-mcp-config. Evidence still needed: whether CODEX_HOME=<scratch> keeps the global AGENTS.md from reaching the child (codex --ignore-user-config, codex-cli 0.162.1 or later, drops config.toml only). Planned as phase 344, probe first.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "needs-evidence",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "studio-upstream",
+        "verify",
+        "host-cli",
+        "isolation"
+      ],
+      "affectedFiles": [],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261030-010",
+        "ev-20261030-013"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261122-001"
+      ],
+      "convertedToPhaseId": "344-verifier-isolation",
+      "scoutId": "scout-20261030-studio-intake",
+      "createdAt": "2026-10-30T19:28:27.265Z",
+      "updatedAt": "2026-11-22T15:09:37.494Z",
+      "shippedRef": "phase 344",
+      "archivedAt": "2026-11-22T15:09:37.494Z",
+      "archiveReason": "shipped"
     }
   ]
 }

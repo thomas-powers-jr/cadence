@@ -1740,23 +1740,6 @@ cadence init and onboard take no flag for verification.testCommand or testGlobs 
 
 Studio's clarification flow needs to change a PENDING task or AC of an already-approved DRAFT. Today the options are hand-editing (which the content-hash draft-read gate from phase 340 now catches) or abandoning the slice. Ask: a mutator that amends an approved DRAFT under a recorded reason and re-stamps the hash, or a documented split recipe. Needs a decision on how an amended AC re-reaches deep-verify; that is rec-20260820-001's gap, and the two should be decided together.
 
-## rec-20261030-010 — host-cli verifiers inherit the operator's full user config (Codex ~/.codex MCPs, plugins, hooks, global AGENTS.md; Claude settings likewise)
-
-- status: converted
-- ready: needs-evidence
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: studio-upstream, verify, host-cli, isolation
-- decisions: dec-20261122-001 (active)
-- evidence: cadence-studio rec-20261028-008; packages/core/src/verify/host-cli-client.ts:382-387
-- evidence: Decide together with rec-20260916-004 (host-cli verifier children still fire every CADENCE hook), which Studio's roadmap §3 Phase-2 risk note also cites: the claude-family isolation flags this rec proposes (--setting-sources, --strict-mcp-config) bear directly on whether a verifier child loads the operator's hooks.
-- next: cadence milestone propose
-
-Studio measured (its rec-20261028-008) that CADENCE_HOST_CLI_BIN=codex settles spawn Codex with the user's full ~/.codex: MCP servers including a computer-use server, plugins, hooks, and a global AGENTS.md that made the verifier read ~/.memory/MEMORY.md unprompted. A verifier that inherits the operator's ambient instructions shares their blind spots. The claude family has the same exposure: host-cli-client.ts:387 spawns 'claude -p --output-format json [--model]' with no --setting-sources or --strict-mcp-config. Evidence still needed: whether CODEX_HOME=<scratch> keeps the global AGENTS.md from reaching the child (codex --ignore-user-config, codex-cli 0.162.1 or later, drops config.toml only). Planned as phase 344, probe first.
-
 ## rec-20261013-002 — The braces audit-exception row's root-only justification now also applies to website/'s lockfile
 
 - status: deferred
