@@ -1742,7 +1742,7 @@ Studio's clarification flow needs to change a PENDING task or AC of an already-a
 
 ## rec-20261030-010 — host-cli verifiers inherit the operator's full user config (Codex ~/.codex MCPs, plugins, hooks, global AGENTS.md; Claude settings likewise)
 
-- status: candidate
+- status: converted
 - ready: needs-evidence
 - priority: high
 - leverage: 5/10

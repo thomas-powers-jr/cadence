@@ -3137,7 +3137,7 @@
       "title": "host-cli verifiers inherit the operator's full user config (Codex ~/.codex MCPs, plugins, hooks, global AGENTS.md; Claude settings likewise)",
       "summary": "Studio measured (its rec-20261028-008) that CADENCE_HOST_CLI_BIN=codex settles spawn Codex with the user's full ~/.codex: MCP servers including a computer-use server, plugins, hooks, and a global AGENTS.md that made the verifier read ~/.memory/MEMORY.md unprompted. A verifier that inherits the operator's ambient instructions shares their blind spots. The claude family has the same exposure: host-cli-client.ts:387 spawns 'claude -p --output-format json [--model]' with no --setting-sources or --strict-mcp-config. Evidence still needed: whether CODEX_HOME=<scratch> keeps the global AGENTS.md from reaching the child (codex --ignore-user-config, codex-cli 0.162.1 or later, drops config.toml only). Planned as phase 344, probe first.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "needs-evidence",
       "priority": "high",
       "leverageScore": 5,
@@ -3160,7 +3160,8 @@
       "decisionIds": [],
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:28:27.265Z",
-      "updatedAt": "2026-10-30T19:47:59.151Z"
+      "updatedAt": "2026-11-22T00:34:48.278Z",
+      "convertedToPhaseId": "344-verifier-isolation"
     },
     {
       "id": "rec-20261013-002",
@@ -12838,11 +12839,11 @@
       "decisionIds": [
         "dec-20261121-001"
       ],
-      "createdAt": "2026-11-17T03:14:34.417Z",
-      "updatedAt": "2026-11-21T21:08:45.988Z",
       "shippedRef": "phase 348",
       "archivedAt": "2026-11-21T21:08:45.988Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-17T03:14:34.417Z",
+      "updatedAt": "2026-11-21T21:08:45.988Z"
     }
   ]
 }
