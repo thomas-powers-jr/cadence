@@ -4,6 +4,37 @@ All notable changes to this project are documented in this file. Format follows 
 
 ## [Unreleased]
 
+## [1.76.0] - 2026-11-22
+
+> Published to npm via the `Release` workflow (provenance), tag `v1.76.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
+
+### Added
+
+- **`cadence settle run --dry-run` shows what settle would decide without settling.** Until now settle was the only way to run the real code-review and deep-verify gates, and every failing code-review run spent one of the draft's convergence attempts.
+  - **What it runs.** Settle's preconditions, the same gate set in the same order with the same diff basis, providers, `verification.fallback` and bypass flags, then AC derivation, the anomaly and skill-audit checks and the evidence floor. It stops at the first refusal, as settle does, and stops before finalize.
+  - **What it leaves alone.** Cadence writes nothing and notifies nothing: no SUMMARY, no RETRO, no code-review sidecar write (so no convergence attempt is spent), no state, PROGRESS or ledger change, and no anomaly event to any transport. The configured test command and the review agents still run.
+  - **The report.** Each gate's outcome and provider, deep-verify's per-AC verdicts, code-review and security-audit findings, `would be attempt N of M` and the would-be convergence verdict, the events settle would send under `would notify:`, and a final `settle would pass` or `settle would refuse at <gate or check>: <reason>` line. The same facts are returned as structured data.
+  - **Exit codes.** 0 if settle would pass, 1 if it would refuse, 2 when combined with `--interactive` or `--ship-ref`. A dry run never prompts; where settle would walk ACs interactively the verdict assumes every AC is confirmed and says so.
+  - (Phase `347`, rec-20261113-001, dec-20261118-001, #609.)
+- **A setting hides the build-test output tail.** `verification.buildTestOutputTail` takes `"show"` or `"hide"`; absent means `"show"`. Under `"hide"`, `build-test-must-pass` prints `output tail: (hidden by config; N lines captured)` in place of the tail on every refusal and on the bypass notice, and the bypass `detail` in the SUMMARY says the tail was hidden. This is the answer for a consumer that captures settle's stderr and needs certainty that no test output appears there. (Phase `348`, dec-20261121-001, #611.)
+- **Host-cli review agents are spawned with isolation flags, and the flags are recorded.** A codex-family binary is now run as `codex exec --json --skip-git-repo-check --ignore-user-config -` and a claude-family binary as `claude -p --output-format json --setting-sources project --strict-mcp-config`, so part of the user-level configuration is kept out of a review.
+  - **What was measured.** On codex-cli 0.156.1 and Claude Code 2.1.330: the claude flags stopped a user-level hook, the user's installed plugins and every MCP server. The global `AGENTS.md` (codex) and the global `CLAUDE.md` (claude) still reach the reviewer, and so do project-level instruction files and hooks, because the child runs in the project directory.
+  - **The opt-out.** `verification.hostCliIsolation` takes `"on"` or `"off"`; absent means `"on"`. Under `"off"` the review agents are spawned as before.
+  - **The record.** The SUMMARY's `deep-verify`, `code-review` and `security-audit` gate entries carry a new optional `hostCliIsolation` field listing the flags that were passed. It is absent when isolation was off, the provider was not `host-cli`, the call fell back to mock, or no child was spawned.
+  - **Doctor.** A new `host-cli-isolation` check names the flags the configured binary gets and the global instruction file that still reaches the reviewer, and warns under `"off"` when a seam uses `host-cli`.
+  - **A CLI that rejects a flag** fails the call without a retry; when its error output names an isolation flag that was passed, the failure message carries a hint naming the flag and the setting.
+  - (Phase `344`, rec-20261030-010, dec-20261122-001, #612.)
+- The types package gains the optional `verification.buildTestOutputTail` and `verification.hostCliIsolation` config keys and the optional `GateProvenanceZ.hostCliIsolation` field. Existing configs and SUMMARY records keep parsing, and their content hashes are unchanged.
+
+### Fixed
+
+- **Four known secret shapes are now redacted from the build-test output tail**: a credential flag (`--auth-token x`, `--db-pass=x`) or `-u user:pw` at the very start of the captured text; a credential-named environment value that starts with `/` and contains `+` or `=`; a quoted `Authorization`, `Proxy-Authorization`, `Cookie` or `Set-Cookie` value; and a run of two or more consecutive words of a multi-word passphrase. Redaction of the output tail is best-effort; the setting above hides the tail entirely. (Phase `348`, rec-20261116-001, rec-20261117-002, #611.)
+
+### Upgrade notes
+
+- The isolation flags make the host CLI skip its user-level settings (`config.toml` for codex; user settings, plugins and MCP servers for claude), so a model or effort level, or a sign-in setting such as a custom model provider or an API-key helper, kept there is expected no longer to apply to reviews. This follows from what the flags skip; it was not measured. Set the model in cadence's config (`verifier.model`, `codeReview.model` and the other seams' `model` keys), or set `verification.hostCliIsolation` to `"off"`.
+- `settle run` without `--dry-run`, and `build-test-must-pass` without `verification.buildTestOutputTail`, behave as before.
+
 ## [1.75.0] - 2026-11-17
 
 > Published to npm via the `Release` workflow (provenance), tag `v1.75.0`. Per-package bumps managed by changesets, lockstep across all five published packages.
