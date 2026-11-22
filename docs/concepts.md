@@ -162,6 +162,19 @@ below — and leaves `loopPosition`/`activeDraft` untouched so the exact same
   the `verifierRollup`/`overall` fold that `provider`/`model` feed — no
   `schemaVersion` bump, additive and content-hash-safe like the phase-232
   `provider`/`model` fields directly above.
+- Phase 344: `gates[]` entries also carry optional `hostCliIsolation` — the
+  isolation flags the host-cli review agent behind the gate was spawned
+  with, in argv order (`["--ignore-user-config"]` for a codex-family binary,
+  `["--setting-sources", "project", "--strict-mcp-config"]` for a
+  claude-family one), populated for `deep-verify`, `code-review` and
+  `security-audit`. It records that the flags were passed, not what the
+  reviewer could still see (see
+  [providers.md — Isolation](providers.md#isolation)). Absent when isolation
+  was off (`verification.hostCliIsolation: "off"`), when the provider was
+  not `host-cli`, when the call fell back to mock, and when no child was
+  spawned; also absent on `per-task-verify` entries. No `schemaVersion`
+  bump, additive and content-hash-safe like the phase-275 fields directly
+  above.
 - Phase 233: `SUMMARY.json` optionally carries `assurance` — one whole-run
   record, *derived and reported only* (it adds no gate, no refusal path, and
   no bypass flag), answering "how strongly was this settle actually

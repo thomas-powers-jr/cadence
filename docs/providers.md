@@ -24,6 +24,7 @@ For a conceptual overview of providers and the gate universe they serve, see
   - [Warn + mock fallback](#warn--mock-fallback)
 - [host-cli — headless host CLI (`claude`/`codex`)](#host-cli--headless-host-cli-claudecodex)
   - [Binary discovery](#binary-discovery)
+  - [Isolation](#isolation)
   - [Verifier family coverage](#verifier-family-coverage)
   - [Fallback behavior](#fallback-behavior)
   - [Quota-transparency notice](#quota-transparency-notice)
@@ -269,9 +270,12 @@ own gate label in place of `verifier`.)
 The `host-cli` provider reuses your already-installed, already-authenticated
 `claude` or `codex` CLI instead of requiring a separately configured
 `ANTHROPIC_API_KEY`. It spawns the binary in headless/non-interactive mode
-(`claude -p --output-format json`, or `codex exec --json --skip-git-repo-check -`
+(`claude -p --output-format json --setting-sources project --strict-mcp-config`,
+or `codex exec --json --skip-git-repo-check --ignore-user-config -`
 for a `codex`-named binary — the trailing `-` tells codex to read its
-instructions from stdin), parses its stdout, and coerces it into a
+instructions from stdin; the flags after `json` and `--skip-git-repo-check`
+are the isolation flags described under [Isolation](#isolation)), parses its
+stdout, and coerces it into a
 schema-valid verdict with the same
 transport-agnostic JSON-extraction + repair-retry harness the `local`
 provider uses (`packages/core/src/verify/json-repair.ts`) — only the
@@ -350,6 +354,97 @@ CADENCE_HOST_CLI_BIN=C:\Users\you\AppData\Roaming\npm\node_modules\@openai\codex
 
 Non-Windows platforms are unaffected: `CADENCE_HOST_CLI_BIN` is spawned
 exactly as configured, with no PATH/PATHEXT search or launcher parsing.
+
+### Isolation
+
+Since phase 344 a host-cli review agent is spawned with flags that keep part
+of your own user-level configuration out of the review. The flags depend on
+the CLI family, and what they do differs between the two families. Neither
+set makes the reviewer independent of your machine: read the "still reaches
+the reviewer" lines below before relying on it.
+
+| Family | Command line | Isolation flags |
+|---|---|---|
+| codex | `codex exec --json --skip-git-repo-check --ignore-user-config -` | `--ignore-user-config` |
+| claude | `claude -p --output-format json --setting-sources project --strict-mcp-config` | `--setting-sources project --strict-mcp-config` |
+
+When a seam's `model` is set, the model flag (`-m <model>` for codex,
+`--model <model>` for claude) follows the isolation flags.
+
+What is said below was measured on one PC with codex-cli 0.156.1 and Claude
+Code 2.1.330. Those are the versions measured, not a minimum requirement:
+other versions may behave differently, and nothing here was checked against
+them.
+
+**codex.** The flag's own `--help` text is the whole claim: with
+`--ignore-user-config`, `$CODEX_HOME/config.toml` is not loaded, and auth
+still uses `CODEX_HOME`. The login kept working in the measurement. The
+global `AGENTS.md` was measured to still reach the reviewer with the flag
+passed. Which of the things configured in `config.toml` the reviewer ends up
+without was not measured for codex, so this page does not list any.
+
+**claude.** `--setting-sources project` was measured to stop a user-level
+hook from firing and to leave out the user's installed plugins (14 plugins
+down to 4, the 4 being built in) together with the MCP servers those plugins
+bring. `--strict-mcp-config` on top left no MCP server at all (24 servers
+down to 0) and cut the tool list from 119 to 25. The login kept working. The
+global `CLAUDE.md` was measured to still reach the reviewer with both flags
+passed.
+
+**What still reaches the reviewer, for both families.**
+
+- The global instruction file: `AGENTS.md` for codex, `CLAUDE.md` for claude.
+- Project-level instruction files and project-level hooks. The child runs in
+  the project directory, so these still apply to it. This was not changed.
+
+**What you may need to change.**
+
+- A model or an effort level chosen in your user configuration no longer
+  applies to reviews, because that configuration is what the flags skip. Set
+  the model per seam in cadence's own config instead (`verifier.model`,
+  `codeReview.model`, and the same `model` key on the other
+  [gate provider blocks](reference/config.md#gate-provider-blocks)). Cadence
+  has no key for an effort level; if you need one from your user
+  configuration, turn the flags off with `verification.hostCliIsolation:
+  "off"`.
+- Sign-in settings kept in user configuration are skipped too: a custom model
+  provider, a proxy or an API-key helper defined there is not seen by the
+  reviewer. A CLI that needs one of them fails the review call, loudly, and
+  the remedy is again `verification.hostCliIsolation: "off"`.
+
+These two points follow from what the flags are documented to skip. The
+measurement covered an ordinary login only, not a setup that depends on such
+settings.
+
+**A CLI too old to know a flag.** The call fails (it is not retried without
+the flag), and when the CLI's error output names an isolation flag that was
+passed, the failure message carries a hint such as:
+
+```
+this CLI may not accept the isolation flag "--ignore-user-config"; update it, or set verification.hostCliIsolation to "off"
+```
+
+The hint says "may" because a wrapper that prints its own command line
+before failing for another reason triggers it too. The failure then follows
+the usual path: a loud fallback to `mock` for that call, or a refusal under
+`verification.fallback: "refuse"`.
+
+**Turning it off.** `verification.hostCliIsolation` takes `"on"` or `"off"`;
+absent means on. With `"off"` the review agents are spawned as they were
+before phase 344 (`codex exec --json --skip-git-repo-check -`,
+`claude -p --output-format json`) and inherit your user configuration. See
+[Host-cli isolation](reference/config.md#host-cli-isolation).
+
+**Where it is recorded.** The SUMMARY's gate entry for `deep-verify`,
+`code-review` and `security-audit` carries `hostCliIsolation`, the list of
+flags the review agent behind that gate was spawned with, for example
+`["--setting-sources", "project", "--strict-mcp-config"]`. It records that
+the flags were passed and nothing more. The field is absent when isolation
+was off, when the provider was not `host-cli`, when the call fell back to
+`mock`, and when no child was spawned. `per-task-verify` entries and the
+plan-review, spec-review and ui-spec-review records do not carry it.
+`cadence doctor`'s `host-cli-isolation` check reports the flags the
+configured binary gets; see [`doctor`](reference/commands.md#doctor).
 
 ### Verifier family coverage
 
