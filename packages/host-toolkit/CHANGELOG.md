@@ -1,5 +1,13 @@
 # @thomas-powers-jr/cadence-host-toolkit
 
+## 1.76.0
+
+### Patch Changes
+
+- Updated dependencies [9f04fbe]
+- Updated dependencies [075f663]
+  - @thomas-powers-jr/cadence-types@1.76.0
+
 ## 1.75.0
 
 ### Patch Changes
