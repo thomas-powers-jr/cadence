@@ -265,6 +265,20 @@ export const CadenceConfigZ = z.object({
        */
       buildTestOutputTail: z.enum(['show', 'hide']).optional(),
       /**
+       * Whether the host-cli review agents are spawned with their family's
+       * isolation flags (phase 344). Absent or `on` — `codex` is run with
+       * `--ignore-user-config` and `claude` with `--setting-sources project
+       * --strict-mcp-config`, so the reviewer does not load the operator's own
+       * user-level configuration. `off` — the flags are left out and the
+       * reviewer is spawned exactly as before phase 344, for a CLI too old to
+       * accept them or a setup whose user configuration the reviewer needs.
+       * Applies to every seam whose provider is `host-cli`; it has no effect
+       * on `mock`, `anthropic` or `local`. Kept out of the object-level
+       * default and `defaultConfig`, like `fallback`, so no existing config
+       * or fresh init changes.
+       */
+      hostCliIsolation: z.enum(['on', 'off']).optional(),
+      /**
        * Operator-extensible assertion-coverage profiles for languages no
        * built-in profile claims (phase 167, T7). Add-only: an entry
        * claiming an extension a BUILT-IN profile already owns (`.ts`,

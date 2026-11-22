@@ -40,6 +40,9 @@ export function buildBuildContext(args: {
         ...(config?.verification?.fallback !== undefined
           ? { fallback: config.verification.fallback }
           : {}),
+        ...(config?.verification?.hostCliIsolation !== undefined
+          ? { hostCliIsolation: config.verification.hostCliIsolation }
+          : {}),
       }),
     },
     emit: { perTaskFail: (info) => emitPerTaskFail(config, info) },

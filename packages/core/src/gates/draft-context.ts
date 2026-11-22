@@ -61,6 +61,9 @@ export function buildDraftContext(args: {
             ...(config?.verification?.fallback !== undefined
               ? { fallback: config.verification.fallback }
               : {}),
+            ...(config?.verification?.hostCliIsolation !== undefined
+              ? { hostCliIsolation: config.verification.hostCliIsolation }
+              : {}),
           })).verify(input),
       },
     },

@@ -285,6 +285,9 @@ export interface HostCliSecurityAuditVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -313,6 +316,7 @@ export class HostCliSecurityAuditVerifier implements SecurityAuditVerifier {
       user: formatUserMessage(input),
       schema: SecurityAuditResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
       ...(opts?.signal ? { signal: opts.signal } : {}),
       ...(opts?.traceId ? { traceId: opts.traceId } : {}),
     });

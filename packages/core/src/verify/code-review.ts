@@ -329,6 +329,9 @@ export interface HostCliCodeReviewVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -353,6 +356,7 @@ export class HostCliCodeReviewVerifier implements CodeReviewVerifier {
       user: formatUserMessage(input),
       schema: CodeReviewResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
     });
     const findings: Record<string, Finding[]> = {};
     for (const f of parsed.findings) {

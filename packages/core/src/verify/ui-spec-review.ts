@@ -211,6 +211,9 @@ export interface HostCliUiSpecReviewVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -232,6 +235,7 @@ export class HostCliUiSpecReviewVerifier implements UiSpecReviewVerifier {
       user: formatUserMessage(input.uiSpec),
       schema: UiSpecReviewResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
     });
     const findings: UiSpecReviewFinding[] = [];
     for (const f of parsed.findings) {

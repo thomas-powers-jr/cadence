@@ -199,6 +199,9 @@ export interface HostCliPerTaskVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -221,6 +224,7 @@ export class HostCliPerTaskVerifier implements PerTaskVerifier {
       user: formatUserMessage(input),
       schema: PerTaskResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
     });
     return {
       verdict: parsed.verdict,
