@@ -281,12 +281,24 @@ async function runSettle(setting: Setting): Promise<void> {
     JSON.stringify({ draftId: ID, tasks: { T1: { status: 'DONE' } } }, null, 2),
     'utf8',
   );
+  // A real assertion-mode test naming AC-1 at the default test glob, so the
+  // mock deep verifier links it and passes and the later gates are reached.
+  await mkdir(join(root, 'packages', 'core', 'tests'), { recursive: true });
+  await writeFile(
+    join(root, 'packages', 'core', 'tests', 'foo.test.ts'),
+    "it('AC-1 coverage fixture', () => { expect(true).toBe(true); });\n",
+    'utf8',
+  );
   muteProcessStderr();
-  await settleService(
+  const { io, err } = captureIO();
+  const res = await settleService(
     root,
     { auto: true, deep: true, interactive: false, allowMissingCoverage: true },
-    captureIO().io,
+    io,
   );
+  // The run must get past every gate, or a later selector was never reached.
+  expect(err.join('')).not.toContain('refused');
+  expect(res.exitCode).toBe(0);
 }
 
 /** strict × complex `draft approve --no-approve`: plan-review fires. */
