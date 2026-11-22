@@ -4365,6 +4365,90 @@ can be hidden. Tier `complex`.
   The two residue bullets not already in an AC are filed as
   rec-20261121-004.
 
+### Phase 344 — Host-cli review agents are spawned with isolation flags, recorded on the gate entry (rec-20261030-010)
+
+**Objective.** The host-cli review agents were spawned with no isolation
+(`codex exec --json --skip-git-repo-check -`, `claude -p --output-format
+json`), so the reviewer loaded the operator's own MCP servers, plugins,
+hooks and global instruction files and shared their blind spots. This phase
+passes `--ignore-user-config` to the codex family and `--setting-sources
+project --strict-mcp-config` to the claude family, records the flags passed
+on the SUMMARY's gate entry, adds `verification.hostCliIsolation: "on" |
+"off"` (absent means on) as the way to turn it off, and reports it in
+`cadence doctor`. The claim is narrow: these flags are passed and recorded.
+Tier `complex`.
+
+**As built.**
+- Probe first. Before any code, a probe on the operator's PC (codex-cli
+  0.156.1, Claude Code 2.1.330) measured what each candidate flag does;
+  the record is `phases/344-verifier-isolation/probe/PROBE-RESULTS.md`. It
+  took four rounds. Round 1 is discarded: its prompt contradicted the
+  marker line it was meant to detect. Rounds 2 and 3 ran each cell twice
+  and both runs agreed; round 4 was three claude calls read from the CLI's
+  own init record. What each variant did:
+  - codex as shipped: global `AGENTS.md` reaches the child; login works.
+  - codex `--ignore-user-config`: `AGENTS.md` still reaches the child;
+    login works.
+  - codex `CODEX_HOME=<empty dir>`, alone or with the flag: login fails
+    (exit 1).
+  - codex `CODEX_HOME=<dir holding auth.json only>`: `AGENTS.md` does not
+    reach the child; login works.
+  - codex `-c project_doc_max_bytes=0`, alone or with the flag: `AGENTS.md`
+    still reaches the child; with the flag, about 1,300 to 1,900 fewer
+    input tokens than the control.
+  - claude as shipped: global `CLAUDE.md` reaches the child; the user-level
+    hook fires; 24 MCP servers, 119 tools, 14 plugins.
+  - claude `--setting-sources project`: `CLAUDE.md` still reaches the
+    child; the hook does not fire; 5 MCP servers, 92 tools, 4 plugins.
+  - claude `--setting-sources project --strict-mcp-config`: `CLAUDE.md`
+    still reaches the child; the hook does not fire; 0 MCP servers, 25
+    tools, 4 plugins. Login works in all three claude cells.
+- Operator decisions. codex ships `--ignore-user-config` alone: the
+  login-only `CODEX_HOME` was measured to work but is not shipped, because
+  it means copying the login and a refreshed token would be written to the
+  copy. claude ships both flags. An opt-out key is added.
+- T1: one pure helper, `hostCliIsolationFlags(family)`, feeds the argv
+  (`buildInvocation`), the too-old-CLI hint, the gate-entry record and the
+  doctor check, so they cannot disagree. The flags go after the fixed flags
+  and before the model flag. A `nonzero-exit` whose stderr names a passed
+  `--` flag gets a hint naming it and the setting; the call is not retried.
+- T2: `verification.hostCliIsolation` is an optional enum kept out of
+  `defaultConfig` and a fresh `cadence init`, following the phase-343
+  `verification.fallback` precedent. It is threaded to seven selectors and
+  the seven call sites that pass `fallback`. `VerifierSelectOptions` gains
+  a test-only `spawnImpl` seam; no production caller passes it.
+- T3: the three settle verifiers tag their result with the flags as a
+  non-enumerable property, the way `providerSelection` is attached, only
+  after a `hostCliJSON` call returned; the gates copy it to their identity
+  flag and the registry lifts it onto the `deep-verify`, `code-review` and
+  `security-audit` entries as `hostCliIsolation`. No `schemaVersion` bump.
+- T4: `cadence doctor` gains `host-cli-isolation`, which reads the config
+  and the binary's name and spawns nothing: `ok` naming the flags and the
+  global instruction file that still reaches the reviewer, `warning` (no
+  automatic fix) under `"off"`, and `ok` when no seam uses host-cli.
+- Known limits, documented rather than fixed:
+  - the global `AGENTS.md` and `CLAUDE.md` still reach the reviewer, and so
+    do project-level instruction files and hooks, because the child runs in
+    the project directory (rec-20260916-004);
+  - the variants with `-m` / `--model` after the flags were not measured
+    by the probe;
+  - a model or effort level, or a sign-in setting, kept in user
+    configuration is skipped along with the rest of it; the remedies are
+    the seam's `model` key or `"off"`;
+  - for codex nothing beyond the flag's `--help` text and the `AGENTS.md`
+    result is claimed: what `config.toml` not loading removes was not
+    measured;
+  - the hint can misfire when a wrapper echoes its own command line on
+    stderr before failing for another reason, which is why it says "may";
+  - `per-task-verify` entries and the plan-review, spec-review and
+    ui-spec-review sidecars do not record the flags.
+- During T2's first red run the claude-family tests reached the real
+  `claude` binary, because the spawn seam did not exist yet. Since then
+  the phase's tests that spawn through the `spawnImpl` seam run under a
+  guard that points `PATH` at an empty directory and stubs `CLAUDECODE`, so
+  a seam that stopped being forwarded fails fast instead of running an
+  installed CLI.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import type * as ChildProcess from 'node:child_process';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -21,7 +22,7 @@ import { hostCliIsolationFlags, inferFamily } from '../../src/verify/host-cli-cl
 // test can prove the check launched nothing. Everything still calls through.
 const launches = vi.hoisted(() => ({ count: 0 }));
 vi.mock('node:child_process', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:child_process')>();
+  const actual = await importOriginal<typeof ChildProcess>();
   const { promisify } = await import('node:util');
   type AnyFn = (...args: unknown[]) => unknown;
   const counted = (fn: unknown): AnyFn => {
