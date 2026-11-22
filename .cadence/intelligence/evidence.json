@@ -3411,6 +3411,13 @@
       "kind": "note",
       "summary": "347: six Codex rounds (operator retrospective 2026-11-21). 348: the literal pass predicted AC-3 and AC-4 failures; both were real (a false sentence; DB_PASSWORD=blue cat left 'cat') and fixed before the first Codex run",
       "createdAt": "2026-11-21T20:30:49.546Z"
+    },
+    {
+      "id": "ev-20261122-001",
+      "recommendationId": "rec-20261122-001",
+      "kind": "note",
+      "summary": "Release run 45047872230 job 137286332479; npm time for core 1.76.0 is 2026-11-22T17:26:36Z; POST_PUBLISH_VERIFY_ATTEMPTS = 40",
+      "createdAt": "2026-11-22T17:31:29.830Z"
     }
   ]
 }

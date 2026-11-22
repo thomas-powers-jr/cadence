@@ -1993,3 +1993,19 @@ Two known shapes outside phase 348's four, reported rather than fixed (dec-20261
 - next: cadence milestone propose
 
 Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.
+
+## rec-20261122-001 — Release integrity wait gave up one minute before npm showed core
+
+- status: candidate
+- ready: needs-decision
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: release, ci
+- files: scripts/release-integrity.mjs, .github/workflows/release.yml
+- evidence: Release run 45047872230 job 137286332479; npm time for core 1.76.0 is 2026-11-22T17:26:36Z; POST_PUBLISH_VERIFY_ATTEMPTS = 40
+- next: cadence milestone propose
+
+On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did not show cadence-core 1.76.0 until 17:26:36, about 11 minutes later. The release-integrity step polls 40 times at 15s (585s) and failed at 17:25:30, so the Release run is red although all five packages, the tag and the GitHub release are present. The other four packages appeared within about a minute. Decide whether to lengthen the wait (for example 80 attempts), back off instead of flat polling, or make a propagation timeout a distinct, clearly named outcome that tells the operator to verify by hand.
