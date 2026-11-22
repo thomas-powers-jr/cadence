@@ -1750,6 +1750,7 @@ Studio's clarification flow needs to change a PENDING task or AC of an already-a
 - confidence: 70%
 - decay: fresh
 - areas: studio-upstream, verify, host-cli, isolation
+- decisions: dec-20261122-001 (active)
 - evidence: cadence-studio rec-20261028-008; packages/core/src/verify/host-cli-client.ts:382-387
 - evidence: Decide together with rec-20260916-004 (host-cli verifier children still fire every CADENCE hook), which Studio's roadmap §3 Phase-2 risk note also cites: the claude-family isolation flags this rec proposes (--setting-sources, --strict-mcp-config) bear directly on whether a verifier child loads the operator's hooks.
 - next: cadence milestone propose

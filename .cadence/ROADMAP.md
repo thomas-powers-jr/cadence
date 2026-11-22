@@ -4444,10 +4444,13 @@ Tier `complex`.
     ui-spec-review sidecars do not record the flags.
 - During T2's first red run the claude-family tests reached the real
   `claude` binary, because the spawn seam did not exist yet. Since then
-  the phase's tests that spawn through the `spawnImpl` seam run under a
-  guard that points `PATH` at an empty directory and stubs `CLAUDECODE`, so
-  a seam that stopped being forwarded fails fast instead of running an
-  installed CLI.
+  the tests that select host-cli verifiers through the `spawnImpl` select
+  option (`host-cli-isolation-optout.test.ts`,
+  `host-cli-isolation-provenance.test.ts`) run under a guard that points
+  `PATH` at an empty directory and stubs `CLAUDECODE`, so a seam that
+  stopped being forwarded fails fast instead of running an installed CLI;
+  the client-level tests inject a fake spawn into `hostCliJSON` directly
+  and the call-site tests use only mock providers.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 

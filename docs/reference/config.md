@@ -319,7 +319,7 @@ The setting changes only what the gate prints and the bypass `detail` text. Unde
 
 The flags keep part of your user-level configuration out of the review; they do not keep everything out. The global `AGENTS.md` (codex) or `CLAUDE.md` (claude) still reaches the reviewer, and so do project-level instruction files and hooks. What was measured for each family, and on which CLI versions, is in [providers.md — Isolation](../providers.md#isolation).
 
-Under `"on"` a model chosen in your user configuration no longer applies to reviews. Set it per seam with the `model` key of the seam's [gate provider block](#gate-provider-blocks), for example `verifier.model` or `codeReview.model`.
+Under `"on"` a model chosen in your user configuration is expected no longer to apply to reviews (this follows from what the flags skip and was not measured; see [providers.md — Isolation](../providers.md#isolation)). Set it per seam with the `model` key of the seam's [gate provider block](#gate-provider-blocks), for example `verifier.model` or `codeReview.model`.
 
 ```json
 {

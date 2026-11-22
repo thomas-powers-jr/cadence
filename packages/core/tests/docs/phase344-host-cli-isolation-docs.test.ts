@@ -142,7 +142,7 @@ describe('docs: host-cli isolation flags (344-01)', () => {
     expect(claude).toMatch(/`--setting-sources project` was measured to stop a user-level hook/);
     expect(claude).toMatch(/the user's installed plugins/);
     expect(claude).toMatch(/MCP servers those plugins bring/);
-    expect(claude).toMatch(/`--strict-mcp-config` on top left no MCP server at all/);
+    expect(claude).toMatch(/With `--strict-mcp-config` on top, no MCP server was left at all/);
     // The probe's counts.
     expect(claude).toContain('14 plugins down to 4');
     expect(claude).toContain('24 servers down to 0');
@@ -176,6 +176,8 @@ describe('docs: host-cli isolation flags (344-01)', () => {
   it('344-01/AC-7: providers.md says sign-in settings kept in user configuration are skipped too', () => {
     const change = isolationPart('What you may need to change');
     expect(change).toMatch(/Sign-in settings kept in user configuration are skipped too/);
+    // Both points are stated as inferred, not measured.
+    expect(change).toMatch(/Neither point was measured/);
     // And it does not present these two points as measured.
     expect(change).toMatch(/The measurement covered an ordinary login only/);
   });
@@ -333,7 +335,9 @@ describe('docs: host-cli isolation flags (344-01)', () => {
     expect(body).toMatch(/project-level instruction files and hooks/);
     expect(body).not.toMatch(/\bisolated\b/i);
     // Upgrade notes.
-    expect(body).toMatch(/Upgrade notes: host-cli reviews now skip user-level configuration/);
+    expect(body).toMatch(/Upgrade notes: the flags make the host CLI skip its user-level settings/);
+    expect(body).toMatch(/it was not measured/);
+    expect(body).toMatch(/when the CLI's error output names an isolation flag that was passed/);
     expect(body).toMatch(/model or effort level/);
     expect(body).toMatch(/sign-in setting/);
     expect(body).toMatch(/set `verification\.hostCliIsolation` to `"off"`/);

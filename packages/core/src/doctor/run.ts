@@ -1022,7 +1022,7 @@ export function evaluateHostCliIsolation(facts: {
       'host-cli-isolation',
       'warning',
       "host-cli isolation is off (verification.hostCliIsolation): reviews inherit the user's own configuration",
-      'Remove verification.hostCliIsolation from .cadence/config.json, or set it to "on", once the host CLI accepts the isolation flags.',
+      'Remove verification.hostCliIsolation from .cadence/config.json, or set it to "on", once the host CLI accepts the isolation flags and the reviewer no longer needs anything from your user configuration.',
     );
   }
   const family = inferFamily(facts.bin);

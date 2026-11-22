@@ -378,7 +378,7 @@ them.
 
 **codex.** The flag's own `--help` text is the whole claim: with
 `--ignore-user-config`, `$CODEX_HOME/config.toml` is not loaded, and auth
-still uses `CODEX_HOME`. The login kept working in the measurement. The
+still uses `CODEX_HOME`. The
 global `AGENTS.md` was measured to still reach the reviewer with the flag
 passed. Which of the things configured in `config.toml` the reviewer ends up
 without was not measured for codex, so this page does not list any.
@@ -386,8 +386,9 @@ without was not measured for codex, so this page does not list any.
 **claude.** `--setting-sources project` was measured to stop a user-level
 hook from firing and to leave out the user's installed plugins (14 plugins
 down to 4, the 4 being built in) together with the MCP servers those plugins
-bring. `--strict-mcp-config` on top left no MCP server at all (24 servers
-down to 0) and cut the tool list from 119 to 25. The login kept working. The
+bring. With `--strict-mcp-config` on top, no MCP server was left at all (24
+servers down to 0 against the as-shipped run; 5 with `--setting-sources
+project` alone), and the tool list went from 119 to 25. The
 global `CLAUDE.md` was measured to still reach the reviewer with both flags
 passed.
 
@@ -412,9 +413,9 @@ passed.
   reviewer. A CLI that needs one of them fails the review call, loudly, and
   the remedy is again `verification.hostCliIsolation: "off"`.
 
-These two points follow from what the flags are documented to skip. The
+Neither point was measured: both follow from what the flags skip. The
 measurement covered an ordinary login only, not a setup that depends on such
-settings.
+settings. The login kept working for both families in that measurement.
 
 **A CLI too old to know a flag.** The call fails (it is not retried without
 the flag), and when the CLI's error output names an isolation flag that was

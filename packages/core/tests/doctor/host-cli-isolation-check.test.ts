@@ -55,6 +55,7 @@ vi.mock('node:child_process', async (importOriginal) => {
 let active: Fixture | null = null;
 let scratch: string | null = null;
 afterEach(async () => {
+  vi.unstubAllEnvs();
   if (active) {
     await active.cleanup();
     active = null;
@@ -251,5 +252,22 @@ describe('host-cli-isolation doctor check (344-01 T4)', () => {
     expect(c?.severity).toBe('ok');
     expect(c?.detail).toBe(NO_HOST_CLI_MESSAGE);
     expect(names.indexOf('host-cli-isolation')).toBe(names.indexOf('verification-fallback') + 1);
+  });
+
+  it('344-01/AC-6: through runDoctor, with CADENCE_HOST_CLI_BIN=codex in the environment, the check reports the codex message, and a warning under "off"', async () => {
+    // runDoctor passes no env to the check, so it reads process.env. PATH points
+    // at an empty directory: doctor is best-effort and no host CLI can be found or run.
+    scratch = await mkdtemp(join(tmpdir(), 'cadence-344-doctor-'));
+    vi.stubEnv('PATH', scratch);
+    vi.stubEnv('CADENCE_HOST_CLI_BIN', 'codex');
+    const onRoot = await repoWith(undefined);
+    const on = (await runDoctor(onRoot, HEALTHY_ENV)).checks.find((x) => x.name === 'host-cli-isolation');
+    expect(on?.severity).toBe('ok');
+    expect(on?.detail).toBe(CODEX_MESSAGE);
+    await active?.cleanup();
+    const offRoot = await repoWith('off');
+    const off = (await runDoctor(offRoot, HEALTHY_ENV)).checks.find((x) => x.name === 'host-cli-isolation');
+    expect(off?.severity).toBe('warning');
+    expect(off?.detail).toBe(OFF_MESSAGE);
   });
 });

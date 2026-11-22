@@ -3157,11 +3157,13 @@
         "ev-20261030-013"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20261122-001"
+      ],
+      "convertedToPhaseId": "344-verifier-isolation",
       "scoutId": "scout-20261030-studio-intake",
       "createdAt": "2026-10-30T19:28:27.265Z",
-      "updatedAt": "2026-11-22T00:34:48.278Z",
-      "convertedToPhaseId": "344-verifier-isolation"
+      "updatedAt": "2026-11-22T00:34:48.278Z"
     },
     {
       "id": "rec-20261013-002",

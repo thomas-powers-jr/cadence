@@ -48,6 +48,22 @@
         "packages/types/tests/summary-host-cli-isolation.test.ts"
       ],
       "updatedAt": "2026-11-22T01:28:49.224Z"
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "host-cli-isolation doctor check (pure, takes env, no spawn, no fixId), docs (providers.md Isolation section, config.md, commands.md, concepts.md), minor changeset for core and types, doc-content test, ROADMAP and MILESTONES. Whole-branch review: 0 Critical, 1 Important (changeset and config.md stated unmeasured claims as fact), fixed with its Minors. Literal AC pass predicted an AC-7 failure on the same sentences plus AC-4/AC-5 wording; fixed, and an end-to-end runDoctor test added for AC-6. No test can reach a real CLI (confirmed by both reviewers). Full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        ".changeset/host-cli-isolation.md",
+        "docs/concepts.md",
+        "docs/providers.md",
+        "docs/reference/commands.md",
+        "docs/reference/config.md",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/tests/docs/phase344-host-cli-isolation-docs.test.ts",
+        "packages/core/tests/docs/providers-host-cli-windows.test.ts",
+        "packages/core/tests/doctor/host-cli-isolation-check.test.ts"
+      ],
+      "updatedAt": "2026-11-22T01:51:42.191Z"
     }
   }
 }
