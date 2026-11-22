@@ -214,6 +214,29 @@ export const GateProvenanceZ = z.object({
   observedProvider: z.string().optional(),
   observedModel: z.string().optional(),
   taskId: z.string().optional(),
+  /** Phase 344 (344-01, T3): the isolation flags the host-cli review agent
+   *  behind this gate was spawned with, in argv order (`--ignore-user-config`
+   *  for the codex family; `--setting-sources project --strict-mcp-config`
+   *  for the claude family). Populated for `deep-verify`, `code-review` and
+   *  `security-audit`. It records that the flags were passed, nothing more:
+   *  it is not a claim that the reviewer was fully isolated.
+   *
+   *  Absent when isolation was off (`verification.hostCliIsolation: "off"`),
+   *  when the provider was not `host-cli`, when the call fell back to mock,
+   *  and when no verifier result came back from a spawned child (the
+   *  verifier returned early without spawning, or the call threw and the
+   *  failure was bypassed). Absent on every record written before
+   *  this phase, on `per-task-verify` entries and on a `refused` entry whose
+   *  gate reported no verifier identity.
+   *
+   *  MUST stay `.optional()` with NO `.default(...)`, and no `schemaVersion`
+   *  bump - the same additive, content-hash-safe precedent as
+   *  `providerSelection` (phase 263) and `observedProvider` (phase 275)
+   *  above: `cadence summary verify` hashes the PARSED object, so a default
+   *  would be injected into every historical SUMMARY and report it as
+   *  tampered, while leaving the field out of this schema would strip it at
+   *  parse time and report every new SUMMARY as tampered. */
+  hostCliIsolation: z.array(z.string()).optional(),
 });
 export type GateProvenance = z.infer<typeof GateProvenanceZ>;
 

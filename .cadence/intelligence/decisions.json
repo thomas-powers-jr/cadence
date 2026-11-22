@@ -1900,6 +1900,15 @@
       "status": "active",
       "decidedAt": "2026-11-21T20:18:46.870Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261122-001",
+      "recommendationId": "rec-20261030-010",
+      "title": "Phase 344: ship --ignore-user-config (codex) and --setting-sources project --strict-mcp-config (claude), with an opt-out; AC wordings tightened in BUILD",
+      "rationale": "Operator decisions, 2026-11-21/22, from the four-round probe recorded in .cadence/phases/344-verifier-isolation/probe/PROBE-RESULTS.md. (1) codex ships --ignore-user-config alone and documents that the global AGENTS.md still reaches the reviewer; a login-only CODEX_HOME was measured to keep AGENTS.md out and keep login working, and was not shipped because it copies the login on every settle (a refreshed token written to the copy would leave the real login stale); an empty CODEX_HOME breaks login; a config override (-c project_doc_max_bytes=0) does not keep AGENTS.md out. (2) claude ships --setting-sources project --strict-mcp-config, measured to stop a user-level hook, the user's plugins and every MCP server, and documents that the global CLAUDE.md still reaches the reviewer. (3) verification.hostCliIsolation 'on' | 'off' (absent means on) is the opt-out, because the claude flag skips all user-level settings and a sign-in kept there would otherwise have no workaround. The DRAFT's content changed after approve, so the settle runs with --allow-stale-draft; this decision is the record (precedent: dec-20261121-002). The amendments tighten wording without weakening a claim: AC-4's not-covered lines say the hint depends only on whether stderr names a passed flag, and name the wrapper-echo false positive; AC-5 names the --allow-verifier-failure case as the path where the verifier threw, qualifies the security-audit sentence, and says a refused or empty-diff entry carries the field when its child was spawned; AC-7 says the codex '--help only' limit is about what the flag skips, and that the model, effort and sign-in statements are inferred from what the flags skip, not measured.",
+      "status": "active",
+      "decidedAt": "2026-11-22T01:51:41.670Z",
+      "supersedes": []
     }
   ]
 }

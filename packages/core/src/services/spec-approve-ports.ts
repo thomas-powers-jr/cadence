@@ -43,6 +43,9 @@ export function resolveSpecReviewPort(
     selectSpecReviewVerifier(cfg, {
       cwd,
       ...(cfg?.verification?.fallback !== undefined ? { fallback: cfg.verification.fallback } : {}),
+      ...(cfg?.verification?.hostCliIsolation !== undefined
+        ? { hostCliIsolation: cfg.verification.hostCliIsolation }
+        : {}),
     })
   );
 }
@@ -66,6 +69,9 @@ export function resolveUiSpecReviewPort(
     selectUiSpecReviewVerifier(cfg, {
       cwd,
       ...(cfg?.verification?.fallback !== undefined ? { fallback: cfg.verification.fallback } : {}),
+      ...(cfg?.verification?.hostCliIsolation !== undefined
+        ? { hostCliIsolation: cfg.verification.hostCliIsolation }
+        : {}),
     })
   );
 }

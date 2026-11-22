@@ -143,7 +143,7 @@ describe('hostCliJSON', () => {
     // assertions, read off the channel that now carries it.
     expect(calls[0]!.stdin).toContain('[SYSTEM]\ns');
     expect(calls[0]!.stdin).toContain('[USER]\nu');
-    expect(calls[0]!.args.slice(1)).toEqual(['--output-format', 'json']);
+    expect(calls[0]!.args.slice(1)).toEqual(['--output-format', 'json', '--setting-sources', 'project', '--strict-mcp-config']);
   });
 
   it('passes --model when a model is configured (claude family)', async () => {
@@ -152,7 +152,7 @@ describe('hostCliJSON', () => {
 
     await hostCliJSON({ ...base, model: 'opus', spawnImpl });
 
-    expect(calls[0]!.args.slice(1)).toEqual(['--output-format', 'json', '--model', 'opus']);
+    expect(calls[0]!.args.slice(1)).toEqual(['--output-format', 'json', '--setting-sources', 'project', '--strict-mcp-config', '--model', 'opus']);
   });
 
   it('does not pass a --model flag when no model is configured', async () => {
@@ -222,7 +222,7 @@ describe('hostCliJSON', () => {
 
     await hostCliJSON({ ...base, spawnImpl });
 
-    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json']);
+    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json', '--setting-sources', 'project', '--strict-mcp-config']);
   });
 
   it('AC-2: codex is invoked with a trailing `-` so it reads the prompt from stdin', async () => {
@@ -235,7 +235,7 @@ describe('hostCliJSON', () => {
 
     await hostCliJSON({ ...base, bin: 'codex', model: 'gpt-5', spawnImpl });
 
-    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-m', 'gpt-5', '-']);
+    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '--ignore-user-config', '-m', 'gpt-5', '-']);
   });
 
   it('AC-3: stdin is closed, so a CLI that blocks on EOF cannot hang', async () => {
@@ -676,7 +676,7 @@ describe('makeRealSpawn', () => {
     expect('shell' in opts[0]!).toBe(false);
     expect(opts[0]!.stdio).toEqual(['pipe', 'pipe', 'pipe']);
     expect(calls[0]!.bin).toBe('C:\\tools\\codex.exe');
-    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-']);
+    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '--ignore-user-config', '-']);
   });
 
   it('319-01/AC-2: non-win32 seam still calls the underlying spawn with piped stdio, no shell key, and the bin unchanged', async () => {
@@ -691,7 +691,7 @@ describe('makeRealSpawn', () => {
     expect(Object.keys(opts[0]!)).toEqual(['stdio']);
     expect('shell' in opts[0]!).toBe(false);
     expect(calls[0]!.bin).toBe('codex');
-    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '-']);
+    expect(calls[0]!.args).toEqual(['exec', '--json', '--skip-git-repo-check', '--ignore-user-config', '-']);
   });
 
   it('319-01/AC-3: a .cmd that does not match the canonical invoking line is refused as spawn-error naming the bin and CADENCE_HOST_CLI_BIN, underlying spawn never called', async () => {
@@ -764,6 +764,7 @@ describe('makeRealSpawn', () => {
       'exec',
       '--json',
       '--skip-git-repo-check',
+      '--ignore-user-config',
       '-',
     ]);
   });
@@ -855,7 +856,7 @@ describe('makeRealSpawn', () => {
 
     expect(r.ok).toBe(true);
     expect(calls[0]!.bin).toBe('C:\\tools\\claude.exe');
-    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json']);
+    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json', '--setting-sources', 'project', '--strict-mcp-config']);
     expect(opts).toHaveLength(1);
   });
 
@@ -883,7 +884,7 @@ describe('makeRealSpawn', () => {
 
     expect(r.ok).toBe(true);
     expect(calls[0]!.bin).toBe('C:\\B\\claude.exe');
-    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json']);
+    expect(calls[0]!.args).toEqual(['-p', '--output-format', 'json', '--setting-sources', 'project', '--strict-mcp-config']);
     // `readFile` is only ever called to parse a `.cmd`/`.bat` hit — proving
     // dir A's claude.cmd was never even opened, let alone refused.
     expect(readFile).not.toHaveBeenCalled();

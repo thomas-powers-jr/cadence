@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 2,
+  "draftId": "344-01",
+  "completedAt": "2026-11-22T15:08:54.204Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "ai-verified"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "ai-verified"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "ran",
+      "observedProvider": "host-cli",
+      "hostCliIsolation": [
+        "--ignore-user-config"
+      ]
+    },
+    {
+      "gate": "code-review",
+      "status": "ran",
+      "provider": "host-cli",
+      "providerSelection": "configured",
+      "hostCliIsolation": [
+        "--ignore-user-config"
+      ]
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Codex is spawned with --ignore-user-config and claude with --setting-sources project --strict-mcp-config, from one exported helper; isolation 'off' restores the pre-phase argv; a nonzero exit whose stderr names a passed -- flag gets a hint; no retry. 28 new tests; nine argv pins updated in the existing client test, nothing else. Independent review PASS; full pipeline 28/28 re-verified on the main thread. Known: the hint can fire if a wrapper echoes its command line (bounded: it says 'may'); the model variants (-m / --model after the flags) were not measured by the probe."
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "verification.hostCliIsolation ('on'|'off', optional, absent = on), threaded through VerifierSelectOptions to all seven host-cli verifiers and read at all seven call sites; a test-only spawnImpl seam on the selectors. 90 new tests: each selector x codex/claude x off/absent/on by exact argv, each call site through its real service, AC-4's spawn-once, warn text, refused error and no-hint cases. During the implementer's red run the claude-family tests reached the real claude binary (the seam did not exist yet); every spawning test now runs under an empty-PATH guard. Independent review PASS (no path to a real CLI found); full pipeline 28/28 re-verified on the main thread."
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "GateProvenanceZ.hostCliIsolation (optional string array, no default, no schemaVersion bump). The three settle host-cli verifiers tag their result non-enumerably after hostCliJSON returns; the three gates copy it onto their identity flag; the registry lifts it onto the gate entry. Absent for isolation off, mock, fallback, no-spawn returns and the bypass paths, each tested. summary verify matches with the field present (mutation-checked). 46 new tests under the empty-PATH guard; no real CLI ran. Independent review PASS; full pipeline 28/28 re-verified on the main thread."
+    },
+    {
+      "id": "T4",
+      "status": "DONE",
+      "notes": "host-cli-isolation doctor check (pure, takes env, no spawn, no fixId), docs (providers.md Isolation section, config.md, commands.md, concepts.md), minor changeset for core and types, doc-content test, ROADMAP and MILESTONES. Whole-branch review: 0 Critical, 1 Important (changeset and config.md stated unmeasured claims as fact), fixed with its Minors. Literal AC pass predicted an AC-7 failure on the same sentences plus AC-4/AC-5 wording; fixed, and an end-to-end runDoctor test added for AC-6. No test can reach a real CLI (confirmed by both reviewers). Full pipeline 28/28 re-verified on the main thread."
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "deepVerify": {
+    "AC-1": {
+      "pass": true,
+      "reason": "buildInvocation inserts codex flags before the model; client tests assert exact argv, stdin delivery, and Linux spawn options without env.",
+      "provider": "host-cli"
+    },
+    "AC-2": {
+      "pass": true,
+      "reason": "Family inference and buildInvocation produce the required claude argv; client tests cover both models and my-reviewer.",
+      "provider": "host-cli"
+    },
+    "AC-3": {
+      "pass": true,
+      "reason": "Factory and seven call sites forward isolation; tests cover every selector, on/off/absent, loadConfig rejection, default omission, and fresh init.",
+      "provider": "host-cli"
+    },
+    "AC-4": {
+      "pass": true,
+      "reason": "Nonzero exits append the first matching passed flag hint; client and selector tests cover single spawn, fallback/refusal, ordering, and no-hint cases.",
+      "provider": "host-cli"
+    },
+    "AC-5": {
+      "pass": true,
+      "reason": "Successful spawned results carry flags through gates into provenance. Tests cover all three gates, exclusions, historical parsing, and summary verify MATCH.",
+      "provider": "host-cli"
+    },
+    "AC-6": {
+      "pass": true,
+      "reason": "Doctor uses configured seam providers and injected env without spawning; tests assert exact messages, severities, custom binary, and runDoctor integration.",
+      "provider": "host-cli"
+    },
+    "AC-7": {
+      "pass": true,
+      "reason": "Docs and minor changeset describe both flag sets, residual instructions, inferred effects, opt-out, doctor, and provenance; doc-content tests assert these.",
+      "provider": "host-cli"
+    }
+  },
+  "deepVerifyMeta": {
+    "diffProvided": true,
+    "diffBytes": 208330,
+    "truncated": false,
+    "filesCount": 38,
+    "provider": "host-cli"
+  },
+  "codeReview": {},
+  "gateBypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build",
+      "severity": "warn"
+    }
+  ],
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 100,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [
+      {
+        "provider": "host-cli",
+        "gateCount": 1
+      }
+    ],
+    "evidenceTally": {
+      "ai-verified": 7,
+      "executed": 0,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "strong"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "39a81c6e342e4814bfa89cde430b25e383e6d2367078963267af238528130ba9"
+  }
+}

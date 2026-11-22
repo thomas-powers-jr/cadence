@@ -29,8 +29,11 @@ import {
   assessReadiness,
   isClaudeCodeSession,
   seamProvider,
+  VERIFIER_SEAMS,
   type VerifierSeam,
 } from '../activate/assess.js';
+import { hostCliIsolationFlags, inferFamily } from '../verify/host-cli-client.js';
+import { hostCliBin } from '../verify/host-cli-presence.js';
 import { effectiveGateSet } from '../gates/engine.js';
 import { resolvePacks, type ResolvedPack } from '../packs/resolve.js';
 import { gatherOccupancy } from '../phases/occupancy.js';
@@ -993,6 +996,75 @@ export async function checkVerificationFallback(root: string): Promise<DoctorChe
     return pass(
       'verification-fallback',
       'Verification fallback not determinable (best-effort) — skipped.',
+    );
+  }
+}
+
+/**
+ * Phase 344 (T4) - the pure half of the `host-cli-isolation` check: plain facts
+ * in, one `DoctorCheck` out. `bin` is the configured `CADENCE_HOST_CLI_BIN`
+ * value and is quoted verbatim; the flags come from `hostCliIsolationFlags`,
+ * the helper `buildInvocation` spawns with, so what doctor reports and what is
+ * spawned cannot diverge. The message names the global instruction file that
+ * was measured to still reach the reviewer, so an `ok` here is never read as
+ * "the reviewer sees nothing of mine".
+ */
+export function evaluateHostCliIsolation(facts: {
+  usesHostCli: boolean;
+  isolation: 'on' | 'off' | undefined;
+  bin: string;
+}): DoctorCheck {
+  if (!facts.usesHostCli) {
+    return pass('host-cli-isolation', 'no review gate uses host-cli');
+  }
+  if (facts.isolation === 'off') {
+    return fail(
+      'host-cli-isolation',
+      'warning',
+      "host-cli isolation is off (verification.hostCliIsolation): reviews inherit the user's own configuration",
+      'Remove verification.hostCliIsolation from .cadence/config.json, or set it to "on", once the host CLI accepts the isolation flags and the reviewer no longer needs anything from your user configuration.',
+    );
+  }
+  const family = inferFamily(facts.bin);
+  const flags = hostCliIsolationFlags(family).join(' ');
+  const globalFile = family === 'codex' ? 'AGENTS.md' : 'CLAUDE.md';
+  return pass(
+    'host-cli-isolation',
+    `host-cli reviews run "${facts.bin}" with ${flags}; the global ${globalFile} still reaches the reviewer`,
+  );
+}
+
+/**
+ * Report the isolation flags the configured host-cli binary is spawned with
+ * (phase 344, T4). `ok` when no seam uses `host-cli`, and when isolation is on
+ * (absent or `"on"`); `warning`, with no automatic fix, when
+ * `verification.hostCliIsolation` is `"off"` and some seam uses `host-cli`.
+ * "Some seam uses host-cli" is `assessReadiness`'s rule (activate/assess.ts):
+ * any of `VERIFIER_SEAMS` whose configured provider is `host-cli`; that
+ * function does not export the list it computes, so the rule is repeated here
+ * over the same exported pieces. The binary name is resolved as the verifier
+ * factory resolves it (env or `.env`, default `claude`), and only when a seam
+ * uses it. Nothing is probed or spawned: this reports what WOULD be passed,
+ * and `verification-readiness` owns whether the binary launches. Read-only,
+ * best-effort, never throws (doctor convention). `env` is injectable for
+ * deterministic tests.
+ */
+export async function checkHostCliIsolation(
+  root: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<DoctorCheck> {
+  try {
+    const config = await loadConfig(root);
+    const usesHostCli = VERIFIER_SEAMS.some((seam) => seamProvider(config, seam) === 'host-cli');
+    return evaluateHostCliIsolation({
+      usesHostCli,
+      isolation: config.verification.hostCliIsolation,
+      bin: usesHostCli ? hostCliBin(env, root) : 'claude',
+    });
+  } catch {
+    return pass(
+      'host-cli-isolation',
+      'Host-cli isolation not determinable (best-effort) — skipped.',
     );
   }
 }
@@ -2811,6 +2883,7 @@ export async function runDoctor(
     await checkHandoffRetention(root),
     await checkVerificationReadiness(root),
     await checkVerificationFallback(root),
+    await checkHostCliIsolation(root),
     await checkRecommendationShippedDrift(root),
     await checkRecommendationArchiveCurrency(root),
     await checkOrphanedEvidence(root),

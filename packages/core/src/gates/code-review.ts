@@ -3,7 +3,7 @@ import { runConvergentReview } from '../verify/converge.js';
 import { anchorFindings } from '../verify/criteria-gap.js';
 import { attachFindingIdentity } from '../verify/finding-identity.js';
 import type { CodeReviewInput, CodeReviewResult, CodeReviewTaskRef } from '../contracts/index.js';
-import { highestFindingSeverity } from './types.js';
+import { highestFindingSeverity, readHostCliIsolation } from './types.js';
 import type { GateImpl, GateResult } from './types.js';
 
 /**
@@ -30,14 +30,23 @@ function buildVerifierIdentityFlag(
   result: Pick<CodeReviewResult, 'provider' | 'model' | 'providerSelection'>,
   touched: string[],
   diff: string,
-): { family: string; model?: string; providerSelection?: 'configured' | 'fallback' | 'empty-diff' } {
+): {
+  family: string;
+  model?: string;
+  providerSelection?: 'configured' | 'fallback' | 'empty-diff';
+  hostCliIsolation?: string[];
+} {
   const isEmptyDiff =
     touched.length > 0 && diff.trim().length === 0 && result.provider !== 'mock';
   const providerSelection = isEmptyDiff ? 'empty-diff' : result.providerSelection;
+  // Phase 344 (344-01, T3): the isolation flags the verifier recorded on its
+  // result - present only when a host-cli child was spawned with them.
+  const hostCliIsolation = readHostCliIsolation(result);
   return {
     family: result.provider,
     ...(result.model ? { model: result.model } : {}),
     ...(providerSelection ? { providerSelection } : {}),
+    ...(hostCliIsolation ? { hostCliIsolation } : {}),
   };
 }
 

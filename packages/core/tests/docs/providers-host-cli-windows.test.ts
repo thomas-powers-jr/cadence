@@ -57,7 +57,7 @@ describe('319-01/AC-6: docs/providers.md host-cli section describes win32 resolu
 
   it('319-01/AC-6: shows the real codex invocation example', () => {
     const section = readHostCliSection();
-    expect(section).toContain('codex exec --json --skip-git-repo-check -');
+    expect(section).toContain('codex exec --json --skip-git-repo-check --ignore-user-config -');
   });
 
   it('319-01/AC-6: describes the prompt as written to stdin then closed, not "not piped"', () => {

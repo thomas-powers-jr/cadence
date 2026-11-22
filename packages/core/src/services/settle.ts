@@ -853,6 +853,9 @@ function buildSettleContext(
               ...(cadenceConfig?.verification?.fallback !== undefined
                 ? { fallback: cadenceConfig.verification.fallback }
                 : {}),
+              ...(cadenceConfig?.verification?.hostCliIsolation !== undefined
+                ? { hostCliIsolation: cadenceConfig.verification.hostCliIsolation }
+                : {}),
             });
           }
           return deepVerifierMemo.verify(input);
@@ -866,6 +869,9 @@ function buildSettleContext(
               ...(cadenceConfig?.verification?.fallback !== undefined
                 ? { fallback: cadenceConfig.verification.fallback }
                 : {}),
+              ...(cadenceConfig?.verification?.hostCliIsolation !== undefined
+                ? { hostCliIsolation: cadenceConfig.verification.hostCliIsolation }
+                : {}),
             });
           }
           return codeReviewVerifierMemo.verify(input);
@@ -878,6 +884,9 @@ function buildSettleContext(
               cwd,
               ...(cadenceConfig?.verification?.fallback !== undefined
                 ? { fallback: cadenceConfig.verification.fallback }
+                : {}),
+              ...(cadenceConfig?.verification?.hostCliIsolation !== undefined
+                ? { hostCliIsolation: cadenceConfig.verification.hostCliIsolation }
                 : {}),
             });
           }

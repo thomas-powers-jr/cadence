@@ -230,6 +230,9 @@ export interface HostCliPlanReviewVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -251,6 +254,7 @@ export class HostCliPlanReviewVerifier implements PlanReviewVerifier {
       user: formatUserMessage(input.draft),
       schema: PlanReviewResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
     });
     const findings: PlanReviewFinding[] = [];
     for (const f of parsed.findings) {

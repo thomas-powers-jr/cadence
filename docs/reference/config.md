@@ -151,6 +151,7 @@ Boundary definitions for each tier. The coherence-check gate validates DRAFT fro
 | `verification.coverageProfiles` | `CoverageProfileConfig[]` | `[]` | Operator-defined custom assertion-mode profiles that extend `assertion` mode to a language with no built-in profile. Validated at config-load time — a bad regex, a missing required field, or an extension collision with a built-in profile refuses loudly, naming the offending field/collision and suggesting a fix. Add-only: a custom profile can never override a built-in's extensions. See [Custom coverage profiles](#custom-coverage-profiles). |
 | `verification.fallback` | `"mock"` \| `"refuse"` (optional) | absent, which behaves as `"mock"`; `cadence init` does not write the key | What a verifier seam does when its configured real provider cannot run (missing credentials, a host CLI binary that will not launch, the self-invocation guard, a timeout). `mock` falls back to the mock provider with a loud notice, as before; `refuse` makes the call fail instead, so the gate refuses or the command exits 1. Governs all seven verifier seams. See [Verification fallback](#verification-fallback). |
 | `verification.buildTestOutputTail` | `"show"` \| `"hide"` (optional) | absent, which behaves as `"show"`; `cadence init` does not write the key | Whether the `build-test-must-pass` gate prints a failing test run's output tail on stderr at `cadence settle run`. The tail is shown, after best-effort redaction, unless the setting is `"hide"`; under `"hide"` the gate prints a one-line hidden notice with the captured line count instead. The tail is never recorded under either value. See [Build-test output tail](#build-test-output-tail). |
+| `verification.hostCliIsolation` | `"on"` \| `"off"` (optional) | absent, which behaves as `"on"`; `cadence init` does not write the key | Whether the host-cli review agents are spawned with their CLI family's isolation flags: `--ignore-user-config` for codex, `--setting-sources project --strict-mcp-config` for claude. `on` passes them, so part of your user-level configuration is kept out of the review; `off` leaves them out and the reviewer inherits your user configuration, as before phase 344. Applies to every seam whose provider is `host-cli` and has no effect on `mock`, `anthropic` or `local`. See [Host-cli isolation](#host-cli-isolation). |
 
 ### Supported-language matrix (assertion mode)
 
@@ -306,6 +307,29 @@ Only the named shapes are covered. A secret printed in any other shape reaches s
 ```
 
 The setting changes only what the gate prints and the bypass `detail` text. Under either value the tail never enters `SUMMARY.json`, `SUMMARY.md`, an anomaly event or a notifier transport, and the gate's refusal reason, the bypass notice's first line, the exit code and the pass-or-refuse decision are the same. The key is config-only: there is no CLI flag, environment variable or MCP parameter for it. Any value other than `"show"` or `"hide"` is a config schema error.
+
+### Host-cli isolation
+
+`verification.hostCliIsolation` decides whether a `host-cli` review agent is spawned with its CLI family's isolation flags. It has two values, and an absent key means `"on"`.
+
+| Value | Behavior |
+|---|---|
+| `"on"` | A codex-family binary is run with `--ignore-user-config` and a claude-family binary with `--setting-sources project --strict-mcp-config`. This is the behavior when the key is absent, which is the default: `cadence init` does not write the key and no preset sets it. |
+| `"off"` | The flags are left out and the review agent is spawned exactly as before phase 344, so it inherits your user configuration. Use it for a CLI too old to accept the flags, or for a setup whose reviewer needs something from user configuration, such as a model, an effort level or a sign-in setting kept there. |
+
+The flags keep part of your user-level configuration out of the review; they do not keep everything out. The global `AGENTS.md` (codex) or `CLAUDE.md` (claude) still reaches the reviewer, and so do project-level instruction files and hooks. What was measured for each family, and on which CLI versions, is in [providers.md — Isolation](../providers.md#isolation).
+
+Under `"on"` a model chosen in your user configuration is expected no longer to apply to reviews (this follows from what the flags skip and was not measured; see [providers.md — Isolation](../providers.md#isolation)). Set it per seam with the `model` key of the seam's [gate provider block](#gate-provider-blocks), for example `verifier.model` or `codeReview.model`.
+
+```json
+{
+  "verification": {
+    "hostCliIsolation": "off"
+  }
+}
+```
+
+The setting is one repo-wide key for every seam whose provider is `host-cli`; it has no effect on `mock`, `anthropic` or `local`. The flags that were passed are recorded on the SUMMARY's `deep-verify`, `code-review` and `security-audit` gate entries as `hostCliIsolation`, and `cadence doctor`'s `host-cli-isolation` check reports them ahead of time and warns under `"off"` when a seam uses `host-cli` — see [`doctor`](commands.md#doctor). The key is config-only: there is no CLI flag, environment variable or MCP parameter for it. Any value other than `"on"` or `"off"` is a config schema error.
 
 ---
 

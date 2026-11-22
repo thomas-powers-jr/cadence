@@ -1363,6 +1363,13 @@ changeset (example/test-only change, no published-package surface).*
   documented as best-effort, and `verification.buildTestOutputTail: "hide"`
   replaces the tail with a hidden notice and a line count; absent means
   show (rec-20261116-001, rec-20261117-002).
+- **Phase 344** — host-cli review agents are spawned with isolation flags:
+  `--ignore-user-config` for codex, `--setting-sources project
+  --strict-mcp-config` for claude, chosen from a probe on the operator's PC.
+  The flags are recorded on the SUMMARY's gate entry (`hostCliIsolation`),
+  reported by `cadence doctor`, and turned off with
+  `verification.hostCliIsolation: "off"`. The global `AGENTS.md`/`CLAUDE.md`
+  and project-level files still reach the reviewer (rec-20261030-010).
 
 
 

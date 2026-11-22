@@ -4,6 +4,7 @@ import { z } from 'zod/v4';
 import type { Finding } from '@thomas-powers-jr/cadence-types';
 import { hostCliJSON, type SpawnFn } from './host-cli-client.js';
 import { localChatJSON } from './local-client.js';
+import { tagHostCliIsolation } from './verifier.js';
 
 /**
  * Phase 25.2 — security-audit verifier. The final, most expensive gate:
@@ -285,6 +286,9 @@ export interface HostCliSecurityAuditVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -313,6 +317,7 @@ export class HostCliSecurityAuditVerifier implements SecurityAuditVerifier {
       user: formatUserMessage(input),
       schema: SecurityAuditResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
       ...(opts?.signal ? { signal: opts.signal } : {}),
       ...(opts?.traceId ? { traceId: opts.traceId } : {}),
     });
@@ -324,7 +329,13 @@ export class HostCliSecurityAuditVerifier implements SecurityAuditVerifier {
         ...(f.line !== undefined ? { line: f.line } : {}),
       });
     }
-    return { findings, provider: this.name, ...(this.o.model ? { model: this.o.model } : {}) };
+    const result: SecurityAuditResult = {
+      findings,
+      provider: this.name,
+      ...(this.o.model ? { model: this.o.model } : {}),
+    };
+    // Phase 344: only here, after the child ran - not on the early return above.
+    return tagHostCliIsolation(result, this.o.bin, this.o.isolation);
   }
 }
 

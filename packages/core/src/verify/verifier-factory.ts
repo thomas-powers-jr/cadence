@@ -1,6 +1,6 @@
 import { MOCK_VERIFIER_NOTICE, MOCK_VERIFIER_CAPABILITY } from '@thomas-powers-jr/cadence-types';
 import { discoverKey } from '../activate/key-discovery.js';
-import { HostCliError } from './host-cli-client.js';
+import { HostCliError, type SpawnFn } from './host-cli-client.js';
 
 export type VerifierProvider = 'mock' | 'anthropic' | 'local' | 'host-cli';
 
@@ -20,6 +20,16 @@ export interface VerifierSelectOptions {
    *  that cannot reach its configured real provider throw
    *  `VerifierFallbackRefusedError` instead of delegating to mock. */
   fallback?: 'mock' | 'refuse';
+  /** Phase 344: the effective `verification.hostCliIsolation` setting. Absent
+   *  or `'on'` spawns a host-cli review agent with its family's isolation
+   *  flags; `'off'` spawns it with the argv used before phase 344. Read only
+   *  when the selected provider is `host-cli`. */
+  hostCliIsolation?: 'on' | 'off';
+  /** TEST-ONLY seam (phase 344): stands in for the process spawn of a
+   *  host-cli verifier, so a test can drive a real selector end to end and
+   *  observe the argv without running a real `claude`/`codex`. No production
+   *  caller passes it; absent, the host-cli client spawns the real binary. */
+  spawnImpl?: SpawnFn;
 }
 
 /**
@@ -92,7 +102,14 @@ export interface VerifierFactorySpec<C, V> {
    * this lets `host-cli` land as a provider without forcing every family's
    * factory file to change in lockstep.
    */
-  hostCli?(opts: { bin: string; model?: string }): V;
+  hostCli?(opts: {
+    bin: string;
+    model?: string;
+    /** Phase 344: `VerifierSelectOptions.hostCliIsolation`, when it was given. */
+    isolation?: 'on' | 'off';
+    /** Phase 344: `VerifierSelectOptions.spawnImpl` (test-only), when it was given. */
+    spawnImpl?: SpawnFn;
+  }): V;
 }
 
 /**
@@ -514,7 +531,15 @@ export function createVerifierFactory<C, V>(
       // connectivity during selection either.
       const bin = discoverKey('CADENCE_HOST_CLI_BIN', env, cwd).value ?? 'claude';
       const model = slice?.model;
-      const primary = spec.hostCli({ bin, ...(model ? { model } : {}) });
+      // Phase 344: the isolation setting and the test-only spawn seam are
+      // handed to the builder only when given, so an absent setting stays
+      // absent all the way to `hostCliJSON`, whose default is `on`.
+      const primary = spec.hostCli({
+        bin,
+        ...(model ? { model } : {}),
+        ...(opts.hostCliIsolation !== undefined ? { isolation: opts.hostCliIsolation } : {}),
+        ...(opts.spawnImpl ? { spawnImpl: opts.spawnImpl } : {}),
+      });
       // T3: the binary's existence/auth status is only knowable once a real
       // call is attempted (see `wrapWithFallback`'s doc comment) — wrap here
       // rather than probing synchronously, so a missing/unauthenticated

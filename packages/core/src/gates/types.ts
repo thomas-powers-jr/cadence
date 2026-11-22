@@ -277,6 +277,31 @@ export interface SettleContext {
   readonly gateProvenance?: readonly Readonly<GateProvenance>[];
 }
 
+/**
+ * Phase 344 (344-01, T3): the isolation flags a host-cli verifier recorded on
+ * its result (`tagHostCliIsolation` in `verify/verifier.ts`, a NON-ENUMERABLE
+ * `hostCliIsolation` property), or `undefined` when it recorded none: the mock
+ * or any other provider, isolation off, a call that fell back to mock, a
+ * host-cli verifier that returned without spawning. Returns a copy, so a
+ * caller that stores or mutates the list cannot change what a later read
+ * returns.
+ *
+ * Lives here, not beside the writer, because the gates may not import
+ * `verify/verifier.js` (the phase 234 `no-restricted-imports` zone) - the same
+ * split as `providerSelection`, written in `verify/verifier-factory.ts` and
+ * read by name in `verify/converge.ts`. The parameter is a minimal structural
+ * shape rather than the three result interfaces, which stay unchanged;
+ * `provider: string` keeps the type from being all-optional ("weak"), which
+ * would reject those interfaces.
+ */
+export function readHostCliIsolation(res: {
+  provider: string;
+  hostCliIsolation?: readonly string[];
+}): string[] | undefined {
+  const flags = res.hostCliIsolation;
+  return Array.isArray(flags) ? [...flags] : undefined;
+}
+
 /** Cross-cutting flags a gate sets for the finalizers to read. */
 export interface GateFlags {
   coverageBypassed?: boolean;
@@ -371,6 +396,12 @@ export interface GateFlags {
     family: string;
     model?: string;
     providerSelection?: 'configured' | 'fallback' | 'empty-diff';
+    /** Phase 344 (344-01, T3): the isolation flags the host-cli review agent
+     *  was spawned with, copied by the gate from its verifier result
+     *  (`readHostCliIsolation`). Present only when a host-cli child ran with
+     *  isolation on; the registry lifts it onto
+     *  `GateProvenanceZ.hostCliIsolation`. */
+    hostCliIsolation?: string[];
   };
   /** Phase 275 (275-01, T1): verifier identity that actually ran a gate whose
    *  provider/model must NOT feed `deriveAssuranceRecord`'s `verifierRollup`/
@@ -385,6 +416,10 @@ export interface GateFlags {
   observedVerifierIdentity?: {
     family: string;
     model?: string;
+    /** Phase 344 (344-01, T3): as `verifierIdentity.hostCliIsolation` above,
+     *  for `deep-verify`. Never set on the `--allow-verifier-failure` path,
+     *  whose identity is built from config, not from a verifier result. */
+    hostCliIsolation?: string[];
   };
 }
 

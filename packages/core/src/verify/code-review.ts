@@ -4,6 +4,7 @@ import { z } from 'zod/v4';
 import type { AcceptanceCriterion, Finding, Task } from '@thomas-powers-jr/cadence-types';
 import { hostCliJSON, type SpawnFn } from './host-cli-client.js';
 import { localChatJSON } from './local-client.js';
+import { tagHostCliIsolation } from './verifier.js';
 
 /**
  * Phase 24.3 — code-review verifier. Per-file findings against the phase
@@ -329,6 +330,9 @@ export interface HostCliCodeReviewVerifierOptions {
   model?: string;
   /** Inject a spawn implementation for tests; production callers should omit this. */
   spawnImpl?: SpawnFn;
+  /** Phase 344: the effective `verification.hostCliIsolation`, handed to
+   *  `hostCliJSON` unchanged. Absent leaves the client's default (`on`). */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -353,6 +357,7 @@ export class HostCliCodeReviewVerifier implements CodeReviewVerifier {
       user: formatUserMessage(input),
       schema: CodeReviewResponseSchema,
       ...(this.o.spawnImpl ? { spawnImpl: this.o.spawnImpl } : {}),
+      ...(this.o.isolation !== undefined ? { isolation: this.o.isolation } : {}),
     });
     const findings: Record<string, Finding[]> = {};
     for (const f of parsed.findings) {
@@ -362,7 +367,13 @@ export class HostCliCodeReviewVerifier implements CodeReviewVerifier {
         ...(f.line !== undefined ? { line: f.line } : {}),
       });
     }
-    return { findings, provider: this.name, ...(this.o.model ? { model: this.o.model } : {}) };
+    const result: CodeReviewResult = {
+      findings,
+      provider: this.name,
+      ...(this.o.model ? { model: this.o.model } : {}),
+    };
+    // Phase 344: only here, after the child ran - not on the early return above.
+    return tagHostCliIsolation(result, this.o.bin, this.o.isolation);
   }
 }
 
