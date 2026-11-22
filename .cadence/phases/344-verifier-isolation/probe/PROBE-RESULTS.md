@@ -37,6 +37,31 @@ Notes:
 - Whether `--strict-mcp-config` keeps the operator's MCP servers out of the
   claude child was not measured: the marker only tests instruction files.
 
-## Round 3
+## Round 3 (results-20261121T235913Z)
 
-Pending: `run-probe-3.sh` (Codex config override, no login copies).
+Codex only, no login copies. Each cell ran twice; both runs agreed, and all
+six replies were `PROBE-OK` / `FOUND ZORBLAX-344`.
+
+| Cell | Variant | Global AGENTS.md reached the child? | Login works? | Input tokens (a / b) |
+|---|---|---|---|---|
+| 1 | as shipped (control) | yes | yes | 20,762 / 20,110 |
+| 9 | `--ignore-user-config -c project_doc_max_bytes=0` | yes | yes | 18,832 / 18,832 |
+| 10 | `-c project_doc_max_bytes=0` alone | yes | yes | 19,943 / 19,943 |
+
+A config override does not keep the global `AGENTS.md` out. `--ignore-user-config`
+still does something: about 1,300 to 1,900 fewer input tokens than the
+control, consistent with `config.toml` (MCP servers, plugins) not loading.
+
+## Conclusions
+
+- **codex.** Only a `CODEX_HOME` that holds nothing but the login keeps the
+  global `AGENTS.md` out, and it means copying `auth.json`. An empty
+  `CODEX_HOME` breaks the login. `--ignore-user-config` keeps `config.toml`
+  out and leaves the global `AGENTS.md` in.
+- **claude.** `--setting-sources project`, with or without
+  `--strict-mcp-config`, keeps the login and does not keep the global
+  `CLAUDE.md` out. Their effect on user settings, hooks and MCP servers was
+  not measured by this probe.
+- The verifier child runs in the project directory, so project-level
+  instruction files and hooks still apply to it (rec-20260916-004); out of
+  scope for phase 344.
