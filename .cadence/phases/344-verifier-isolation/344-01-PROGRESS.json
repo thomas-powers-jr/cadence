@@ -10,6 +10,29 @@
         "packages/core/tests/verify/host-cli-client.test.ts"
       ],
       "updatedAt": "2026-11-22T00:55:41.916Z"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "verification.hostCliIsolation ('on'|'off', optional, absent = on), threaded through VerifierSelectOptions to all seven host-cli verifiers and read at all seven call sites; a test-only spawnImpl seam on the selectors. 90 new tests: each selector x codex/claude x off/absent/on by exact argv, each call site through its real service, AC-4's spawn-once, warn text, refused error and no-hint cases. During the implementer's red run the claude-family tests reached the real claude binary (the seam did not exist yet); every spawning test now runs under an empty-PATH guard. Independent review PASS (no path to a real CLI found); full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        "packages/core/src/gates/build-context.ts",
+        "packages/core/src/gates/draft-context.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/src/services/spec-approve-ports.ts",
+        "packages/core/src/verify/code-review.ts",
+        "packages/core/src/verify/per-task.ts",
+        "packages/core/src/verify/plan-review.ts",
+        "packages/core/src/verify/security-audit.ts",
+        "packages/core/src/verify/spec-review.ts",
+        "packages/core/src/verify/ui-spec-review.ts",
+        "packages/core/src/verify/verifier-factory.ts",
+        "packages/core/src/verify/verifier.ts",
+        "packages/core/tests/verify/host-cli-isolation-call-sites.test.ts",
+        "packages/core/tests/verify/host-cli-isolation-optout.test.ts",
+        "packages/types/src/config.ts",
+        "packages/types/tests/config-host-cli-isolation.test.ts"
+      ],
+      "updatedAt": "2026-11-22T01:13:30.488Z"
     }
   }
 }

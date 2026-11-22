@@ -118,7 +118,7 @@ const draft: Draft = {
   tier: 'complex',
   title: 'demo',
   objective: 'do the thing',
-  acceptanceCriteria: [{ id: 'AC-1', given: 'g', when: 'w', then: 't' }],
+  acceptanceCriteria: [{ id: 'AC-1', name: '', given: 'g', when: 'w', then: 't' }],
   tasks: [{ id: 'T1', name: 'task', files: ['src/foo.ts'], action: 'do', verify: 'check', done: 'AC-1' }],
   boundaries: ['DO NOT widen scope'],
   status: 'PENDING',
