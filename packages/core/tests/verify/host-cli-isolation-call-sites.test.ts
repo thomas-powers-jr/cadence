@@ -17,6 +17,14 @@ import { defaultConfig, emptyState } from '@thomas-powers-jr/cadence-types';
 import { tempRepo, type Fixture } from '@thomas-powers-jr/cadence-testkit';
 import type { CommandIO } from '../../src/services/io.js';
 import type { VerifierSelectOptions } from '../../src/verify/verifier-factory.js';
+// Type-only (erased at runtime): the shape each `vi.mock` factory below wraps.
+import type * as DeepModule from '../../src/verify/factory.js';
+import type * as PerTaskModule from '../../src/verify/per-task-factory.js';
+import type * as CodeReviewModule from '../../src/verify/code-review-factory.js';
+import type * as SecurityAuditModule from '../../src/verify/security-audit-factory.js';
+import type * as PlanReviewModule from '../../src/verify/plan-review-factory.js';
+import type * as SpecReviewModule from '../../src/verify/spec-review-factory.js';
+import type * as UiSpecReviewModule from '../../src/verify/ui-spec-review-factory.js';
 
 type SelectorName =
   | 'selectVerifier'
@@ -42,7 +50,7 @@ const received = vi.hoisted(
 );
 
 vi.mock('../../src/verify/factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/factory.js')>();
+  const actual = await importOriginal<typeof DeepModule>();
   const selectVerifier: typeof actual.selectVerifier = (config, opts) => {
     received.selectVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectVerifier(config, opts);
@@ -51,7 +59,7 @@ vi.mock('../../src/verify/factory.js', async (importOriginal) => {
 });
 
 vi.mock('../../src/verify/per-task-factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/per-task-factory.js')>();
+  const actual = await importOriginal<typeof PerTaskModule>();
   const selectPerTaskVerifier: typeof actual.selectPerTaskVerifier = (config, opts) => {
     received.selectPerTaskVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectPerTaskVerifier(config, opts);
@@ -60,7 +68,7 @@ vi.mock('../../src/verify/per-task-factory.js', async (importOriginal) => {
 });
 
 vi.mock('../../src/verify/code-review-factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/code-review-factory.js')>();
+  const actual = await importOriginal<typeof CodeReviewModule>();
   const selectCodeReviewVerifier: typeof actual.selectCodeReviewVerifier = (config, opts) => {
     received.selectCodeReviewVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectCodeReviewVerifier(config, opts);
@@ -69,7 +77,7 @@ vi.mock('../../src/verify/code-review-factory.js', async (importOriginal) => {
 });
 
 vi.mock('../../src/verify/security-audit-factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/security-audit-factory.js')>();
+  const actual = await importOriginal<typeof SecurityAuditModule>();
   const selectSecurityAuditVerifier: typeof actual.selectSecurityAuditVerifier = (config, opts) => {
     received.selectSecurityAuditVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectSecurityAuditVerifier(config, opts);
@@ -78,7 +86,7 @@ vi.mock('../../src/verify/security-audit-factory.js', async (importOriginal) => 
 });
 
 vi.mock('../../src/verify/plan-review-factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/plan-review-factory.js')>();
+  const actual = await importOriginal<typeof PlanReviewModule>();
   const selectPlanReviewVerifier: typeof actual.selectPlanReviewVerifier = (config, opts) => {
     received.selectPlanReviewVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectPlanReviewVerifier(config, opts);
@@ -87,7 +95,7 @@ vi.mock('../../src/verify/plan-review-factory.js', async (importOriginal) => {
 });
 
 vi.mock('../../src/verify/spec-review-factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/spec-review-factory.js')>();
+  const actual = await importOriginal<typeof SpecReviewModule>();
   const selectSpecReviewVerifier: typeof actual.selectSpecReviewVerifier = (config, opts) => {
     received.selectSpecReviewVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectSpecReviewVerifier(config, opts);
@@ -96,7 +104,7 @@ vi.mock('../../src/verify/spec-review-factory.js', async (importOriginal) => {
 });
 
 vi.mock('../../src/verify/ui-spec-review-factory.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/verify/ui-spec-review-factory.js')>();
+  const actual = await importOriginal<typeof UiSpecReviewModule>();
   const selectUiSpecReviewVerifier: typeof actual.selectUiSpecReviewVerifier = (config, opts) => {
     received.selectUiSpecReviewVerifier?.push(opts as Record<string, unknown> | undefined);
     return actual.selectUiSpecReviewVerifier(config, opts);
