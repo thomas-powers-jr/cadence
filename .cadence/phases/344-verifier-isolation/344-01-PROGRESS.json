@@ -1,0 +1,15 @@
+{
+  "draftId": "344-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Codex is spawned with --ignore-user-config and claude with --setting-sources project --strict-mcp-config, from one exported helper; isolation 'off' restores the pre-phase argv; a nonzero exit whose stderr names a passed -- flag gets a hint; no retry. 28 new tests; nine argv pins updated in the existing client test, nothing else. Independent review PASS; full pipeline 28/28 re-verified on the main thread. Known: the hint can fire if a wrapper echoes its command line (bounded: it says 'may'); the model variants (-m / --model after the flags) were not measured by the probe.",
+      "touchedFiles": [
+        "packages/core/src/verify/host-cli-client.ts",
+        "packages/core/tests/verify/host-cli-client-isolation.test.ts",
+        "packages/core/tests/verify/host-cli-client.test.ts"
+      ],
+      "updatedAt": "2026-11-22T00:55:41.916Z"
+    }
+  }
+}
