@@ -223,8 +223,9 @@ export const GateProvenanceZ = z.object({
    *
    *  Absent when isolation was off (`verification.hostCliIsolation: "off"`),
    *  when the provider was not `host-cli`, when the call fell back to mock,
-   *  and when no child was spawned (the verifier returned early, or it threw
-   *  and the failure was bypassed). Absent on every record written before
+   *  and when no verifier result came back from a spawned child (the
+   *  verifier returned early without spawning, or the call threw and the
+   *  failure was bypassed). Absent on every record written before
    *  this phase, on `per-task-verify` entries and on a `refused` entry whose
    *  gate reported no verifier identity.
    *

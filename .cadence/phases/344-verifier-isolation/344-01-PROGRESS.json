@@ -33,6 +33,21 @@
         "packages/types/tests/config-host-cli-isolation.test.ts"
       ],
       "updatedAt": "2026-11-22T01:13:30.488Z"
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "GateProvenanceZ.hostCliIsolation (optional string array, no default, no schemaVersion bump). The three settle host-cli verifiers tag their result non-enumerably after hostCliJSON returns; the three gates copy it onto their identity flag; the registry lifts it onto the gate entry. Absent for isolation off, mock, fallback, no-spawn returns and the bypass paths, each tested. summary verify matches with the field present (mutation-checked). 46 new tests under the empty-PATH guard; no real CLI ran. Independent review PASS; full pipeline 28/28 re-verified on the main thread.",
+      "touchedFiles": [
+        "packages/core/src/gates/code-review.ts",
+        "packages/core/src/gates/deep-verify.ts",
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/gates/security-audit.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/tests/gates/host-cli-isolation-provenance.test.ts",
+        "packages/types/src/summary.ts",
+        "packages/types/tests/summary-host-cli-isolation.test.ts"
+      ],
+      "updatedAt": "2026-11-22T01:28:49.224Z"
     }
   }
 }
