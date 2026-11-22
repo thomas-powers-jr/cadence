@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SummaryZ, type GateProvenance, type Summary } from '@thomas-powers-jr/cadence-types';
-import type { SettleContext, VerifierPorts } from '../../src/gates/types.js';
+import { readHostCliIsolation, type SettleContext, type VerifierPorts } from '../../src/gates/types.js';
 import { runSettleGates, type SettleGate } from '../../src/gates/registry.js';
 import {
   hostCliIsolationFlags,
@@ -21,7 +21,7 @@ import {
   type SpawnFn,
   type SpawnedProcessLike,
 } from '../../src/verify/host-cli-client.js';
-import { HostCliVerifier, readHostCliIsolation } from '../../src/verify/verifier.js';
+import { HostCliVerifier } from '../../src/verify/verifier.js';
 import { HostCliCodeReviewVerifier } from '../../src/verify/code-review.js';
 import { HostCliSecurityAuditVerifier } from '../../src/verify/security-audit.js';
 import type { VerifierSelectOptions } from '../../src/verify/verifier-factory.js';

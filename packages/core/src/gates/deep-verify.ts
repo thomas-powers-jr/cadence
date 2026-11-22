@@ -2,6 +2,7 @@ import type { DeepVerdict, DeepVerifyMeta } from '@thomas-powers-jr/cadence-type
 import type { VerifyAc, VerifyInput, VerifyTestRef } from '../contracts/index.js';
 import { capDiff } from '../verify/cap-diff.js';
 import { classifyAcObservability } from '../verify/criteria-observability.js';
+import { readHostCliIsolation } from './types.js';
 import type { GateImpl, GateFlags, GateResult, SettleContext } from './types.js';
 
 /** Schema default for `verifier.diffCapBytes` (256KB); used when config is absent. */
@@ -68,6 +69,15 @@ export const runDeepVerifyGate: GateImpl = async (ctx): Promise<GateResult> => {
 
   try {
     const result = await ctx.verifiers.deep.verify(verifyInput);
+    // Phase 344 (344-01, T3): the identity both return paths below report.
+    // `hostCliIsolation` is whatever the verifier recorded on its result - set
+    // only when a host-cli child was spawned with isolation flags.
+    const hostCliIsolation = readHostCliIsolation(result);
+    const observedVerifierIdentity: NonNullable<GateFlags['observedVerifierIdentity']> = {
+      family: result.provider,
+      ...(result.model ? { model: result.model } : {}),
+      ...(hostCliIsolation ? { hostCliIsolation } : {}),
+    };
     const deepVerify: Record<string, DeepVerdict> = {};
     for (const ac of acs) {
       const v = result.verdicts[ac.id];
@@ -145,23 +155,13 @@ export const runDeepVerifyGate: GateImpl = async (ctx): Promise<GateResult> => {
         outcome: 'refuse',
         summaryPatch: { deepVerify, deepVerifyMeta: meta(result.provider, result.model, result.usage) },
         reason,
-        flags: {
-          observedVerifierIdentity: {
-            family: result.provider,
-            ...(result.model ? { model: result.model } : {}),
-          },
-        },
+        flags: { observedVerifierIdentity },
       };
     }
     return {
       outcome: 'pass',
       summaryPatch: { deepVerify, deepVerifyMeta: meta(result.provider, result.model, result.usage) },
-      flags: {
-        observedVerifierIdentity: {
-          family: result.provider,
-          ...(result.model ? { model: result.model } : {}),
-        },
-      },
+      flags: { observedVerifierIdentity },
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

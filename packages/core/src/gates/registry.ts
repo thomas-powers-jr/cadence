@@ -169,7 +169,7 @@ const SELF_GUARD_SKIP_REASON: Partial<Record<SettleGate, string>> = {
  */
 function verifierIdentityProvenance(
   res: GateResult,
-): Pick<GateProvenance, 'provider' | 'model' | 'providerSelection'> {
+): Pick<GateProvenance, 'provider' | 'model' | 'providerSelection' | 'hostCliIsolation'> {
   const identity = res.flags?.verifierIdentity;
   if (!identity) return {};
   return {
@@ -177,6 +177,11 @@ function verifierIdentityProvenance(
     ...(identity.model !== undefined ? { model: identity.model } : {}),
     ...(identity.providerSelection !== undefined
       ? { providerSelection: identity.providerSelection }
+      : {}),
+    // Phase 344 (344-01, T3): lifted the same way - present only when the
+    // gate's host-cli child was spawned with isolation flags.
+    ...(identity.hostCliIsolation !== undefined
+      ? { hostCliIsolation: [...identity.hostCliIsolation] }
       : {}),
   };
 }
@@ -194,12 +199,17 @@ function verifierIdentityProvenance(
  */
 function observedVerifierIdentityProvenance(
   res: GateResult,
-): Pick<GateProvenance, 'observedProvider' | 'observedModel'> {
+): Pick<GateProvenance, 'observedProvider' | 'observedModel' | 'hostCliIsolation'> {
   const identity = res.flags?.observedVerifierIdentity;
   if (!identity) return {};
   return {
     observedProvider: identity.family,
     ...(identity.model !== undefined ? { observedModel: identity.model } : {}),
+    // Phase 344 (344-01, T3): see `verifierIdentityProvenance` above. No gate
+    // sets both identity flags, so the two spreads never collide.
+    ...(identity.hostCliIsolation !== undefined
+      ? { hostCliIsolation: [...identity.hostCliIsolation] }
+      : {}),
   };
 }
 
