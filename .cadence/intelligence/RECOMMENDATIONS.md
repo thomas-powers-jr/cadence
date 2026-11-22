@@ -1900,7 +1900,7 @@ medium finding at packages/core/src/handoff/precompact.ts:245: Git collection ca
 
 ## rec-20261117-001 — Skill-audit cannot see skills invoked in sessions without CADENCE hooks (cloud sessions), so a phase built with phase-build reads as a miss
 
-- status: candidate
+- status: converted
 - ready: needs-decision
 - priority: medium
 - leverage: 5/10
@@ -1909,6 +1909,7 @@ medium finding at packages/core/src/handoff/precompact.ts:245: Git collection ca
 - decay: fresh
 - areas: skill-audit, state, hosts, cloud
 - files: packages/core/src/checks/skill-audit.ts, packages/core/src/hooks/handlers.ts, packages/core/src/state/snapshot.ts
+- decisions: dec-20261122-002 (active)
 - evidence: Phase 346 settle (2026-11-16): skill-audit-miss for phase-build although the phase was built with it in a cloud session; state snapshot showed invoked: [].
 - next: cadence milestone propose
 

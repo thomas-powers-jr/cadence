@@ -3427,7 +3427,7 @@
       "title": "Skill-audit cannot see skills invoked in sessions without CADENCE hooks (cloud sessions), so a phase built with phase-build reads as a miss",
       "summary": "The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session, but invocations are recorded into state.skillAudit only by the local host hooks (.claude/settings.json on the operator PC), which cloud sessions do not have. The settle on the PC therefore reported skill-audit-miss and needed --allow-skill-audit-miss (warn bypass, decision recorded). Invoking the skill after the fact to satisfy the audit would game it. Options: record invocations through a path a cloud session can reach (e.g. a 'cadence skill record' command the skill itself calls, or MCP), carry recorded invocations in 'cadence state save/load' snapshots, or let the audit accept evidence such as per-task review artifacts. Out of scope: weakening the requirement.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "needs-decision",
       "priority": "medium",
       "leverageScore": 5,
@@ -3450,9 +3450,12 @@
         "ev-20261117-001"
       ],
       "assumptionIds": [],
-      "decisionIds": [],
+      "decisionIds": [
+        "dec-20261122-002"
+      ],
+      "convertedToPhaseId": "349-skill-audit-names-unobserved-host-hooks",
       "createdAt": "2026-11-17T03:14:34.120Z",
-      "updatedAt": "2026-11-17T03:14:34.120Z"
+      "updatedAt": "2026-11-22T19:35:36.539Z"
     },
     {
       "id": "rec-20261121-001",
