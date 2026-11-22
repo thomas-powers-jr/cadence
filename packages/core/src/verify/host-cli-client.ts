@@ -289,6 +289,13 @@ export interface HostCliJSONOptions<T> {
    * conditional-field convention.
    */
   traceId?: string;
+  /**
+   * Phase 344 T1 - whether the family's isolation flags
+   * ({@link hostCliIsolationFlags}) are passed to the spawned CLI. Absent
+   * means `'on'`. `'off'` restores the argv this module passed before phase
+   * 344, exactly, and switches off the rejected-flag hint on a non-zero exit.
+   */
+  isolation?: 'on' | 'off';
 }
 
 /**
@@ -339,8 +346,38 @@ function flattenMessages(messages: RepairMessage[]): string {
 }
 
 /** Infers the CLI family from the configured binary's basename (case-insensitive). */
-function inferFamily(bin: string): HostCliFamily {
+export function inferFamily(bin: string): HostCliFamily {
   return basename(bin).toLowerCase().includes('codex') ? 'codex' : 'claude';
+}
+
+/**
+ * Phase 344 T1 - the isolation flags passed to a family's CLI when isolation
+ * is on, in argv order. Pure, and a fresh array on every call so a caller
+ * that records or mutates the result cannot change what is spawned next.
+ * {@link buildInvocation} inserts exactly this list, so the argv and anything
+ * that reports the flags cannot diverge. What each flag was measured to do is
+ * recorded on `buildInvocation`.
+ */
+export function hostCliIsolationFlags(family: HostCliFamily): string[] {
+  return family === 'codex'
+    ? ['--ignore-user-config']
+    : ['--setting-sources', 'project', '--strict-mcp-config'];
+}
+
+/**
+ * Phase 344 T1 - the text appended to a `nonzero-exit` message when the
+ * child's stderr names an isolation flag that was passed: the likeliest cause
+ * is a CLI too old to know the flag. Pure. `passedFlags` is what
+ * {@link hostCliIsolationFlags} returned for this call, or empty when
+ * isolation is off. Only `--`-prefixed entries count, so a flag's value
+ * (`project`) can never trigger it, and the first match in `passedFlags`
+ * order is the one named. Returns `''` when nothing matches. This is a
+ * diagnostic only: the call is never retried without the flag.
+ */
+function isolationFlagHint(passedFlags: readonly string[], stderr: string): string {
+  const rejected = passedFlags.find((flag) => flag.startsWith('--') && stderr.includes(flag));
+  if (rejected === undefined) return '';
+  return ` -- this CLI may not accept the isolation flag "${rejected}"; update it, or set verification.hostCliIsolation to "off"`;
 }
 
 /**
@@ -372,19 +409,45 @@ function inferFamily(bin: string): HostCliFamily {
  * truncation, and `claude -p --output-format json` with the prompt piped
  * returned `"is_error": false`. 53,960 is 1.65x the 32,767-character Windows
  * command-line ceiling that the old argv form could not clear.
+ *
+ * Phase 344 T1 - with isolation on (the default) the family's isolation
+ * flags from {@link hostCliIsolationFlags} go in after the fixed flags and
+ * before the model flag:
+ * `codex exec --json --skip-git-repo-check --ignore-user-config [-m <model>] -`
+ * and
+ * `claude -p --output-format json --setting-sources project --strict-mcp-config [--model <model>]`.
+ * They were measured on the operator's PC, not guessed: see
+ * `.cadence/phases/344-verifier-isolation/probe/PROBE-RESULTS.md`
+ * (codex-cli 0.156.1, Claude Code 2.1.330).
+ * - codex `--ignore-user-config`: `--help` says it does not load
+ *   `$CODEX_HOME/config.toml` and that auth still uses `CODEX_HOME`; the
+ *   login kept working, and the child used fewer input tokens than the
+ *   control, consistent with `config.toml` not loading.
+ * - claude `--setting-sources project`: stopped a user-level hook, the
+ *   user's installed plugins and the MCP servers those plugins bring.
+ *   `--strict-mcp-config` on top removed the remaining account-level
+ *   connectors, leaving no MCP server. The login kept working.
+ * - Neither keeps the global instruction file out: the global `AGENTS.md`
+ *   (codex) and the global `CLAUDE.md` (claude) still reach the child. So do
+ *   project-level instruction files and hooks, because the child runs in the
+ *   project directory.
+ * No environment variable is set for the child and nothing is copied. With
+ * `isolation: 'off'` the argv is exactly the pre-phase-344 one above.
  */
 function buildInvocation(o: {
   bin: string;
   family: HostCliFamily;
   model: string | undefined;
+  isolation: 'on' | 'off';
 }): string[] {
+  const isolationFlags = o.isolation === 'on' ? hostCliIsolationFlags(o.family) : [];
   if (o.family === 'codex') {
-    const args = ['exec', '--json', '--skip-git-repo-check'];
+    const args = ['exec', '--json', '--skip-git-repo-check', ...isolationFlags];
     if (o.model) args.push('-m', o.model);
     args.push('-');
     return args;
   }
-  const args = ['-p', '--output-format', 'json'];
+  const args = ['-p', '--output-format', 'json', ...isolationFlags];
   if (o.model) args.push('--model', o.model);
   return args;
 }
@@ -417,6 +480,10 @@ function toHostCliError(bin: string, err: unknown): HostCliError {
  * path (resolve, reject-via-timeout, reject-via-abort, reject-via-error) so
  * neither fires spuriously after the promise has already settled and
  * neither leaves a dangling timer/listener alive past this call.
+ *
+ * Phase 344 T1 - `isolationFlags` is the list of isolation flags that are in
+ * `args` (empty when isolation is off). It is read on the non-zero-exit path
+ * only, to append {@link isolationFlagHint} to that error's message.
  */
 function spawnCapture(
   spawnImpl: SpawnFn,
@@ -427,6 +494,7 @@ function spawnCapture(
   env: NodeJS.ProcessEnv,
   timeoutMs: number,
   signal?: AbortSignal,
+  isolationFlags: readonly string[] = [],
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -518,7 +586,7 @@ function spawnCapture(
           new HostCliError(
             `host-cli provider: "${bin}" exited with code ${code ?? 'null'}${
               stderr.trim() ? `: ${stderr.trim()}` : ''
-            }`,
+            }${isolationFlagHint(isolationFlags, stderr)}`,
             'nonzero-exit',
           ),
         );
@@ -619,6 +687,7 @@ async function callOnce(
     spawnImpl: SpawnFn;
     env: NodeJS.ProcessEnv;
     timeoutMs: number;
+    isolation: 'on' | 'off';
     signal?: AbortSignal;
     traceId?: string;
   },
@@ -644,6 +713,7 @@ async function callOnce(
     o.env,
     o.timeoutMs,
     o.signal,
+    o.isolation === 'on' ? hostCliIsolationFlags(o.family) : [],
   );
 
   try {
@@ -675,6 +745,7 @@ export async function hostCliJSON<T>(o: HostCliJSONOptions<T>): Promise<T> {
   const spawnImpl = o.spawnImpl ?? defaultRealSpawn;
   const env = o.env ?? process.env;
   const timeoutMs = resolveTimeoutMs(o.timeoutMs, env);
+  const isolation = o.isolation ?? 'on';
 
   return runWithRepair({
     system: o.system,
@@ -690,6 +761,7 @@ export async function hostCliJSON<T>(o: HostCliJSONOptions<T>): Promise<T> {
           spawnImpl,
           env,
           timeoutMs,
+          isolation,
           ...(o.signal ? { signal: o.signal } : {}),
           ...(o.traceId !== undefined ? { traceId: o.traceId } : {}),
         },
