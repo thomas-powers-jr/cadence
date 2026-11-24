@@ -93,7 +93,6 @@ import { selectSecurityAuditVerifier } from '../verify/security-audit-factory.js
 import { formatCommandError } from './format-command-error.js';
 import type { CommandIO, CommandResult } from './io.js';
 import { isInteractiveRequested } from '../gates/interactive.js';
-import { missingSkills } from '../verify/skill-match.js';
 import { renderSettleDryRunReport, type DryRunRefusal } from './settle-dry-run-report.js';
 
 export interface SettleArgs {
@@ -1541,16 +1540,17 @@ async function runAnomalyAndSkillAuditChecks(
 
     const res = await runSkillAuditCheck(ctx, resolvedPacks);
     if (res.outcome === 'refuse') {
-      const missing = missingSkills(res.effectiveRequired, state.skillAudit.invoked);
       return {
         ok: false,
         result: { exitCode: 1 },
-        // The full line `runSkillAuditCheck` printed (checks/skill-audit.ts).
+        // The full line `runSkillAuditCheck` printed (checks/skill-audit.ts),
+        // returned by it rather than rebuilt here (phase 349), so the dry run
+        // and the real run cannot drift apart.
         refusal: {
           at: 'skill-audit',
-          reason:
-            `settle run refused: required skill(s) not invoked: ${missing.join(', ')}. ` +
-            `Invoke them, or pass --allow-skill-audit-miss to override.`,
+          // `refusalLine` is always set on the refuse path; the fallback is
+          // unreachable and only satisfies the optional field's type.
+          reason: res.refusalLine ?? 'settle run refused: required skill(s) not invoked',
         },
       };
     }

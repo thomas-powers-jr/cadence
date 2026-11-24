@@ -138,6 +138,8 @@ interface Setup {
   testCommand?: 'pass' | 'fail' | 'marker';
   config?: Partial<CadenceConfig>;
   invoked?: string[];
+  /** Phase 349: when set, T1's PROGRESS row carries this `hooksObserved`. */
+  hooksObserved?: boolean;
 }
 
 async function setup(opts: Setup = {}): Promise<string> {
@@ -181,7 +183,19 @@ async function setup(opts: Setup = {}): Promise<string> {
   await writeFile(join(phaseDir, `${ID}-DRAFT.md`), draftMd(opts.tier ?? 'standard'));
   await writeFile(
     join(phaseDir, `${ID}-PROGRESS.json`),
-    JSON.stringify({ draftId: ID, tasks: { T1: { status: opts.taskStatus ?? 'DONE' } } }, null, 2),
+    JSON.stringify(
+      {
+        draftId: ID,
+        tasks: {
+          T1: {
+            status: opts.taskStatus ?? 'DONE',
+            ...(opts.hooksObserved !== undefined ? { hooksObserved: opts.hooksObserved } : {}),
+          },
+        },
+      },
+      null,
+      2,
+    ),
   );
   if (opts.coverage !== false) {
     await mkdir(join(root, 'packages', 'core', 'tests'), { recursive: true });
@@ -443,6 +457,39 @@ describe('settle run --dry-run decides exactly what settle would decide (347-01)
     );
     expect(dry.data.refusal?.reason).toBe(printed);
     expect(dry.data.wouldNotify.map((e) => e.type)).toContain('skill-audit-miss');
+  });
+
+  it('349-01/AC-3: a skill-audit refusal with a hooksObserved:false row names the task, and the dry run reports the printed line', async () => {
+    const root = await setup({ config: { skillAudit: { required: ['tdd'] } } as Partial<CadenceConfig>, hooksObserved: false });
+    const { dry, real } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'skill-audit', summary: true });
+    const printed = stderrLine(real.stderr, 'settle run refused: required skill(s) not invoked');
+    expect(printed).toBe(
+      'settle run refused: required skill(s) not invoked: tdd; host hooks were not observed when task(s) T1 were recorded, ' +
+        'so a skill invoked in that session would not have been recorded. Invoke them, or pass --allow-skill-audit-miss to override.',
+    );
+    expect(dry.data.refusal?.reason).toBe(printed);
+  });
+
+  it('349-01/AC-3: a hooksObserved:true row leaves the skill-audit refusal byte-identical to today', async () => {
+    const root = await setup({ config: { skillAudit: { required: ['tdd'] } } as Partial<CadenceConfig>, hooksObserved: true });
+    const { dry, real } = await expectSameDecision(root, AUTO, { verdict: 'refuse', at: 'skill-audit', summary: true });
+    const printed = stderrLine(real.stderr, 'settle run refused: required skill(s) not invoked');
+    expect(printed).toBe(
+      'settle run refused: required skill(s) not invoked: tdd. Invoke them, or pass --allow-skill-audit-miss to override.',
+    );
+    expect(dry.data.refusal?.reason).toBe(printed);
+  });
+
+  it('349-01/AC-3: a bypassed skill-audit miss with a hooksObserved:false row still passes and records the suffix in gateBypasses', async () => {
+    const root = await setup({ config: { skillAudit: { required: ['tdd'] } } as Partial<CadenceConfig>, hooksObserved: false });
+    await expectSameDecision(root, { auto: true, allowSkillAuditMiss: true }, { verdict: 'pass' });
+    const summary = JSON.parse(await readFile(join(root, PHASE_DIR, `${ID}-SUMMARY.json`), 'utf8')) as {
+      gateBypasses: Array<{ gate: string; reason: string }>;
+    };
+    expect(summary.gateBypasses.find((b) => b.gate === 'skill-audit')?.reason).toBe(
+      'required skill(s) not invoked: tdd; host hooks were not observed when task(s) T1 were recorded, ' +
+        'so a skill invoked in that session would not have been recorded',
+    );
   });
 
   it('347-01/AC-1: a pack-resolution refusal records the full line settle prints', async () => {

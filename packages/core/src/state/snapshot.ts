@@ -238,6 +238,9 @@ export function planStateLoad(input: PlanStateLoadInput): PlanStateLoadResult {
   restored.session.tokenUtilization = 0;
   restored.session.subagentSpawns = 0;
   restored.session.subagentBaselines = {};
+  // Phase 349 (AC-1): the hook-liveness stamp is a per-machine fact — a
+  // stamp from the saving PC says nothing about this PC's host hooks.
+  delete restored.session.lastHookEventAt;
   restored.revision = Math.max(local?.revision ?? 0, snap.revision) + 1;
 
   return { ok: true, state: restored, warnings };

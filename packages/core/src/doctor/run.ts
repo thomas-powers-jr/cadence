@@ -52,6 +52,11 @@ import { CADENCE_OWNED_GITIGNORE_ENTRIES } from '../init/gitignore.js';
 import { SimpleStateBackend } from '../state/simple.js';
 import { assessProgressFreshness } from '../phases/liveness.js';
 import {
+  installedHostHookConfigs,
+  isHookLive,
+  joinHostConfigPaths,
+} from '../hooks/hook-liveness.js';
+import {
   pass,
   fail,
   rollup,
@@ -1785,6 +1790,51 @@ export async function checkPhaseFreshness(
 }
 
 /**
+ * Phase 349 (AC-4): during BUILD with host hooks installed, warns when no host
+ * hook event has been observed recently (`state.session.lastHookEventAt` not
+ * live per `isHookLive`) — the installed hooks are not firing, typically
+ * because the session was not started in the repository root so the host
+ * config never loaded. Complements `host-hooks` / `codex-hooks`, which prove
+ * the hooks are installed, not that they fire. Best-effort and never `error`:
+ * an unreadable state degrades to `ok`. `now` is injectable for tests.
+ */
+export async function checkHostHooksLiveness(
+  root: string,
+  now: Date = new Date(),
+): Promise<DoctorCheck> {
+  const name = 'host-hooks-liveness';
+  try {
+    let loopPosition: string;
+    let lastHookEventAt: string | undefined;
+    try {
+      const state = await new SimpleStateBackend(root).readState();
+      loopPosition = state.loopPosition;
+      lastHookEventAt = state.session.lastHookEventAt;
+    } catch {
+      return pass(name, 'Host-hook liveness not determinable (state unreadable) — skipped.');
+    }
+    if (loopPosition !== 'BUILD') return pass(name, 'not in BUILD — host-hook liveness not checked.');
+    const configs = await installedHostHookConfigs(root);
+    if (configs.length === 0) return pass(name, 'not applicable — no host hooks installed.');
+    if (isHookLive(lastHookEventAt, now)) {
+      return pass(name, `Host hooks fired recently (last event ${lastHookEventAt ?? ''}).`);
+    }
+    const last =
+      lastHookEventAt === undefined
+        ? 'none recorded'
+        : `last host hook event at ${lastHookEventAt}`;
+    return fail(
+      name,
+      'warning',
+      `Host hooks are installed but none fired recently during BUILD (${last}) — skill invocations and edits may be going unobserved. Start the session in the repository root so the installed host config (${joinHostConfigPaths(configs)}) is loaded.`,
+      `Start the session in the repository root so the installed host config (${joinHostConfigPaths(configs)}) loads.`,
+    );
+  } catch {
+    return pass(name, 'Host-hook liveness not determinable (best-effort) — skipped.');
+  }
+}
+
+/**
  * Warn threshold for {@link checkRoadmapCurrency} (Phase 259,
  * rec-20260727-012): how far the highest on-disk phase number under
  * `.cadence/phases/` may drift ahead of the highest phase number referenced
@@ -2880,6 +2930,7 @@ export async function runDoctor(
     await checkCodexCadenceCommand(root),
     await checkWorktreePhases(root),
     await checkPhaseFreshness(root),
+    await checkHostHooksLiveness(root),
     await checkHandoffRetention(root),
     await checkVerificationReadiness(root),
     await checkVerificationFallback(root),

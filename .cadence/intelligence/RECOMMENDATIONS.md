@@ -1898,22 +1898,6 @@ medium finding at packages/core/src/handoff/run-resume.ts:332: `--path` may sele
 
 medium finding at packages/core/src/handoff/precompact.ts:245: Git collection can run seven serial 5s calls before writing. A slow repo can hold PreCompact for ~35s and miss its hook timeout, leaving no record.
 
-## rec-20261117-001 — Skill-audit cannot see skills invoked in sessions without CADENCE hooks (cloud sessions), so a phase built with phase-build reads as a miss
-
-- status: candidate
-- ready: needs-decision
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: skill-audit, state, hosts, cloud
-- files: packages/core/src/checks/skill-audit.ts, packages/core/src/hooks/handlers.ts, packages/core/src/state/snapshot.ts
-- evidence: Phase 346 settle (2026-11-16): skill-audit-miss for phase-build although the phase was built with it in a cloud session; state snapshot showed invoked: [].
-- next: cadence milestone propose
-
-The cadence/core-skills pack requires phase-build. Phase 346 was built with the phase-build skill in a Claude Code cloud session, but invocations are recorded into state.skillAudit only by the local host hooks (.claude/settings.json on the operator PC), which cloud sessions do not have. The settle on the PC therefore reported skill-audit-miss and needed --allow-skill-audit-miss (warn bypass, decision recorded). Invoking the skill after the fact to satisfy the audit would game it. Options: record invocations through a path a cloud session can reach (e.g. a 'cadence skill record' command the skill itself calls, or MCP), carry recorded invocations in 'cadence state save/load' snapshots, or let the audit accept evidence such as per-task review artifacts. Out of scope: weakening the requirement.
-
 ## rec-20261121-001 — Code-review finding (medium): Verifier-failure paths produce no `g.provider`; this report omits the configure…
 
 - status: candidate

@@ -122,7 +122,7 @@ describe('cadence block <id>', () => {
     expect(state.activeTask?.status).toBe('BLOCKED');
   });
 
-  it('parity with `build task --status=BLOCKED` (AC-4)', async () => {
+  it('parity with `build task --status=BLOCKED` (AC-4), apart from 349-01/AC-2\'s hooksObserved key on the build task row', async () => {
     active = await tempRepo({ initialized: true });
     await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root);
     await writeFile(
@@ -141,6 +141,11 @@ describe('cadence block <id>', () => {
       const { updatedAt: _t, ...rest } = entry as { updatedAt: string };
       return rest;
     };
+    // Phase 349 (349-01, AC-2): `build task` records hooksObserved (no hook
+    // event in this temp repo, so false); the direct-caller row has no key.
+    expect(progress.tasks.T2.hooksObserved).toBe(false);
+    expect('hooksObserved' in progress.tasks.T1).toBe(false);
+    delete progress.tasks.T2.hooksObserved;
     expect(stripIdAndTs(progress.tasks.T1)).toEqual(stripIdAndTs(progress.tasks.T2));
   });
 });

@@ -698,6 +698,26 @@ declared `files:`, the command refuses (exit 1, no state mutation) unless
 `--model-class` are additive provenance fields recorded alongside the task
 outcome and carried through to `SUMMARY.json` on settle when present.
 
+**Host-hook liveness** — since phase 349, `build task` (and `cadence done`
+and the MCP `cadence_build_task` tool) writes `hooksObserved: true` or
+`hooksObserved: false` on the task's `PROGRESS.json` row: true when a host
+hook event was handled in the last 30 minutes (`session.lastHookEventAt`,
+read before any per-task review agent runs). A re-record overwrites it;
+`cadence block` and `cadence needs-context` write no key, and a row without
+it counts as observed. When it is false and a CADENCE-managed hook entry is
+installed in `.claude/settings.json` or `.codex/hooks.json`, this line is
+printed once on stderr, naming only the installed path(s) (two are joined
+with `and`):
+
+```
+build task: no host hook event in the last 30 minutes, so skill invocations in this session may not be recorded. Check that the session started in the repository root, where .claude/settings.json is loaded.
+```
+
+With no host hooks installed nothing is printed, and stdout is unchanged
+either way. Settle's skill-audit refusal names the tasks recorded with
+`hooksObserved: false` (see `--allow-skill-audit-miss` under
+[settle run](#settle-run)).
+
 **Task-ID validation** — `build task` validates that `<id>` exists in the
 current draft's task list. Supplying an unknown ID causes a refusal (exit
 non-zero). Note: the `block` and `needs-context` shortcut commands do **not**
@@ -929,7 +949,7 @@ Generate SUMMARY.md + JSON and return to IDLE
 | `--allow-failing-build` | Do not refuse on a non-zero `verification.testCommand` exit; settle anyway. The bypass (by this flag or `--force`) prints one stderr notice with the run's output tail and is recorded as an `error`-severity `SUMMARY.json.gateBypasses` entry whose `detail` says how many tail lines were shown (the tail itself is never recorded), which caps `assurance.overall` at `mixed`, never `strong` (Phase 39.2; recorded since Phase 346). Redaction of the tail is best-effort, and the tail is shown unless `verification.buildTestOutputTail` is `"hide"`: the notice then prints only a hidden line with the captured line count, and `detail` says the tail was hidden (Phase 348; see [Build-test output tail](config.md#build-test-output-tail)) |
 | `--allow-code-review-failure` | Do not refuse on HIGH-severity code-review findings; record them in SUMMARY and emit anomalies anyway. The bypass (by this flag or `--force`) is recorded as an `error`-severity `SUMMARY.json.gateBypasses` entry, which caps `assurance.overall` at `mixed`, never `strong` (Phase 24.3; recorded since Phase 332) |
 | `--allow-security-audit-failure` | Do not refuse on CRITICAL security-audit findings; record them in SUMMARY and settle anyway. The bypass (by this flag or `--force`) is recorded as an `error`-severity `SUMMARY.json.gateBypasses` entry, which caps `assurance.overall` at `mixed`, never `strong` (Phase 25.2; recorded since Phase 332) |
-| `--allow-skill-audit-miss` | Do not refuse when required skills were not invoked; emit a warn anomaly (`bypassed:true`), record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 34.1; recorded since Phase 311) |
+| `--allow-skill-audit-miss` | Do not refuse when required skills were not invoked; emit a warn anomaly (`bypassed:true`), record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 34.1; recorded since Phase 311). When any of the draft's tasks was recorded with `hooksObserved: false` (see [build task](#build-task)), the refusal line, the `--dry-run` refusal reason and this bypass reason add `; host hooks were not observed when task(s) <ids> were recorded, so a skill invoked in that session would not have been recorded` after the missing-skill list (Phase 349); the outcome is unchanged |
 | `--allow-unresolvable-pack` | Do not refuse when an enabled pack fails to resolve; record the bypass in `SUMMARY.gateBypasses` and settle anyway (Phase 291) |
 | `--dry-run` | Run settle's preconditions, gates and post-gate checks with the same gate set, providers and bypass flags, stopping before finalize, and print what settle would decide and why. Cadence writes and notifies nothing (the test command and review agents still run) and spends no convergence attempt. Never prompts. Exits `0` if settle would pass, `1` if it would refuse, `2` when combined with `--interactive` or `--ship-ref` (Phase 347). See **Dry run** below |
 | `-h, --help` | Display help for command |
@@ -1228,6 +1248,7 @@ v1 check set:
 | `codex-cadence-command` | *(if Codex readiness artifacts exist)* `cadence` is available on `PATH` for Codex prompt commands | warning |
 | `worktree-phases` | *(v1.19)* no **sibling git worktree** claims a phase number equal to a local phase number (the silent-dual-merge precondition the v1.18 guard refuses at scaffold time) | warning |
 | `phase-freshness` | *(phase 208)* the active phase/draft's `PROGRESS.json` has no task `updatedAt` within the last 10 minutes — a timestamp that fresh could mean a concurrent session is still live on the same phase/draft. Warns naming the task and how recently it was touched, with remediation to confirm no other session is actively working before continuing | warning |
+| `host-hooks-liveness` | *(phase 349)* during BUILD, where a CADENCE-managed hook entry is installed in `.claude/settings.json` or `.codex/hooks.json`, a host hook event was handled in the last 30 minutes (`session.lastHookEventAt`; a stamp later than now does not count). Complements `host-hooks` and `codex-hooks`, which prove the hooks are installed, not that they fire. Warns naming the last stamp (or `none recorded`) and says to start the session in the repository root so the installed config path(s) load. `ok` when the stamp is live, `ok` with `not in BUILD` outside BUILD, `ok` with `not applicable — no host hooks installed` when none are installed, and `ok` with `not determinable` when `state.json` cannot be read. Never `error`; no automatic fix | warning |
 | `handoff-retention` | *(v1.20)* `SESSION-*.md` handoff docs are within `handoff.retain`, or — when retention is unset — have not accumulated past the warn threshold | warning |
 | `verification-readiness` | *(v1.22; every seam since phase 239)* **every** verifier seam uses a real provider whose credentials are present (i.e. the gates do real AI verification, not mock). Warns on all-mock (→ `cadence activate`), on deep-verify's provider missing its key, or — *(phase 239, #331)* — on any **other** seam configured to a real provider whose credentials are absent and which will therefore silently downgrade to mock, naming each offending seam and its provider. Before phase 239 only deep-verify was credential-checked, so a keyless sibling seam reported `ok` here while `cadence config explain` warned about it. *(phase 337)* Also warns when a host-cli seam's binary cannot be found (`CADENCE_HOST_CLI_BIN`, default `claude`, looked up on `PATH` or at its configured path the way the review spawn would), naming the binary and every host-cli seam that will fall back to mock; this warning comes before the credential-downgrade one and also names any credential-downgraded seams (a deep-verify on mock, or missing its key, is still reported first). Login, reachability and the self-invocation guard are still only discovered when a review runs. *(phase 343)* Under `verification.fallback: "refuse"` these warnings say each affected seam will refuse (verification.fallback is "refuse") instead of falling back to mock; under an absent or `"mock"` setting the wording is unchanged | warning |
 | `verification-fallback` | *(phase 343)* reports the effective `verification.fallback`: `"mock"` (the default, key absent, or set explicitly) means a verifier seam whose real provider cannot run falls back to mock with a warning; `"refuse"` means that seam's call refuses instead (see [Verification fallback](config.md#verification-fallback)). Informational only: it always reports `ok` and never fails | never (info) |
@@ -1274,7 +1295,7 @@ never prompts):
 |---|---|---|
 | **auto** | `git-hooks`, missing `STATE.md`, missing managed `AGENTS.md`, `handoff-retention`, `state-tracked` | applied by plain `--fix` — `git config core.hooksPath .githooks`; regenerate `STATE.md` from the valid `state.json` (never rewriting `state.json`); regenerate `AGENTS.md`; set `handoff.retain` to the default (10) when unset and prune the `SESSION-*.md` archive down to that budget (the active `lastHandoff` doc is always kept, and git-tracked docs are kept, *phase 335*); write the CADENCE-owned ephemeral paths to `.gitignore` and `git rm --cached` any that are tracked, without committing *(phase 196)* |
 | **wire-host** | `host-hooks`, `host-commands`, `codex-hooks`, `codex-prompts` | applied only with `--fix --wire-host` — re-runs the relevant host installer once per host repair id (deduped) to rewrite hooks/commands |
-| **manual** | `node`, `initialized`, corrupt `state.json`, `worktree-phases`, `verification-readiness`, `codex-cadence-command`, `ledger-remote-collision`, `conduction-reachability`, `roadmap-currency`, `release-currency`, `conduction-drift-streak`, `recommendation-archive-currency`, `packs`, `pack-commands`, `hook-transport`, `host-cli-isolation`, user-owned prompt/agent files | never auto-applied — reported as guidance with the check's remediation |
+| **manual** | `node`, `initialized`, corrupt `state.json`, `worktree-phases`, `verification-readiness`, `codex-cadence-command`, `ledger-remote-collision`, `conduction-reachability`, `roadmap-currency`, `release-currency`, `conduction-drift-streak`, `recommendation-archive-currency`, `packs`, `pack-commands`, `hook-transport`, `host-cli-isolation`, `host-hooks-liveness`, user-owned prompt/agent files | never auto-applied — reported as guidance with the check's remediation |
 
 The `host-cli-isolation` warning (`verification.hostCliIsolation` is `"off"`) has no automatic fix: turning the isolation flags off is a setting you chose, so `--fix` reports the check's remediation and leaves `config.json` alone.
 
@@ -3328,7 +3349,9 @@ existed) to `.cadence/local/state.json.bak`, replacing any earlier backup,
 then writes the snapshot's `state` as the new `state.json` and re-renders
 `STATE.md` in the same operation (no `doctor --fix` step). Session-local
 counters reset: `session.tokenUtilization` and `session.subagentSpawns`
-become `0` and `session.subagentBaselines` becomes `{}`. `revision` becomes
+become `0` and `session.subagentBaselines` becomes `{}`, and the
+per-machine host-hook liveness stamp `session.lastHookEventAt` is removed
+(phase 349). `revision` becomes
 `max(local revision, snapshot revision) + 1` (a missing or unparseable local
 state counts as `0`), so a process on this machine still holding the old
 state hits the existing state-conflict refusal. Every other field is kept

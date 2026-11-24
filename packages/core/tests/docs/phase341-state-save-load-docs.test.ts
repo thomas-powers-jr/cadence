@@ -44,7 +44,7 @@ describe('phase 341 cadence state save/load/list docs', () => {
     expect(md).toContain('  - [state](#state)');
   });
 
-  it('the `### state` section documents save, load, list, their flags, the snapshot directory, .cadence/local/ and keep-3 retention (341-01/AC-6)', () => {
+  it('the `### state` section documents save, load, list, their flags, the snapshot directory, .cadence/local/ and keep-3 retention (341-01/AC-6; lastHookEventAt reset 349-01/AC-5)', () => {
     const s = section(read('docs', 'reference', 'commands.md'), '### state');
     for (const word of ['`save`', '`load [snapshot]`', '`list`', '`--json`', '`--force`']) {
       expect(s, `missing ${word}`).toContain(word);
@@ -56,7 +56,7 @@ describe('phase 341 cadence state save/load/list docs', () => {
     expect(s).toContain('state-sync.json');
     expect(s).toMatch(/newest 3/);
     // The AC-4 resets and revision rule.
-    for (const field of ['tokenUtilization', 'subagentSpawns', 'subagentBaselines']) {
+    for (const field of ['tokenUtilization', 'subagentSpawns', 'subagentBaselines', 'lastHookEventAt']) {
       expect(s, `missing reset ${field}`).toContain(field);
     }
     expect(s).toContain('max(local revision, snapshot revision) + 1');

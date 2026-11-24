@@ -86,3 +86,19 @@ export async function readHostHooksInstallState(root: string): Promise<HostHooks
   }
   return classifyHostHooksSettings(parsed);
 }
+
+/**
+ * Phase 349 (349-01, AC-2): read-only probe of whether the hook config file
+ * at `path` (`.claude/settings.json` or `.codex/hooks.json` — both share the
+ * `hooks.<Event>[]` entry shape) holds a CADENCE-managed entry, via
+ * {@link firstManagedCadenceEntry}. Best-effort: a missing, unreadable or
+ * unparseable file is `false`; never throws.
+ */
+export async function hasManagedCadenceEntryAt(path: string): Promise<boolean> {
+  try {
+    if (!existsSync(path)) return false;
+    return firstManagedCadenceEntry(JSON.parse(await readFile(path, 'utf8'))) !== null;
+  } catch {
+    return false;
+  }
+}

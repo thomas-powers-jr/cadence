@@ -52,7 +52,26 @@ export interface SkillAuditResult {
    * reason `PackResolutionResult` returns its own.
    */
   readonly reason?: string;
+  /**
+   * Phase 349 (349-01, T3): the full refusal line `runSkillAuditCheck` printed
+   * to stderr, without its trailing newline. Present iff `outcome` is
+   * `'refuse'`. Returned so settle's `--dry-run` reports the exact printed
+   * line instead of rebuilding it (the dry run and the real run must agree).
+   */
+  readonly refusalLine?: string;
 }
+
+/**
+ * Phase 349 (349-01, T3): the explanation appended after the missing-skill
+ * list when one or more of the settling draft's tasks were recorded while no
+ * host hook event was live. `ids` are in draft task order. Empty string when
+ * there are none, so every pre-349 text stays byte-identical.
+ */
+const hooksUnobservedSuffix = (ids: readonly string[]): string =>
+  ids.length === 0
+    ? ''
+    : `; host hooks were not observed when task(s) ${ids.join(', ')} were recorded, ` +
+      'so a skill invoked in that session would not have been recorded';
 
 /**
  * Required-skill enforcement check (Phase 34.1 — ROADMAP 23.4). Extracted from
@@ -123,6 +142,15 @@ export const runSkillAuditCheck = async (
     } else {
       const missing = missingSkills(effectiveRequired, invoked);
       if (missing.length > 0) {
+        // Phase 349: ids in draft task order; key-absent rows count as
+        // observed, and a PROGRESS row for an id not in the draft is never
+        // named. Defensive reads: a real settle always supplies both
+        // `draft.tasks` and `progress`, but hand-built contexts may omit
+        // either, and this check must never throw on a miss path.
+        const unobserved = (ctx.draft.tasks ?? [])
+          .map((t) => t.id)
+          .filter((id) => ctx.progress?.tasks?.[id]?.hooksObserved === false);
+        const suffix = hooksUnobservedSuffix(unobserved);
         const bypass = ctx.opts.allowSkillAuditMiss === true;
         await ctx.emit.skillAuditMiss({
           required: effectiveRequired,
@@ -132,11 +160,12 @@ export const runSkillAuditCheck = async (
           ...(bypass ? { bypassed: true } : {}),
         });
         if (!bypass) {
-          ctx.io.err(
-            `settle run refused: required skill(s) not invoked: ${missing.join(', ')}. ` +
-              `Invoke them, or pass --allow-skill-audit-miss to override.\n`,
-          );
-          return { outcome: 'refuse', effectiveRequired, requiredWithProvenance };
+          // Built once: printed here and returned for settle's dry run.
+          const refusalLine =
+            `settle run refused: required skill(s) not invoked: ${missing.join(', ')}${suffix}. ` +
+            `Invoke them, or pass --allow-skill-audit-miss to override.`;
+          ctx.io.err(`${refusalLine}\n`);
+          return { outcome: 'refuse', effectiveRequired, requiredWithProvenance, refusalLine };
         }
         ctx.io.err(
           `skill-audit: --allow-skill-audit-miss set; proceeding past ${missing.length} missing skill(s).\n`,
@@ -145,7 +174,7 @@ export const runSkillAuditCheck = async (
         // shortfall became a pass. The stderr line above is kept exactly as it
         // was — the durable record supplements the loud notice, never replaces
         // it.
-        bypassReason = `required skill(s) not invoked: ${missing.join(', ')}`;
+        bypassReason = `required skill(s) not invoked: ${missing.join(', ')}${suffix}`;
       }
     }
   }
