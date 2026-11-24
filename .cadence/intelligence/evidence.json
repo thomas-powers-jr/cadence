@@ -3418,6 +3418,13 @@
       "kind": "note",
       "summary": "Release run 45047872230 job 137286332479; npm time for core 1.76.0 is 2026-11-22T17:26:36Z; POST_PUBLISH_VERIFY_ATTEMPTS = 40",
       "createdAt": "2026-11-22T17:31:29.830Z"
+    },
+    {
+      "id": "ev-20261124-001",
+      "recommendationId": "rec-20261124-001",
+      "kind": "note",
+      "summary": "Phase 350 literal DRAFT review (2026-11-24): parseDraftMd on 350-01's first DRAFT gave AC-1 then = 'clause\\nGiven the universal-word list ...' and AC-2 then = 'texts are (AC-1) ...'.",
+      "createdAt": "2026-11-24T17:48:27.955Z"
     }
   ]
 }
