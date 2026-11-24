@@ -1964,7 +1964,7 @@ Two known shapes outside phase 348's four, reported rather than fixed (dec-20261
 
 ## rec-20261121-005 — Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: high
 - leverage: 5/10
@@ -1993,3 +1993,19 @@ Phase 347 needed six Codex rounds to settle; phase 348 applied two process chang
 - next: cadence milestone propose
 
 On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did not show cadence-core 1.76.0 until 17:26:36, about 11 minutes later. The release-integrity step polls 40 times at 15s (585s) and failed at 17:25:30, so the Release run is red although all five packages, the tag and the GitHub release are present. The other four packages appeared within about a minute. Decide whether to lengthen the wait (for example 80 attempts), back off instead of flat polling, or make a propagation timeout a distinct, clearly named outcome that tells the operator to verify by hand.
+
+## rec-20261124-001 — DRAFT parser's Then capture is unanchored: a capitalised 'Then ' in an AC heading or Given swallows the whole AC
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: parse, draft, deep-verify
+- files: packages/core/src/parse/draft-parser.ts
+- evidence: Phase 350 literal DRAFT review (2026-11-24): parseDraftMd on 350-01's first DRAFT gave AC-1 then = 'clause\nGiven the universal-word list ...' and AC-2 then = 'texts are (AC-1) ...'.
+- next: cadence milestone propose
+
+packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([\s\S]+)/, which matches the first capitalised 'Then ' anywhere in the AC block, including the ### AC-N heading and the Given line. Phase 350's first DRAFT hit it: a heading '...in a Then clause' made AC-1's then start at 'clause\nGiven ...' and repeat the whole Given/When/Then. deep-verify, plan-review and spec-review print the then text, so the settle-time verifier receives the garbled text, and phase 350's UNBOUNDED_AC_THEN scan starts at the wrong place. Fix: anchor the Then (and When) captures to line start (multiline ^Then\s), with draft-mutate round-trip tests, CRLF/BOM tolerance (phase 339) and a regression case for a heading containing 'Then '.
