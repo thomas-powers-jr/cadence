@@ -7,6 +7,13 @@ import { atomicWriteJSON, atomicWriteText } from './atomic-write.js';
 import { renderStateMd } from '../render/state-md.js';
 import type { StateBackend } from './backend.js';
 
+/**
+ * Phase 349: `stampHookEvent` skips a rewrite while the on-disk stamp is
+ * live and younger than this, so a busy session writes `state.json` for
+ * liveness at most about once a minute. A constant, not config.
+ */
+const HOOK_STAMP_THROTTLE_MS = 60 * 1000;
+
 /** An on-disk `state.json` as `replaceState` sees it. */
 type ProbedState = number | 'absent' | 'corrupt';
 
@@ -191,6 +198,49 @@ export class SimpleStateBackend implements StateBackend {
     // `tokenUtilization` is a 0..1 ratio in the schema; `subagentSpawns` is an
     // unbounded count (phase 305).
     onDisk.session[field] = field === 'tokenUtilization' ? Math.min(1, bumped) : bumped;
+    await this.writeState(onDisk);
+    await atomicWriteText(join(dir, 'STATE.md'), renderStateMd(onDisk));
+  }
+
+  /**
+   * Revision-exempt hook-liveness stamp (phase 349). See the `StateBackend`
+   * interface doc. Re-reads `state.json` fresh (never trusts a caller-held
+   * in-memory copy), sets `session.lastHookEventAt = atIso` on that snapshot,
+   * and writes the whole snapshot plus `STATE.md` back with no
+   * compare-and-swap on `revision`, exactly as `bumpSessionCounter` does.
+   *
+   * It therefore accepts the same narrow residual race `bumpSessionCounter`
+   * documents: a `commit()` elsewhere that reads, checks and writes in the
+   * gap between this method's read and write is silently overwritten by
+   * this stale copy plus the stamp, with no error on either side. The window
+   * is one read→write round trip (there is no lock file), and the 60-second
+   * throttle means it opens at most about once a minute per busy session,
+   * rather than on every hook event — accepted on purpose for a field
+   * nothing structural depends on, the trade-off phase 305 / issue #500 made
+   * for `tokenUtilization`.
+   *
+   * Skips the write when the on-disk stamp parses, is not later than
+   * `atIso`, and is less than {@link HOOK_STAMP_THROTTLE_MS} older than it.
+   * A no-op when `state.json` does not exist yet.
+   */
+  async stampHookEvent(atIso: string): Promise<void> {
+    const dir = await this.resolveStateDir();
+    const statePath = join(dir, 'state.json');
+    if (!existsSync(statePath)) {
+      // No state.json yet (pre-init) — no session to stamp.
+      return;
+    }
+    const onDisk = await this.readState();
+    const prev = onDisk.session.lastHookEventAt;
+    if (prev !== undefined) {
+      const prevMs = Date.parse(prev);
+      const atMs = Date.parse(atIso);
+      if (!Number.isNaN(prevMs) && !Number.isNaN(atMs)) {
+        const age = atMs - prevMs;
+        if (age >= 0 && age < HOOK_STAMP_THROTTLE_MS) return;
+      }
+    }
+    onDisk.session.lastHookEventAt = atIso;
     await this.writeState(onDisk);
     await atomicWriteText(join(dir, 'STATE.md'), renderStateMd(onDisk));
   }

@@ -4452,6 +4452,60 @@ Tier `complex`.
   the client-level tests inject a fake spawn into `hostCliJSON` directly
   and the call-site tests use only mock providers.
 
+### Phase 349 — Skill-audit names unobserved host hooks (rec-20261117-001)
+
+**Objective.** A cloud session started in `/home/user`, the parent of the
+repository, never loaded the repository's `.claude/settings.json`, so no
+host hook fired: `skillAudit.invoked` stayed empty and a phase built with
+`phase-build` read as a skill-audit miss, as if the agent had skipped the
+skill. This phase makes the condition loud at three points, when a task is
+recorded, in `cadence doctor`, and in settle's skill-audit refusal, dry-run
+reason and bypass reason, and leaves the requirement, its refusal and
+`--allow-skill-audit-miss` unchanged. Tier `standard`.
+
+**As built.**
+- Operator decision: option 1 of the rec, make the condition loud. A
+  `cadence skill record` command was rejected, because an agent recording
+  its own invocations is the self-report the repository exists to distrust.
+- T1: the hook dispatcher stamps the new optional
+  `state.session.lastHookEventAt` after the handler of every event it
+  handles except `pre-compact`, whatever the telemetry settings, through a
+  new revision-exempt `StateBackend.stampHookEvent` that re-reads
+  `state.json` as `bumpSessionCounter` does. It skips the write while the
+  on-disk stamp is live and under 60 seconds old, overwrites a future
+  stamp, and a failure goes to the debug logger, never failing the hook.
+  `cadence state load` clears the stamp. Pure `isHookLive` and the
+  30-minute `HOOK_LIVENESS_WINDOW_MS` live in `hooks/hook-liveness.ts`.
+- T2: `buildTaskService` computes `hooksObserved` from the state read
+  before any per-task review agent runs and passes it through
+  `RecordTaskOutcomeOptions`; direct `recordTaskOutcome` callers
+  (`block`, `needs-context`) write no key. The stderr notice prints once,
+  only where a CADENCE-managed entry is installed in `.claude/settings.json`
+  or `.codex/hooks.json`, naming those paths. Three parity tests outside
+  every task's files list failed by design; they now assert the key and
+  compare with it stripped, and T2 was recorded with
+  `--allow-boundary-breach` on operator approval (dec-20261123-001,
+  corrected by dec-20261123-002).
+- T3: `runSkillAuditCheck` builds the refusal line once, with the suffix
+  naming the draft's tasks whose row has `hooksObserved: false` in draft
+  order, and returns it so settle's dry run reports the same line instead
+  of rebuilding it; the bypass reason carries the same suffix. The
+  independent review found a crash on hand-built contexts with no
+  `progress`; the ids are now read defensively.
+- T4: `cadence doctor` gains `host-hooks-liveness`: `warning` only during
+  BUILD with host hooks installed and no live stamp, `ok` otherwise, never
+  `error`, and no automatic fix.
+- Known limits, documented rather than fixed:
+  - a host-cli review agent's child that loads project hooks (`codex` under
+    `CADENCE_HOST_CLI_BIN=codex` with `.codex/hooks.json` installed) stamps
+    the time too, so a session whose own hooks are dead can look live for
+    up to 30 minutes after a review;
+  - the stamp widens the non-CAS race `bumpSessionCounter` already accepts
+    to any hook event, at most about once a minute per busy session;
+  - over MCP (`cadence_build_task`) the caller does not see the stderr
+    notice, because MCP tool responses drop stderr on success (existing
+    rec-20260822-002); the row flag is still written.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

@@ -75,6 +75,20 @@ export const CadenceStateZ = z.object({
     lastHandoff: z.string().nullable(),
     subagentSpawns: z.number().int().nonnegative(),
     /**
+     * Phase 349 (349-01, AC-1): ISO-8601 time of the last host hook event the
+     * dispatcher handled on this machine (every event but `pre-compact`),
+     * written by the revision-exempt `StateBackend.stampHookEvent` after the
+     * event's handler returns, throttled to one write per 60 s. Read through
+     * core's `isHookLive` to tell "the agent skipped a skill" apart from "the
+     * host hooks never fired". A per-machine session fact: `cadence state
+     * load` clears it like `tokenUtilization`.
+     *
+     * MUST stay `.optional()` with NO `.default(...)`: every pre-349
+     * `state.json` has no key and must keep parsing without one being
+     * injected.
+     */
+    lastHookEventAt: z.string().optional(),
+    /**
      * Per-subagent baseline snapshot (subagent task-redundancy monitoring).
      * Keyed by the Claude Code `agentId` from the SubagentStart hook.
      * `taskStatuses` is a snapshot of every DRAFT task's status *at the

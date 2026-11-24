@@ -56,6 +56,31 @@ export interface StateBackend {
    * telemetry to before first init.
    */
   bumpSessionCounter(field: 'subagentSpawns' | 'tokenUtilization', amount: number): Promise<void>;
+  /**
+   * Revision-exempt hook-liveness stamp (phase 349). Sets
+   * `session.lastHookEventAt` to `atIso` — the time the hook dispatcher
+   * handled an event — by the same path `bumpSessionCounter` uses: re-reads
+   * `state.json` fresh from disk (ignores any caller-held in-memory copy),
+   * sets the field, and writes `state.json` + `STATE.md` back WITHOUT
+   * comparing to or bumping `revision`, so it can never throw
+   * `StateConflictError` or invalidate a concurrent caller's snapshot (the
+   * hooks also fire inside a host-cli verifier's child mid-settle). The
+   * dispatcher calls it after the event's handler returns, so a handler's
+   * own `commit()` of its earlier in-memory copy cannot overwrite the stamp.
+   *
+   * Throttled: skipped when the on-disk stamp is live (not later than
+   * `atIso`) and less than 60 s older than it; written when it is absent,
+   * unparseable, 60 s or more old, or later than `atIso`. A no-op when
+   * `state.json` does not exist yet.
+   *
+   * Like `bumpSessionCounter`, this is a deliberate "last write wins"
+   * trade-off for a field nothing structural depends on, and accepts the
+   * same narrow non-CAS race: a `commit()` elsewhere that reads, checks and
+   * writes between this method's own read and write is silently overwritten
+   * by this method's stale copy plus the stamp. See
+   * `SimpleStateBackend.stampHookEvent`'s doc comment.
+   */
+  stampHookEvent(atIso: string): Promise<void>;
   archive(milestone: string): Promise<void>;
   beforeBranchSwitch?(from: string, to: string): Promise<void>;
   afterBranchSwitch?(branch: string): Promise<void>;

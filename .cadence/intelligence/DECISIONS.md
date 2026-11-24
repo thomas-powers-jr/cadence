@@ -1414,6 +1414,27 @@ Operator decisions, 2026-11-21/22, from the four-round probe recorded in .cadenc
 
 Root cause (verified 2026-11-22): the cloud session started in /home/user, the parent of the repo, so Claude Code never loaded the repo's committed .claude/settings.json and no hook fired (skillAudit.invoked [] and tokenUtilization 0 after several prompts). The shim records a Skill payload correctly when fed one by hand, and state save/load already carries skillAudit. Chosen: option 1, make the condition loud (a lastHookEventAt stamp, a hooksObserved flag on task rows, a build task notice, a doctor host-hooks-liveness check, settle naming the tasks) and keep the requirement unchanged. Rejected: a cadence skill record command (an agent recording its own invocations is the self-report the repo exists to distrust), an environment-only fix (leaves the miss silent next time), and combining both. Operator decision in session.
 
+### dec-20261123-001 — Phase 349 T2 edits three parity tests outside its files list
+
+- recommendation: rec-20261117-001
+- decided: 2026-11-23T22:55:50.445Z
+
+As built: AC-2 makes a build task row carry hooksObserved while block, needs-context and direct recordTaskOutcome rows carry no key, so three existing parity tests (packages/core/tests/build/record.test.ts, tests/cli/block.test.ts, tests/cli/needs-context.test.ts) failed by design, a conflict the DRAFT did not foresee. T2's implementer stopped instead of editing outside its boundary. Fix: each test asserts hooksObserved false on the build task row and no key on the direct row, then compares with the key stripped, so parity is kept and AC-2 gains a positive check. The DRAFT is not amended because an edit after approve trips draft-read at settle; boundaryEnforcement is warn, so the out-of-list edit is a recorded boundary warning, not a bypass.
+
+### dec-20261123-002 — Phase 349 T2 recorded with --allow-boundary-breach (corrects dec-20261123-001)
+
+- recommendation: rec-20261117-001
+- decided: 2026-11-23T23:10:45.993Z
+
+Correction: dec-20261123-001 said the out-of-list parity-test edits would be a boundary warning. In fact build task resolved boundaryEnforcement to block for T2 and refused: packages/core/tests/build/record.test.ts, tests/cli/block.test.ts and tests/cli/needs-context.test.ts are declared in no task's files list. The edits are the reviewed fix for a parity conflict AC-2 creates by design (independent T2 review PASS, judged stricter than before; main-thread pipeline 28/28 green). The operator approved recording T2 with --allow-boundary-breach (2026-11-23), which emits a bypassed error-severity anomaly, over amending the approved DRAFT and re-approving mid-BUILD.
+
+### dec-20261124-001 — Phase 349 settled with --allow-skill-audit-miss and --allow-boundary-scan-failure
+
+- recommendation: rec-20261117-001
+- decided: 2026-11-24T14:35:55.969Z
+
+Phase 349 was built in a cloud session started in /home/user, the parent of the repo, so the repo's .claude/settings.json hooks never loaded and the phase-build skill invocation was not recorded (skillAudit.invoked []). The skill was invoked; the miss is the condition this phase names, and the refusal now lists the tasks recorded without live hooks. Per the handoff, a cloud-built phase settles past skill-audit with the bypass and a decision record; the skill is not invoked afterwards to satisfy the audit. boundary-scan flags the three parity tests already sanctioned by dec-20261123-001/002. Dry run passed every other gate (structural-verifier, task-verify-required, build-test-must-pass, test-coverage). Operator approved settling with both bypasses on 2026-11-24.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

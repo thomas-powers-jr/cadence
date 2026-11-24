@@ -225,6 +225,8 @@ Drives the skill-audit check, which enforces that declared required skills were 
 |---|---|---|---|
 | `skillAudit.required` | `string[]` | `[]` | Skill IDs that must be invoked before a phase settles. At `cadence settle run`, this set is unioned with the DRAFT's `requiredSkills` and each successfully-resolved enabled pack's `skillAudit.required` (Phase 291); if any are missing from telemetry, settle refuses unless `--allow-skill-audit-miss` is passed. `SUMMARY.json`'s `skillAudit.provenance` records which source (`config`/`draft`/`pack:<id>`) demanded each skill. Enforcement is skipped (with a `skill-audit-miss` warning) when `telemetry.skillInvocations` is `false`. |
 
+A miss names the tasks recorded without live host hooks (phase 349). `cadence build task` (and `cadence done` and the MCP `cadence_build_task` tool) writes `hooksObserved: false` on a task's PROGRESS.json row when no host hook event was observed in the last 30 minutes, and settle's refusal line, its `--dry-run` refusal reason and the `--allow-skill-audit-miss` bypass reason then add `; host hooks were not observed when task(s) <ids> were recorded, so a skill invoked in that session would not have been recorded` after the missing-skill list, naming the draft's tasks whose row has `hooksObserved: false`. A row without the key (written by `cadence block`, `cadence needs-context`, or before this behavior existed) counts as observed. The outcome is unchanged: a miss still refuses without `--allow-skill-audit-miss`. The 30-minute window is a constant, not a config field.
+
 ---
 
 ## convergence

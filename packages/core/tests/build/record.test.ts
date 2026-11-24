@@ -54,7 +54,7 @@ describe('recordTaskOutcome', () => {
     );
   });
 
-  it('produces the same PROGRESS.json that `cadence build task` produces', async () => {
+  it('produces the same PROGRESS.json that `cadence build task` produces, apart from 349-01/AC-2\'s hooksObserved key on the build task row', async () => {
     const rootA = await arrangeBuildPhase();
     await recordTaskOutcome(rootA, 'T1', 'DONE', 'parity');
     const helperOut = JSON.parse(
@@ -74,6 +74,12 @@ describe('recordTaskOutcome', () => {
     // updatedAt timestamps differ — strip before compare
     delete helperOut.tasks.T1.updatedAt;
     delete cliOut.tasks.T1.updatedAt;
+    // Phase 349 (349-01, AC-2): `build task` records hooksObserved (no hook
+    // event in this temp repo, so false); a direct recordTaskOutcome call
+    // writes no key. Assert both, then strip the key and compare the rest.
+    expect(cliOut.tasks.T1.hooksObserved).toBe(false);
+    expect('hooksObserved' in helperOut.tasks.T1).toBe(false);
+    delete cliOut.tasks.T1.hooksObserved;
     expect(helperOut).toEqual(cliOut);
   });
 

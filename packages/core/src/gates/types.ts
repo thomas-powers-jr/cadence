@@ -56,6 +56,12 @@ export interface ProgressJson {
       execution?: 'inline' | 'dispatch';
       isolation?: 'worktree' | 'none';
       modelClass?: 'mechanical' | 'standard' | 'complex';
+      /** Phase 349 (349-01, T3): whether a host hook event was live when
+       *  `build task` recorded this row, mirrored from `build/record.ts`.
+       *  Absent on pre-349 rows and on rows written by `block` /
+       *  `needs-context`; absent counts as observed. Read by skill-audit to
+       *  name the tasks recorded without live hooks. */
+      hooksObserved?: boolean;
     }
   >;
 }

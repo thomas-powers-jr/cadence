@@ -1,0 +1,20 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T2, T3, T4, T5 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {
+    "boundaryScan": {
+      "offenders": [
+        "packages/core/tests/build/record.test.ts",
+        "packages/core/tests/cli/block.test.ts",
+        "packages/core/tests/cli/needs-context.test.ts"
+      ]
+    }
+  }
+}

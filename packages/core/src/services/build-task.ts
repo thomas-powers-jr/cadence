@@ -26,6 +26,11 @@ import { SimpleStateBackend } from '../state/simple.js';
 import { runPerTaskVerifyGate } from '../gates/per-task-verify.js';
 import { buildBuildContext } from '../gates/build-context.js';
 import { formatCommandError } from './format-command-error.js';
+import {
+  installedHostHookConfigs,
+  isHookLive,
+  joinHostConfigPaths,
+} from '../hooks/hook-liveness.js';
 import type { CommandIO, CommandResult } from './io.js';
 
 /** One PROGRESS.json row, read back defensively (best-effort, never throws). */
@@ -128,6 +133,9 @@ export async function buildTaskService(
      * delegates here instead of calling `recordTaskOutcome` directly.
      */
     anomalySource?: string;
+    /** Phase 349 (349-01, AC-2): injectable clock for the host-hook liveness
+     *  check (defaults to `new Date()`). */
+    now?: Date;
   },
   io: CommandIO,
 ): Promise<CommandResult> {
@@ -150,6 +158,10 @@ export async function buildTaskService(
 
     const backend = new SimpleStateBackend(repoRoot);
     const state = await backend.readState();
+    // Phase 349 (349-01, AC-2): host-hook liveness, from the state read here —
+    // before any verifier runs (a host-cli verifier child can fire project
+    // hooks and stamp). Recorded on the row; explained on stderr below.
+    const hooksObserved = isHookLive(state.session.lastHookEventAt, args.now ?? new Date());
     let draft: Draft | undefined;
     if (state.activePhase && state.activeDraft) {
       const draftPath = join(
@@ -415,7 +427,19 @@ export async function buildTaskService(
       ...(args.execution !== undefined ? { execution: args.execution } : {}),
       ...(args.isolation !== undefined ? { isolation: args.isolation } : {}),
       ...(args.modelClass !== undefined ? { modelClass: args.modelClass } : {}),
+      hooksObserved,
     });
+    if (!hooksObserved) {
+      // Best-effort (never throws): only where host hooks are installed.
+      const installed = await installedHostHookConfigs(repoRoot);
+      if (installed.length > 0) {
+        io.err(
+          'build task: no host hook event in the last 30 minutes, so skill invocations in this ' +
+            'session may not be recorded. Check that the session started in the repository ' +
+            `root, where ${joinHostConfigPaths(installed)} is loaded.\n`,
+        );
+      }
+    }
     io.out(`Recorded ${args.taskId}: ${status}\n`);
     return { exitCode: 0, data: { taskId: args.taskId, status } };
   } catch (err) {

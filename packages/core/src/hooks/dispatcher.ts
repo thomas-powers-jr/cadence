@@ -19,21 +19,41 @@ import {
 } from './handlers.js';
 
 export class HookDispatcher {
-  constructor(private readonly repoRoot: string) {}
+  /**
+   * @param now Clock for the phase 349 liveness stamp; injected by tests.
+   */
+  constructor(
+    private readonly repoRoot: string,
+    private readonly now: () => Date = () => new Date(),
+  ) {}
 
   async dispatch(event: AbstractEvent, ctx: HookContext): Promise<HookResult> {
     // Phase 345: pre-compact runs before the shared readState/loadConfig
     // prologue, so a missing or corrupt state.json or an invalid config.json
     // can never throw for it (and never blocks a compaction).
     if (event === 'pre-compact') return handlePreCompact(ctx, this.repoRoot);
-    return this.dispatchWithState(event, ctx);
+    const backend = new SimpleStateBackend(this.repoRoot);
+    const result = await this.dispatchWithState(event, ctx, backend);
+    // Phase 349 (AC-1): stamp host-hook liveness AFTER the handler returned,
+    // through the revision-exempt path that re-reads state.json, so a
+    // handler's own commit() of its stale in-memory copy cannot overwrite it
+    // and the stamp never advances `revision`. Best-effort: a failure here
+    // never fails the hook.
+    try {
+      await backend.stampHookEvent(this.now().toISOString());
+    } catch (err) {
+      getLogger()
+        .child({ seam: 'hook' })
+        .debug('hook-liveness stamp failed', { event, error: (err as Error).message });
+    }
+    return result;
   }
 
   private async dispatchWithState(
     event: Exclude<AbstractEvent, 'pre-compact'>,
     ctx: HookContext,
+    backend: SimpleStateBackend,
   ): Promise<HookResult> {
-    const backend = new SimpleStateBackend(this.repoRoot);
     const state = await backend.readState();
     const config = await loadConfig(this.repoRoot);
     configureLoggerFromConfig(config);

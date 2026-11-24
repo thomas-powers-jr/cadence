@@ -382,6 +382,20 @@ describe('planStateLoad — restored state', () => {
     expect(CadenceStateZ.parse(r.state)).toEqual(r.state);
   });
 
+  it('349-01/AC-1: clears session.lastHookEventAt on the restored state (a per-machine session fact)', () => {
+    const s = rich();
+    s.session.lastHookEventAt = '2026-11-22T12:00:00.000Z';
+    const r = planStateLoad(input({ snapshot: snap(s), local: baseState({ revision: 2 }) }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect('lastHookEventAt' in r.state.session).toBe(false);
+    expect(r.state.session.lastHookEventAt).toBeUndefined();
+    expect(r.state.session.lastHandoff).toBe('SESSION-2026-10-29.md');
+    expect(CadenceStateZ.parse(r.state)).toEqual(r.state);
+    // The input snapshot keeps its stamp (planStateLoad never mutates it).
+    expect(s.session.lastHookEventAt).toBe('2026-11-22T12:00:00.000Z');
+  });
+
   it('341-01/AC-4: does not mutate the snapshot it was given', () => {
     const s = rich();
     const before = structuredClone(s);

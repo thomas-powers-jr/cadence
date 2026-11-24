@@ -38,6 +38,10 @@ interface ProgressJson {
       execution?: 'inline' | 'dispatch';
       isolation?: 'worktree' | 'none';
       modelClass?: 'mechanical' | 'standard' | 'complex';
+      /** Phase 349 (349-01, AC-2): whether a host hook event was live when
+       *  the task was recorded. Written only by `buildTaskService`; absent on
+       *  direct-caller and pre-349 rows (absent counts as observed). */
+      hooksObserved?: boolean;
     }
   >;
 }
@@ -60,6 +64,10 @@ export interface RecordTaskOutcomeOptions {
   execution?: 'inline' | 'dispatch';
   isolation?: 'worktree' | 'none';
   modelClass?: 'mechanical' | 'standard' | 'complex';
+  /** Phase 349 (349-01, AC-2): written onto the row when present (false
+   *  included); when absent the row carries no `hooksObserved` key. Not
+   *  carried forward from a prior row — a re-record overwrites it. */
+  hooksObserved?: boolean;
 }
 
 export async function recordTaskOutcome(
@@ -116,6 +124,7 @@ export async function recordTaskOutcome(
       : prior?.modelClass
         ? { modelClass: prior.modelClass }
         : {}),
+    ...(options?.hooksObserved !== undefined ? { hooksObserved: options.hooksObserved } : {}),
   };
   await atomicWriteJSON(progPath, progress);
   state.activeTask = { id: taskId, status, touchedFiles: [] };

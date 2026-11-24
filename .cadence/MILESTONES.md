@@ -1370,6 +1370,15 @@ changeset (example/test-only change, no published-package surface).*
   reported by `cadence doctor`, and turned off with
   `verification.hostCliIsolation: "off"`. The global `AGENTS.md`/`CLAUDE.md`
   and project-level files still reach the reviewer (rec-20261030-010).
+- **Phase 349** — skill-audit names unobserved host hooks: the hook
+  dispatcher stamps `session.lastHookEventAt` on every handled event
+  (revision-exempt, throttled to about once a minute, cleared by
+  `state load`). `build task` writes `hooksObserved` on the task row and,
+  where host hooks are installed, prints a stderr notice when no hook fired
+  in the last 30 minutes; `doctor` gains `host-hooks-liveness`; and settle's
+  skill-audit refusal, dry-run reason and bypass reason name the tasks
+  recorded without live hooks. The requirement and its refusal are
+  unchanged (rec-20261117-001).
 
 
 

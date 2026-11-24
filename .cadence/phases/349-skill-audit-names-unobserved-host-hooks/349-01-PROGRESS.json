@@ -1,0 +1,83 @@
+{
+  "draftId": "349-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "lastHookEventAt (optional, no default); revision-exempt stampHookEvent after the handler, re-reading disk, every dispatched event but pre-compact, 60 s throttle, future stamps overwritten, failure swallowed to the debug logger; state load clears it; pure isHookLive + 30-min window in hooks/hook-liveness.ts. Tests first (types 2/3 and core 18/78 failing before). Independent review PASS (0 Critical/Important); M1 test rename applied, M2 race note carried to T5. Main-thread full pipeline 28/28 green.",
+      "touchedFiles": [
+        "packages/core/src/hooks/dispatcher.ts",
+        "packages/core/src/state/backend.ts",
+        "packages/core/src/state/simple.ts",
+        "packages/core/src/state/snapshot.ts",
+        "packages/core/tests/state/snapshot.test.ts",
+        "packages/types/src/state.ts",
+        "packages/core/src/hooks/hook-liveness.ts",
+        "packages/core/tests/hooks/hook-liveness-stamp.test.ts",
+        "packages/core/tests/hooks/hook-liveness.test.ts",
+        "packages/types/tests/state-last-hook-event.test.ts"
+      ],
+      "updatedAt": "2026-11-23T22:48:22.551Z",
+      "execution": "dispatch",
+      "isolation": "none"
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "hooksObserved computed in buildTaskService from state read before any verifier, passed via RecordTaskOutcomeOptions (direct callers write no key); AC-2 notice once on stderr only where a CADENCE-managed entry exists in .claude/settings.json or .codex/hooks.json (never throws). Tests first (13/16 failing before). Three parity tests outside every task's files list adjusted (assert key, strip, compare); recorded with --allow-boundary-breach on operator approval, dec-20261123-001 and its correction. Independent review PASS (0 Critical/Important; MCP-drops-stderr minor deferred to a rec). Main-thread full pipeline 28/28 green.",
+      "touchedFiles": [
+        "packages/core/src/build/record.ts",
+        "packages/core/src/doctor/host-hooks-state.ts",
+        "packages/core/src/services/build-task.ts",
+        "packages/core/tests/build/record.test.ts",
+        "packages/core/tests/cli/block.test.ts",
+        "packages/core/tests/cli/needs-context.test.ts",
+        "packages/core/tests/services/build-task-hooks-observed.test.ts"
+      ],
+      "updatedAt": "2026-11-23T23:10:46.690Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "runSkillAuditCheck builds the refusal line once with the AC-3 suffix (ids in draft order, hooksObserved === false) and returns it as refusalLine; settle's dry-run reason reuses it (no rebuild); bypass reason carries the suffix; byte-identical when no row is false; outcome unchanged. Tests first (6/6 and 2/3 failing before). Independent review FIX REQUIRED: C1 crash on contexts without progress (tests/packs/core-skills-manifest.test.ts) reproduced, fixed in-boundary with a draft-first defensive derivation; M1 comment added. Main-thread full pipeline 28/28 green after the fix.",
+      "touchedFiles": [
+        "packages/core/src/checks/skill-audit.ts",
+        "packages/core/src/doctor/run.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/services/settle-dry-run.test.ts",
+        "packages/core/tests/checks/skill-audit-hooks-unobserved.test.ts",
+        "packages/core/tests/doctor/host-hooks-liveness.test.ts"
+      ],
+      "updatedAt": "2026-11-23T23:22:21.043Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T4": {
+      "status": "DONE",
+      "notes": "checkHostHooksLiveness registered in runDoctor: warning only in BUILD with host hooks installed and no live stamp (detail names the stamp or 'none recorded' and says to start in the repo root naming the config; remediation too); ok when live, not in BUILD, not applicable, or not determinable; never error, never throws. Tests first (7/7 failing before). Independent review PASS; detail text and two assertions tightened on the main thread to match AC-4 literally. Verified live from source against this cloud session: warning, none recorded. Main-thread full pipeline 28/28 green.",
+      "touchedFiles": [],
+      "updatedAt": "2026-11-23T23:22:21.413Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T5": {
+      "status": "DONE",
+      "notes": "DESIGN.md §11 (stamp, 30-min window, three report points, review-agent false negative, widened race), config.md skillAudit (hooksObserved, suffix), commands.md (build task notice quoted as built, doctor table row, --fix manual row, state load reset, settle bypass row), minor changeset for core+types, hook-liveness-docs test, phase341 reset-field test, ROADMAP/MILESTONES entries. Docs tests failing-first (3/3, 1/6). Whole-branch review READY TO MERGE (0 Critical/Important); minors folded: doctor two-path wording, ROADMAP points at existing rec-20260822-002 for MCP stderr. Main-thread full pipeline 28/28 green.",
+      "touchedFiles": [
+        "DESIGN.md",
+        "docs/reference/commands.md",
+        "docs/reference/config.md",
+        "packages/core/tests/docs/phase341-state-save-load-docs.test.ts",
+        ".changeset/skill-audit-unobserved-hooks.md",
+        "packages/core/tests/docs/hook-liveness-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-23T23:35:31.520Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}
