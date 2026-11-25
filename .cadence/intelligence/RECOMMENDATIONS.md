@@ -1996,7 +1996,7 @@ packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([
 
 ## rec-20261125-001 — boundary-scan silently falls back to a stale local main when the origin merge-base call fails, flagging files from earlier phases
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10

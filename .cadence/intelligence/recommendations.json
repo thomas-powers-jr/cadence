@@ -3599,7 +3599,7 @@
       "title": "boundary-scan silently falls back to a stale local main when the origin merge-base call fails, flagging files from earlier phases",
       "summary": "packages/core/src/git/boundary-diff.ts resolveMergeBase tries 'git merge-base origin/<ref> HEAD' through gitBestEffort (5 s timeout, errors swallowed) and on an empty result falls back to the local <ref> with no notice. Phase 350's first real settle (right after a worker restart) refused at boundary-scan listing packages/types tests from earlier phases, though the same dry run minutes before had passed and 'git merge-base origin/main HEAD' answered in 6 ms afterwards: the upstream call evidently failed transiently and the fallback diffed against a local main left at a v1.72-era commit. Fix: when the upstream merge-base fails but origin/<ref> exists, retry once or refuse with a named reason rather than falling back silently; print a loud stderr notice whenever the local fallback is used and record which base was used on the gate entry (house rule: no quiet fallbacks); consider refusing when the local ref is behind origin/<ref>.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "ready-for-cadence-spec",
       "priority": "medium",
       "leverageScore": 5,
@@ -3622,7 +3622,8 @@
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-11-25T16:48:09.076Z",
-      "updatedAt": "2026-11-25T16:48:09.076Z"
+      "updatedAt": "2026-11-25T16:57:41.711Z",
+      "convertedToPhaseId": "351-boundary-scan-names-its-diff-base"
     }
   ],
   "archived": [
@@ -12947,11 +12948,11 @@
         "dec-20261125-001"
       ],
       "convertedToPhaseId": "350-bounded-acs-and-the-literal-ac-pass",
-      "createdAt": "2026-11-21T20:30:49.546Z",
-      "updatedAt": "2026-11-25T16:48:16.626Z",
       "shippedRef": "phase 350 (PR #617)",
       "archivedAt": "2026-11-25T16:48:16.626Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-21T20:30:49.546Z",
+      "updatedAt": "2026-11-25T16:48:16.626Z"
     }
   ]
 }
