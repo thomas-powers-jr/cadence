@@ -125,6 +125,22 @@ structured writers (`cadence draft new --template …`,
 `draft set-objective/add-ac/add-task`) over hand-editing — a hand-typed
 heading typo has silently corrupted AC/task sequencing before.
 
+Write each AC for a hostile review agent: one claim per AC, bounded with
+named example inputs and outputs rather than a description of the whole
+space. No Then-clause promise built on `any`, `every`, `each`, `same` or
+`unchanged` — a settle-time review agent can always find one more corner
+under a universal. End the AC with a `Not covered:` line naming what it
+deliberately leaves out.
+`cadence draft check` prints an `UNBOUNDED_AC_THEN` warning for a universal
+word in the Then-text before the first `Not covered:` line; `draft approve`
+shows only its message, as a `coherence-warn` anomaly through the
+configured notify transport (a `cadence anomaly [warn]` stderr line by
+default) when the cell includes `anomaly-notify`. It is a warning, never a
+block. Caveat: the parser's Then capture is unanchored, so a capitalised
+`Then` followed by a space or line break anywhere above the Then line
+(heading, Given, When) starts the Then-text early — avoid it
+(rec-20261124-001).
+
 ### Gates
 
 The gate universe (14 gates: 3 always-fire + 11 deltas) is defined in

@@ -4506,6 +4506,60 @@ reason and bypass reason, and leaves the requirement, its refusal and
     notice, because MCP tool responses drop stderr on success (existing
     rec-20260822-002); the row flag is still written.
 
+### Phase 350 — Bounded ACs and the literal AC pass (rec-20261121-005)
+
+**Objective.** Phase 347 needed six Codex review rounds to settle; phase
+348, which ran a literal clause-by-clause AC pass before its first settle
+run, saw that pass predict both of its real settle failures. This phase
+makes the two process changes behind that result part of how CADENCE
+builds itself, and gives the first a mechanical layer: `cadence draft
+check` warns when an AC's Then-text promises a universal, the
+`phase-build` skill requires a literal DRAFT review and a literal AC pass
+with a dry-run first settle, CLAUDE.md tells authors how to write a
+bounded AC, and the `bugfix` and `refactor` DRAFT templates stop tripping
+the new warning. Tier `standard`.
+
+**As built.**
+- T1: `coherenceCheck` pushes one warn-severity `UNBOUNDED_AC_THEN` issue
+  per AC whose Then-text uses a universal word, with the message
+  `<id>'s Then-text uses universal word(s) "<w>", …; bound it with named
+  example inputs and outputs, or move the boundary to a "Not covered:"
+  line.` The exported `UNIVERSAL_AC_WORDS` is `any`, `every`, `each`,
+  `same`, `unchanged`; the pure `findUniversalAcWords` cuts the Then-text
+  at the first stop line (after leading spaces and tabs, `Not covered:`,
+  case-insensitive), splits words on every non-ASCII-letter character and
+  returns distinct matches lowercased in order of first appearance. It is
+  never a block: `draft check` prints it and exits 0 on a warning-only
+  result; `draft approve` approves and shows the message only as a
+  `coherence-warn` anomaly line when `anomaly-notify` is in the cell. The
+  `bugfix` template's AC-2 and the `refactor` template's AC-1 Then lines
+  now name the tests they check instead of "unchanged"; their AC headings
+  are as before.
+- T2: the `phase-build` skill's Preconditions gain a **Literal DRAFT
+  review** by a fresh agent, clause by clause, before `cadence draft
+  approve` (or now, with re-approval after any fix, for a DRAFT approved
+  without one); step 6 gains a read-only **Literal AC pass** after the
+  whole-branch review that splits the ACs into atomic clauses, marks them
+  `UNPROVEN` or `WEAK` and tries a falsifying input, its predicted failures
+  fixed tests first; step 7's first settle run is `cadence settle run
+  --auto --dry-run`. CLAUDE.md's `### The loop and its artifacts` states
+  the AC-authoring rules: one claim per AC, named example inputs and
+  outputs, none of the five universal words in a Then clause, a
+  `Not covered:` line, and the `UNBOUNDED_AC_THEN` warning.
+- T3: `docs/reference/commands.md`'s `draft check` section documents the
+  warning and corrects its exit-code sentence (warning-only exits 0, a
+  block exits 2).
+- Known limits, documented rather than fixed:
+  - the parser's Then capture is unanchored, so a capitalised `Then`
+    followed by a space or line break anywhere above an AC's Then line
+    (heading, Given or When) starts the
+    scanned Then-text early
+    (rec-20261124-001);
+  - trailing prose after the last AC in the section is folded into that
+    AC's Then-text and scanned;
+  - a line written as `- Not covered:` or `**Not covered:**` does not
+    stop the scan.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

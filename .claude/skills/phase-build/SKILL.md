@@ -16,6 +16,16 @@ before it is recorded.
 - Read the DRAFT: `.cadence/phases/<phase>/<id>-DRAFT.md`. Note each task's
   `files:` boundary, `verify:` command, and `done: AC-N` mapping. Respect
   `## Boundaries` (the Do-NOT list) absolutely.
+- **Literal DRAFT review** before any task is dispatched. A fresh agent reads
+  the DRAFT clause by clause, the way the `--deep` verifier and the other
+  settle-time review agents will: splits
+  each AC into atomic clauses, checks every factual claim (file paths,
+  function names, existing behavior, test names) against the code, and
+  names a falsifying reading for each clause. Fix what it finds in the
+  DRAFT. Run it before `cadence draft approve` whenever you can; if the
+  DRAFT reached this skill already approved without one, run it now and
+  re-approve after any fix — an edit after approve trips the draft-read gate
+  at settle.
 
 ## Pipeline
 
@@ -56,6 +66,16 @@ before it is recorded.
    pass catches real defects the per-task reviews miss (an ordering bug, doc
    prose describing a pre-fix algorithm, stale code comments) — do not skip
    it for "simple" phases.
+
+   **Literal AC pass**. After the whole-branch review comes back clean, one
+   more fresh, read-only agent plays the `--deep` verifier: it splits the
+   ACs into atomic clauses, names the asserting test for each clause it can,
+   marks the rest `UNPROVEN` (no test asserts it) or `WEAK` (a test touches
+   it but would pass under a wrong implementation), and tries to construct a
+   falsifying input for each clause. Its predicted failures are fixed before
+   settle, tests first. Phase 348's pass predicted both of its real settle
+   failures before the first review-agent run; phase 347, built without one,
+   took six review rounds.
 7. **Settle, one commit.** First write the phase's `### Phase N — <title>`
    entry in `.cadence/ROADMAP.md` and its `- **Phase N** — <summary>` bullet
    in `.cadence/MILESTONES.md`, in final form — no `(in progress)` marker
@@ -65,7 +85,11 @@ before it is recorded.
    both entries for every settled phase (one whose directory holds a
    `-SUMMARY.json`), so a missing entry turns the PR's CI red — and after a
    refused settle has written its SUMMARY, the retry's `build-test-must-pass`
-   too. Then run
+   too. Then make the first settle run a dry run:
+   `cadence settle run --auto --dry-run` runs the same preconditions and
+   gates (the test command and review agents still run) but Cadence writes
+   nothing and spends no convergence attempt; fix anything it would refuse
+   on before going further. Then run the real
    `cadence settle run --auto` — if it refuses,
    the gate is right until proven otherwise; fix the cause, don't reach for
    `--force`/`--allow-*`. Once it passes, stage everything together — source,

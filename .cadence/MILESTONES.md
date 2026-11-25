@@ -1379,6 +1379,14 @@ changeset (example/test-only change, no published-package surface).*
   skill-audit refusal, dry-run reason and bypass reason name the tasks
   recorded without live hooks. The requirement and its refusal are
   unchanged (rec-20261117-001).
+- **Phase 350** — bounded ACs and the literal AC pass: `draft check` warns
+  with `UNBOUNDED_AC_THEN` when an AC's Then-text, up to its first
+  `Not covered:` line, uses `any`, `every`, `each`, `same` or `unchanged`
+  (whole words, case-insensitive); the warning never blocks and a
+  warning-only check exits 0. The `bugfix` and `refactor` templates no
+  longer trip it; the `phase-build` skill adds a literal DRAFT review, a
+  literal AC pass after the whole-branch review and a `--dry-run` first
+  settle; CLAUDE.md states the AC-authoring rules (rec-20261121-005).
 
 
 

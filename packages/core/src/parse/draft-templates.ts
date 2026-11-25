@@ -40,7 +40,7 @@ function renderBugfixTemplate(phase: string, id: string, tier: string, title: st
     `## Objective\n\nFix the user-visible defect: ${title}. Preserve the intended behavior around the fix and add focused regression coverage.\n\n` +
     `## Acceptance Criteria\n\n` +
     `### AC-1: defect is reproduced by a regression test\nGiven the current buggy behavior for "${title}"\nWhen the focused regression test runs before the fix\nThen it fails for the defect being fixed\n\n` +
-    `### AC-2: defect is fixed without broad behavior drift\nGiven the regression coverage exists\nWhen the implementation changes are applied\nThen the regression test passes and nearby existing behavior remains unchanged\n\n` +
+    `### AC-2: defect is fixed without broad behavior drift\nGiven the regression coverage exists\nWhen the implementation changes are applied\nThen the regression test passes and the existing tests covering the changed code still pass\n\n` +
     `### AC-3: test suite passes\nGiven the fix and regression test are in place\nWhen the relevant test command runs\nThen it exits successfully with no failing tests\n\n` +
     `## Tasks\n\n` +
     `### T1: Reproduce the defect\n- files: \`test-or-spec-file\`\n- action: add a focused failing regression test for "${title}"\n- verify: the test fails before the implementation change for the expected reason\n- done: AC-1\n\n` +
@@ -77,7 +77,7 @@ function renderRefactorTemplate(phase: string, id: string, tier: string, title: 
     header(phase, id, tier, title) +
     `## Objective\n\nRefactor the code to support: ${title}. Preserve externally observable behavior unless a behavior change is explicitly added as an AC.\n\n` +
     `## Acceptance Criteria\n\n` +
-    `### AC-1: behavior is preserved\nGiven the current supported behavior around "${title}"\nWhen the refactor is complete\nThen existing tests and documented behavior still pass unchanged\n\n` +
+    `### AC-1: behavior is preserved\nGiven the current supported behavior around "${title}"\nWhen the refactor is complete\nThen the existing tests and the characterization tests from T1 pass after the refactor with no test assertion weakened or removed\n\n` +
     `### AC-2: structure is improved for the stated purpose\nGiven the refactor target\nWhen the changed code is inspected\nThen responsibilities are clearer or duplication/coupling is reduced in service of "${title}"\n\n` +
     `### AC-3: verification covers the preserved behavior\nGiven the refactor has no intended behavior change\nWhen the relevant verification command runs\nThen it passes and protects the behavior most likely to regress\n\n` +
     `## Tasks\n\n` +
