@@ -3446,6 +3446,13 @@
       "kind": "note",
       "summary": "Phase 351 whole-branch review (2026-11-25), Minor 3: build-task.ts:299-307 prints the git-unavailable notice when baseRefResolved is false and the delta is empty.",
       "createdAt": "2026-11-25T18:21:47.147Z"
+    },
+    {
+      "id": "ev-20261125-004",
+      "recommendationId": "rec-20261125-004",
+      "kind": "note",
+      "summary": "Phase 352 T2 review (2026-11-25): core tsconfig include src/**/*, base excludes tests, lint 'eslint src', no type-aware lint, no vitest typecheck; a strict scratch typecheck of two new test files found one real error the pipeline did not.",
+      "createdAt": "2026-11-25T20:55:50.569Z"
     }
   ]
 }

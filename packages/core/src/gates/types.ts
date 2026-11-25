@@ -346,6 +346,24 @@ export interface GateFlags {
    *  while the gate was NOT sealed. Same provenance-parity role as
    *  `coverageBypassed`/`buildTestBypassed` above. */
   boundaryScanBypassed?: boolean;
+  /** Phase 352 (352-01): set on every boundary-scan bypass return, beside
+   *  `boundaryScanBypassed` (an unsealed gate let something through via
+   *  `--allow-boundary-scan-failure` or `--force`), carrying what that bypass
+   *  actually was — `flag` is the flag that fired (`--allow-boundary-scan-failure`
+   *  whenever it is set, else `--force`, the registry.ts rule); `causes` lists,
+   *  in the order `merge-base` then `offenders`, whether an `upstream-failed`
+   *  base was let through (committed files not scanned) and whether
+   *  out-of-boundary files were let through; `offenders` the repo-relative
+   *  offending paths as the gate reported them (`[]` when none). Settle turns
+   *  each cause into an error-severity `boundary-scan` `GateBypass`. A
+   *  separate field rather than widening the boolean, following the phase 346
+   *  `buildTestBypass` precedent: provenance collection keeps reading
+   *  `boundaryScanBypassed`. */
+  boundaryScanBypass?: {
+    readonly flag: '--allow-boundary-scan-failure' | '--force';
+    readonly causes: readonly ('merge-base' | 'offenders')[];
+    readonly offenders: readonly string[];
+  };
   verifierFailure?: { message: string; provider?: string };
   /** Phase 248 (T1): set iff a *review* verifier (code-review or
    *  security-audit — never deep-verify) failed to run and the gate

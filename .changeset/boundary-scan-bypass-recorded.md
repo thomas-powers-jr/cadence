@@ -1,0 +1,6 @@
+---
+"@thomas-powers-jr/cadence-core": minor
+"@thomas-powers-jr/cadence-types": minor
+---
+
+boundary-scan bypasses are recorded (phase 352; rec-20261125-002). When `--allow-boundary-scan-failure` or `--force` lets an unsealed `boundary-scan` refusal through, settle now emits a new error-severity `boundary-scan-bypassed` anomaly (a new `AnomalyType` member) for each bypassed cause, files outside the declared boundary or an `upstream-failed` merge-base whose committed files were not scanned, with context `{ flag, cause, files, integrationRef }`, and records each as a `boundary-scan` entry in the SUMMARY's `gateBypasses`, whose reason names the offending files or the merge-base that could not be computed. The warn-severity `files-outside-boundary` anomalies are still emitted. Behavior change: a settle that bypasses `boundary-scan` can no longer grade `strong`; like a `build-test-must-pass` bypass, the error-severity entry caps a `strong` `assurance.overall` at `mixed` (a `weak` or `unverified` grade is unchanged). The gate's stderr bypass line and its provenance entry now name the flag by one rule, `--allow-boundary-scan-failure` when that flag is set, else `--force`; with both set the line used to name `--force`.

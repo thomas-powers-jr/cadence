@@ -1449,6 +1449,13 @@ Phase 350 was built in a cloud session started in /home/user, the parent of the 
 
 Phase 351 was built in a cloud session started in /home/user, the parent of the repo, so the repo's .claude/settings.json hooks never loaded and the phase-build skill invocation was not recorded (skillAudit.invoked []); the phase 349 suffix names T1, T2, T3 as recorded without live hooks. The skill was invoked. Per the handoff procedure for cloud-built phases, settle passes skill-audit with the bypass and this record; the skill is not invoked afterwards to satisfy the audit. The dry run passed every other gate (draft-read, structural-verifier, boundary-scan with an upstream base, task-verify-required, build-test-must-pass, test-coverage). Whole-branch review READY TO MERGE; literal AC pass READY TO SETTLE (its three hardening tests added). Operator approved the bypass explicitly on 2026-11-25.
 
+### dec-20261125-003 — Phase 352 settled with --allow-skill-audit-miss
+
+- recommendation: rec-20261125-002
+- decided: 2026-11-25T21:40:59.580Z
+
+Phase 352 was built in a cloud session started in /home/user, the parent of the repo, so the repo's .claude/settings.json hooks never loaded and the phase-build skill invocation was not recorded (skillAudit.invoked []); the phase 349 suffix names T1, T2, T3 as recorded without live hooks. The skill was invoked. Per the handoff procedure for cloud-built phases, settle passes skill-audit with the bypass and this record. The dry run passed every other gate (draft-read, structural-verifier, boundary-scan, task-verify-required, build-test-must-pass, test-coverage). Whole-branch review READY TO MERGE; literal AC pass READY TO SETTLE (its two AC-4 hardening tests added). Operator approved the bypass explicitly on 2026-11-25.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

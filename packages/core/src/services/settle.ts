@@ -252,6 +252,27 @@ function anomalyToGateBypass(event: AnomalyEvent): GateBypass | null {
       severity: event.severity,
     };
   }
+  if (event.type === 'boundary-scan-bypassed') {
+    // Phase 352 (352-01, T2): one entry per bypassed cause; flag, cause,
+    // files and integrationRef come from the event's context (collectAnomalies
+    // sets all four). Missing or wrong-typed context falls back to the
+    // event's own message, as the build-test-bypassed case does.
+    const { flag, cause, files, integrationRef } = event.context;
+    const fileList =
+      Array.isArray(files) && files.every((f): f is string => typeof f === 'string') ? files : undefined;
+    let reason = event.message;
+    if (cause === 'offenders' && fileList !== undefined) {
+      reason = `${fileList.length} file(s) outside the declared boundary: ${fileList.join(', ')}`;
+    } else if (cause === 'merge-base' && typeof integrationRef === 'string') {
+      reason = `the merge-base of origin/${integrationRef} and HEAD could not be computed; committed files were not scanned`;
+    }
+    return {
+      gate: 'boundary-scan',
+      flag: typeof flag === 'string' ? flag : '<unknown flag>',
+      reason,
+      severity: event.severity,
+    };
+  }
   if (event.type === 'checkpoint-force-released') {
     // Phase 336 (D-CE, `dec-20261022-002`): not a CLI flag — the checkpoint
     // Stop-gate's own ceiling release, recorded under its pseudo-gate name
@@ -331,7 +352,7 @@ function checkpointForceReleaseFact(
   return forcedMs >= sinceMs ? { kind: 'forced', lastForcedAt } : { kind: 'none' };
 }
 
-function gateBypassesFromAnomalies(events: AnomalyEvent[]): GateBypass[] {
+export function gateBypassesFromAnomalies(events: AnomalyEvent[]): GateBypass[] {
   return events.flatMap((event) => {
     const bypass = anomalyToGateBypass(event);
     return bypass ? [bypass] : [];
@@ -1409,6 +1430,7 @@ async function runAnomalyAndSkillAuditChecks(
   interactiveVerify: SettleAccumulator['interactiveVerify'],
   verifierFailure: SettleAccumulator['flags']['verifierFailure'],
   buildTestBypass: SettleAccumulator['flags']['buildTestBypass'],
+  boundaryScanBypass: SettleAccumulator['flags']['boundaryScanBypass'],
   io: CommandIO,
   /** Phase 347 (347-01, T2): a dry run's recording notifier; absent → the
    *  configured transport, selected exactly as before. */
@@ -1460,6 +1482,11 @@ async function runAnomalyAndSkillAuditChecks(
     // Phase 346 (346-01): the build-test-must-pass gate's bypass facts, read
     // off the merged gate flags (no other gate sets `buildTestBypass`).
     ...(buildTestBypass ? { buildTestBypass } : {}),
+    // Phase 352 (352-01, T2): the boundary-scan gate's bypass report, read
+    // off the merged gate flags (no other gate sets `boundaryScanBypass`),
+    // and the integration ref its merge-base was computed against.
+    ...(boundaryScanBypass ? { boundaryScanBypass } : {}),
+    integrationRef: cadenceConfig?.phaseGuard?.integrationRef ?? 'main',
   });
   // Phase 346 (346-01, dec-20261113-002): the build-test-must-pass entry's `detail`
   // says how many output-tail lines the gate's stderr notice showed, never the
@@ -2335,6 +2362,7 @@ export async function settleService(
       interactiveVerify,
       verifierFailure,
       acc.flags.buildTestBypass,
+      acc.flags.boundaryScanBypass,
       io,
       dryRun ? dryRunNotifier(dryRun.recorder) : undefined,
     );

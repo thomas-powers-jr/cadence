@@ -1994,22 +1994,6 @@ On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did n
 
 packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([\s\S]+)/, which matches the first capitalised 'Then ' anywhere in the AC block, including the ### AC-N heading and the Given line. Phase 350's first DRAFT hit it: a heading '...in a Then clause' made AC-1's then start at 'clause\nGiven ...' and repeat the whole Given/When/Then. deep-verify, plan-review and spec-review print the then text, so the settle-time verifier receives the garbled text, and phase 350's UNBOUNDED_AC_THEN scan starts at the wrong place. Fix: anchor the Then (and When) captures to line start (multiline ^Then\s), with draft-mutate round-trip tests, CRLF/BOM tolerance (phase 339) and a regression case for a heading containing 'Then '.
 
-## rec-20261125-002 — boundary-scan bypasses never reach SUMMARY.gateBypasses, and the gate and registry disagree on the bypass flag name
-
-- status: converted
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: gates, boundary-scan, settle
-- files: packages/core/src/services/settle.ts, packages/core/src/gates/registry.ts, packages/core/src/gates/boundary-scan.ts
-- evidence: Phase 351 T2 independent review (2026-11-25): registry.ts:330-332 maps flags.boundaryScanBypassed to provenance only; anomalyToGateBypass has no boundary-scan case; flag ternaries differ between boundary-scan.ts:69 and registry.ts:331.
-- next: cadence milestone propose
-
-Two pre-existing gaps found by phase 351's T2 review. (1) anomalyToGateBypass in packages/core/src/services/settle.ts has no boundary-scan case, so neither a finding bypass nor phase 351's upstream-failed bypass (committed-file diff skipped) appears in SUMMARY.gateBypasses; only gate provenance records 'skipped (bypassed via <flag>)', and it cannot tell the two bypasses apart. That is weaker than CLAUDE.md's 'loud and recorded' bypass rule. GateBypass already exists, so no schema change is needed. (2) With both --force and --allow-boundary-scan-failure set, packages/core/src/gates/boundary-scan.ts names --force on stderr while packages/core/src/gates/registry.ts (~line 331) records --allow-boundary-scan-failure. Fix: have the gate return the flag it used and which bypass fired (as buildTestBypass.flag does at registry.ts ~326-328), let the registry prefer it, and add a boundary-scan case to anomalyToGateBypass with a reason that distinguishes 'files outside the boundary' from 'merge-base could not be computed'.
-
 ## rec-20261125-003 — build task prints 'git unavailable' when boundary-scan's merge-base is upstream-failed, which is misleading in a working repo
 
 - status: candidate
@@ -2025,3 +2009,19 @@ Two pre-existing gaps found by phase 351's T2 review. (1) anomalyToGateBypass in
 - next: cadence milestone propose
 
 Since phase 351, collectUnscopedTouchedFiles reports baseRefResolved: false for the upstream-failed source (origin/<ref> resolves but its merge-base with HEAD cannot be computed, e.g. a shallow clone). packages/core/src/services/build-task.ts (~293-308) treats that like a missing git repository: with no working-tree changes visible it prints 'boundary/redundancy check skipped: git unavailable ... falling back to the self-reported touchedFiles', which is false in a repo where git works, and shallow-clone record-time checks lose the committed-file visibility the old silent local fallback gave them. Fix: have build task read baseSource and print a specific notice for upstream-failed (naming the shallow clone and git fetch --unshallow when shallow), keeping 'git unavailable' for the genuine none case.
+
+## rec-20261125-004 — Test files are never type-checked: core's typecheck and lint cover src/ only, and vitest strips types
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: testing, typecheck, ci
+- files: packages/core/tsconfig.json, packages/core/package.json, tsconfig.base.json, eslint.config.js
+- evidence: Phase 352 T2 review (2026-11-25): core tsconfig include src/**/*, base excludes tests, lint 'eslint src', no type-aware lint, no vitest typecheck; a strict scratch typecheck of two new test files found one real error the pipeline did not.
+- next: cadence milestone propose
+
+packages/core/tsconfig.json includes only src/**/* (rootDir src) and tsconfig.base.json excludes **/*.test.ts and tests; package.json runs 'tsc -p tsconfig.json --noEmit' and 'eslint src'; the root eslint config has no parserOptions.project; vitest typecheck is off. So a type error in packages/core/tests (and likely the other packages' tests) never fails lint, typecheck or CI; vitest strips types at run time. Phase 352's T2 implementer caught one such error (a missing required 'name' on a test DRAFT's AC literal) only by type-checking its test files with a scratch tsconfig. Fix: add a tsconfig.test.json per package (noEmit, includes src and tests, strict as base) and run it from the typecheck script or a separate turbo task wired into ci-success; fix whatever errors the existing tests surface (may be many; budget a phase).

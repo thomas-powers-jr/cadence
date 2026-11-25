@@ -1395,6 +1395,14 @@ changeset (example/test-only change, no published-package surface).*
   with the merge-base sha when it falls back to the local ref because
   `origin/<integrationRef>` did not resolve; `config.md` documents the four
   base sources (rec-20261125-001).
+- **Phase 352** — boundary-scan bypasses are recorded: an unsealed
+  `--allow-boundary-scan-failure` or `--force` past a `boundary-scan`
+  refusal now emits one error-severity `boundary-scan-bypassed` anomaly per
+  cause (files outside the boundary, or an `upstream-failed` merge-base)
+  and records each as a `boundary-scan` entry in `SUMMARY.json.gateBypasses`,
+  capping a `strong` `assurance.overall` at `mixed`; the gate's stderr line
+  and provenance name the flag by one rule, `--allow-boundary-scan-failure`
+  when it is set, else `--force` (rec-20261125-002).
 
 
 

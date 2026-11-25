@@ -328,7 +328,12 @@ export async function runSettleGates(
         (gateCtx.opts.allowFailingBuild === true ? '--allow-failing-build' : '--force');
       gates.push({ gate, status: 'skipped', skipReason: `bypassed via ${flag}`, ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
     } else if (gate === 'boundary-scan' && res.flags?.boundaryScanBypassed === true) {
-      const flag = gateCtx.opts.allowBoundaryScanFailure === true ? '--allow-boundary-scan-failure' : '--force';
+      // Phase 352 (352-01, T2): prefer the gate's own boundaryScanBypass.flag
+      // so its stderr line, this skip reason and the gateBypasses flag share
+      // one source; the opts ternary is the fallback when the gate set none.
+      const flag =
+        res.flags.boundaryScanBypass?.flag ??
+        (gateCtx.opts.allowBoundaryScanFailure === true ? '--allow-boundary-scan-failure' : '--force');
       gates.push({ gate, status: 'skipped', skipReason: `bypassed via ${flag}`, ...verifierIdentityProvenance(res), ...observedVerifierIdentityProvenance(res) });
     } else if (gate === 'test-coverage' && res.flags?.coverageBypassed === true) {
       // Phase 346 (346-01, T5): name the flag that fired — bare --force when

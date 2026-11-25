@@ -4618,6 +4618,52 @@ local fallback is announced on stderr. Tier `standard`.
     line names `--force` while gate provenance records
     `--allow-boundary-scan-failure` (rec-20261125-002).
 
+### Phase 352 — boundary-scan bypasses are recorded (rec-20261125-002)
+
+**Objective.** Phase 351 left a bypassed `boundary-scan` refusal visible
+only on stderr and in gate provenance (`skipped`, `bypassed via <flag>`):
+no entry reached `SUMMARY.json.gateBypasses`, so a SUMMARY could not tell
+a settle that let out-of-boundary files through, or skipped the
+committed-file scan on an `upstream-failed` merge-base, from a clean one,
+and the assurance grade was not capped. With both `--force` and
+`--allow-boundary-scan-failure` set, the stderr line named `--force` while
+provenance recorded `--allow-boundary-scan-failure`. This phase makes the
+bypass as loud and durable as a bypassed failing test suite, following
+the phase 346 `build-test-bypassed` design. Tier `standard`.
+
+**As built.**
+- T1: `AnomalyTypeZ` in `packages/types/src/anomaly.ts` gains
+  `'boundary-scan-bypassed'` as its last member. `runBoundaryScanGate`
+  names the flag by one rule, `--allow-boundary-scan-failure` when that
+  option is set, else `--force`, for both bypass lines, and every bypass
+  return carries `flags.boundaryScanBypass` (`flag`, `causes` in the order
+  `merge-base`, `offenders`, and the offending paths) beside
+  `boundaryScanBypassed: true`. The phase 351 diff-base test's two `flags`
+  expectations gain the new field.
+- T2: the registry takes the `boundary-scan` provenance flag from
+  `flags.boundaryScanBypass.flag`, with the options-based flag as the
+  fallback. `collectAnomalies` gains `boundaryScanBypass` and
+  `integrationRef` (settle passes `phaseGuard.integrationRef`, default
+  `main`) and emits one error-severity `boundary-scan-bypassed` event per
+  cause with context `{ flag, cause, files, integrationRef }`. The exported
+  `gateBypassesFromAnomalies` maps each to a `boundary-scan` gate bypass
+  whose reason reads `<n> file(s) outside the declared boundary: <files>`
+  or `the merge-base of origin/<integrationRef> and HEAD could not be
+  computed; committed files were not scanned`; the existing
+  error-severity cap in `deriveAssuranceRecord` then grades a `strong`
+  settle `mixed`. The warn `files-outside-boundary` events are unchanged.
+- T3: a `boundary-scan-bypassed` row in `DESIGN.md`'s anomaly table; the
+  `docs/reference/config.md` **Diff base** paragraph states the flag rule
+  and the `gateBypasses` record; a minor changeset for core and types; a
+  doc-content test.
+- Known limits, documented rather than fixed:
+  - the cap only lowers `strong`; a `weak` or `unverified` grade is left
+    alone, so a mock-only settle stays `unverified`;
+  - a refused settle's SUMMARY still records no `gateBypasses`, as before;
+  - phase 332's findings bypasses keep their opposite flag rule;
+  - the new anomaly's message does not list the file names; its context
+    and the `gateBypasses` reason do.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
