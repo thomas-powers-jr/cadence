@@ -30,6 +30,16 @@ import type { GateImpl, GateResult } from './types.js';
  * phase carries `execution: 'dispatch'`, this gate runs in block mode for the
  * rest of the phase regardless of config/draft `boundaryEnforcement` — the
  * dispatch-scoped escalation never de-escalates.
+ *
+ * Phase 351 (351-01, AC-2/AC-3): the gate names its diff base. A fallback to
+ * the local `<integrationRef>` (because `origin/<integrationRef>` does not
+ * resolve) prints a stderr notice with the 7-char merge-base sha; when the
+ * remote-tracking ref resolves but its merge-base with HEAD cannot be
+ * computed after a retry (`upstream-failed`), the gate refuses — naming a
+ * shallow clone when that is the cause — unless unsealed and bypassed, in
+ * which case only working-tree changes are scanned and the result carries
+ * `flags.boundaryScanBypassed`. The "could not resolve a base ref" notice now
+ * prints only for the `none` source.
  */
 export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> => {
   const anyTaskDispatched = Object.values(ctx.progress.tasks).some((t) => t.execution === 'dispatch');
@@ -38,8 +48,8 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
   }
 
   const integrationRef = ctx.config?.phaseGuard?.integrationRef ?? 'main';
-  const { files, baseRefResolved } = await collectUnscopedTouchedFiles(ctx.cwd, integrationRef);
-  if (!baseRefResolved) {
+  const { files, baseSource, baseSha, shallow } = await collectUnscopedTouchedFiles(ctx.cwd, integrationRef);
+  if (baseSource === 'none') {
     ctx.io.err(
       `boundary-scan: could not resolve a base ref against \`${integrationRef}\` — ` +
         'committed-file scan skipped, only working-tree changes were checked\n',
@@ -54,6 +64,45 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
     return { outcome: 'pass' };
   }
 
+  const sealed = isGateSealed(ctx, 'boundary-scan');
+  const bypassFlagSet = ctx.opts.force === true || ctx.opts.allowBoundaryScanFailure === true;
+  const flag = ctx.opts.force === true ? '--force' : '--allow-boundary-scan-failure';
+
+  // Phase 351 (351-01, AC-2): the local fallback is no longer silent.
+  if (baseSource === 'local' && baseSha !== null) {
+    ctx.io.err(
+      `boundary-scan: origin/${integrationRef} did not resolve; diffing against the merge-base ` +
+        `with the local ${integrationRef} ref (${baseSha.slice(0, 7)})\n`,
+    );
+  }
+
+  // Phase 351 (351-01, AC-3): `origin/<ref>` resolves but its merge-base with
+  // HEAD could not be computed (after a retry) — refuse rather than diff
+  // against a possibly stale local ref, unless an unsealed bypass is set.
+  let baseBypassed = false;
+  if (baseSource === 'upstream-failed') {
+    const what =
+      `settle run refused: boundary-scan could not compute the merge-base of origin/${integrationRef} ` +
+      'and HEAD after a retry';
+    if (sealed || !bypassFlagSet) {
+      const reason = sealed
+        ? shallow
+          ? `${what}, and this is a shallow clone. Run git fetch --unshallow origin (or --deepen=<n>) and ` +
+            're-run settle. This gate is sealed (gates.sealed) and cannot be bypassed with --force or ' +
+            '--allow-boundary-scan-failure.'
+          : `${what}. Re-run settle. This gate is sealed (gates.sealed) and cannot be bypassed with ` +
+            '--force or --allow-boundary-scan-failure.'
+        : shallow
+          ? `${what}, and this is a shallow clone. Run git fetch --unshallow origin (or --deepen=<n>) and ` +
+            're-run settle, or pass --allow-boundary-scan-failure to scan only working-tree changes.'
+          : `${what}. Re-run settle, or pass --allow-boundary-scan-failure to scan only working-tree changes.`;
+      ctx.io.err(`${reason}\n`);
+      return { outcome: 'refuse', reason };
+    }
+    ctx.io.err(`boundary-scan: ${flag} set; scanning working-tree changes only.\n`);
+    baseBypassed = true;
+  }
+
   const events = runBoundaryCheck({
     declaredFiles,
     touchedFiles: filtered,
@@ -63,7 +112,7 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
   });
 
   if (events.length === 0) {
-    return { outcome: 'pass' };
+    return baseBypassed ? { outcome: 'pass', flags: { boundaryScanBypassed: true } } : { outcome: 'pass' };
   }
 
   const offenders = events.map((e) => String(e.context.file));
@@ -71,8 +120,7 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
     ctx.io.err(`boundary-scan: ${file} touched but not declared in any task's files:\n`);
   }
 
-  const sealed = isGateSealed(ctx, 'boundary-scan');
-  const bypassed = !sealed && (ctx.opts.force === true || ctx.opts.allowBoundaryScanFailure === true);
+  const bypassed = !sealed && bypassFlagSet;
   if (!bypassed) {
     const reason = sealed
       ? 'settle run refused: boundary-scan found file(s) outside the declared boundary. ' +
@@ -84,7 +132,6 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
     return { outcome: 'refuse', reason };
   }
 
-  const flag = ctx.opts.force === true ? '--force' : '--allow-boundary-scan-failure';
   ctx.io.err(`boundary-scan: ${flag} set; proceeding past ${offenders.length} offending file(s).\n`);
   return {
     outcome: 'pass',

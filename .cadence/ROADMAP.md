@@ -4560,6 +4560,64 @@ the new warning. Tier `standard`.
   - a line written as `- Not covered:` or `**Not covered:**` does not
     stop the scan.
 
+### Phase 351 — boundary-scan names its diff base (rec-20261125-001)
+
+**Objective.** Phase 350's first real settle, right after a worker
+restart, refused at `boundary-scan` naming seven test files from earlier
+phases: the merge-base call against `origin/main` came back empty, and the
+gate fell back without notice to a stale local `main` several releases
+behind `origin/main`. This phase makes the gate's diff base explicit: the
+upstream call is retried once, a remote-tracking ref whose merge-base
+still cannot be computed is refused with a named reason (naming a shallow
+clone when that is the cause) instead of falling back, and the remaining
+local fallback is announced on stderr. Tier `standard`.
+
+**As built.**
+- T1: `resolveMergeBase(root, integrationRef, git = gitBestEffort)` in
+  `packages/core/src/git/boundary-diff.ts` is exported and takes an
+  injectable git runner. It asks for the merge-base of
+  `origin/<integrationRef>` and `HEAD`, retries once on an empty answer,
+  then checks `refs/remotes/origin/<integrationRef>`: when the ref
+  resolves it returns `{ base: null, source: 'upstream-failed', shallow }`
+  from `git rev-parse --is-shallow-repository` without consulting the
+  local ref; when it does not, it takes the merge-base with the local
+  `<integrationRef>` (`local`) or returns `none`. Every answer is trimmed.
+  `collectUnscopedTouchedFiles` adds `baseSource`, `baseSha` and `shallow`
+  to its result; `baseRefResolved` stays `true` exactly for `upstream` and
+  `local`. The comment on `resolveMergeBaseSync` in
+  `packages/core/src/git/diff.ts` now describes how it differs; its code
+  is as before.
+- T2: `runBoundaryScanGate`, after the empty-declared-files fail-open,
+  prints `boundary-scan: origin/<ref> did not resolve; diffing against
+  the merge-base with the local <ref> ref (<sha7>)` for a `local` base,
+  and refuses an `upstream-failed` base with `settle run refused:
+  boundary-scan could not compute the merge-base of origin/<ref> and HEAD
+  after a retry.` plus re-run advice, or with the shallow-clone variant
+  that suggests `git fetch --unshallow origin (or --deepen=<n>)`. A sealed
+  gate's variants drop the bypass advice and say the gate cannot be
+  bypassed. Unsealed, `--allow-boundary-scan-failure` or `--force` prints
+  `boundary-scan: <flag> set; scanning working-tree changes only.`, runs
+  the working-tree scan and returns `flags.boundaryScanBypassed` even when
+  no offender is found. The `could not resolve a base ref` notice now
+  prints only for `none`. The golden table in `boundary-scan.test.ts`
+  expects the local-fallback line first for its no-`origin` repositories.
+- T3: `docs/reference/config.md` gains a **Diff base** paragraph after the
+  `boundaryEnforcement` scope note naming the four base sources, the
+  notice, both refusals and the bypass line; a patch changeset for core;
+  a doc-content test.
+- Known limits, documented rather than fixed:
+  - the `deep-verify` diff's `resolveMergeBaseSync` keeps the old order
+    (no retry, any upstream failure falls back to the local ref); only
+    its comment was corrected;
+  - `build task`'s record-time check treats `upstream-failed` as an
+    unresolved base (working-tree files only) and prints no new notice;
+  - a transient failure of the upstream-ref check itself reads as "does
+    not resolve" and falls back to the local ref, now with the notice;
+  - boundary-scan bypasses still do not reach `SUMMARY.gateBypasses`, and
+    with both `--force` and `--allow-boundary-scan-failure` set the stderr
+    line names `--force` while gate provenance records
+    `--allow-boundary-scan-failure` (rec-20261125-002).
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

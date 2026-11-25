@@ -790,6 +790,41 @@ working-tree file outside every task's declared `files:` refuses the
 recording (exit 1, no state mutation) unless `--allow-boundary-breach` is
 passed — see `docs/reference/commands.md`'s `build task` entry.
 
+**Diff base** (phase 351): in `block` mode the settle-time `boundary-scan`
+gate diffs the commits since the branch diverged, so it first resolves a
+merge-base with `HEAD`, from one of four base sources. `upstream`: the
+merge-base with `origin/<integrationRef>` (`phaseGuard.integrationRef`,
+default `main`); an empty answer, such as a transient git failure, gets one
+retry. `local`: when `refs/remotes/origin/<integrationRef>` does not
+resolve (no `origin` remote, or no remote-tracking ref), the merge-base with
+the local `<integrationRef>`, and the gate says so on stderr:
+`boundary-scan: origin/main did not resolve; diffing against the merge-base
+with the local main ref (<sha>)`, where `<sha>` is the first 7 characters of
+that merge-base. `upstream-failed`: the remote-tracking ref resolves but its
+merge-base with `HEAD` still cannot be computed after the retry; the gate
+does not fall back to the local ref, which may be stale, and refuses with
+`settle run refused: boundary-scan could not compute the merge-base of
+origin/main and HEAD after a retry. Re-run settle, or pass
+--allow-boundary-scan-failure to scan only working-tree changes.` In a
+shallow clone the reason instead reads `… after a retry, and this is a
+shallow clone. Run git fetch --unshallow origin (or --deepen=<n>) and re-run
+settle, or pass --allow-boundary-scan-failure to scan only working-tree
+changes.` When `boundary-scan` is sealed (`gates.sealed`), both variants
+drop the bypass advice and say the gate cannot be bypassed. Unsealed,
+`--allow-boundary-scan-failure` or `--force` proceeds with the working-tree
+scan only, printing `boundary-scan: --allow-boundary-scan-failure set;
+scanning working-tree changes only.` (naming `--force` when that flag is
+set). `none`: the remote-tracking ref does not resolve and the local ref
+yields no merge-base either; the gate prints its existing `could not
+resolve a base ref` notice and checks working-tree changes only. A DRAFT
+with no declared `files:` still passes before the local notice or the
+`upstream-failed` refusal is considered. `build task`'s record-time check
+treats `upstream-failed` like an unresolved base: it checks working-tree
+changes only, and when none are visible it prints its existing `git
+unavailable` notice and falls back to the self-reported `touchedFiles`.
+The `deep-verify` diff resolves its own base and still falls back to the
+local ref on any upstream failure.
+
 **Dispatch-scoped auto-escalation:** independent of this config field's own
 value, once any task in the active phase has been recorded with `--execution
 dispatch`, both the record-time check and the settle-time `boundary-scan`

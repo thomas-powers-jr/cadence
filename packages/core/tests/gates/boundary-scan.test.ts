@@ -282,6 +282,12 @@ describe('runBoundaryScanGate', () => {
     // explicit hand-written expected value so the AC-2 claim is genuinely
     // comprehensive for this file, not a curated subset.
     const scenarios: Array<{ scenario: string; result: unknown }> = [];
+    // Phase 351 (351-01, AC-2): makeRepo() repos have no `origin` remote, so
+    // block-mode runs first name the local fallback with that repo's
+    // `git merge-base main HEAD` (first 7 chars).
+    const localLine = (root: string): string =>
+      `boundary-scan: origin/main did not resolve; diffing against the merge-base with the local main ref (${git(root, ['merge-base', 'main', 'HEAD']).trim().slice(0, 7)})\n`;
+    const local: Record<string, string> = {};
 
     {
       const res = await runBoundaryScanGate(
@@ -327,6 +333,7 @@ describe('runBoundaryScanGate', () => {
       const res = await runBoundaryScanGate(
         ctx({ cwd: root, boundaryEnforcement: 'block', declaredFiles: ['declared.ts'], errs }),
       );
+      local['refuse'] = localLine(root);
       scenarios.push({
         scenario: 'a real out-of-boundary file refuses, naming the offender',
         result: { outcome: res.outcome, reason: res.reason, errs },
@@ -347,6 +354,7 @@ describe('runBoundaryScanGate', () => {
           errs,
         }),
       );
+      local['force'] = localLine(root);
       scenarios.push({
         scenario: '--force bypasses the refusal, recording offenders in summaryPatch',
         result: {
@@ -372,6 +380,7 @@ describe('runBoundaryScanGate', () => {
           errs,
         }),
       );
+      local['allow'] = localLine(root);
       scenarios.push({
         scenario: '--allow-boundary-scan-failure bypasses the refusal the same way',
         result: {
@@ -399,6 +408,7 @@ describe('runBoundaryScanGate', () => {
           errs,
         }),
       );
+      local['sealed'] = localLine(root);
       scenarios.push({
         scenario: 'a sealed gate ignores both bypass flags and still refuses',
         result: { outcome: res.outcome, reason: res.reason, errs },
@@ -443,6 +453,7 @@ describe('runBoundaryScanGate', () => {
           errs,
         }),
       );
+      local['dispatch'] = localLine(root);
       scenarios.push({
         scenario:
           'escalates to block mode when a PROGRESS task carries execution:dispatch, even under a warn config',
@@ -473,6 +484,7 @@ describe('runBoundaryScanGate', () => {
           reason:
             'settle run refused: boundary-scan found file(s) outside the declared boundary. Pass --allow-boundary-scan-failure to record them and settle anyway, or --force to bypass.',
           errs: [
+            local['refuse'],
             "boundary-scan: undeclared.ts touched but not declared in any task's files:\n",
             'settle run refused: boundary-scan found file(s) outside the declared boundary. Pass --allow-boundary-scan-failure to record them and settle anyway, or --force to bypass.\n',
           ],
@@ -485,6 +497,7 @@ describe('runBoundaryScanGate', () => {
           offenders: ['undeclared.ts'],
           boundaryScanBypassed: true,
           errs: [
+            local['force'],
             "boundary-scan: undeclared.ts touched but not declared in any task's files:\n",
             'boundary-scan: --force set; proceeding past 1 offending file(s).\n',
           ],
@@ -497,6 +510,7 @@ describe('runBoundaryScanGate', () => {
           offenders: ['undeclared.ts'],
           boundaryScanBypassed: true,
           errs: [
+            local['allow'],
             "boundary-scan: undeclared.ts touched but not declared in any task's files:\n",
             'boundary-scan: --allow-boundary-scan-failure set; proceeding past 1 offending file(s).\n',
           ],
@@ -511,6 +525,7 @@ describe('runBoundaryScanGate', () => {
             'This gate is sealed (gates.sealed) and cannot be bypassed with --force or ' +
             '--allow-boundary-scan-failure.',
           errs: [
+            local['sealed'],
             "boundary-scan: undeclared.ts touched but not declared in any task's files:\n",
             'settle run refused: boundary-scan found file(s) outside the declared boundary. ' +
               'This gate is sealed (gates.sealed) and cannot be bypassed with --force or ' +
@@ -535,6 +550,7 @@ describe('runBoundaryScanGate', () => {
         result: {
           outcome: 'refuse',
           errs: [
+            local['dispatch'],
             "boundary-scan: undeclared.ts touched but not declared in any task's files:\n",
             'settle run refused: boundary-scan found file(s) outside the declared boundary. Pass --allow-boundary-scan-failure to record them and settle anyway, or --force to bypass.\n',
           ],
