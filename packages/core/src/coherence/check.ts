@@ -11,6 +11,35 @@ export interface CoherenceResult {
   issues: CoherenceIssue[];
 }
 
+/**
+ * Universal words an AC's Then-text should not promise (350-01). A hostile
+ * settle-time review agent can always find one more corner under "every" or
+ * "unchanged"; a bounded AC names example inputs and outputs instead.
+ */
+export const UNIVERSAL_AC_WORDS = ['any', 'every', 'each', 'same', 'unchanged'] as const;
+
+const STOP_LINE_RE = /^[ \t]*not covered:/i;
+
+/**
+ * Pure: the distinct universal words (lowercased, in order of first
+ * appearance) in one Then-text. The scan reads only up to the first stop
+ * line (a line that, after leading spaces and tabs, begins with
+ * `Not covered:`, case-insensitively). A word is a maximal run of ASCII
+ * letters; every other character separates words.
+ */
+export function findUniversalAcWords(thenText: string): string[] {
+  const lines = thenText.split(/\r\n|\r|\n/);
+  const stopAt = lines.findIndex((line) => STOP_LINE_RE.test(line));
+  const scanned = stopAt === -1 ? lines : lines.slice(0, stopAt);
+  const universal = new Set<string>(UNIVERSAL_AC_WORDS);
+  const found: string[] = [];
+  for (const word of scanned.join('\n').split(/[^A-Za-z]+/)) {
+    const lower = word.toLowerCase();
+    if (universal.has(lower) && !found.includes(lower)) found.push(lower);
+  }
+  return found;
+}
+
 const DO_NOT_RE = /DO NOT\s+(?:edit|change|modify|touch)\s+`?([^\s`\n]+?)(?:`|\.(?:\s|$)|$)/gi;
 
 export function coherenceCheck(draft: Draft, state: CadenceState, projectMd: string): CoherenceResult {
@@ -72,6 +101,19 @@ export function coherenceCheck(draft: Draft, state: CadenceState, projectMd: str
         severity: 'warn',
         code: 'STOP_CONDITION_MISSING',
         message: `Task ${t.id} declares files: but no stop: condition. Consider adding one so a dispatched agent knows when to halt.`,
+      });
+    }
+  }
+
+  // 350-01: an AC whose Then-text promises a universal gets a warn-severity
+  // UNBOUNDED_AC_THEN issue. Never escalates to block.
+  for (const ac of draft.acceptanceCriteria) {
+    const words = findUniversalAcWords(ac.then);
+    if (words.length > 0) {
+      issues.push({
+        severity: 'warn',
+        code: 'UNBOUNDED_AC_THEN',
+        message: `${ac.id}'s Then-text uses universal word(s) ${words.map((w) => `"${w}"`).join(', ')}; bound it with named example inputs and outputs, or move the boundary to a "Not covered:" line.`,
       });
     }
   }

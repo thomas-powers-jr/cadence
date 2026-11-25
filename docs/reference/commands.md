@@ -361,7 +361,42 @@ sections present, AC IDs well-formed, tier field valid) and checks it against
 the current `state.json` and `PROJECT.md`. Prints findings; does not modify
 any files. Suitable to run before `draft approve`.
 
-**Exit codes** — exits non-zero when coherence violations are found.
+Each finding is a `block` or a `warn`. A clean DRAFT prints `coherence: OK`
+on stdout; otherwise each finding prints on stderr, a block as
+`[BLOCK] <code>: <message>` and a warning as
+`[WARN] [WARN] <code>: <message>`. When the effective gate set includes
+`anomaly-notify`, each warning's message is also emitted as a
+`coherence-warn` anomaly through the configured notify transport, which by
+default writes `cadence anomaly [warn] coherence-warn: <message>` to stderr.
+
+**`UNBOUNDED_AC_THEN` (warning)** — flags an AC whose Then-text promises a
+universal that a settle-time review agent can always find one more corner
+under. The universal words are `any`, `every`, `each`, `same` and
+`unchanged`, matched case-insensitively against whole words, where a word
+is a maximal run of ASCII letters and every other character (including
+`-`, `'` and the backtick) separates words — so `same-day` matches `same`,
+while `anything` and `sameness` do not match. The scan stops at the first
+stop line: a line that, after leading spaces and tabs, begins with
+`Not covered:` (compared case-insensitively). A line written as
+`- Not covered:` or `**Not covered:**` is not a stop line. One warning is
+printed per AC with matches, naming the distinct words lowercased in order
+of first appearance:
+
+```
+[WARN] [WARN] UNBOUNDED_AC_THEN: AC-2's Then-text uses universal word(s) "every", "unchanged"; bound it with named example inputs and outputs, or move the boundary to a "Not covered:" line.
+```
+
+It is a warning only, never a block: `draft approve` still approves a
+DRAFT that has it, and shows the message only as a `coherence-warn` anomaly
+line when `anomaly-notify` is in the cell. Known limit
+(rec-20261124-001): the parser's Then capture is unanchored, so a
+capitalised `Then` followed by a space or line break anywhere above an
+AC's Then line (its heading, Given or When text) starts the Then-text there and the scan reads from that point; trailing prose after the last AC
+in the section is folded into that AC's Then-text and is scanned too.
+
+**Exit codes** — a result with only warnings exits 0 and does not print
+`coherence: OK`. A result with at least one block exits 2 (warnings are
+still printed). A DRAFT that cannot be read or parsed exits 1.
 
 #### draft approve
 

@@ -1435,6 +1435,13 @@ Correction: dec-20261123-001 said the out-of-list parity-test edits would be a b
 
 Phase 349 was built in a cloud session started in /home/user, the parent of the repo, so the repo's .claude/settings.json hooks never loaded and the phase-build skill invocation was not recorded (skillAudit.invoked []). The skill was invoked; the miss is the condition this phase names, and the refusal now lists the tasks recorded without live hooks. Per the handoff, a cloud-built phase settles past skill-audit with the bypass and a decision record; the skill is not invoked afterwards to satisfy the audit. boundary-scan flags the three parity tests already sanctioned by dec-20261123-001/002. Dry run passed every other gate (structural-verifier, task-verify-required, build-test-must-pass, test-coverage). Operator approved settling with both bypasses on 2026-11-24.
 
+### dec-20261125-001 — Phase 350 settled with --allow-skill-audit-miss
+
+- recommendation: rec-20261121-005
+- decided: 2026-11-25T16:47:08.473Z
+
+Phase 350 was built in a cloud session started in /home/user, the parent of the repo, so the repo's .claude/settings.json hooks never loaded and the phase-build skill invocation was not recorded (skillAudit.invoked []); the phase 349 suffix names T1, T2, T3 as recorded without live hooks. The skill was invoked. Per the handoff procedure for cloud-built phases, settle passes skill-audit with the bypass and this record; the skill is not invoked afterwards to satisfy the audit. The dry run passed every other gate (draft-read, structural-verifier, boundary-scan, task-verify-required, build-test-must-pass, test-coverage). Whole-branch review READY TO MERGE; literal AC pass READY TO SETTLE (its two WEAK clauses pinned with mutation-checked tests). Operator approved continuing on 2026-11-25.
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

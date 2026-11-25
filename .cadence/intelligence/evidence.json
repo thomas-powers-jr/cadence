@@ -3425,6 +3425,13 @@
       "kind": "note",
       "summary": "Phase 350 literal DRAFT review (2026-11-24): parseDraftMd on 350-01's first DRAFT gave AC-1 then = 'clause\\nGiven the universal-word list ...' and AC-2 then = 'texts are (AC-1) ...'.",
       "createdAt": "2026-11-24T17:48:27.955Z"
+    },
+    {
+      "id": "ev-20261125-001",
+      "recommendationId": "rec-20261125-001",
+      "kind": "note",
+      "summary": "Phase 350 settle 2026-11-25: refused at boundary-scan naming packages/types/tests/{events,handoff,snapshot,state-last-hook-event,state,summary-host-cli-isolation,summary}.test.ts; local main b2cb17db vs origin/main 5c42c6f0; after 'git fetch origin main:main' the dry run passed boundary-scan.",
+      "createdAt": "2026-11-25T16:48:09.076Z"
     }
   ]
 }

@@ -1962,22 +1962,6 @@ Two medium code-review findings on phase 347, neither blocking. (1) Recorded in 
 
 Two known shapes outside phase 348's four, reported rather than fixed (dec-20261121-001). (1) QUOTED_KEY_RE (phase 346) runs after patterns that end in a greedy non-space run, which can swallow a value's closing quote: "password":"a b; X=1" becomes "password":"[REDACTED]" b; X=[REDACTED], leaving 'b;'. Phase 348 fixed the same weakness for the new auth-header pattern by running it on the raw text first; the same reorder would likely work here but needs its own false-positive check. (2) An unquoted 'Cookie: sid=...' or 'Set-Cookie: ...' header line is not redacted; the shared pattern only knows Authorization followed by Bearer, Basic or Token. Consumers who need certainty should set verification.buildTestOutputTail to hide.
 
-## rec-20261121-005 — Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle
-
-- status: converted
-- ready: ready-for-cadence-spec
-- priority: high
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: process, phase-build, draft, deep-verify
-- files: .claude/skills/phase-build/SKILL.md, CLAUDE.md
-- evidence: 347: six Codex rounds (operator retrospective 2026-11-21). 348: the literal pass predicted AC-3 and AC-4 failures; both were real (a false sentence; DB_PASSWORD=blue cat left 'cat') and fixed before the first Codex run
-- next: cadence milestone propose
-
-Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.
-
 ## rec-20261122-001 — Release integrity wait gave up one minute before npm showed core
 
 - status: candidate
@@ -2009,3 +1993,19 @@ On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did n
 - next: cadence milestone propose
 
 packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([\s\S]+)/, which matches the first capitalised 'Then ' anywhere in the AC block, including the ### AC-N heading and the Given line. Phase 350's first DRAFT hit it: a heading '...in a Then clause' made AC-1's then start at 'clause\nGiven ...' and repeat the whole Given/When/Then. deep-verify, plan-review and spec-review print the then text, so the settle-time verifier receives the garbled text, and phase 350's UNBOUNDED_AC_THEN scan starts at the wrong place. Fix: anchor the Then (and When) captures to line start (multiline ^Then\s), with draft-mutate round-trip tests, CRLF/BOM tolerance (phase 339) and a regression case for a heading containing 'Then '.
+
+## rec-20261125-001 — boundary-scan silently falls back to a stale local main when the origin merge-base call fails, flagging files from earlier phases
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: gates, boundary-scan, git
+- files: packages/core/src/git/boundary-diff.ts, packages/core/src/git/worktrees.ts
+- evidence: Phase 350 settle 2026-11-25: refused at boundary-scan naming packages/types/tests/{events,handoff,snapshot,state-last-hook-event,state,summary-host-cli-isolation,summary}.test.ts; local main b2cb17db vs origin/main 5c42c6f0; after 'git fetch origin main:main' the dry run passed boundary-scan.
+- next: cadence milestone propose
+
+packages/core/src/git/boundary-diff.ts resolveMergeBase tries 'git merge-base origin/<ref> HEAD' through gitBestEffort (5 s timeout, errors swallowed) and on an empty result falls back to the local <ref> with no notice. Phase 350's first real settle (right after a worker restart) refused at boundary-scan listing packages/types tests from earlier phases, though the same dry run minutes before had passed and 'git merge-base origin/main HEAD' answered in 6 ms afterwards: the upstream call evidently failed transiently and the fallback diffed against a local main left at a v1.72-era commit. Fix: when the upstream merge-base fails but origin/<ref> exists, retry once or refuse with a named reason rather than falling back silently; print a loud stderr notice whenever the local fallback is used and record which base was used on the gate entry (house rule: no quiet fallbacks); consider refusing when the local ref is behind origin/<ref>.

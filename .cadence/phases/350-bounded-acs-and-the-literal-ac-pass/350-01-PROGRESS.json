@@ -1,0 +1,43 @@
+{
+  "draftId": "350-01",
+  "tasks": {
+    "T2": {
+      "status": "DONE",
+      "notes": "phase-build SKILL.md: Literal DRAFT review precondition, Literal AC pass in step 6, dry-run first settle in step 7 (after the ROADMAP sentence; step numbers and headings kept). CLAUDE.md loop section: AC-authoring rules, UNBOUNDED_AC_THEN, unanchored-Then caveat (rec-20261124-001). Doc test failing-first (4/4). Independent review FIX REQUIRED: one false sentence (approve does print the warning's message as a coherence-warn anomaly line), fixed with the vocabulary, caveat-scope, precondition and paragraph minors. Docs suite 464/464 after the fixes; full pipeline 28/28.",
+      "touchedFiles": [
+        ".claude/skills/phase-build/SKILL.md",
+        "CLAUDE.md",
+        "packages/core/src/coherence/check.ts",
+        "packages/core/src/parse/draft-templates.ts",
+        "packages/core/tests/coherence/check-unbounded-then.test.ts",
+        "packages/core/tests/docs/literal-ac-pass-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-24T18:14:12.354Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T1": {
+      "status": "DONE",
+      "notes": "UNIVERSAL_AC_WORDS and findUniversalAcWords in coherence/check.ts (stop line, ASCII-letter words, case-insensitive, distinct first-appearance), one UNBOUNDED_AC_THEN warn per AC with the exact AC-1 message; bugfix and refactor template Then lines bounded (headings untouched). Tests first (6/8 failing, then the template test red until the rewrite). Independent review PASS (full core suite 5891 passed, edge-case probes); minors folded: lone-CR line breaks (proven failing first), AC-2 test placement, softer refactor wording. Full pipeline 28/28.",
+      "touchedFiles": [],
+      "updatedAt": "2026-11-24T18:19:39.339Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "commands.md draft check: UNBOUNDED_AC_THEN as built (five words, ASCII-letter words, stop line, message example, warning only, unanchored-Then caveat), exit codes corrected as built (warn-only 0 without coherence: OK, block 2, read/parse error 1). Changeset bounded-ac-then.md (core minor), unbounded-ac-then-docs test (failing first, 3/3), ROADMAP and MILESTONES entries. Whole-branch review READY TO MERGE (0 Critical/Important, all six ACs proven; own DRAFT check: coherence OK); minors folded: caveat precision (Then plus whitespace), anomaly transport wording, one review-agent wording fix. Full pipeline 28/28; docs+coherence 485/485 after the wording fixes.",
+      "touchedFiles": [
+        "docs/reference/commands.md",
+        ".changeset/bounded-ac-then.md",
+        "packages/core/tests/docs/unbounded-ac-then-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-24T18:32:32.257Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}

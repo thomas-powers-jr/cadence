@@ -3537,38 +3537,6 @@
       "updatedAt": "2026-11-21T20:18:46.492Z"
     },
     {
-      "id": "rec-20261121-005",
-      "title": "Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle",
-      "summary": "Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.",
-      "source": "manual",
-      "status": "converted",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "high",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "process",
-        "phase-build",
-        "draft",
-        "deep-verify"
-      ],
-      "affectedFiles": [
-        ".claude/skills/phase-build/SKILL.md",
-        "CLAUDE.md"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20261121-005"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [],
-      "convertedToPhaseId": "350-bounded-acs-and-the-literal-ac-pass",
-      "createdAt": "2026-11-21T20:30:49.546Z",
-      "updatedAt": "2026-11-24T17:41:34.355Z"
-    },
-    {
       "id": "rec-20261122-001",
       "title": "Release integrity wait gave up one minute before npm showed core",
       "summary": "On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did not show cadence-core 1.76.0 until 17:26:36, about 11 minutes later. The release-integrity step polls 40 times at 15s (585s) and failed at 17:25:30, so the Release run is red although all five packages, the tag and the GitHub release are present. The other four packages appeared within about a minute. Decide whether to lengthen the wait (for example 80 attempts), back off instead of flat polling, or make a propagation timeout a distinct, clearly named outcome that tells the operator to verify by hand.",
@@ -3625,6 +3593,36 @@
       "decisionIds": [],
       "createdAt": "2026-11-24T17:48:27.955Z",
       "updatedAt": "2026-11-24T17:48:27.955Z"
+    },
+    {
+      "id": "rec-20261125-001",
+      "title": "boundary-scan silently falls back to a stale local main when the origin merge-base call fails, flagging files from earlier phases",
+      "summary": "packages/core/src/git/boundary-diff.ts resolveMergeBase tries 'git merge-base origin/<ref> HEAD' through gitBestEffort (5 s timeout, errors swallowed) and on an empty result falls back to the local <ref> with no notice. Phase 350's first real settle (right after a worker restart) refused at boundary-scan listing packages/types tests from earlier phases, though the same dry run minutes before had passed and 'git merge-base origin/main HEAD' answered in 6 ms afterwards: the upstream call evidently failed transiently and the fallback diffed against a local main left at a v1.72-era commit. Fix: when the upstream merge-base fails but origin/<ref> exists, retry once or refuse with a named reason rather than falling back silently; print a loud stderr notice whenever the local fallback is used and record which base was used on the gate entry (house rule: no quiet fallbacks); consider refusing when the local ref is behind origin/<ref>.",
+      "source": "manual",
+      "status": "candidate",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "gates",
+        "boundary-scan",
+        "git"
+      ],
+      "affectedFiles": [
+        "packages/core/src/git/boundary-diff.ts",
+        "packages/core/src/git/worktrees.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261125-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-25T16:48:09.076Z",
+      "updatedAt": "2026-11-25T16:48:09.076Z"
     }
   ],
   "archived": [
@@ -12917,6 +12915,43 @@
       "archiveReason": "shipped",
       "createdAt": "2026-11-17T03:14:34.120Z",
       "updatedAt": "2026-11-24T14:36:25.536Z"
+    },
+    {
+      "id": "rec-20261121-005",
+      "title": "Bound DRAFT acceptance criteria, and run a literal clause-by-clause AC pass before the first real settle",
+      "summary": "Phase 347 needed six Codex rounds to settle; phase 348 applied two process changes and they caught two predicted settle failures before any Codex run. (1) AC authoring: each AC is one claim with named example inputs and outputs, no 'any / every / each / same / unchanged' promises, and an explicit 'Not covered' line; a hostile verifier can always find one more corner under a universal. The DRAFT is reviewed by a fresh agent reading it literally before approval. (2) Pre-settle literal AC pass: after the whole-branch review, a fresh read-only agent plays the settle-time verifier: it splits every AC into atomic clauses, names the test that asserts each, marks clauses UNPROVEN or WEAK, and tries to construct an input that falsifies each; its predicted failures are fixed (tests first) before the operator runs anything. Ask: build both into the phase-build skill (a DRAFT literal review before approve; the literal AC pass as a required step before the settle hand-off, followed by settle run --dry-run as the first Codex run), and add AC-authoring guidance to CLAUDE.md's DRAFT section. Consider a coherence-check warn for universal quantifiers in an AC's Then clause.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "high",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "process",
+        "phase-build",
+        "draft",
+        "deep-verify"
+      ],
+      "affectedFiles": [
+        ".claude/skills/phase-build/SKILL.md",
+        "CLAUDE.md"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261121-005"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261125-001"
+      ],
+      "convertedToPhaseId": "350-bounded-acs-and-the-literal-ac-pass",
+      "createdAt": "2026-11-21T20:30:49.546Z",
+      "updatedAt": "2026-11-25T16:48:16.626Z",
+      "shippedRef": "phase 350 (PR #617)",
+      "archivedAt": "2026-11-25T16:48:16.626Z",
+      "archiveReason": "shipped"
     }
   ]
 }
