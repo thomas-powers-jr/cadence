@@ -30,6 +30,12 @@ import { z } from 'zod';
  * suite through via `--allow-failing-build` or `--force`; always
  * `severity: 'error'`, mapped to a `build-test-must-pass` gate bypass whose
  * `detail` carries the output tail — the tail never enters the message).
+ *
+ * Phase 352-01 adds `boundary-scan-bypassed` (emitted by settle's
+ * `collectAnomalies`, one per bypassed cause, when the boundary-scan gate let
+ * out-of-boundary files or an uncomputable merge-base through via
+ * `--allow-boundary-scan-failure` or `--force`; always `severity: 'error'`,
+ * mapped to a `boundary-scan` gate bypass).
  */
 export const AnomalyTypeZ = z.enum([
   'ac-blocked',
@@ -52,6 +58,7 @@ export const AnomalyTypeZ = z.enum([
   'boundary-pattern-unmatched',
   'checkpoint-force-released',
   'build-test-bypassed',
+  'boundary-scan-bypassed',
 ]);
 export type AnomalyType = z.infer<typeof AnomalyTypeZ>;
 

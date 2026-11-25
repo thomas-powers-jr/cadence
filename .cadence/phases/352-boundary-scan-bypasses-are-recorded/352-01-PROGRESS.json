@@ -1,0 +1,50 @@
+{
+  "draftId": "352-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "AnomalyTypeZ gains boundary-scan-bypassed (appended after build-test-bypassed). GateResult flags gain boundaryScanBypass {flag, causes, offenders}; the gate names the flag by the rule (--allow-boundary-scan-failure when set, else --force) on both bypass lines and reports causes (merge-base, offenders) on every bypass. Tests first (2/2 types, 3/3 gate failing). Types test pins position relative to build-test-bypassed, not enum length (main-thread fix). Independent review PASS (gate and registry agree in every flag combination; no exhaustive enum uses). Forced full pipeline 28/28.",
+      "touchedFiles": [
+        "packages/core/src/gates/boundary-scan.ts",
+        "packages/core/src/gates/types.ts",
+        "packages/core/tests/gates/boundary-scan-diff-base.test.ts",
+        "packages/types/src/anomaly.ts",
+        "packages/core/tests/gates/boundary-scan-bypass-report.test.ts",
+        "packages/types/tests/anomaly-boundary-scan-bypassed.test.ts"
+      ],
+      "updatedAt": "2026-11-25T20:43:16.964Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Registry takes the boundary-scan provenance flag from flags.boundaryScanBypass.flag (opts fallback kept). collectAnomalies gains boundaryScanBypass and integrationRef and emits one boundary-scan-bypassed error anomaly per cause {flag, cause, files, integrationRef}; anomalyToGateBypass maps it to boundary-scan gateBypasses with the AC-3 reasons; gateBypassesFromAnomalies exported. Tests first (8/9 failing; the 1 pass pins the fallback). Independent review PASS incl. real CLI settles: SUMMARY gateBypasses entry present, flags agree in every combination, dry-run/MCP/refused paths consistent; 2308/2308 in gates/services/notify/cli/mcp. Forced full pipeline 28/28. Follow-up rec filed: tests are never type-checked.",
+      "touchedFiles": [
+        "packages/core/src/gates/registry.ts",
+        "packages/core/src/notify/collect.ts",
+        "packages/core/src/services/settle.ts",
+        "packages/core/tests/gates/registry-boundary-scan-flag.test.ts",
+        "packages/core/tests/services/settle-boundary-scan-bypass.test.ts"
+      ],
+      "updatedAt": "2026-11-25T20:55:50.904Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "DESIGN.md boundary-scan-bypassed anomaly row; config.md Diff base paragraph states the flag rule and the gateBypasses record (single paragraph kept); core+types minor changeset; boundary-scan-bypass-docs test (failing first 4/4); ROADMAP and MILESTONES entries. Docs suite 476/476 uncached; forced pipeline 28/28. Whole-branch review READY TO MERGE (0 Critical/Important; all four ACs proven; no undeclared files); minors folded: enum tests re-tagged AC-4, helper comment label. Carry-forward for the release cut: phase 351's changeset still says boundary-scan bypasses are not recorded.",
+      "touchedFiles": [
+        "DESIGN.md",
+        "docs/reference/config.md",
+        ".changeset/boundary-scan-bypass-recorded.md",
+        "packages/core/tests/docs/boundary-scan-bypass-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-25T21:05:52.559Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}

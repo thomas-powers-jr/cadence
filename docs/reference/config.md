@@ -813,8 +813,13 @@ changes.` When `boundary-scan` is sealed (`gates.sealed`), both variants
 drop the bypass advice and say the gate cannot be bypassed. Unsealed,
 `--allow-boundary-scan-failure` or `--force` proceeds with the working-tree
 scan only, printing `boundary-scan: --allow-boundary-scan-failure set;
-scanning working-tree changes only.` (naming `--force` when that flag is
-set). `none`: the remote-tracking ref does not resolve and the local ref
+scanning working-tree changes only.`; the line names
+`--allow-boundary-scan-failure` when that flag is set, else `--force`, and
+the gate's provenance entry (`bypassed via <flag>`) uses the same rule.
+Each bypassed cause, files outside the boundary or an `upstream-failed`
+merge-base, is recorded as its own error-severity `boundary-scan` entry in
+`SUMMARY.json.gateBypasses`, which caps a `strong` `assurance.overall` at
+`mixed`. `none`: the remote-tracking ref does not resolve and the local ref
 yields no merge-base either; the gate prints its existing `could not
 resolve a base ref` notice and checks working-tree changes only. A DRAFT
 with no declared `files:` still passes before the local notice or the

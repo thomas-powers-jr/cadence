@@ -206,7 +206,10 @@ describe('runBoundaryScanGate — diff base (phase 351)', () => {
     );
 
     expect(res.outcome).toBe('pass');
-    expect(res.flags).toEqual({ boundaryScanBypassed: true });
+    expect(res.flags).toEqual({
+      boundaryScanBypassed: true,
+      boundaryScanBypass: { flag: '--allow-boundary-scan-failure', causes: ['merge-base'], offenders: [] },
+    });
     expect(errs).toEqual([
       'boundary-scan: --allow-boundary-scan-failure set; scanning working-tree changes only.\n',
     ]);
@@ -242,7 +245,14 @@ describe('runBoundaryScanGate — diff base (phase 351)', () => {
     );
 
     expect(res.outcome).toBe('pass');
-    expect(res.flags).toEqual({ boundaryScanBypassed: true });
+    expect(res.flags).toEqual({
+      boundaryScanBypassed: true,
+      boundaryScanBypass: {
+        flag: '--allow-boundary-scan-failure',
+        causes: ['merge-base', 'offenders'],
+        offenders: ['undeclared.ts'],
+      },
+    });
     expect(res.summaryPatch?.boundaryScan?.offenders).toEqual(['undeclared.ts']);
     expect(errs).toEqual([
       'boundary-scan: --allow-boundary-scan-failure set; scanning working-tree changes only.\n',

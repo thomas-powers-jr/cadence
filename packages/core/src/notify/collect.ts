@@ -71,6 +71,26 @@ export interface CollectAnomaliesContext {
     exitCode: number;
     outputTail?: string;
   };
+  /**
+   * Phase 352 (352-01, T2): present iff the boundary-scan gate let something
+   * through (its `flags.boundaryScanBypass`) — `flag` is the flag that fired,
+   * `causes` the bypassed causes in the order `merge-base`, `offenders`, and
+   * `offenders` the repo-relative offending paths. Turned into one
+   * error-severity `boundary-scan-bypassed` event per cause, which settle
+   * maps to one `boundary-scan` gate bypass each. Omit the key when there was
+   * no such bypass.
+   */
+  boundaryScanBypass?: {
+    readonly flag: '--allow-boundary-scan-failure' | '--force';
+    readonly causes: readonly ('merge-base' | 'offenders')[];
+    readonly offenders: readonly string[];
+  };
+  /**
+   * Phase 352 (352-01, T2): the configured `phaseGuard.integrationRef` the
+   * boundary-scan merge-base is computed against, carried in the
+   * `boundary-scan-bypassed` event context. Defaults to `main` when omitted.
+   */
+  integrationRef?: string;
 }
 
 export interface CollectAnomaliesOptions {
@@ -146,6 +166,27 @@ export function collectAnomalies(
       context: { flag, command, exitCode },
       ts: stamp(),
     });
+  }
+
+  // boundary-scan-bypassed — one error event per bypassed cause when an
+  // unsealed boundary-scan gate let something through (phase 352). Distinct
+  // from the warn-severity files-outside-boundary events below, which stay.
+  if (ctx.boundaryScanBypass) {
+    const { flag, causes, offenders } = ctx.boundaryScanBypass;
+    const integrationRef = ctx.integrationRef ?? 'main';
+    for (const cause of causes) {
+      const files = cause === 'offenders' ? [...offenders] : [];
+      events.push({
+        type: 'boundary-scan-bypassed',
+        severity: 'error',
+        message:
+          cause === 'offenders'
+            ? `boundary-scan gate bypassed via ${flag}: ${files.length} file(s) outside the declared boundary let through`
+            : `boundary-scan gate bypassed via ${flag}: merge-base of origin/${integrationRef} and HEAD not computed; committed files not scanned`,
+        context: { flag, cause, files, integrationRef },
+        ts: stamp(),
+      });
+    }
   }
 
   // auto-complex-override — single event when --allow-auto-complex bypassed

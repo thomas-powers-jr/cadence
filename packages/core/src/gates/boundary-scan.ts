@@ -40,6 +40,12 @@ import type { GateImpl, GateResult } from './types.js';
  * which case only working-tree changes are scanned and the result carries
  * `flags.boundaryScanBypassed`. The "could not resolve a base ref" notice now
  * prints only for the `none` source.
+ *
+ * Phase 352 (352-01, AC-1): every bypass return also carries
+ * `flags.boundaryScanBypass` — the flag that fired, the bypassed causes
+ * (`merge-base`, `offenders`, in that order) and the offending paths — and
+ * both bypass lines name the flag by the rule: `--allow-boundary-scan-failure`
+ * whenever it is set, else `--force`.
  */
 export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> => {
   const anyTaskDispatched = Object.values(ctx.progress.tasks).some((t) => t.execution === 'dispatch');
@@ -66,7 +72,11 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
 
   const sealed = isGateSealed(ctx, 'boundary-scan');
   const bypassFlagSet = ctx.opts.force === true || ctx.opts.allowBoundaryScanFailure === true;
-  const flag = ctx.opts.force === true ? '--force' : '--allow-boundary-scan-failure';
+  // Phase 352 (352-01, AC-1): the flag rule — `--allow-boundary-scan-failure`
+  // whenever it is set, else `--force` (the registry.ts rule) — for both
+  // bypass lines and the bypass report.
+  const flag: '--allow-boundary-scan-failure' | '--force' =
+    ctx.opts.allowBoundaryScanFailure === true ? '--allow-boundary-scan-failure' : '--force';
 
   // Phase 351 (351-01, AC-2): the local fallback is no longer silent.
   if (baseSource === 'local' && baseSha !== null) {
@@ -112,7 +122,12 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
   });
 
   if (events.length === 0) {
-    return baseBypassed ? { outcome: 'pass', flags: { boundaryScanBypassed: true } } : { outcome: 'pass' };
+    return baseBypassed
+      ? {
+          outcome: 'pass',
+          flags: { boundaryScanBypassed: true, boundaryScanBypass: { flag, causes: ['merge-base'], offenders: [] } },
+        }
+      : { outcome: 'pass' };
   }
 
   const offenders = events.map((e) => String(e.context.file));
@@ -136,6 +151,13 @@ export const runBoundaryScanGate: GateImpl = async (ctx): Promise<GateResult> =>
   return {
     outcome: 'pass',
     summaryPatch: { boundaryScan: { offenders } },
-    flags: { boundaryScanBypassed: bypassed },
+    flags: {
+      boundaryScanBypassed: true,
+      boundaryScanBypass: {
+        flag,
+        causes: baseBypassed ? ['merge-base', 'offenders'] : ['offenders'],
+        offenders,
+      },
+    },
   };
 };
