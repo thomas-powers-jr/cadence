@@ -36,9 +36,12 @@ function gitQuery(cwd: string, args: string[]): string | null {
 
 /**
  * Synchronous merge-base of `HEAD` against `origin/<integrationRef>`, falling
- * back to a local `<integrationRef>` (no remote, shallow clone). Same
- * resolution order as `boundary-diff.ts`'s async `resolveMergeBase`, kept sync
- * because `SettleContext.diff()` is synchronous. `null` if neither resolves.
+ * back to a local `<integrationRef>` whenever the upstream merge-base is
+ * empty. Kept sync because `SettleContext.diff()` is synchronous. Unlike
+ * `boundary-diff.ts`'s async `resolveMergeBase`, it does not retry the
+ * upstream call and does not distinguish an `upstream-failed` case (remote
+ * ref present but no merge-base): any upstream failure falls straight back to
+ * the local ref. `null` if neither resolves.
  */
 export function resolveMergeBaseSync(cwd: string, integrationRef: string): string | null {
   return (

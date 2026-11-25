@@ -11,8 +11,34 @@ import { gitBestEffort } from './worktrees.js';
 
 export interface UnscopedTouchedFiles {
   files: string[];
+  /** `true` exactly when `baseSource` is `upstream` or `local`. */
   baseRefResolved: boolean;
+  /** Which ref the committed-since-divergence diff was taken against. */
+  baseSource: MergeBaseSource;
+  /** The merge-base sha the diff used, or `null` when none was used. */
+  baseSha: string | null;
+  /** On `upstream-failed`, whether the repo is a shallow clone; else `false`. */
+  shallow: boolean;
 }
+
+/**
+ * Where a merge-base came from:
+ * - `upstream`: `origin/<integrationRef>` (after at most one retry).
+ * - `local`: the local `<integrationRef>`, used only when the remote-tracking
+ *   ref `refs/remotes/origin/<integrationRef>` does not resolve.
+ * - `upstream-failed`: the remote-tracking ref resolves but its merge-base
+ *   with `HEAD` could not be computed (twice); the local ref is NOT consulted.
+ * - `none`: neither the upstream nor the local ref yielded a merge-base.
+ */
+export type MergeBaseSource = 'upstream' | 'local' | 'upstream-failed' | 'none';
+
+export type MergeBaseResolution =
+  | { base: string; source: 'upstream' | 'local' }
+  | { base: null; source: 'none' }
+  | { base: null; source: 'upstream-failed'; shallow: boolean };
+
+/** A git runner: stdout untrimmed, `''` on non-zero exit, timeout or spawn failure. */
+export type GitRunner = (root: string, args: string[]) => Promise<string>;
 
 export const CADENCE_DIR_PREFIX = '.cadence/';
 
@@ -39,15 +65,35 @@ function parsePorcelainPath(line: string): string | null {
 }
 
 /**
- * Resolve a merge-base against `origin/<integrationRef>` first, falling back
- * to a local `<integrationRef>` if the remote ref doesn't resolve (no remote,
- * shallow clone). Returns `null` if neither resolves.
+ * Resolve a merge-base for the boundary scan. Asks for the merge-base of
+ * `origin/<integrationRef>` and `HEAD`, retrying once on an empty answer.
+ * If both attempts are empty, checks whether the remote-tracking ref exists:
+ * when it does, the failure is reported as `upstream-failed` (with whether
+ * this is a shallow clone) rather than silently diffing against a possibly
+ * stale local ref; when it does not, falls back to the local
+ * `<integrationRef>`. Every answer is trimmed. Never throws as long as `git`
+ * does not (the default `gitBestEffort` never does).
  */
-async function resolveMergeBase(root: string, integrationRef: string): Promise<string | null> {
-  const upstream = (await gitBestEffort(root, ['merge-base', `origin/${integrationRef}`, 'HEAD'])).trim();
-  if (upstream) return upstream;
-  const local = (await gitBestEffort(root, ['merge-base', integrationRef, 'HEAD'])).trim();
-  return local || null;
+export async function resolveMergeBase(
+  root: string,
+  integrationRef: string,
+  git: GitRunner = gitBestEffort,
+): Promise<MergeBaseResolution> {
+  const upstreamArgs = ['merge-base', `origin/${integrationRef}`, 'HEAD'];
+  let upstream = (await git(root, upstreamArgs)).trim();
+  if (!upstream) upstream = (await git(root, upstreamArgs)).trim();
+  if (upstream) return { base: upstream, source: 'upstream' };
+
+  const upstreamRef = (
+    await git(root, ['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${integrationRef}`])
+  ).trim();
+  if (upstreamRef) {
+    const shallow = (await git(root, ['rev-parse', '--is-shallow-repository'])).trim() === 'true';
+    return { base: null, source: 'upstream-failed', shallow };
+  }
+
+  const local = (await git(root, ['merge-base', integrationRef, 'HEAD'])).trim();
+  return local ? { base: local, source: 'local' } : { base: null, source: 'none' };
 }
 
 /**
@@ -62,7 +108,8 @@ export async function collectUnscopedTouchedFiles(
   root: string,
   integrationRef: string,
 ): Promise<UnscopedTouchedFiles> {
-  const mergeBase = await resolveMergeBase(root, integrationRef);
+  const resolution = await resolveMergeBase(root, integrationRef);
+  const mergeBase = resolution.base;
   const files = new Set<string>();
 
   if (mergeBase) {
@@ -80,5 +127,11 @@ export async function collectUnscopedTouchedFiles(
     if (path) files.add(path);
   }
 
-  return { files: [...files], baseRefResolved: mergeBase !== null };
+  return {
+    files: [...files],
+    baseRefResolved: resolution.source === 'upstream' || resolution.source === 'local',
+    baseSource: resolution.source,
+    baseSha: mergeBase,
+    shallow: resolution.source === 'upstream-failed' ? resolution.shallow : false,
+  };
 }

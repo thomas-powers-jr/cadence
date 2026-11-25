@@ -1994,7 +1994,7 @@ On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did n
 
 packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([\s\S]+)/, which matches the first capitalised 'Then ' anywhere in the AC block, including the ### AC-N heading and the Given line. Phase 350's first DRAFT hit it: a heading '...in a Then clause' made AC-1's then start at 'clause\nGiven ...' and repeat the whole Given/When/Then. deep-verify, plan-review and spec-review print the then text, so the settle-time verifier receives the garbled text, and phase 350's UNBOUNDED_AC_THEN scan starts at the wrong place. Fix: anchor the Then (and When) captures to line start (multiline ^Then\s), with draft-mutate round-trip tests, CRLF/BOM tolerance (phase 339) and a regression case for a heading containing 'Then '.
 
-## rec-20261125-001 — boundary-scan silently falls back to a stale local main when the origin merge-base call fails, flagging files from earlier phases
+## rec-20261125-002 — boundary-scan bypasses never reach SUMMARY.gateBypasses, and the gate and registry disagree on the bypass flag name
 
 - status: candidate
 - ready: ready-for-cadence-spec
@@ -2003,9 +2003,25 @@ packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([
 - risk: 5/10
 - confidence: 70%
 - decay: fresh
-- areas: gates, boundary-scan, git
-- files: packages/core/src/git/boundary-diff.ts, packages/core/src/git/worktrees.ts
-- evidence: Phase 350 settle 2026-11-25: refused at boundary-scan naming packages/types/tests/{events,handoff,snapshot,state-last-hook-event,state,summary-host-cli-isolation,summary}.test.ts; local main b2cb17db vs origin/main 5c42c6f0; after 'git fetch origin main:main' the dry run passed boundary-scan.
+- areas: gates, boundary-scan, settle
+- files: packages/core/src/services/settle.ts, packages/core/src/gates/registry.ts, packages/core/src/gates/boundary-scan.ts
+- evidence: Phase 351 T2 independent review (2026-11-25): registry.ts:330-332 maps flags.boundaryScanBypassed to provenance only; anomalyToGateBypass has no boundary-scan case; flag ternaries differ between boundary-scan.ts:69 and registry.ts:331.
 - next: cadence milestone propose
 
-packages/core/src/git/boundary-diff.ts resolveMergeBase tries 'git merge-base origin/<ref> HEAD' through gitBestEffort (5 s timeout, errors swallowed) and on an empty result falls back to the local <ref> with no notice. Phase 350's first real settle (right after a worker restart) refused at boundary-scan listing packages/types tests from earlier phases, though the same dry run minutes before had passed and 'git merge-base origin/main HEAD' answered in 6 ms afterwards: the upstream call evidently failed transiently and the fallback diffed against a local main left at a v1.72-era commit. Fix: when the upstream merge-base fails but origin/<ref> exists, retry once or refuse with a named reason rather than falling back silently; print a loud stderr notice whenever the local fallback is used and record which base was used on the gate entry (house rule: no quiet fallbacks); consider refusing when the local ref is behind origin/<ref>.
+Two pre-existing gaps found by phase 351's T2 review. (1) anomalyToGateBypass in packages/core/src/services/settle.ts has no boundary-scan case, so neither a finding bypass nor phase 351's upstream-failed bypass (committed-file diff skipped) appears in SUMMARY.gateBypasses; only gate provenance records 'skipped (bypassed via <flag>)', and it cannot tell the two bypasses apart. That is weaker than CLAUDE.md's 'loud and recorded' bypass rule. GateBypass already exists, so no schema change is needed. (2) With both --force and --allow-boundary-scan-failure set, packages/core/src/gates/boundary-scan.ts names --force on stderr while packages/core/src/gates/registry.ts (~line 331) records --allow-boundary-scan-failure. Fix: have the gate return the flag it used and which bypass fired (as buildTestBypass.flag does at registry.ts ~326-328), let the registry prefer it, and add a boundary-scan case to anomalyToGateBypass with a reason that distinguishes 'files outside the boundary' from 'merge-base could not be computed'.
+
+## rec-20261125-003 — build task prints 'git unavailable' when boundary-scan's merge-base is upstream-failed, which is misleading in a working repo
+
+- status: candidate
+- ready: ready-for-cadence-spec
+- priority: low
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: build, boundary-scan, git
+- files: packages/core/src/services/build-task.ts, packages/core/src/build/task-touched-files.ts
+- evidence: Phase 351 whole-branch review (2026-11-25), Minor 3: build-task.ts:299-307 prints the git-unavailable notice when baseRefResolved is false and the delta is empty.
+- next: cadence milestone propose
+
+Since phase 351, collectUnscopedTouchedFiles reports baseRefResolved: false for the upstream-failed source (origin/<ref> resolves but its merge-base with HEAD cannot be computed, e.g. a shallow clone). packages/core/src/services/build-task.ts (~293-308) treats that like a missing git repository: with no working-tree changes visible it prints 'boundary/redundancy check skipped: git unavailable ... falling back to the self-reported touchedFiles', which is false in a repo where git works, and shallow-clone record-time checks lose the committed-file visibility the old silent local fallback gave them. Fix: have build task read baseSource and print a specific notice for upstream-failed (naming the shallow clone and git fetch --unshallow when shallow), keeping 'git unavailable' for the genuine none case.

@@ -46,7 +46,13 @@ describe('collectUnscopedTouchedFiles', () => {
 
     const result = await collectUnscopedTouchedFiles(root, 'main');
 
-    expect(result).toEqual({ files: [], baseRefResolved: true });
+    expect(result).toEqual({
+      files: [],
+      baseRefResolved: true,
+      baseSource: 'local',
+      baseSha: expect.stringMatching(/^[0-9a-f]{40}$/),
+      shallow: false,
+    });
   });
 
   it('reports modified, added, and untracked working-tree files', async () => {
@@ -135,6 +141,12 @@ describe('collectUnscopedTouchedFiles', () => {
 
     const result = await collectUnscopedTouchedFiles(plain, 'main');
 
-    expect(result).toEqual({ files: [], baseRefResolved: false });
+    expect(result).toEqual({
+      files: [],
+      baseRefResolved: false,
+      baseSource: 'none',
+      baseSha: null,
+      shallow: false,
+    });
   });
 });

@@ -1387,6 +1387,14 @@ changeset (example/test-only change, no published-package surface).*
   longer trip it; the `phase-build` skill adds a literal DRAFT review, a
   literal AC pass after the whole-branch review and a `--dry-run` first
   settle; CLAUDE.md states the AC-authoring rules (rec-20261121-005).
+- **Phase 351** — boundary-scan names its diff base: the settle-time gate
+  retries the `origin/<integrationRef>` merge-base once, refuses when the
+  remote-tracking ref resolves but its merge-base still cannot be computed
+  (naming a shallow clone when that is the cause, bypassable unsealed with
+  `--allow-boundary-scan-failure` or `--force`), and prints a stderr notice
+  with the merge-base sha when it falls back to the local ref because
+  `origin/<integrationRef>` did not resolve; `config.md` documents the four
+  base sources (rec-20261125-001).
 
 
 

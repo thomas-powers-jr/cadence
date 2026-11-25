@@ -3432,6 +3432,20 @@
       "kind": "note",
       "summary": "Phase 350 settle 2026-11-25: refused at boundary-scan naming packages/types/tests/{events,handoff,snapshot,state-last-hook-event,state,summary-host-cli-isolation,summary}.test.ts; local main b2cb17db vs origin/main 5c42c6f0; after 'git fetch origin main:main' the dry run passed boundary-scan.",
       "createdAt": "2026-11-25T16:48:09.076Z"
+    },
+    {
+      "id": "ev-20261125-002",
+      "recommendationId": "rec-20261125-002",
+      "kind": "note",
+      "summary": "Phase 351 T2 independent review (2026-11-25): registry.ts:330-332 maps flags.boundaryScanBypassed to provenance only; anomalyToGateBypass has no boundary-scan case; flag ternaries differ between boundary-scan.ts:69 and registry.ts:331.",
+      "createdAt": "2026-11-25T18:08:38.045Z"
+    },
+    {
+      "id": "ev-20261125-003",
+      "recommendationId": "rec-20261125-003",
+      "kind": "note",
+      "summary": "Phase 351 whole-branch review (2026-11-25), Minor 3: build-task.ts:299-307 prints the git-unavailable notice when baseRefResolved is false and the delta is empty.",
+      "createdAt": "2026-11-25T18:21:47.147Z"
     }
   ]
 }
