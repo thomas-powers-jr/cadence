@@ -3599,7 +3599,7 @@
       "title": "boundary-scan bypasses never reach SUMMARY.gateBypasses, and the gate and registry disagree on the bypass flag name",
       "summary": "Two pre-existing gaps found by phase 351's T2 review. (1) anomalyToGateBypass in packages/core/src/services/settle.ts has no boundary-scan case, so neither a finding bypass nor phase 351's upstream-failed bypass (committed-file diff skipped) appears in SUMMARY.gateBypasses; only gate provenance records 'skipped (bypassed via <flag>)', and it cannot tell the two bypasses apart. That is weaker than CLAUDE.md's 'loud and recorded' bypass rule. GateBypass already exists, so no schema change is needed. (2) With both --force and --allow-boundary-scan-failure set, packages/core/src/gates/boundary-scan.ts names --force on stderr while packages/core/src/gates/registry.ts (~line 331) records --allow-boundary-scan-failure. Fix: have the gate return the flag it used and which bypass fired (as buildTestBypass.flag does at registry.ts ~326-328), let the registry prefer it, and add a boundary-scan case to anomalyToGateBypass with a reason that distinguishes 'files outside the boundary' from 'merge-base could not be computed'.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "ready-for-cadence-spec",
       "priority": "medium",
       "leverageScore": 5,
@@ -3623,7 +3623,8 @@
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-11-25T18:08:38.045Z",
-      "updatedAt": "2026-11-25T18:08:38.045Z"
+      "updatedAt": "2026-11-25T20:07:21.120Z",
+      "convertedToPhaseId": "352-boundary-scan-bypasses-are-recorded"
     },
     {
       "id": "rec-20261125-003",
@@ -13014,11 +13015,11 @@
         "dec-20261125-002"
       ],
       "convertedToPhaseId": "351-boundary-scan-names-its-diff-base",
-      "createdAt": "2026-11-25T16:48:09.076Z",
-      "updatedAt": "2026-11-25T19:55:41.581Z",
       "shippedRef": "phase 351 (PR #618)",
       "archivedAt": "2026-11-25T19:55:41.581Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-25T16:48:09.076Z",
+      "updatedAt": "2026-11-25T19:55:41.581Z"
     }
   ]
 }

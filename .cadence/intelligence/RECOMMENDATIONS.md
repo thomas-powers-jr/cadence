@@ -1996,7 +1996,7 @@ packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([
 
 ## rec-20261125-002 — boundary-scan bypasses never reach SUMMARY.gateBypasses, and the gate and registry disagree on the bypass flag name
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10
