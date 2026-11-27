@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { SpecZ, type Spec } from '../src/spec.js';
+import type { z } from 'zod';
+import { SpecZ } from '../src/spec.js';
 
-const valid: Spec = {
+// Typed as SpecZ's parse input, so the AC literal may omit `name` (the AC-4
+// back-compat test below depends on that omission).
+const valid: z.input<typeof SpecZ> = {
   schemaVersion: 1,
   id: '36-01',
   phase: '36-spec-stage',

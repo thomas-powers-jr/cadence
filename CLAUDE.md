@@ -53,7 +53,7 @@ This is a pnpm + turbo monorepo. Run everything from the repo root.
 pnpm install              # one-time setup
 pnpm build                # turbo build, all packages
 pnpm test                 # turbo test, all packages (vitest)
-pnpm typecheck            # tsc --noEmit, all packages
+pnpm typecheck            # tsc --noEmit over src and tests, all packages
 pnpm lint                 # eslint, all packages
 
 # Single-package work:
@@ -284,6 +284,14 @@ mock fallback's pass as one.
   `pnpm audit` and the lockfile-overrides check) and `codeql-success`
   (`.github/workflows/codeql.yml`); the record is
   `docs/security/audit-exceptions.md`.
+- **Test typecheck** (`packages/*/tsconfig.test.json`): every package's
+  `typecheck` script also compiles `src` and `tests` under the strict base
+  options, so a type error in a test file fails `pnpm typecheck` and CI
+  (vitest strips types and never catches one). Core's `exclude` carries a
+  baseline of test files that predate this check;
+  `packages/core/tests/docs/test-typecheck-ratchet.test.ts` lets that list
+  shrink, never grow. Fix a baseline file, then remove it from both the
+  config and the test's `BASELINE`; never add a file to either.
 - **Doc-content tests** (`packages/core/tests/docs/*.test.ts` + host
   packages): executable assertions that named docs match code truth — the
   command reference vs the registered CLI command set, slash-command counts
