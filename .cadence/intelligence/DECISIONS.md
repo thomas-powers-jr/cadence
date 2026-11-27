@@ -1463,6 +1463,13 @@ Phase 352 was built in a cloud session started in /home/user, the parent of the 
 
 The operator approved --allow-skill-audit-miss on 2026-11-27. Host hooks do not fire in this cloud session, so no skill invocation is recorded; for this phase phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; its should-fix findings were folded in) and a forced full pipeline (28/28 tasks, 0 cached).
 
+### dec-20261127-002 — Settle phase 354 past the skill-audit miss
+
+- recommendation: rec-20261124-001
+- decided: 2026-11-27T21:04:57.804Z
+
+The operator approved --allow-skill-audit-miss on 2026-11-27 ('settle'). Host hooks do not fire in this cloud session, so no skill invocation is recorded; phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; its nits folded in) and a forced full pipeline (28/28 tasks, 0 cached, core 559 test files).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
