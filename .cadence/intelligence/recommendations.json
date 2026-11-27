@@ -1613,36 +1613,6 @@
       "updatedAt": "2026-08-21T23:07:27.934Z"
     },
     {
-      "id": "rec-20260822-002",
-      "title": "MCP settle tool response drops stderr notices on the success path",
-      "summary": "packages/core/src/mcp/server.ts:26 selects response text via (io.stdout() || io.stderr()).trimEnd() — on any settle success, stdout is truthy (settleService always writes 'Settled <id>' to stdout before returning), so the || short-circuits and every stderr-only notice is silently dropped from the cadence_settle MCP tool's response, even though the same notice reaches real stderr on the CLI surface. Discovered during phase 288-01's independent review of T3 (a settle-time notice for genuinely-empty AC sets): confirmed via bufferIO() that a zero-AC settle's MCP response is 'Settled 01-01' / isError:false with no mention of the empty AC set, while the CLI prints the notice correctly. Refusal paths are unaffected (io.out is never called before a refusal, so stdout stays empty and stderr surfaces normally) -- this is a success-path-only gap. Root cause is in the shared MCP output-selection helper, not settle.ts itself, so it likely affects every MCP tool call that both writes routine stdout AND a stderr warning/notice on a successful outcome, not just settle -- worth auditing broadly, not patching settle-specific. Candidate fix: concatenate stdout+stderr (or otherwise surface both) instead of picking one via ||, verified against every existing MCP tool's expected response shape.",
-      "source": "manual",
-      "status": "candidate",
-      "readiness": "ready-for-cadence-spec",
-      "priority": "medium",
-      "leverageScore": 5,
-      "riskScore": 5,
-      "confidence": 0.7,
-      "decayState": "fresh",
-      "affectedAreas": [
-        "core",
-        "mcp"
-      ],
-      "affectedFiles": [
-        "packages/core/src/mcp/server.ts"
-      ],
-      "suggestedBackendAction": "cadence milestone propose",
-      "evidenceIds": [
-        "ev-20260822-009"
-      ],
-      "assumptionIds": [],
-      "decisionIds": [
-        "dec-20261030-028"
-      ],
-      "createdAt": "2026-08-22T03:37:36.916Z",
-      "updatedAt": "2026-10-30T19:33:16.367Z"
-    },
-    {
       "id": "rec-20260822-005",
       "title": "settle --deep verify (host-cli) gave a false AC refusal on unchanged evidence -- likely incomplete evidence-assembly",
       "summary": "During 289-01's settle, the real (non-mock) host-cli deep-verify pass was run three consecutive times against the phase's AC coverage. Rounds 1-2 caught two genuine, independently-confirmed gaps (a missing CLI-subprocess refusal test for AC-1, and an AC-3/AC-6 wording contradiction), both fixed and re-verified. Round 3, with zero AC-2-relevant changes made since round 1 (where AC-2 passed), refused AC-2 claiming 'only context handoff is cited as exercised' and refused AC-3 claiming 'cited tests cover only decision add and milestone writing' -- both claims are directly falsified by grepping the test files: read-only-mode.test.ts has all five 289-01/AC-2-tagged tests (context handoff, recommend, inspect, recommendation list, next) and seven 289-01/AC-3-tagged tests (decision add, recommendation add, recommendation list, decision supersede, assumption add, assumption validate, milestone propose, intelligence reconcile). This suggests the deep-verify pass's evidence-assembly step (whatever selects/truncates which matching test titles/spans get shown to the verifier LLM) is incomplete or non-deterministic under some condition -- possibly a token/context truncation when a phase accumulates many coverage-evidence rows across multiple settle attempts. Worth investigating packages/core/src/verify/*.ts's evidence-gathering path for coverage-gate-satisfied ACs, and/or adding a regression fixture that pins a phase with >5 tests per AC to check the verifier is shown all of them.",
@@ -13070,10 +13040,45 @@
         "dec-20261127-003"
       ],
       "convertedToPhaseId": "355-build-task-names-an-upstream-failed-base",
-      "createdAt": "2026-11-25T18:21:47.147Z",
-      "updatedAt": "2026-11-27T22:04:26.282Z",
       "shippedRef": "phase 355 (thomas-powers-jr/cadence#623)",
       "archivedAt": "2026-11-27T22:04:26.282Z",
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-25T18:21:47.147Z",
+      "updatedAt": "2026-11-27T22:04:26.282Z"
+    },
+    {
+      "id": "rec-20260822-002",
+      "title": "MCP settle tool response drops stderr notices on the success path",
+      "summary": "packages/core/src/mcp/server.ts:26 selects response text via (io.stdout() || io.stderr()).trimEnd() — on any settle success, stdout is truthy (settleService always writes 'Settled <id>' to stdout before returning), so the || short-circuits and every stderr-only notice is silently dropped from the cadence_settle MCP tool's response, even though the same notice reaches real stderr on the CLI surface. Discovered during phase 288-01's independent review of T3 (a settle-time notice for genuinely-empty AC sets): confirmed via bufferIO() that a zero-AC settle's MCP response is 'Settled 01-01' / isError:false with no mention of the empty AC set, while the CLI prints the notice correctly. Refusal paths are unaffected (io.out is never called before a refusal, so stdout stays empty and stderr surfaces normally) -- this is a success-path-only gap. Root cause is in the shared MCP output-selection helper, not settle.ts itself, so it likely affects every MCP tool call that both writes routine stdout AND a stderr warning/notice on a successful outcome, not just settle -- worth auditing broadly, not patching settle-specific. Candidate fix: concatenate stdout+stderr (or otherwise surface both) instead of picking one via ||, verified against every existing MCP tool's expected response shape.",
+      "source": "manual",
+      "status": "shipped",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "core",
+        "mcp"
+      ],
+      "affectedFiles": [
+        "packages/core/src/mcp/server.ts"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20260822-009"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [
+        "dec-20261030-028",
+        "dec-20261127-004"
+      ],
+      "convertedToPhaseId": "356-mcp-tool-results-keep-stderr-notices",
+      "createdAt": "2026-08-22T03:37:36.916Z",
+      "updatedAt": "2026-11-27T23:37:02.219Z",
+      "shippedRef": "phase 356 (thomas-powers-jr/cadence#624)",
+      "archivedAt": "2026-11-27T23:37:02.219Z",
       "archiveReason": "shipped"
     }
   ]

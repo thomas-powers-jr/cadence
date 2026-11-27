@@ -4769,6 +4769,40 @@ what happened. Tier `standard`.
     change: files already attributed to earlier tasks are subtracted first,
     as before.
 
+### Phase 356 — MCP tool results keep stderr notices (rec-20260822-002)
+
+**Objective.** `buildCadenceMcpServer` built every tool result's text as
+`(io.stdout() || io.stderr()).trimEnd()`, so a tool that printed a stdout
+line on success lost every stderr notice: a zero-AC `cadence_settle`
+reached an MCP client as `Settled 01-01` without phase 288's "zero
+acceptance criteria" notice. A plain concatenation was rejected because
+several tools print a JSON report on stdout under `json: true`. Tier
+`standard`.
+
+**As built.**
+- T1: the pure `toolResultContent(stdout, stderr, exitCode)` in the new
+  `packages/core/src/mcp/tool-content.ts`: the first text item is exactly
+  the pre-356 text (`(stdout !== '' ? stdout : stderr).trimEnd()`, else
+  `ok` / `failed`), and a second item carries `stderr.trimEnd()` when
+  stdout was non-empty and stderr has text. A whitespace-only stdout still
+  takes the first item, as before.
+- T2: the server builds `content` with it; `isError`, `structuredContent`
+  and the thrown-error result are untouched. An in-memory MCP test runs a
+  zero-AC settle (one item before the change, two after) and pins that
+  `cadence_status` with `json: true` keeps a parseable first item.
+- T3: a sentence in `docs/mcp.md`'s Tools section; a patch changeset for
+  core; a doc-content test.
+- Amendment outside the DRAFT's `files:` (operator-approved): converting
+  rec-20260822-002 to this phase failed phase 342's ledger-triage test,
+  which accepted only `candidate` or `shipped` for a 342-promoted rec. Its
+  promote case now also accepts `converted` with a `convertedToPhaseId`
+  (`packages/core/tests/docs/phase342-ledger-triage.test.ts`), so the next
+  342-promoted rec drafted into a phase passes too.
+- Known limits, documented rather than fixed:
+  - a client that reads only the first content item still misses the
+    notices;
+  - MCP resources (`resources.ts`) still return stdout only, as data.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

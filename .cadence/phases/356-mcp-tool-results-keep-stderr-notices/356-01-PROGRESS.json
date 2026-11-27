@@ -1,0 +1,43 @@
+{
+  "draftId": "356-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Pure toolResultContent in mcp/tool-content.ts (no SDK import); AC-1 and AC-2's six inputs failed first (module missing), then pass.",
+      "touchedFiles": [
+        "packages/core/src/mcp/tool-content.ts",
+        "packages/core/tests/mcp/tool-content.test.ts"
+      ],
+      "updatedAt": "2026-11-27T22:23:08.002Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "server.ts builds content with toolResultContent; isError, structuredContent and the thrown-error branch untouched. AC-3 failed first (one content item), then passes; AC-4 is a regression guard and passed before and after. tests/mcp + settle-zero-ac: 14 files / 85 tests green.",
+      "touchedFiles": [
+        "packages/core/src/mcp/server.ts",
+        "packages/core/tests/mcp/tool-content-server.test.ts"
+      ],
+      "updatedAt": "2026-11-27T22:24:15.447Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE_WITH_CONCERNS",
+      "notes": "docs/mcp.md Tools sentence, patch changeset, doc test (AC-5, AC-6) failed first then pass; ROADMAP and MILESTONES entries. As built (operator-approved): packages/core/tests/docs/phase342-ledger-triage.test.ts, outside the DRAFT's files:, now accepts a converted 342-promoted rec with a convertedToPhaseId; the conversion of rec-20260822-002 had failed it. All 78 doc-test files green.",
+      "touchedFiles": [
+        "docs/mcp.md",
+        "packages/core/tests/docs/phase342-ledger-triage.test.ts",
+        ".changeset/mcp-stderr-notices.md",
+        "packages/core/tests/docs/mcp-stderr-notices-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-27T22:32:48.319Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}

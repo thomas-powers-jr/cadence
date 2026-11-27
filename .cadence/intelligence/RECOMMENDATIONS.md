@@ -905,23 +905,6 @@ cadence recommendation promote only mutates status/readiness/shippedRef (package
 
 The .cadence/intelligence/*.json ledger mints next-available IDs (rec-YYYYMMDD-NNN, dec-YYYYMMDD-NNN, ev-YYYYMMDD-NNN) by scanning the locally-visible ledger state. Two sessions/worktrees working against different bases (e.g. primary checkout's unpushed local history vs. a phase worktree branched from origin/main) independently mint the same next-available ID for genuinely different content, producing a real git merge conflict on the next sync. Hit and manually resolved at least 4 times now: twice during phase 286's two post-merge syncs (2026-08-21, see feedback-worktree-ledger-and-phase-collision-on-settle), once during the v1.57 arc (dec-20260813-001), and again immediately after PR #455 merged (dec-20260821-003 collided between the origin-based dedupe worktree's new decision and the primary checkout's unpushed 'D-Z' decision, renumbered to dec-20260821-004). The fix pattern is now well-rehearsed (git show :2:/:3:, diff by content not markers, renumber the not-yet-pushed side, patch cross-refs, cadence intelligence reconcile, verify via doctor's ledger-remote-collision check) but is manual and error-prone every time. Candidate real fixes: ID minting keyed off something collision-resistant across bases (e.g. a short content hash or session/worktree-scoped suffix instead of pure sequential NNN), or a cadence CLI verb that automates the rehearsed renumber-and-patch-cross-refs sequence instead of requiring a hand-rolled node diff script each time.
 
-## rec-20260822-002 — MCP settle tool response drops stderr notices on the success path
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: core, mcp
-- files: packages/core/src/mcp/server.ts
-- decisions: dec-20261030-028 (active)
-- evidence: phase 288-01 T3 independent review (fresh-context subagent), 2026-08-22: bufferIO()-based reproduction showed a zero-AC settle's MCP response text omits the stderr notice that the CLI surface correctly prints
-- next: cadence milestone propose
-
-packages/core/src/mcp/server.ts:26 selects response text via (io.stdout() || io.stderr()).trimEnd() — on any settle success, stdout is truthy (settleService always writes 'Settled <id>' to stdout before returning), so the || short-circuits and every stderr-only notice is silently dropped from the cadence_settle MCP tool's response, even though the same notice reaches real stderr on the CLI surface. Discovered during phase 288-01's independent review of T3 (a settle-time notice for genuinely-empty AC sets): confirmed via bufferIO() that a zero-AC settle's MCP response is 'Settled 01-01' / isError:false with no mention of the empty AC set, while the CLI prints the notice correctly. Refusal paths are unaffected (io.out is never called before a refusal, so stdout stays empty and stderr surfaces normally) -- this is a success-path-only gap. Root cause is in the shared MCP output-selection helper, not settle.ts itself, so it likely affects every MCP tool call that both writes routine stdout AND a stderr warning/notice on a successful outcome, not just settle -- worth auditing broadly, not patching settle-specific. Candidate fix: concatenate stdout+stderr (or otherwise surface both) instead of picking one via ||, verified against every existing MCP tool's expected response shape.
-
 ## rec-20260822-005 — settle --deep verify (host-cli) gave a false AC refusal on unchanged evidence -- likely incomplete evidence-assembly
 
 - status: candidate

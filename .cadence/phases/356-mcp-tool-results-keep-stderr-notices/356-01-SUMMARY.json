@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 2,
+  "draftId": "356-01",
+  "completedAt": "2026-11-27T23:36:55.457Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "Pure toolResultContent in mcp/tool-content.ts (no SDK import); AC-1 and AC-2's six inputs failed first (module missing), then pass.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "server.ts builds content with toolResultContent; isError, structuredContent and the thrown-error branch untouched. AC-3 failed first (one content item), then passes; AC-4 is a regression guard and passed before and after. tests/mcp + settle-zero-ac: 14 files / 85 tests green.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T3",
+      "status": "DONE_WITH_CONCERNS",
+      "notes": "docs/mcp.md Tools sentence, patch changeset, doc test (AC-5, AC-6) failed first then pass; ROADMAP and MILESTONES entries. As built (operator-approved): packages/core/tests/docs/phase342-ledger-triage.test.ts, outside the DRAFT's files:, now accepts a converted 342-promoted rec with a convertedToPhaseId; the conversion of rec-20260822-002 had failed it. All 78 doc-test files green.",
+      "execution": "inline",
+      "isolation": "none"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "gateBypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T1, T2, T3 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 152,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 6,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "e4e6ea8ceb3dd788bebaf8f8d8b07c2555261b8ea7552732030056bf24edd853"
+  }
+}

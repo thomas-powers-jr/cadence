@@ -1420,6 +1420,11 @@ changeset (example/test-only change, no published-package surface).*
   `git fetch --unshallow origin` fix in a shallow clone) instead of
   printing `git unavailable`, and says when it sees working-tree changes
   only; what it records and refuses is unchanged (rec-20261125-003).
+- **Phase 356** — MCP tool results keep stderr notices: when a tool writes
+  to both stdout and stderr, its stderr notices now follow as a second text
+  item instead of being dropped; the first item is unchanged, so `json: true`
+  reports still parse and refusals keep their single item
+  (rec-20260822-002).
 
 
 

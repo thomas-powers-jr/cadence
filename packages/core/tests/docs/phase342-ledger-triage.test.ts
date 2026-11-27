@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,7 @@ interface LedgerRecommendation {
   scoutId?: string;
   createdAt: string;
   shippedRef?: string;
+  convertedToPhaseId?: string;
 }
 
 interface LedgerDecision {
@@ -128,12 +129,18 @@ describe('phase 342: needs-decision backlog triage and Studio upstream intake', 
       if (rec.decisionIds[rec.decisionIds.length - 1] !== decision.id) continue;
       switch (disposition) {
         case 'promote':
-          // A promoted rec is either still queued for a phase, or that phase
-          // has since shipped it (its fulfilment: `recommendation promote
+          // A promoted rec is either still queued for a phase, converted
+          // into a phase whose directory exists (phase 356: `draft new
+          // --from-rec` records no decision either; settle then moves the rec
+          // on to settle-pending, which this switch rejects), or that phase has since
+          // shipped it (its fulfilment: `recommendation promote
           // --status=shipped` records no decision, so the 342 decision stays
           // the latest). Any other state contradicts the triage.
           if (rec.status === 'shipped') {
             expect(rec.shippedRef ?? '', id).not.toBe('');
+          } else if (rec.status === 'converted') {
+            expect(rec.convertedToPhaseId ?? '', id).not.toBe('');
+            expect(existsSync(join(INTEL, '..', 'phases', rec.convertedToPhaseId ?? '')), id).toBe(true);
           } else {
             expect(rec.status, id).toBe('candidate');
             expect(rec.readiness, id).toBe('ready-for-cadence-spec');

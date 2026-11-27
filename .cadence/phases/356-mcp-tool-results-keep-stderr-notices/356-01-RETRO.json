@@ -1,0 +1,18 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T1, T2, T3 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [
+    {
+      "id": "T3",
+      "status": "DONE_WITH_CONCERNS",
+      "notes": "docs/mcp.md Tools sentence, patch changeset, doc test (AC-5, AC-6) failed first then pass; ROADMAP and MILESTONES entries. As built (operator-approved): packages/core/tests/docs/phase342-ledger-triage.test.ts, outside the DRAFT's files:, now accepts a converted 342-promoted rec with a convertedToPhaseId; the conversion of rec-20260822-002 had failed it. All 78 doc-test files green."
+    }
+  ],
+  "findings": {}
+}

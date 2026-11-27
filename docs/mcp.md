@@ -79,7 +79,12 @@ the repo as the working directory (or pass `--repo <path>`).
 ## Tools
 
 The server advertises 22 tools that wrap the same engine the CLI uses. Each
-returns both human-readable text and structured content.
+returns both human-readable text and structured content. The first text
+item is the tool's stdout, or its stderr when stdout is empty (`ok` or
+`failed` when there is no text); when a tool wrote to both, its stderr
+notices (for example settle's "zero acceptance criteria" notice) follow as a
+second text item, so the first item is unchanged from before and a
+`json: true` report in it still parses *(phase 356)*.
 
 | Tool | Wraps | Kind |
 |---|---|---|
