@@ -1,0 +1,32 @@
+{
+  "draftId": "354-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "parseAcClauses in parse/ac-clauses.ts implements the clause rule; AC-1's four examples pass test-first. Core typecheck clean; lint has only the pre-existing demo/node-test-summary.ts warning, also on main.",
+      "touchedFiles": [
+        "packages/core/src/parse/ac-clauses.ts",
+        "packages/core/tests/parse/ac-clauses.test.ts"
+      ],
+      "updatedAt": "2026-11-27T19:28:16.364Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Both parseAcceptanceCriteria functions call parseAcClauses; block split, heading regex and malformed-heading handling untouched. Parsers test (AC-2, AC-3) and coherence test (AC-5) failed first, then pass; corpus test (AC-4) pins the two phase-157 fields. Scoped suite 124 files / 1729 tests green.",
+      "touchedFiles": [
+        "packages/core/src/parse/draft-parser.ts",
+        "packages/core/src/parse/spec-parser.ts",
+        "packages/core/tests/coherence/unbounded-then-heading.test.ts",
+        "packages/core/tests/parse/ac-clauses-corpus.test.ts",
+        "packages/core/tests/parse/ac-clauses-parsers.test.ts"
+      ],
+      "updatedAt": "2026-11-27T19:29:50.114Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}

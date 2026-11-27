@@ -1408,6 +1408,12 @@ changeset (example/test-only change, no published-package surface).*
   a type error in a test file fails CI; types' five test errors are fixed,
   and core's 62 erroring test files are excluded as a baseline that a
   ratchet doc test lets shrink but not grow (rec-20261125-004).
+- **Phase 354** — AC clause capture skips the heading: `parseDraftMd` and
+  `parseSpecMd` share one clause rule that never searches the `### AC-N:`
+  heading and finds Given, When and Then in order, each at a line start
+  when one carries it, so a `Then ` in a heading or a Given no longer starts
+  the Then-text early; one-line ACs parse as before, and over phases up to
+  353 only two fields change (rec-20261124-001).
 
 
 
