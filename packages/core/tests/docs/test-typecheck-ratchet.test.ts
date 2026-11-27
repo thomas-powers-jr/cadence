@@ -84,6 +84,8 @@ const BASELINE: readonly string[] = [
   'tests/verify/plan-review.test.ts',
   'tests/verify/prompter.test.ts',
 ];
+// Lower this cap with each file removed from BASELINE, so the freed slot
+// cannot be refilled.
 const BASELINE_CAP = 62;
 
 type RatchetProblem =
@@ -157,6 +159,10 @@ describe('test typecheck (phase 353)', () => {
   it('353-01/AC-2: the seven test configs have the test config shape', () => {
     for (const pkg of PACKAGES) {
       const cfg = testConfig(pkg);
+      expect({ pkg, keys: Object.keys(cfg).sort() }).toStrictEqual({
+        pkg,
+        keys: ['compilerOptions', 'exclude', 'extends', 'include'],
+      });
       expect({ pkg, extends: cfg.extends, compilerOptions: cfg.compilerOptions, include: cfg.include }).toStrictEqual({
         pkg,
         extends: '../../tsconfig.base.json',
@@ -174,6 +180,12 @@ describe('test typecheck (phase 353)', () => {
   it('353-01/AC-3: core\'s real excludes match the 62-entry baseline', () => {
     expect(BASELINE).toHaveLength(62);
     expect(checkTestTypecheckRatchet(coreExcludes(), BASELINE, coreExists, BASELINE_CAP)).toStrictEqual([]);
+  });
+
+  it('353-01/AC-3: core\'s baseline excludes are sorted and free of duplicates', () => {
+    const excludes = coreExcludes();
+    expect(new Set(excludes).size).toBe(excludes.length);
+    expect(excludes).toStrictEqual([...excludes].sort());
   });
 
   it('353-01/AC-3: a new exclusion outside the baseline is refused', () => {

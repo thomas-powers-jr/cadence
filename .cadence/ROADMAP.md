@@ -4679,7 +4679,7 @@ as a baseline that may only shrink. Tier `standard`.
 - T1: `packages/types/tsconfig.test.json` (noEmit, `src/**/*` and
   `tests/**/*`, `rootDir` at the repo root so tests may import sibling
   packages' source) and the `typecheck` script
-  `tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json`. The four
+  `tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json`. The three
   AC literals in `plan.test.ts` gain `name` and `intelligence.test.ts`
   narrows an indexed access. `spec.test.ts`'s fixture is retyped as
   `z.input<typeof SpecZ>` instead of gaining a `name`, because its
