@@ -2012,7 +2012,7 @@ Since phase 351, collectUnscopedTouchedFiles reports baseRefResolved: false for 
 
 ## rec-20261125-004 — Test files are never type-checked: core's typecheck and lint cover src/ only, and vitest strips types
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10

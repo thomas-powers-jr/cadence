@@ -3629,7 +3629,7 @@
       "title": "Test files are never type-checked: core's typecheck and lint cover src/ only, and vitest strips types",
       "summary": "packages/core/tsconfig.json includes only src/**/* (rootDir src) and tsconfig.base.json excludes **/*.test.ts and tests; package.json runs 'tsc -p tsconfig.json --noEmit' and 'eslint src'; the root eslint config has no parserOptions.project; vitest typecheck is off. So a type error in packages/core/tests (and likely the other packages' tests) never fails lint, typecheck or CI; vitest strips types at run time. Phase 352's T2 implementer caught one such error (a missing required 'name' on a test DRAFT's AC literal) only by type-checking its test files with a scratch tsconfig. Fix: add a tsconfig.test.json per package (noEmit, includes src and tests, strict as base) and run it from the typecheck script or a separate turbo task wired into ci-success; fix whatever errors the existing tests surface (may be many; budget a phase).",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "ready-for-cadence-spec",
       "priority": "medium",
       "leverageScore": 5,
@@ -3654,7 +3654,8 @@
       "assumptionIds": [],
       "decisionIds": [],
       "createdAt": "2026-11-25T20:55:50.569Z",
-      "updatedAt": "2026-11-25T20:55:50.569Z"
+      "updatedAt": "2026-11-27T16:57:49.336Z",
+      "convertedToPhaseId": "353-test-files-are-type-checked"
     }
   ],
   "archived": [
@@ -13052,11 +13053,11 @@
         "dec-20261125-003"
       ],
       "convertedToPhaseId": "352-boundary-scan-bypasses-are-recorded",
-      "createdAt": "2026-11-25T18:08:38.045Z",
-      "updatedAt": "2026-11-25T21:41:06.775Z",
       "shippedRef": "phase 352 (PR #619)",
       "archivedAt": "2026-11-25T21:41:06.775Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-25T18:08:38.045Z",
+      "updatedAt": "2026-11-25T21:41:06.775Z"
     }
   ]
 }
