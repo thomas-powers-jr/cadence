@@ -4,6 +4,7 @@ import { bufferIO } from '../services/io.js';
 import { TOOLS } from './tools.js';
 import { registerResources } from './resources.js';
 import { registerPrompts } from './prompts.js';
+import { toolResultContent } from './tool-content.js';
 
 /**
  * Build the CADENCE MCP server (phase 58) — a third surface alongside the CLI
@@ -23,11 +24,10 @@ export function buildCadenceMcpServer(repoRoot: string, version: string): McpSer
         const io = bufferIO();
         try {
           const result = await tool.run(repoRoot, args ?? {}, io);
-          const text = (io.stdout() || io.stderr()).trimEnd();
+          // Phase 356: the first item is the pre-356 text; a tool that wrote
+          // to both streams gets its stderr notices as a second item.
           const out: CallToolResult = {
-            content: [
-              { type: 'text', text: text.length > 0 ? text : result.exitCode === 0 ? 'ok' : 'failed' },
-            ],
+            content: toolResultContent(io.stdout(), io.stderr(), result.exitCode),
             isError: result.exitCode !== 0,
           };
           if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
