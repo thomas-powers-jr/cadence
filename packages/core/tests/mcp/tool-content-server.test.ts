@@ -105,11 +105,13 @@ describe('MCP tool result content (phase 356)', () => {
     }
   });
 
-  it('356-01/AC-4: cadence_status with json keeps a parseable first item', async () => {
+  // Regression guard: this passed before T2's server change too.
+  it('356-01/AC-4: cadence_status with json keeps a parseable first item (regression guard)', async () => {
     active = await tempRepo({ initialized: true });
     const { client, close } = await connect(active.root);
     try {
       const res = (await client.callTool({ name: 'cadence_status', arguments: { json: true } })) as unknown as ToolResult;
+      expect(res.isError).toBe(false);
       const report = JSON.parse(res.content[0]?.text ?? '') as { loopPosition?: string };
       expect(report.loopPosition).toBe('IDLE');
     } finally {
