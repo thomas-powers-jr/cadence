@@ -2009,19 +2009,3 @@ packages/core/src/parse/draft-parser.ts:64 extracts an AC's then with /Then\s+([
 - next: cadence milestone propose
 
 Since phase 351, collectUnscopedTouchedFiles reports baseRefResolved: false for the upstream-failed source (origin/<ref> resolves but its merge-base with HEAD cannot be computed, e.g. a shallow clone). packages/core/src/services/build-task.ts (~293-308) treats that like a missing git repository: with no working-tree changes visible it prints 'boundary/redundancy check skipped: git unavailable ... falling back to the self-reported touchedFiles', which is false in a repo where git works, and shallow-clone record-time checks lose the committed-file visibility the old silent local fallback gave them. Fix: have build task read baseSource and print a specific notice for upstream-failed (naming the shallow clone and git fetch --unshallow when shallow), keeping 'git unavailable' for the genuine none case.
-
-## rec-20261125-004 — Test files are never type-checked: core's typecheck and lint cover src/ only, and vitest strips types
-
-- status: converted
-- ready: ready-for-cadence-spec
-- priority: medium
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: testing, typecheck, ci
-- files: packages/core/tsconfig.json, packages/core/package.json, tsconfig.base.json, eslint.config.js
-- evidence: Phase 352 T2 review (2026-11-25): core tsconfig include src/**/*, base excludes tests, lint 'eslint src', no type-aware lint, no vitest typecheck; a strict scratch typecheck of two new test files found one real error the pipeline did not.
-- next: cadence milestone propose
-
-packages/core/tsconfig.json includes only src/**/* (rootDir src) and tsconfig.base.json excludes **/*.test.ts and tests; package.json runs 'tsc -p tsconfig.json --noEmit' and 'eslint src'; the root eslint config has no parserOptions.project; vitest typecheck is off. So a type error in packages/core/tests (and likely the other packages' tests) never fails lint, typecheck or CI; vitest strips types at run time. Phase 352's T2 implementer caught one such error (a missing required 'name' on a test DRAFT's AC literal) only by type-checking its test files with a scratch tsconfig. Fix: add a tsconfig.test.json per package (noEmit, includes src and tests, strict as base) and run it from the typecheck script or a separate turbo task wired into ci-success; fix whatever errors the existing tests surface (may be many; budget a phase).

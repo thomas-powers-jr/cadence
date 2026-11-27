@@ -1456,6 +1456,13 @@ Phase 351 was built in a cloud session started in /home/user, the parent of the 
 
 Phase 352 was built in a cloud session started in /home/user, the parent of the repo, so the repo's .claude/settings.json hooks never loaded and the phase-build skill invocation was not recorded (skillAudit.invoked []); the phase 349 suffix names T1, T2, T3 as recorded without live hooks. The skill was invoked. Per the handoff procedure for cloud-built phases, settle passes skill-audit with the bypass and this record. The dry run passed every other gate (draft-read, structural-verifier, boundary-scan, task-verify-required, build-test-must-pass, test-coverage). Whole-branch review READY TO MERGE; literal AC pass READY TO SETTLE (its two AC-4 hardening tests added). Operator approved the bypass explicitly on 2026-11-25.
 
+### dec-20261127-001 — Settle phase 353 past the skill-audit miss
+
+- recommendation: rec-20261125-004
+- decided: 2026-11-27T18:58:09.624Z
+
+The operator approved --allow-skill-audit-miss on 2026-11-27. Host hooks do not fire in this cloud session, so no skill invocation is recorded; for this phase phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; its should-fix findings were folded in) and a forced full pipeline (28/28 tasks, 0 cached).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja
