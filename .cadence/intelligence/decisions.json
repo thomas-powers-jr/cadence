@@ -1999,6 +1999,15 @@
       "status": "active",
       "decidedAt": "2026-11-27T22:04:15.684Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261127-004",
+      "recommendationId": "rec-20260822-002",
+      "title": "Settle phase 356 past the skill-audit miss",
+      "rationale": "The operator approved --allow-skill-audit-miss on 2026-11-27 ('settle'). Host hooks do not fire in this cloud session, so no skill invocation is recorded; phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; its four findings folded in) and a forced full pipeline (28/28 tasks, 0 cached, core 565 test files). The phase 342 triage-test amendment outside the DRAFT's files: was operator-approved and is recorded in the ROADMAP As built.",
+      "status": "active",
+      "decidedAt": "2026-11-27T23:36:50.628Z",
+      "supersedes": []
     }
   ]
 }
