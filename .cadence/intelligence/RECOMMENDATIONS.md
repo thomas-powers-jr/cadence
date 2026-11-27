@@ -1977,19 +1977,3 @@ Two known shapes outside phase 348's four, reported rather than fixed (dec-20261
 - next: cadence milestone propose
 
 On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did not show cadence-core 1.76.0 until 17:26:36, about 11 minutes later. The release-integrity step polls 40 times at 15s (585s) and failed at 17:25:30, so the Release run is red although all five packages, the tag and the GitHub release are present. The other four packages appeared within about a minute. Decide whether to lengthen the wait (for example 80 attempts), back off instead of flat polling, or make a propagation timeout a distinct, clearly named outcome that tells the operator to verify by hand.
-
-## rec-20261125-003 — build task prints 'git unavailable' when boundary-scan's merge-base is upstream-failed, which is misleading in a working repo
-
-- status: candidate
-- ready: ready-for-cadence-spec
-- priority: low
-- leverage: 5/10
-- risk: 5/10
-- confidence: 70%
-- decay: fresh
-- areas: build, boundary-scan, git
-- files: packages/core/src/services/build-task.ts, packages/core/src/build/task-touched-files.ts
-- evidence: Phase 351 whole-branch review (2026-11-25), Minor 3: build-task.ts:299-307 prints the git-unavailable notice when baseRefResolved is false and the delta is empty.
-- next: cadence milestone propose
-
-Since phase 351, collectUnscopedTouchedFiles reports baseRefResolved: false for the upstream-failed source (origin/<ref> resolves but its merge-base with HEAD cannot be computed, e.g. a shallow clone). packages/core/src/services/build-task.ts (~293-308) treats that like a missing git repository: with no working-tree changes visible it prints 'boundary/redundancy check skipped: git unavailable ... falling back to the self-reported touchedFiles', which is false in a repo where git works, and shallow-clone record-time checks lose the committed-file visibility the old silent local fallback gave them. Fix: have build task read baseSource and print a specific notice for upstream-failed (naming the shallow clone and git fetch --unshallow when shallow), keeping 'git unavailable' for the genuine none case.

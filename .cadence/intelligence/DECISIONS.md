@@ -1470,6 +1470,13 @@ The operator approved --allow-skill-audit-miss on 2026-11-27. Host hooks do not 
 
 The operator approved --allow-skill-audit-miss on 2026-11-27 ('settle'). Host hooks do not fire in this cloud session, so no skill invocation is recorded; phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; its nits folded in) and a forced full pipeline (28/28 tasks, 0 cached, core 559 test files).
 
+### dec-20261127-003 — Settle phase 355 past the skill-audit miss
+
+- recommendation: rec-20261125-003
+- decided: 2026-11-27T22:04:15.684Z
+
+The operator approved --allow-skill-audit-miss on 2026-11-27 ('settle'). Host hooks do not fire in this cloud session, so no skill invocation is recorded; phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; both nits folded in) and a forced full pipeline (28/28 tasks, 0 cached, core 562 test files).
+
 ## Superseded
 
 ### dec-20260730-002 — Finding identity uses an anchor-derived content hash; no fingerprint primitive is extracted from Deja

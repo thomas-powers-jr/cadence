@@ -4736,6 +4736,39 @@ ACs. Tier `standard`.
     empty When-text, where the legacy capture read from the first `When `;
     no AC in phases up to 353 has that shape.
 
+### Phase 355 — build task names an upstream-failed base (rec-20261125-003)
+
+**Objective.** Since phase 351, `collectUnscopedTouchedFiles` reports an
+`upstream-failed` merge-base (`origin/<ref>` resolves but its merge-base
+with `HEAD` cannot be computed, for example in a shallow clone), but
+`deriveTaskTouchedFiles` passed on only `baseRefResolved`. So `build
+task`'s record-time check printed `git unavailable` in a repository where
+git works when no working-tree change was visible, and silently checked
+working-tree changes only when one was. This phase makes the notice name
+what happened. Tier `standard`.
+
+**As built.**
+- T1: `deriveTaskTouchedFiles` also returns `baseSource` and `shallow`.
+  The pure `touchedFilesNotice` in `build/task-touched-files.ts` returns a
+  skipped line or a partial (working-tree changes only) line for
+  `upstream-failed`, with the `git fetch --unshallow origin` /
+  `--deepen=<n>` fix in a shallow clone, today's `git unavailable` line for
+  `none` with an empty delta, and `null` otherwise.
+- T2: `build task` prints that line. The skip/run condition is written as
+  `baseRefResolved || delta.length > 0` with the same outcomes as before. A
+  CLI test runs `build task` in a repository whose `origin/main` is an
+  orphan commit: before the change it printed `git unavailable`, after it
+  the skipped line.
+- T3: `docs/reference/config.md`'s **Diff base** paragraph now describes
+  the two lines; a patch changeset for core; a doc-content test.
+- Known limits, documented rather than fixed:
+  - the record-time check still sees only working-tree changes on an
+    `upstream-failed` base; it does not fall back to the local ref as it
+    did before phase 351;
+  - "no working-tree changes are visible" means no newly attributable
+    change: files already attributed to earlier tasks are subtracted first,
+    as before.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
