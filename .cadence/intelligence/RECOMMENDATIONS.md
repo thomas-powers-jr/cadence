@@ -1960,3 +1960,19 @@ Two known shapes outside phase 348's four, reported rather than fixed (dec-20261
 - next: cadence milestone propose
 
 On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did not show cadence-core 1.76.0 until 17:26:36, about 11 minutes later. The release-integrity step polls 40 times at 15s (585s) and failed at 17:25:30, so the Release run is red although all five packages, the tag and the GitHub release are present. The other four packages appeared within about a minute. Decide whether to lengthen the wait (for example 80 attempts), back off instead of flat polling, or make a propagation timeout a distinct, clearly named outcome that tells the operator to verify by hand.
+
+## rec-20261127-001 — Test typecheck burn-down, batch 1: declare the four scripts/*.mjs modules tests import
+
+- status: converted
+- ready: ready-for-cadence-spec
+- priority: medium
+- leverage: 5/10
+- risk: 5/10
+- confidence: 70%
+- decay: fresh
+- areas: testing, typecheck
+- files: scripts/check-audit-exceptions.mjs, scripts/check-lockfile-overrides.mjs, scripts/publish-proof.mjs, scripts/release-integrity.mjs, packages/core/tsconfig.test.json
+- evidence: 2026-11-27 measurement with core's test config and no excludes: 62 files / 289 errors; TS7016 appears in 14 files (18 errors), 9 of them TS7016-only.
+- next: cadence milestone propose
+
+Phase 353 froze 62 core test files that fail the test typecheck (289 errors). Nine of them fail only with TS7016 because they import repo-root scripts/check-audit-exceptions.mjs, check-lockfile-overrides.mjs, publish-proof.mjs and release-integrity.mjs, which have no type declarations; five more add TS7006 callback-parameter errors over those untyped imports plus one TS2339 (phase260-vitest-v4-upgrade.test.ts:53) and three TS2352 casts (release-integrity.test.ts). Fix: a scripts/<name>.d.mts beside each script with an export-name parity test, fix the residual errors, and remove the 14 files from core's tsconfig.test.json exclude and the ratchet BASELINE, lowering its cap from 62 to 48.

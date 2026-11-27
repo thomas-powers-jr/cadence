@@ -3453,6 +3453,13 @@
       "kind": "note",
       "summary": "Phase 352 T2 review (2026-11-25): core tsconfig include src/**/*, base excludes tests, lint 'eslint src', no type-aware lint, no vitest typecheck; a strict scratch typecheck of two new test files found one real error the pipeline did not.",
       "createdAt": "2026-11-25T20:55:50.569Z"
+    },
+    {
+      "id": "ev-20261127-001",
+      "recommendationId": "rec-20261127-001",
+      "kind": "note",
+      "summary": "2026-11-27 measurement with core's test config and no excludes: 62 files / 289 errors; TS7016 appears in 14 files (18 errors), 9 of them TS7016-only.",
+      "createdAt": "2026-11-27T23:40:41.492Z"
     }
   ]
 }

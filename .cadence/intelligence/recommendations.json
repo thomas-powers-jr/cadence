@@ -3534,6 +3534,39 @@
       "decisionIds": [],
       "createdAt": "2026-11-22T17:31:29.830Z",
       "updatedAt": "2026-11-22T17:31:29.830Z"
+    },
+    {
+      "id": "rec-20261127-001",
+      "title": "Test typecheck burn-down, batch 1: declare the four scripts/*.mjs modules tests import",
+      "summary": "Phase 353 froze 62 core test files that fail the test typecheck (289 errors). Nine of them fail only with TS7016 because they import repo-root scripts/check-audit-exceptions.mjs, check-lockfile-overrides.mjs, publish-proof.mjs and release-integrity.mjs, which have no type declarations; five more add TS7006 callback-parameter errors over those untyped imports plus one TS2339 (phase260-vitest-v4-upgrade.test.ts:53) and three TS2352 casts (release-integrity.test.ts). Fix: a scripts/<name>.d.mts beside each script with an export-name parity test, fix the residual errors, and remove the 14 files from core's tsconfig.test.json exclude and the ratchet BASELINE, lowering its cap from 62 to 48.",
+      "source": "manual",
+      "status": "converted",
+      "readiness": "ready-for-cadence-spec",
+      "priority": "medium",
+      "leverageScore": 5,
+      "riskScore": 5,
+      "confidence": 0.7,
+      "decayState": "fresh",
+      "affectedAreas": [
+        "testing",
+        "typecheck"
+      ],
+      "affectedFiles": [
+        "scripts/check-audit-exceptions.mjs",
+        "scripts/check-lockfile-overrides.mjs",
+        "scripts/publish-proof.mjs",
+        "scripts/release-integrity.mjs",
+        "packages/core/tsconfig.test.json"
+      ],
+      "suggestedBackendAction": "cadence milestone propose",
+      "evidenceIds": [
+        "ev-20261127-001"
+      ],
+      "assumptionIds": [],
+      "decisionIds": [],
+      "createdAt": "2026-11-27T23:40:41.492Z",
+      "updatedAt": "2026-11-27T23:40:45.544Z",
+      "convertedToPhaseId": "357-typecheck-burn-down-declare-the-scripts-tests-import"
     }
   ],
   "archived": [
@@ -13075,11 +13108,11 @@
         "dec-20261127-004"
       ],
       "convertedToPhaseId": "356-mcp-tool-results-keep-stderr-notices",
-      "createdAt": "2026-08-22T03:37:36.916Z",
-      "updatedAt": "2026-11-27T23:37:02.219Z",
       "shippedRef": "phase 356 (thomas-powers-jr/cadence#624)",
       "archivedAt": "2026-11-27T23:37:02.219Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-08-22T03:37:36.916Z",
+      "updatedAt": "2026-11-27T23:37:02.219Z"
     }
   ]
 }
