@@ -907,7 +907,7 @@ The .cadence/intelligence/*.json ledger mints next-available IDs (rec-YYYYMMDD-N
 
 ## rec-20260822-002 — MCP settle tool response drops stderr notices on the success path
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10

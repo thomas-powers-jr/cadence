@@ -1617,7 +1617,7 @@
       "title": "MCP settle tool response drops stderr notices on the success path",
       "summary": "packages/core/src/mcp/server.ts:26 selects response text via (io.stdout() || io.stderr()).trimEnd() — on any settle success, stdout is truthy (settleService always writes 'Settled <id>' to stdout before returning), so the || short-circuits and every stderr-only notice is silently dropped from the cadence_settle MCP tool's response, even though the same notice reaches real stderr on the CLI surface. Discovered during phase 288-01's independent review of T3 (a settle-time notice for genuinely-empty AC sets): confirmed via bufferIO() that a zero-AC settle's MCP response is 'Settled 01-01' / isError:false with no mention of the empty AC set, while the CLI prints the notice correctly. Refusal paths are unaffected (io.out is never called before a refusal, so stdout stays empty and stderr surfaces normally) -- this is a success-path-only gap. Root cause is in the shared MCP output-selection helper, not settle.ts itself, so it likely affects every MCP tool call that both writes routine stdout AND a stderr warning/notice on a successful outcome, not just settle -- worth auditing broadly, not patching settle-specific. Candidate fix: concatenate stdout+stderr (or otherwise surface both) instead of picking one via ||, verified against every existing MCP tool's expected response shape.",
       "source": "manual",
-      "status": "candidate",
+      "status": "converted",
       "readiness": "ready-for-cadence-spec",
       "priority": "medium",
       "leverageScore": 5,
@@ -1640,7 +1640,8 @@
         "dec-20261030-028"
       ],
       "createdAt": "2026-08-22T03:37:36.916Z",
-      "updatedAt": "2026-10-30T19:33:16.367Z"
+      "updatedAt": "2026-11-27T22:12:06.621Z",
+      "convertedToPhaseId": "356-mcp-tool-results-keep-stderr-notices"
     },
     {
       "id": "rec-20260822-005",
@@ -13070,11 +13071,11 @@
         "dec-20261127-003"
       ],
       "convertedToPhaseId": "355-build-task-names-an-upstream-failed-base",
-      "createdAt": "2026-11-25T18:21:47.147Z",
-      "updatedAt": "2026-11-27T22:04:26.282Z",
       "shippedRef": "phase 355 (thomas-powers-jr/cadence#623)",
       "archivedAt": "2026-11-27T22:04:26.282Z",
-      "archiveReason": "shipped"
+      "archiveReason": "shipped",
+      "createdAt": "2026-11-25T18:21:47.147Z",
+      "updatedAt": "2026-11-27T22:04:26.282Z"
     }
   ]
 }
