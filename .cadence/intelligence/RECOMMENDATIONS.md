@@ -1980,7 +1980,7 @@ On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did n
 
 ## rec-20261125-003 — build task prints 'git unavailable' when boundary-scan's merge-base is upstream-failed, which is misleading in a working repo
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: low
 - leverage: 5/10
