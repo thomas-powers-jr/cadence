@@ -27,6 +27,20 @@
       "execution": "inline",
       "isolation": "none",
       "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "CLAUDE.md caveat removed; commands.md states the clause rule and keeps the trailing-prose limit; patch changeset; doc test (AC-6, AC-7); ROADMAP and MILESTONES entries. Whole-branch review: nothing blocking; nits folded in (exact 430-file count, escaped BOM, out-of-order-label known limit).",
+      "touchedFiles": [
+        ".changeset/ac-clause-capture.md",
+        "CLAUDE.md",
+        "docs/reference/commands.md",
+        "packages/core/tests/docs/ac-clause-capture-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-27T19:33:16.555Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
     }
   }
 }

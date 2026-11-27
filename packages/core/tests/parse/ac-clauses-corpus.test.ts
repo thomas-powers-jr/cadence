@@ -57,7 +57,7 @@ const EXPECTED: Array<[string, string, string]> = [
 describe('AC clause capture over the pinned corpus (phase 354)', () => {
   it('354-01/AC-4: the clause rule differs from the legacy capture in exactly two fields', () => {
     const files = pinnedFiles();
-    expect(files.length).toBeGreaterThanOrEqual(430);
+    expect(files.length).toBe(430);
     const diffs: Array<[string, string, string]> = [];
     for (const rel of files) {
       const text = normalizeText(readFileSync(join(PHASES_DIR, rel), 'utf8')).text;

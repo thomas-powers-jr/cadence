@@ -77,7 +77,7 @@ describe('AC clause capture in the parsers (phase 354)', () => {
   });
 
   it('354-01/AC-2: a BOM-and-CRLF copy of the DRAFT reads the same AC', () => {
-    const bomCrlf = '﻿' + draftWith(BLOCK_A).replace(/\n/g, '\r\n');
+    const bomCrlf = '\uFEFF' + draftWith(BLOCK_A).replace(/\n/g, '\r\n');
     expect(parseDraftMd(bomCrlf).acceptanceCriteria[0]).toStrictEqual(EXPECTED_A);
   });
 

@@ -4732,6 +4732,9 @@ ACs. Tier `standard`.
     AC's Then-text;
   - a Given text holding an inline `When ` with no line-start `When ` is
     still read as the When label, as before.
+  - a block whose labels are out of order (`When` above `Given`) now gets an
+    empty When-text, where the legacy capture read from the first `When `;
+    no AC in phases up to 353 has that shape.
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
