@@ -1414,6 +1414,12 @@ changeset (example/test-only change, no published-package surface).*
   when one carries it, so a `Then ` in a heading or a Given no longer starts
   the Then-text early; one-line ACs parse as before, and over phases up to
   353 only two fields change (rec-20261124-001).
+- **Phase 355** — build task names an upstream-failed base: when the
+  merge-base of `origin/<integrationRef>` and `HEAD` cannot be computed,
+  the record-time boundary/redundancy check says so (naming the
+  `git fetch --unshallow origin` fix in a shallow clone) instead of
+  printing `git unavailable`, and says when it sees working-tree changes
+  only; what it records and refuses is unchanged (rec-20261125-003).
 
 
 

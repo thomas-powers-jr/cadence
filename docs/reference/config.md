@@ -824,9 +824,13 @@ yields no merge-base either; the gate prints its existing `could not
 resolve a base ref` notice and checks working-tree changes only. A DRAFT
 with no declared `files:` still passes before the local notice or the
 `upstream-failed` refusal is considered. `build task`'s record-time check
-treats `upstream-failed` like an unresolved base: it checks working-tree
-changes only, and when none are visible it prints its existing `git
-unavailable` notice and falls back to the self-reported `touchedFiles`.
+names an `upstream-failed` base on stderr: the line says the merge-base of
+origin/<integrationRef> and HEAD could not be computed (adding the `git
+fetch --unshallow origin` fix in a shallow clone), and either that the
+boundary/redundancy check sees working-tree changes only, or, when no newly
+touched file is visible, that the check is skipped and the self-reported
+`touchedFiles` are kept; its `git unavailable` notice is kept for the
+`none` source *(phase 355)*.
 The `deep-verify` diff resolves its own base and still falls back to the
 local ref on any upstream failure.
 

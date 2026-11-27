@@ -12,7 +12,7 @@ import {
   type PerTaskVerifyRecord,
   type RecordableStatus,
 } from '../build/record.js';
-import { deriveTaskTouchedFiles } from '../build/task-touched-files.js';
+import { deriveTaskTouchedFiles, touchedFilesNotice } from '../build/task-touched-files.js';
 import { findUnmatchedBoundaryPatterns, runBoundaryCheck } from '../checks/boundary.js';
 import { runRedundancyCheck } from '../checks/task-redundancy.js';
 import { LoopViolationError } from '../errors.js';
@@ -290,23 +290,29 @@ export async function buildTaskService(
             .flatMap(([, t]) => t.touchedFiles ?? []),
         );
         const integrationRef = cfg.phaseGuard?.integrationRef ?? 'main';
-        const { delta, baseRefResolved } = await deriveTaskTouchedFiles(
+        const { delta, baseRefResolved, baseSource, shallow } = await deriveTaskTouchedFiles(
           repoRoot,
           integrationRef,
           previouslyRecorded,
         );
 
-        if (!baseRefResolved && delta.length === 0) {
-          // AC-4: no `.git` directory (or every git shell-out failed) —
-          // `collectUnscopedTouchedFiles` came back with its empty
-          // best-effort result. Skip the check, self-report fallback,
-          // recording still succeeds.
-          io.err(
-            'build task: boundary/redundancy check skipped: git unavailable ' +
-              '(no base ref resolved and no working-tree changes visible) — ' +
-              'falling back to the self-reported touchedFiles\n',
-          );
-        } else {
+        // Phase 355 (rec-20261125-003): name the diff base. An upstream-failed
+        // merge-base gets its own line (skipped, or working-tree changes
+        // only); the `none` source keeps the git-unavailable line.
+        const baseNotice = touchedFilesNotice({
+          baseSource,
+          shallow,
+          deltaEmpty: delta.length === 0,
+          integrationRef,
+        });
+        if (baseNotice !== null) io.err(`${baseNotice}\n`);
+
+        // AC-4 (phase 280): with no base ref and no newly touched file
+        // visible (no `.git`, every git shell-out failed, or an
+        // upstream-failed merge-base on a clean tree) the check is skipped
+        // and the self-reported touchedFiles are kept; recording still
+        // succeeds.
+        if (baseRefResolved || delta.length > 0) {
           // (3) The step actually runs — ground-truth touchedFiles from here
           // on, regardless of what the checks below find.
           gitTouchedFiles = delta;
