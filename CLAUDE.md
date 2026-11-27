@@ -136,10 +136,7 @@ word in the Then-text before the first `Not covered:` line; `draft approve`
 shows only its message, as a `coherence-warn` anomaly through the
 configured notify transport (a `cadence anomaly [warn]` stderr line by
 default) when the cell includes `anomaly-notify`. It is a warning, never a
-block. Caveat: the parser's Then capture is unanchored, so a capitalised
-`Then` followed by a space or line break anywhere above the Then line
-(heading, Given, When) starts the Then-text early — avoid it
-(rec-20261124-001).
+block.
 
 ### Gates
 

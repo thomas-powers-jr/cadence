@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 2,
+  "draftId": "354-01",
+  "completedAt": "2026-11-27T21:05:02.361Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-7",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE",
+      "notes": "parseAcClauses in parse/ac-clauses.ts implements the clause rule; AC-1's four examples pass test-first. Core typecheck clean; lint has only the pre-existing demo/node-test-summary.ts warning, also on main.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Both parseAcceptanceCriteria functions call parseAcClauses; block split, heading regex and malformed-heading handling untouched. Parsers test (AC-2, AC-3) and coherence test (AC-5) failed first, then pass; corpus test (AC-4) pins the two phase-157 fields. Scoped suite 124 files / 1729 tests green.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "CLAUDE.md caveat removed; commands.md states the clause rule and keeps the trailing-prose limit; patch changeset; doc test (AC-6, AC-7); ROADMAP and MILESTONES entries. Whole-branch review: nothing blocking; nits folded in (exact 430-file count, escaped BOM, out-of-order-label known limit).",
+      "execution": "inline",
+      "isolation": "none"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "gateBypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T1, T2, T3 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 140,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 7,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "1555f19ef3a673cc6847c1e5b0994ffeaf9039716e3c4f57735b0dba9c44aa90"
+  }
+}

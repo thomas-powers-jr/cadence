@@ -388,10 +388,11 @@ of first appearance:
 
 It is a warning only, never a block: `draft approve` still approves a
 DRAFT that has it, and shows the message only as a `coherence-warn` anomaly
-line when `anomaly-notify` is in the cell. Known limit
-(rec-20261124-001): the parser's Then capture is unanchored, so a
-capitalised `Then` followed by a space or line break anywhere above an
-AC's Then line (its heading, Given or When text) starts the Then-text there and the scan reads from that point; trailing prose after the last AC
+line when `anomaly-notify` is in the cell. The scanned Then-text is the
+one the parser captures: it skips the AC's heading line and finds the
+`Given`, `When` and `Then` labels in that order, each at a line start when
+one carries it, so a `Then ` in the heading or the Given text does not
+start the Then-text early. Known limit: trailing prose after the last AC
 in the section is folded into that AC's Then-text and is scanned too.
 
 **Exit codes** — a result with only warnings exits 0 and does not print

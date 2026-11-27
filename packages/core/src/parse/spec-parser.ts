@@ -1,6 +1,7 @@
 import { SpecZ, type Spec } from '@thomas-powers-jr/cadence-types';
 import { CadenceError } from '../errors.js';
 import { normalizeText } from './text-normalize.js';
+import { parseAcClauses } from './ac-clauses.js';
 
 // Helpers reproduced verbatim from draft-parser.ts (those are module-private
 // there — not exported; copying is the only path, no shared refactor).
@@ -39,9 +40,9 @@ function parseAcceptanceCriteria(section: string): Spec['acceptanceCriteria'] {
     // Phase 157: [\s\S]+? (not .+) so a wrapped clause spanning more than one
     // line is captured in full, stopping at the next field label (or end of
     // block) rather than at the first newline (rec-20260704-002).
-    const given = /Given\s+([\s\S]+?)(?=\nWhen\s|\nThen\s|$)/.exec(block)?.[1]?.trim() ?? '';
-    const when = /When\s+([\s\S]+?)(?=\nThen\s|$)/.exec(block)?.[1]?.trim() ?? '';
-    const then = /Then\s+([\s\S]+)/.exec(block)?.[1]?.trim() ?? '';
+    // Phase 354: the clause rule (heading skipped, labels found in order)
+    // replaces the three unanchored regexes (rec-20261124-001).
+    const { given, when, then } = parseAcClauses(block);
     out.push({ id, name, given, when, then });
   }
   return out;

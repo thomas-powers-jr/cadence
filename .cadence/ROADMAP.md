@@ -4699,6 +4699,43 @@ as a baseline that may only shrink. Tier `standard`.
   - test files are still not linted (`eslint src`);
   - core's 62 baseline files are later phases' work.
 
+### Phase 354 — AC clause capture skips the heading (rec-20261124-001)
+
+**Objective.** `parseDraftMd` and `parseSpecMd` captured an AC's Given,
+When and Then text with three unanchored regexes over the whole AC block,
+so a capitalised `Then ` in the `### AC-N:` heading (phase 350's first
+DRAFT) or earlier in the Given text started the Then-text there, and
+deep-verify, plan-review, spec-review and the `UNBOUNDED_AC_THEN` scan read
+the garbled text. A plain line-start anchor was measured and rejected: over
+the 430 DRAFT and SPEC files then in `.cadence/phases` (2015 ACs) it
+blanked 56 fields, 54 of them phase 46's one-line `Given …, When …, Then …`
+ACs. Tier `standard`.
+
+**As built.**
+- T1: `parseAcClauses` in the new `packages/core/src/parse/ac-clauses.ts`
+  implements the clause rule: the heading line is never searched; Given,
+  When and Then are found in that order, each at the first line start that
+  carries it within its range, else at its first inline occurrence; each
+  clause keeps the legacy terminators and is trimmed.
+- T2: both parsers call it, with the block split, heading regex and
+  malformed-heading refusal untouched. Tests cover a heading holding the
+  label, a BOM-and-CRLF copy, an `addAcceptanceCriterion` round trip (which
+  before this phase read back `clause⏎Given g2⏎When w2⏎Then t2`), and the
+  `UNBOUNDED_AC_THEN` scan. A corpus test pins phases up to 353: the clause
+  rule differs from the legacy capture in exactly two fields, phase 157's
+  AC-2 and AC-3 Then-texts, both heading-induced.
+- T3: the caveat is removed from CLAUDE.md and `docs/reference/commands.md`
+  (which now states the clause rule and keeps the trailing-prose limit); a
+  patch changeset for core; a doc-content test.
+- Known limits, documented rather than fixed:
+  - trailing prose after a section's last AC is still folded into that
+    AC's Then-text;
+  - a Given text holding an inline `When ` with no line-start `When ` is
+    still read as the When label, as before.
+  - a block whose labels are out of order (`When` above `Given`) now gets an
+    empty When-text, where the legacy capture read from the first `When `;
+    no AC in phases up to 353 has that shape.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for
