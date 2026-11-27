@@ -1,0 +1,55 @@
+{
+  "draftId": "353-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE_WITH_CONCERNS",
+      "notes": "As built: plan.test.ts lines 14/56/87 got name fields and intelligence.test.ts:426 got ?.; spec.test.ts line 9's fixture is retyped as z.input<typeof SpecZ> instead of gaining a name, because its AC-4 back-compat test ('AC without name defaults to \"\"') depends on the omission; adding name failed that test.",
+      "touchedFiles": [
+        "packages/types/package.json",
+        "packages/types/tests/intelligence.test.ts",
+        "packages/types/tests/plan.test.ts",
+        "packages/types/tests/spec.test.ts",
+        "packages/core/tests/docs/test-typecheck-ratchet.test.ts",
+        "packages/types/tsconfig.test.json"
+      ],
+      "updatedAt": "2026-11-27T18:35:54.469Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Six tsconfig.test.json files in the test config shape; core excludes the 62 baseline paths (sorted). Six typecheck scripts set to the test-typecheck script. turbo typecheck --force: 11/11 tasks; ratchet test 9/9.",
+      "touchedFiles": [
+        "packages/checkpoint/package.json",
+        "packages/core/package.json",
+        "packages/host-claude-code/package.json",
+        "packages/host-codex/package.json",
+        "packages/host-toolkit/package.json",
+        "packages/testkit/package.json",
+        "packages/checkpoint/tsconfig.test.json",
+        "packages/core/tsconfig.test.json",
+        "packages/host-claude-code/tsconfig.test.json",
+        "packages/host-codex/tsconfig.test.json",
+        "packages/host-toolkit/tsconfig.test.json",
+        "packages/testkit/tsconfig.test.json"
+      ],
+      "updatedAt": "2026-11-27T18:37:07.360Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "CLAUDE.md typecheck line and Enforcement layers bullet; doc test (AC-5, AC-6); ROADMAP and MILESTONES entries. Whole-branch review fixes folded in: ROADMAP count, ratchet test key-set and sorted/no-duplicate assertions.",
+      "touchedFiles": [
+        "CLAUDE.md",
+        "packages/core/tests/docs/test-typecheck-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-27T18:41:17.604Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}

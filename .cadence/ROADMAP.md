@@ -4664,6 +4664,41 @@ the phase 346 `build-test-bypassed` design. Tier `standard`.
   - the new anomaly's message does not list the file names; its context
     and the `gateBypasses` reason do.
 
+### Phase 353 — test files are type-checked (rec-20261125-004)
+
+**Objective.** No command in the pipeline type-checked `packages/*/tests`:
+each package's `tsconfig.json` includes only `src`, `tsconfig.base.json`
+excludes `tests`, and vitest strips types at run time. A strict test
+config measured on 2026-11-27 found 0 errors in checkpoint,
+host-claude-code, host-codex, host-toolkit and testkit, 5 in types and
+289 in 62 core files. This phase makes a type error in a test file fail
+`pnpm typecheck` and CI, fixes types' errors, and freezes core's 62 files
+as a baseline that may only shrink. Tier `standard`.
+
+**As built.**
+- T1: `packages/types/tsconfig.test.json` (noEmit, `src/**/*` and
+  `tests/**/*`, `rootDir` at the repo root so tests may import sibling
+  packages' source) and the `typecheck` script
+  `tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json`. The three
+  AC literals in `plan.test.ts` gain `name` and `intelligence.test.ts`
+  narrows an indexed access. `spec.test.ts`'s fixture is retyped as
+  `z.input<typeof SpecZ>` instead of gaining a `name`, because its
+  back-compat test depends on the omission (an amendment to the DRAFT's
+  AC-4 Given). A ratchet test compiles types' test config and asserts no
+  errors.
+- T2: the same config and script in the other six packages; core's
+  `exclude` lists the 62 baseline files. The ratchet test's pure
+  `checkTestTypecheckRatchet` refuses an exclusion outside `BASELINE`, a
+  baseline file no longer excluded, a deleted baseline file, and a
+  baseline over its cap of 62.
+- T3: CLAUDE.md's `pnpm typecheck` line and an Enforcement layers bullet;
+  a doc-content test. No changeset: dev tooling only.
+- Known limits, documented rather than fixed:
+  - the ratchet does not run `tsc`, so it cannot see a baseline file that
+    has started to compile cleanly while still excluded;
+  - test files are still not linted (`eslint src`);
+  - core's 62 baseline files are later phases' work.
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

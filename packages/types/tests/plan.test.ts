@@ -11,7 +11,7 @@ describe('DraftZ', () => {
       tier: 'quick-fix',
       title: 'Fix typo',
       objective: 'Correct misspelling',
-      acceptanceCriteria: [{ id: 'AC-1', given: '-', when: '-', then: 'word is correct' }],
+      acceptanceCriteria: [{ id: 'AC-1', name: 'n', given: '-', when: '-', then: 'word is correct' }],
       tasks: [
         {
           id: 'T1',
@@ -53,7 +53,7 @@ describe('DraftZ', () => {
     tier: 'quick-fix',
     title: 't',
     objective: 'o',
-    acceptanceCriteria: [{ id: 'AC-1', given: '-', when: '-', then: '-' }],
+    acceptanceCriteria: [{ id: 'AC-1', name: 'n', given: '-', when: '-', then: '-' }],
     tasks: [
       { id: 'T1', name: 'n', files: ['a.ts'], action: 'a', verify: 'v', done: 'AC-1' },
     ],
@@ -84,7 +84,7 @@ describe('DraftZ id schema (rec-20260610-001)', () => {
     tier: 'quick-fix',
     title: 't',
     objective: 'o',
-    acceptanceCriteria: [{ id: 'AC-1', given: '-', when: '-', then: '-' }],
+    acceptanceCriteria: [{ id: 'AC-1', name: 'n', given: '-', when: '-', then: '-' }],
     tasks: [{ id: 'T1', name: 'n', files: ['a.ts'], action: 'a', verify: 'v', done: 'AC-1' }],
     boundaries: [],
     status: 'PENDING',

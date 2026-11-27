@@ -1972,6 +1972,15 @@
       "status": "active",
       "decidedAt": "2026-11-25T21:40:59.580Z",
       "supersedes": []
+    },
+    {
+      "id": "dec-20261127-001",
+      "recommendationId": "rec-20261125-004",
+      "title": "Settle phase 353 past the skill-audit miss",
+      "rationale": "The operator approved --allow-skill-audit-miss on 2026-11-27. Host hooks do not fire in this cloud session, so no skill invocation is recorded; for this phase phase-build was also not invoked: T1-T3 were built inline, each test-first, followed by a fresh-context whole-branch review (nothing blocking; its should-fix findings were folded in) and a forced full pipeline (28/28 tasks, 0 cached).",
+      "status": "active",
+      "decidedAt": "2026-11-27T18:58:09.624Z",
+      "supersedes": []
     }
   ]
 }

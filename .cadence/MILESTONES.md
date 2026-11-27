@@ -1403,6 +1403,11 @@ changeset (example/test-only change, no published-package surface).*
   capping a `strong` `assurance.overall` at `mixed`; the gate's stderr line
   and provenance name the flag by one rule, `--allow-boundary-scan-failure`
   when it is set, else `--force` (rec-20261125-002).
+- **Phase 353** — test files are type-checked: every package's `typecheck`
+  script also compiles `src` and `tests` through a `tsconfig.test.json`, so
+  a type error in a test file fails CI; types' five test errors are fixed,
+  and core's 62 erroring test files are excluded as a baseline that a
+  ratchet doc test lets shrink but not grow (rec-20261125-004).
 
 
 

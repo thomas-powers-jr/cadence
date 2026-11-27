@@ -423,7 +423,7 @@ describe('intelligence milestone schema', () => {
         },
       ],
     });
-    expect(m.exportTargets[0].backend).toBe('cadence');
+    expect(m.exportTargets[0]?.backend).toBe('cadence');
   });
 
   it('ledger rejects a wrong schemaVersion', () => {

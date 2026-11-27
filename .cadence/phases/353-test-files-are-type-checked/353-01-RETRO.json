@@ -1,0 +1,18 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T1, T2, T3 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [
+    {
+      "id": "T1",
+      "status": "DONE_WITH_CONCERNS",
+      "notes": "As built: plan.test.ts lines 14/56/87 got name fields and intelligence.test.ts:426 got ?.; spec.test.ts line 9's fixture is retyped as z.input<typeof SpecZ> instead of gaining a name, because its AC-4 back-compat test ('AC without name defaults to \"\"') depends on the omission; adding name failed that test."
+    }
+  ],
+  "findings": {}
+}

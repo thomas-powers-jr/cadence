@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 2,
+  "draftId": "353-01",
+  "completedAt": "2026-11-27T18:58:14.581Z",
+  "acResults": [
+    {
+      "id": "AC-1",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-2",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-3",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-4",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-5",
+      "pass": true,
+      "evidence": "executed"
+    },
+    {
+      "id": "AC-6",
+      "pass": true,
+      "evidence": "executed"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "draft-read",
+      "status": "ran"
+    },
+    {
+      "gate": "structural-verifier",
+      "status": "ran"
+    },
+    {
+      "gate": "boundary-scan",
+      "status": "skipped",
+      "skipReason": "boundaryEnforcement is not \"block\""
+    },
+    {
+      "gate": "task-verify-required",
+      "status": "ran"
+    },
+    {
+      "gate": "build-test-must-pass",
+      "status": "ran"
+    },
+    {
+      "gate": "test-coverage",
+      "status": "ran"
+    },
+    {
+      "gate": "interactive-verdict",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "deep-verify",
+      "status": "skipped",
+      "skipReason": "not requested (no --deep / --interactive, not in gate set)"
+    },
+    {
+      "gate": "code-review",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    },
+    {
+      "gate": "security-audit",
+      "status": "skipped",
+      "skipReason": "not in the active tier × profile gate set"
+    }
+  ],
+  "taskResults": [
+    {
+      "id": "T1",
+      "status": "DONE_WITH_CONCERNS",
+      "notes": "As built: plan.test.ts lines 14/56/87 got name fields and intelligence.test.ts:426 got ?.; spec.test.ts line 9's fixture is retyped as z.input<typeof SpecZ> instead of gaining a name, because its AC-4 back-compat test ('AC without name defaults to \"\"') depends on the omission; adding name failed that test.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T2",
+      "status": "DONE",
+      "notes": "Six tsconfig.test.json files in the test config shape; core excludes the 62 baseline paths (sorted). Six typecheck scripts set to the test-typecheck script. turbo typecheck --force: 11/11 tasks; ratchet test 9/9.",
+      "execution": "inline",
+      "isolation": "none"
+    },
+    {
+      "id": "T3",
+      "status": "DONE",
+      "notes": "CLAUDE.md typecheck line and Enforcement layers bullet; doc test (AC-5, AC-6); ROADMAP and MILESTONES entries. Whole-branch review fixes folded in: ROADMAP count, ratchet test key-set and sorted/no-duplicate assertions.",
+      "execution": "inline",
+      "isolation": "none"
+    }
+  ],
+  "decisions": [],
+  "deferred": [],
+  "skillAudit": {
+    "required": [
+      "phase-build"
+    ],
+    "invoked": [],
+    "provenance": [
+      {
+        "skill": "phase-build",
+        "source": "pack:cadence/core-skills"
+      }
+    ]
+  },
+  "coverageScheme": "phase-qualified",
+  "coverageMode": "assertion",
+  "gateBypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T1, T2, T3 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "stateAtSettle": {
+    "loopPositionBeforeSettle": "BUILD",
+    "revision": 134,
+    "sessionSubagentSpawns": 0
+  },
+  "assurance": {
+    "verifierRollup": [],
+    "evidenceTally": {
+      "ai-verified": 0,
+      "executed": 6,
+      "assertion": 0,
+      "mention": 0,
+      "unverified": 0
+    },
+    "overall": "mixed"
+  },
+  "contentHash": {
+    "algorithm": "sha256",
+    "value": "dc6c6c6959d4305a0b0bf1cf4f55ec25c9fbb87ee5477c185dbfcc71350de519"
+  }
+}
