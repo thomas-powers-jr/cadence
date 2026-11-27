@@ -1980,7 +1980,7 @@ On the v1.76.0 release the publish step succeeded at 17:15:30 UTC, but npm did n
 
 ## rec-20261124-001 — DRAFT parser's Then capture is unanchored: a capitalised 'Then ' in an AC heading or Given swallows the whole AC
 
-- status: candidate
+- status: converted
 - ready: ready-for-cadence-spec
 - priority: medium
 - leverage: 5/10
