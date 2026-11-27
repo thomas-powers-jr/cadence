@@ -1,0 +1,12 @@
+{
+  "bypasses": [
+    {
+      "gate": "skill-audit",
+      "flag": "--allow-skill-audit-miss",
+      "reason": "required skill(s) not invoked: phase-build; host hooks were not observed when task(s) T1, T2, T3 were recorded, so a skill invoked in that session would not have been recorded",
+      "severity": "warn"
+    }
+  ],
+  "roughTasks": [],
+  "findings": {}
+}
