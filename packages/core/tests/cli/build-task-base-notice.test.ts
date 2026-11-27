@@ -63,8 +63,8 @@ describe('build task base notice (phase 355)', () => {
   it('355-01/AC-3: an orphan origin/main is named as a merge-base failure, not git unavailable', async () => {
     active = await tempRepo({ initialized: true });
     makeOrphanUpstream(active.root);
-    await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root);
-    await run(['draft', 'approve', '01-foundation', '01'], active.root);
+    expect((await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root)).code).toBe(0);
+    expect((await run(['draft', 'approve', '01-foundation', '01'], active.root)).code).toBe(0);
     const outside = git(active.root, ['status', '--porcelain', '--untracked-files=all'])
       .split('\n')
       .filter((l) => l && !l.slice(3).startsWith('.cadence/'));
@@ -81,8 +81,8 @@ describe('build task base notice (phase 355)', () => {
   it('355-01/AC-4: without a git repository the git-unavailable line is kept', async () => {
     active = await tempRepo({ initialized: true });
     expect(existsSync(join(active.root, '.git'))).toBe(false);
-    await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root);
-    await run(['draft', 'approve', '01-foundation', '01'], active.root);
+    expect((await run(['draft', 'new', '01-foundation', '01', '--title=Demo'], active.root)).code).toBe(0);
+    expect((await run(['draft', 'approve', '01-foundation', '01'], active.root)).code).toBe(0);
 
     const r = await run(['build', 'task', 'T1', '--status=DONE'], active.root);
 

@@ -826,11 +826,11 @@ with no declared `files:` still passes before the local notice or the
 `upstream-failed` refusal is considered. `build task`'s record-time check
 names an `upstream-failed` base on stderr: the line says the merge-base of
 origin/<integrationRef> and HEAD could not be computed (adding the `git
-fetch --unshallow origin` fix in a shallow clone), and either that the
-boundary/redundancy check sees working-tree changes only, or, when no newly
-touched file is visible, that the check is skipped and the self-reported
-`touchedFiles` are kept; its `git unavailable` notice is kept for the
-`none` source *(phase 355)*.
+fetch --unshallow origin` (or `--deepen=<n>`) fix in a shallow clone), and
+either that the boundary/redundancy check sees working-tree changes only,
+or, when no newly touched file is visible, that the check is skipped and
+the self-reported `touchedFiles` are kept; its `git unavailable` notice
+is kept for the `none` source *(phase 355)*.
 The `deep-verify` diff resolves its own base and still falls back to the
 local ref on any upstream failure.
 
