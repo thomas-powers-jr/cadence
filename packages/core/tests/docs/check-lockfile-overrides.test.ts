@@ -356,7 +356,7 @@ describe('check-lockfile-overrides pure logic (253-01, AC-3)', () => {
         sourceVersion: '1.0.0',
         resolvedVersion: null,
         instance: null,
-        reason: 'unresolved-target',
+        reason: 'unresolved-target' as const,
       };
 
       const message = script.describeFailure(failure);

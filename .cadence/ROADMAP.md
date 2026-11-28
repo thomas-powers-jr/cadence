@@ -4803,6 +4803,43 @@ several tools print a JSON report on stdout under `json: true`. Tier
     notices;
   - MCP resources (`resources.ts`) still return stdout only, as data.
 
+### Phase 357 — typecheck burn-down: declare the scripts tests import (rec-20261127-001)
+
+**Objective.** First burn-down batch for phase 353's test-typecheck
+baseline. Measured on 2026-11-27 with core's `tsconfig.test.json` and no
+exclusions (62 files, 289 errors), 14 baseline files shared one cause: they
+import the repo-root `scripts/check-audit-exceptions.mjs`,
+`check-lockfile-overrides.mjs`, `publish-proof.mjs` and
+`release-integrity.mjs`, which had no type declarations (TS7016), leaving
+callback parameters implicitly `any` and one downstream TS2339. Tier
+`standard`.
+
+**As built.**
+- T1: a hand-written `scripts/<name>.d.mts` beside each script (no `any`;
+  `unknown` only for raw parsed input), written by a dispatched
+  implementer and re-verified on the main thread. A parity test checks
+  that each declaration names exactly the script's exports. The `.mjs`
+  runtime code is unchanged.
+- T2: the 14 files left core's `exclude` and the ratchet's `BASELINE`,
+  which now holds **48** entries with `BASELINE_CAP` lowered from 62 to 48
+  (phase 353's literal tests and titles updated, new `357-01/AC-2` and
+  `AC-3` tests added). The residual errors needed only type-only test
+  edits: `as const` on one failure literal in
+  `check-lockfile-overrides.test.ts`, and three `spawnSync` test-double
+  casts in `release-integrity.test.ts` routed through `unknown`. No
+  declaration needed changing.
+- T3: a doc-content test; no changeset (dev tooling only).
+- Known limits, documented rather than fixed:
+  - `release-integrity.d.mts`'s option bags take an explicit `undefined`
+    (`?: T | undefined`), as the runtime does, under
+    `exactOptionalPropertyTypes` (whole-branch review);
+  - the declarations are hand-written, so a script's signature can drift
+    from its `.d.mts`; the parity test catches renamed or missing exports,
+    and the importing tests' compile catches only the shapes they use;
+  - turbo does not hash `scripts/`, so editing `scripts/*` alone (a `.d.mts`
+    or a `.mjs`) invalidates neither core's cached `typecheck` nor its
+    cached `test` locally (CI runs uncached).
+
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
 **Gate to entry.** Phase 236 settled and has produced enough routed findings for

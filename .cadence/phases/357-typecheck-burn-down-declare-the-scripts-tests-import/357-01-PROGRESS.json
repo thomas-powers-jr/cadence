@@ -1,0 +1,46 @@
+{
+  "draftId": "357-01",
+  "tasks": {
+    "T1": {
+      "status": "DONE",
+      "notes": "Four scripts/*.d.mts written by a dispatched implementer (no any; unknown only for raw parsed input); main thread re-verified: parity test 5/5 (failed first), core typecheck 0 errors, publish-proof.d.mts read against the .mjs. Residual batch errors left for T2: check-lockfile-overrides.test.ts:362 TS2345, release-integrity.test.ts:247/283/326 TS2352.",
+      "touchedFiles": [
+        "packages/core/tests/scripts/script-declarations.test.ts",
+        "scripts/check-audit-exceptions.d.mts",
+        "scripts/check-lockfile-overrides.d.mts",
+        "scripts/publish-proof.d.mts",
+        "scripts/release-integrity.d.mts"
+      ],
+      "updatedAt": "2026-11-28T00:00:17.320Z",
+      "execution": "dispatch",
+      "isolation": "none",
+      "modelClass": "standard",
+      "hooksObserved": false
+    },
+    "T2": {
+      "status": "DONE",
+      "notes": "Ratchet test updated first (BASELINE -14, cap 48, 353 literals and titles, new 357-01/AC-2 and AC-3 tests) and failed on the real config; then the 14 batch paths left core's exclude. Residual fixes, type-only: check-lockfile-overrides.test.ts reason 'as const'; release-integrity.test.ts three spawnSync casts via unknown. No declaration needed changing. turbo typecheck --force 11/11; tests/docs + tests/scripts 81 files / 533 tests green.",
+      "touchedFiles": [
+        "packages/core/tests/docs/check-lockfile-overrides.test.ts",
+        "packages/core/tests/docs/test-typecheck-ratchet.test.ts",
+        "packages/core/tests/scripts/release-integrity.test.ts",
+        "packages/core/tsconfig.test.json"
+      ],
+      "updatedAt": "2026-11-28T00:01:23.900Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    },
+    "T3": {
+      "status": "DONE",
+      "notes": "Doc test (AC-4) failed first, then passes; ROADMAP and MILESTONES entries; no changeset. All 79 doc-test files green.",
+      "touchedFiles": [
+        "packages/core/tests/docs/typecheck-burn-down-batch1-docs.test.ts"
+      ],
+      "updatedAt": "2026-11-28T00:02:06.706Z",
+      "execution": "inline",
+      "isolation": "none",
+      "hooksObserved": false
+    }
+  }
+}

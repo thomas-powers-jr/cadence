@@ -17,8 +17,9 @@ const DEFAULT_EXCLUDES = ['node_modules', 'dist'];
 
 /**
  * Core test files (relative to packages/core) that failed the test config on
- * main ed1489d1. This list may only shrink: a phase that fixes one of these
- * files removes it here and from packages/core/tsconfig.test.json together.
+ * main ed1489d1, less the 14 that phase 357 released. This list may only
+ * shrink: a phase that fixes one of these files removes it here and from
+ * packages/core/tsconfig.test.json together.
  */
 const BASELINE: readonly string[] = [
   'tests/checks/skill-audit.test.ts',
@@ -28,19 +29,7 @@ const BASELINE: readonly string[] = [
   'tests/coherence/check.test.ts',
   'tests/config-explain/render.test.ts',
   'tests/config-explain/warnings.test.ts',
-  'tests/docs/check-lockfile-overrides.test.ts',
   'tests/docs/criteria-anchoring-docs.test.ts',
-  'tests/docs/lockfile-overrides-current-state.test.ts',
-  'tests/docs/phase260-vitest-v4-upgrade.test.ts',
-  'tests/docs/phase321-brace-advisories.test.ts',
-  'tests/docs/phase324-audit-advisories.test.ts',
-  'tests/docs/phase328-website-advisories.test.ts',
-  'tests/docs/phase329-changesets-3x.test.ts',
-  'tests/docs/phase330-root-moderate-advisories.test.ts',
-  'tests/docs/phase334-vite-high-advisory.test.ts',
-  'tests/docs/phase338-zod-body-parser-undici-advisories.test.ts',
-  'tests/docs/release-verify-budget.test.ts',
-  'tests/docs/security-ci.test.ts',
   'tests/doctor/run.test.ts',
   'tests/gates/assurance-record.test.ts',
   'tests/gates/build-context.test.ts',
@@ -71,8 +60,6 @@ const BASELINE: readonly string[] = [
   'tests/notify/notifier.test.ts',
   'tests/notify/webhook.test.ts',
   'tests/progress.test.ts',
-  'tests/scripts/publish-proof.test.ts',
-  'tests/scripts/release-integrity.test.ts',
   'tests/services/retro.test.ts',
   'tests/services/settle-dry-run.test.ts',
   'tests/services/settle.test.ts',
@@ -86,7 +73,7 @@ const BASELINE: readonly string[] = [
 ];
 // Lower this cap with each file removed from BASELINE, so the freed slot
 // cannot be refilled.
-const BASELINE_CAP = 62;
+const BASELINE_CAP = 48;
 
 type RatchetProblem =
   | { kind: 'not-in-baseline'; path: string }
@@ -177,8 +164,8 @@ describe('test typecheck (phase 353)', () => {
     expect(others).toStrictEqual(PACKAGES.filter((pkg) => pkg !== 'core').map((pkg) => [pkg, DEFAULT_EXCLUDES]));
   });
 
-  it('353-01/AC-3: core\'s real excludes match the 62-entry baseline', () => {
-    expect(BASELINE).toHaveLength(62);
+  it('353-01/AC-3: core\'s real excludes match the 48-entry baseline', () => {
+    expect(BASELINE).toHaveLength(48);
     expect(checkTestTypecheckRatchet(coreExcludes(), BASELINE, coreExists, BASELINE_CAP)).toStrictEqual([]);
   });
 
@@ -209,10 +196,26 @@ describe('test typecheck (phase 353)', () => {
     ]);
   });
 
-  it('353-01/AC-3: a 63-entry baseline is refused as over the cap', () => {
+  it('353-01/AC-3: a 49-entry baseline is refused as over the cap', () => {
     const grown = [...BASELINE, 'tests/cli/new-file.test.ts'];
     expect(checkTestTypecheckRatchet(grown, grown, () => true, BASELINE_CAP)).toStrictEqual([
-      { kind: 'over-cap', count: 63, cap: 62 },
+      { kind: 'over-cap', count: 49, cap: 48 },
+    ]);
+  });
+
+  it('357-01/AC-2: the batch leaves the baseline, which now holds 48 entries', () => {
+    expect(checkTestTypecheckRatchet(coreExcludes(), BASELINE, coreExists, BASELINE_CAP)).toStrictEqual([]);
+    expect(BASELINE).toHaveLength(48);
+    for (const path of ['tests/docs/security-ci.test.ts', 'tests/scripts/release-integrity.test.ts']) {
+      expect(BASELINE).not.toContain(path);
+      expect(coreExcludes()).not.toContain(path);
+    }
+  });
+
+  it('357-01/AC-3: a 49-entry baseline is refused against the cap of 48', () => {
+    const grown = [...BASELINE, 'tests/cli/new-file.test.ts'];
+    expect(checkTestTypecheckRatchet(grown, grown, () => true, BASELINE_CAP)).toStrictEqual([
+      { kind: 'over-cap', count: 49, cap: 48 },
     ]);
   });
 });
