@@ -5,8 +5,8 @@
 /** The parts of a `spawnSync` result that `must` reads. */
 export interface StepResult {
   status: number | null;
-  stdout?: string | null;
-  stderr?: string | null;
+  stdout?: string | null | undefined;
+  stderr?: string | null | undefined;
 }
 
 /** One step of the smoke loop: `[cmd, args, label, opts]`. */

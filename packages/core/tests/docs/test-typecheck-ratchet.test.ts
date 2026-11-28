@@ -17,8 +17,9 @@ const DEFAULT_EXCLUDES = ['node_modules', 'dist'];
 
 /**
  * Core test files (relative to packages/core) that failed the test config on
- * main ed1489d1, less the 14 that phase 357 released. This list may only shrink: a phase that fixes one of these
- * files removes it here and from packages/core/tsconfig.test.json together.
+ * main ed1489d1, less the 14 that phase 357 released. This list may only
+ * shrink: a phase that fixes one of these files removes it here and from
+ * packages/core/tsconfig.test.json together.
  */
 const BASELINE: readonly string[] = [
   'tests/checks/skill-audit.test.ts',

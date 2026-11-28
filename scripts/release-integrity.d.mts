@@ -28,21 +28,21 @@ export interface ReleaseNotesInput {
   packages: readonly { name: string }[];
   changelogEntry: string;
   /** Omitted or empty: no workflow-run line. */
-  runUrl?: string;
+  runUrl?: string | undefined;
 }
 
 export interface RunCommandOptions {
-  cwd?: string;
-  env?: NodeJS.ProcessEnv;
+  cwd?: string | undefined;
+  env?: NodeJS.ProcessEnv | undefined;
 }
 
 export interface VerifyNpmOptions {
-  root?: string;
-  env?: NodeJS.ProcessEnv;
+  root?: string | undefined;
+  env?: NodeJS.ProcessEnv | undefined;
 }
 
 export interface ReleaseIntegrityOptions extends VerifyNpmOptions {
-  dryRun?: boolean;
+  dryRun?: boolean | undefined;
 }
 
 export declare const POST_PUBLISH_VERIFY_ATTEMPTS: number;

@@ -4830,11 +4830,15 @@ callback parameters implicitly `any` and one downstream TS2339. Tier
   declaration needed changing.
 - T3: a doc-content test; no changeset (dev tooling only).
 - Known limits, documented rather than fixed:
+  - `release-integrity.d.mts`'s option bags take an explicit `undefined`
+    (`?: T | undefined`), as the runtime does, under
+    `exactOptionalPropertyTypes` (whole-branch review);
   - the declarations are hand-written, so a script's signature can drift
     from its `.d.mts`; the parity test catches renamed or missing exports,
     and the importing tests' compile catches only the shapes they use;
-  - turbo does not hash `scripts/`, so editing a `.d.mts` alone does not
-    invalidate core's cached typecheck locally (CI runs uncached).
+  - turbo does not hash `scripts/`, so editing `scripts/*` alone (a `.d.mts`
+    or a `.mjs`) invalidates neither core's cached `typecheck` nor its
+    cached `test` locally (CI runs uncached).
 
 ### Phase 237 — Invariant promotion from recurring findings *(sketch — contingent)*
 
