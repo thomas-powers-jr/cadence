@@ -1425,6 +1425,11 @@ changeset (example/test-only change, no published-package surface).*
   item instead of being dropped; the first item is unchanged, so `json: true`
   reports still parse and refusals keep their single item
   (rec-20260822-002).
+- **Phase 357** — typecheck burn-down, batch 1: the four repo-root
+  `scripts/*.mjs` modules core's tests import gained hand-written `.d.mts`
+  declarations with an export-parity test, and the 14 test files they had
+  kept out of the test typecheck now compile, shrinking core's ratchet
+  baseline from 62 to 48 files (rec-20261127-001).
 
 
 

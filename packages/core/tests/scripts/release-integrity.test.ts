@@ -251,7 +251,7 @@ describe('npm verification retry budget (post-publish vs pre-publish)', () => {
         const handled = gitGh(command, args);
         if (handled) return handled as never;
         throw new Error(`unexpected spawnSync call in test: ${command} ${args.join(' ')}`);
-      }) as typeof spawnSync);
+      }) as unknown as typeof spawnSync);
 
       vi.useFakeTimers();
       const resultPromise = script.runReleaseIntegrity({ root, env: {}, dryRun: false });
@@ -285,7 +285,7 @@ describe('npm verification retry budget (post-publish vs pre-publish)', () => {
           return npmView(String(args[1])) as never;
         }
         throw new Error(`unexpected spawnSync call in test: ${command} ${args.join(' ')}`);
-      }) as typeof spawnSync);
+      }) as unknown as typeof spawnSync);
 
       vi.useFakeTimers();
       const resultPromise = script.verifyNpmPublished({ root, env: {} });
@@ -333,7 +333,7 @@ describe('323-01 patient post-publish npm verification', () => {
         if (handled) return handled as never;
       }
       throw new Error(`unexpected spawnSync call in test: ${command} ${args.join(' ')}`);
-    }) as typeof spawnSync);
+    }) as unknown as typeof spawnSync);
     return times;
   }
 
